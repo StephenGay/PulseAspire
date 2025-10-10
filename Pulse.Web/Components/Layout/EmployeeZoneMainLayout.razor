@@ -1,0 +1,36 @@
+﻿@using Pulse.Models.Customers
+@using Pulse.Models.Organizational
+@using Pulse.Web.Services
+@inject DataTransferService DataTransferService
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <EmployeeZoneNavMenu />
+    </div>
+
+    <main>
+		<div class="top-row px-4 div-client-name">
+			@u?.UserName
+			@* <EmployeeZoneTopMenu /> *@
+        </div>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+@code{
+    private User? u;
+    protected override async Task OnInitializedAsync()
+    {
+		u = await DataTransferService.GetgvUser();
+        
+	}
+}

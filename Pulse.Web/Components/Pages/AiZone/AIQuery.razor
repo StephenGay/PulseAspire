@@ -1,0 +1,113 @@
+﻿@page "/AiZone/AIQuery"
+@using MudBlazor
+@using Pulse.Web.Services
+@using System.Data
+@inject Pulse_AI pAI
+@* @inject OllamaService ollama *@
+@inject PulseApiService pulseApiClient 
+@rendermode InteractiveServer
+
+<h3 class="h3-overide">AI Roller Query</h3>
+
+<MudTextField @bind-Value="query" Label="Enter your question" Variant="Variant.Outlined" Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Filled.Send" OnAdornmentClick="SubmitQuery" Immediate="true" Style="background-color: #FFFFFF !important;" />
+
+
+@if (rows.Any())
+{
+    <MudTable Items="@rows" Hover="true" Striped="true" Breakpoint="Breakpoint.Sm">
+        <HeaderContent>
+            
+            @foreach (var column in columns)
+            {
+                <MudTh>@column</MudTh>
+            }
+        </HeaderContent>
+        <RowTemplate>
+            @foreach (var column in columns)
+            {
+                <MudTd DataLabel="@column">@context[column]?.ToString()</MudTd>
+                // Handles nulls gracefully
+            }
+        </RowTemplate>
+    </MudTable>
+}
+else if (isLoading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+}
+
+@code {
+    private string query = string.Empty;
+    private List<string> columns = new();
+    private List<Dictionary<string,object>> rows = new();
+    private bool isLoading = false;
+    private string errorMessage = string.Empty;
+
+    private async Task SubmitQuery()
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        columns.Clear();
+        rows.Clear();
+
+        try
+        {
+            // Call Ollama to process the natural language query
+            var aiSQL = await pAI.GetSQLFromOllamaAsync(query);
+            if(!aiSQL.StartsWith("Generated SQL:"))
+            {
+                errorMessage = "AI did not return a valid SQL query.";
+                return;
+            }
+            aiSQL = aiSQL.Replace("Generated SQL:", "").Trim();
+            var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{aiSQL}");
+            if(aiResponse == null)
+            {
+                errorMessage = "No response from AI execution.";
+                return;
+            }
+            rows = aiResponse;
+
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error processing query: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    // Example helper methods (implement based on your models)
+    private async Task<List<RollerResult>> GetDataFromDbAsync(string filter)
+    {
+        // Translate filter to LINQ, e.g., DbContext.Rollers.Where(r => r.CoveringType == "Rubber" && ...).ToListAsync();
+        return new List<RollerResult>(); // Populate with actual data
+    }
+
+    // Define a result model for the table
+    private class RollerResult
+    {
+        public int RollerId { get; set; }
+        public string CoveringType { get; set; } // "Rubber" or "Polyurethane"
+        public DateTime LastRecoveryDate { get; set; }
+        public DateTime? PredictedRecoveryDate { get; set; }
+        public string Suggestions { get; set; } // e.g., "Merge with Roller 456 (duplicate entry)"
+    }
+
+    // Placeholder for parsed AI response
+    private class AIParsedResponse
+    {
+        public string Action { get; set; }
+        public string SqlFilter { get; set; }
+        public object Data { get; set; } // Or specific types
+        // etc.
+    }
+}

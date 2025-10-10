@@ -1,0 +1,133 @@
+﻿body {
+    background-color: #f9f9f9;
+    font-family: 'Montserrat', Arial, sans-serif;
+    color: white; /* #333333;*/
+    margin: 0;
+}
+
+.text-overide {
+    color: white !important;
+}
+
+.header-logo {
+    display: block;
+    margin: 0 auto;
+    max-width: 350px;
+    height: auto;
+    padding: 30px 0;
+    animation: fadeIn 1s ease-in-out;
+}
+
+@keyframes fadeIn {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.h3-add-pad {
+    padding-top: 13px;
+    padding-bottom: 5px;
+    padding-left: 20px;
+    background-color: #bcd1d4;
+    border-bottom: 1px solid #365b66 !important;
+    color: #365b66;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.divSectionCard {
+    padding: 20px;
+}
+
+.btnOveride {
+    background: linear-gradient(135deg, #bcd1d4 0%, #365b66 100%) !important;
+}
+
+.header {
+    background: linear-gradient(135deg, #005566 0%, #005566 100%);
+    color: #ffffff;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.container {
+    margin-top: 30px;
+    max-width: 1200px;
+}
+
+.section-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 0px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease;
+}
+
+    .section-card:hover {
+        transform: translateY(-5px);
+    }
+
+.my-section-card {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 0px;
+    margin-bottom: 30px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #f28c38 0%, #ff6200 100%);
+    border: none;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-weight: 500;
+    transition: background 0.3s ease;
+}
+
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #e07b30 0%, #e55b00 100%);
+    }
+
+.mySuccess {
+    background-color: #D7EACE !important;
+    text-align: center !important;
+    padding-right: 1em !important;
+    border: 1px solid #224713 !important;
+}
+
+.myWarning {
+    background-color: #D79394 !important;
+    text-align: center !important;
+    font-weight: bold !important;
+    border: 1px solid #6F0607 !important;
+}
+
+.list-group-item {
+    border: none;
+    padding: 10px 0;
+}
+
+.footer {
+    background: linear-gradient(135deg, #005566 0%, #005566 100%);
+    color: #ffffff;
+    padding: 20px;
+    text-align: center;
+    margin-top: 40px;
+}
+
+    .footer a {
+        color: #f28c38;
+        text-decoration: none;
+    }
+
+        .footer a:hover {
+            color: #e07b30;
+        }
