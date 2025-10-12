@@ -1,4 +1,6 @@
-﻿using Pulse.Models.Misc;
+﻿using Pulse.Models.CustomComponents;
+using Pulse.Models.Misc;
+using Pulse.Web.Tools;
 using System.Net.Http;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -8,7 +10,7 @@ namespace Pulse.Web.Services
 {
     internal sealed class OllamaService(HttpClient httpOllama, ILogger<OllamaService> logger)
     {
-        private readonly PulseApiService _pulseApiClient;
+        //private readonly PulseApiService _pulseApiClient;
         private readonly HttpClient _httpOllama = httpOllama;
         private readonly ILogger<OllamaService> _logger = logger;
         public async Task<T?> PostAsync<T>(string requestUri, object payload)
@@ -71,9 +73,9 @@ namespace Pulse.Web.Services
             }
         }
 
-        public async Task<string> GenerateSQLQueryAsync(string naturalLanguageQuery, string schema, string examples )
+        public async Task<string> GenerateSQLQueryAsync(string schema, string examples, string naturalLanguageQuery)
         {
-            
+
             var prompt = $@"
                 You are an expert in SQL Server 2022 T-SQL. Given this schema:
                 {schema}
@@ -83,10 +85,13 @@ namespace Pulse.Web.Services
                 User question: {naturalLanguageQuery}
 
                 Generate a valid SQL Server 2022 SELECT query in plain text. Return ONLY the T-SQL query.
+                Use schema for accurate joins/columns.
                 ";
 
             var requestBody = new
             {
+                //model = ai.ModelName,
+                //prompt = ai.Prompt,
                 model = "llama3.1:latest",
                 prompt = prompt,
                 stream = false,
@@ -96,7 +101,7 @@ namespace Pulse.Web.Services
 
             try
             {
-                var response = await _httpOllama.PostAsJsonAsync("/", requestBody);
+                var response = await _httpOllama.PostAsJsonAsync("/api/generate", requestBody);
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();

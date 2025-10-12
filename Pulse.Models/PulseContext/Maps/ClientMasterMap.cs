@@ -1,14 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Pulse.Models.Customers;
-using Pulse.Models.Geographic;
-using Pulse.Models.Organizational;
-using Pulse.Models.Misc;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pulse.Models.PulseContext.Maps
 {
@@ -27,6 +19,17 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(c => c.Industry)
                    .WithMany(i => i.Customers)
                    .HasForeignKey(c => c.IndustryID);
+            builder.HasOne(re => re.SalesRepresentative)
+                .WithMany(s => s.Customers)
+                .HasForeignKey(re => re.SalesRepID);
+
+            builder.Property(e => e.Ageing01).HasPrecision(18, 2);
+            builder.Property(e => e.Ageing02).HasPrecision(18, 2);
+            builder.Property(e => e.Ageing03).HasPrecision(18, 2);
+            builder.Property(e => e.Ageing04).HasPrecision(18, 2);
+            builder.Property(e => e.Ageing05).HasPrecision(18, 2);
+            builder.Property(e => e.CreditLimit).HasPrecision(18, 2);
+        
         }
     }
 }

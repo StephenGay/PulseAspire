@@ -1,4 +1,6 @@
-﻿using Pulse.Models.Misc;
+﻿using Pulse.Models.CustomComponents;
+using Pulse.Models.Misc;
+using Pulse.Web.Tools;
 
 namespace Pulse.Web.Services
 {
@@ -7,9 +9,12 @@ namespace Pulse.Web.Services
     {
         public async Task<string> GetSQLFromOllamaAsync(string userQuery)
         {
-            var dbSchema = await pulseApiService.GetSchemaAsync();
-            if (string.IsNullOrWhiteSpace(dbSchema))
+            string dbSchema = await pulseApiService.GetDetailedSchemaAsync();
+            if (string.IsNullOrEmpty(dbSchema))
                 return "Error: Unable to retrieve database schema information.";
+
+            //AiModel ai = new AiModel(aiModel);
+            //ai.SetSchema(dbSchema);
 
             var aiQueries = await pulseApiService.GetAsync<List<AiQuery>>("/AI/examples");
             string examples = "";
@@ -20,8 +25,12 @@ namespace Pulse.Web.Services
                 {
                     examples += $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n";
                 }
+                //ai.SetExamples(examples);
             }
-            return await ollamaService.GenerateSQLQueryAsync(userQuery, dbSchema, examples);
+            //ai.SetQuestion(userQuery);
+            //ai.SetPrompt();
+
+            return await ollamaService.GenerateSQLQueryAsync(dbSchema,examples,userQuery);
         }
     }
 }

@@ -20,5 +20,6 @@ namespace Pulse.Models.Organizational
         public bool IsActive { get; set; } = true;
         public List<Division> Divisions { get; set; } = new();
         public List<Customer> Customers { get; set; } = new();
+        public List<SalesRepresentative> SalesRepresentatives { get;set; } = new();
     }
 }

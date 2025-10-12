@@ -3,6 +3,10 @@
 @using Pulse.Web.Services
 @inject DataTransferService DataTransferService
 @inherits LayoutComponentBase
+<MudThemeProvider />  @* If not already there *@
+<MudDialogProvider /> @* Optional, but good for modals *@
+<MudSnackbarProvider /> @* Optional for notifications *@
+<MudPopoverProvider />
 
 <div class="page">
     <div class="sidebar">

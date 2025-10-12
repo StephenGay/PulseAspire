@@ -12,8 +12,8 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    [Migration("20251008211442_U2")]
-    partial class U2
+    [Migration("20251012062412_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,38 @@ namespace Pulse.ApiService.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Pulse.Models.Customers.ClientSales", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CompanyID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FullClientID")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("PeriodID")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FullClientID");
+
+                    b.HasIndex("PeriodID");
+
+                    b.ToTable("ClientSales", (string)null);
+                });
 
             modelBuilder.Entity("Pulse.Models.Customers.Customer", b =>
                 {
@@ -52,18 +84,23 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<decimal?>("Ageing01")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("Ageing02")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("Ageing03")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("Ageing04")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("Ageing05")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<bool>("Blocked")
@@ -86,6 +123,7 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal?>("CreditLimit")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("EMail")
@@ -134,8 +172,8 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("bit");
 
                     b.Property<string>("SalesRepID")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)");
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
 
                     b.Property<bool>("SisterCompany")
                         .HasColumnType("bit");
@@ -159,6 +197,8 @@ namespace Pulse.ApiService.Migrations
                     b.HasIndex("IndustryID");
 
                     b.HasIndex("RegionID");
+
+                    b.HasIndex("SalesRepID");
 
                     b.ToTable("ClientMaster", (string)null);
                 });
@@ -250,6 +290,35 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("RegionMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Misc.AiQuery", b =>
+                {
+                    b.Property<int>("AiQueryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AiQueryID"));
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Question")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("SqlQuery")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AiQueryID");
+
+                    b.ToTable("AiSavedQueries", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Misc.Industry", b =>
                 {
                     b.Property<int>("IndustryID")
@@ -266,6 +335,34 @@ namespace Pulse.ApiService.Migrations
                     b.HasKey("IndustryID");
 
                     b.ToTable("IndustryMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Misc.Period", b =>
+                {
+                    b.Property<int>("PeriodID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CalendarYear")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("FinancialYear")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("Month")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PeriodID");
+
+                    b.ToTable("PeriodMaster", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Models.Organizational.Branch", b =>
@@ -333,6 +430,33 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("DivisionMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Organizational.SalesRepresentative", b =>
+                {
+                    b.Property<string>("RepresentativeID")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("CompanyID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("LinkedUserID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RepresentativeName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("RepresentativeID");
+
+                    b.HasIndex("CompanyID");
+
+                    b.ToTable("RepresentativeMaster", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Organizational.User", b =>
                 {
                     b.Property<int>("UserID")
@@ -360,6 +484,25 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("UserMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Customers.ClientSales", b =>
+                {
+                    b.HasOne("Pulse.Models.Customers.Customer", "Customer")
+                        .WithMany("ClientSales")
+                        .HasForeignKey("FullClientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Misc.Period", "Period")
+                        .WithMany("ClientSales")
+                        .HasForeignKey("PeriodID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Period");
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.Customer", b =>
                 {
                     b.HasOne("Pulse.Models.Organizational.Company", "Company")
@@ -376,11 +519,17 @@ namespace Pulse.ApiService.Migrations
                         .WithMany("Customers")
                         .HasForeignKey("RegionID");
 
+                    b.HasOne("Pulse.Models.Organizational.SalesRepresentative", "SalesRepresentative")
+                        .WithMany("Customers")
+                        .HasForeignKey("SalesRepID");
+
                     b.Navigation("Company");
 
                     b.Navigation("Industry");
 
                     b.Navigation("Region");
+
+                    b.Navigation("SalesRepresentative");
                 });
 
             modelBuilder.Entity("Pulse.Models.Geographic.Country", b =>
@@ -435,6 +584,22 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Organizational.SalesRepresentative", b =>
+                {
+                    b.HasOne("Pulse.Models.Organizational.Company", "Company")
+                        .WithMany("SalesRepresentatives")
+                        .HasForeignKey("CompanyID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Company");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Customers.Customer", b =>
+                {
+                    b.Navigation("ClientSales");
+                });
+
             modelBuilder.Entity("Pulse.Models.Geographic.Continent", b =>
                 {
                     b.Navigation("Countries");
@@ -460,6 +625,11 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Customers");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Misc.Period", b =>
+                {
+                    b.Navigation("ClientSales");
+                });
+
             modelBuilder.Entity("Pulse.Models.Organizational.Branch", b =>
                 {
                     b.Navigation("Divisions");
@@ -470,6 +640,13 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Customers");
 
                     b.Navigation("Divisions");
+
+                    b.Navigation("SalesRepresentatives");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Organizational.SalesRepresentative", b =>
+                {
+                    b.Navigation("Customers");
                 });
 #pragma warning restore 612, 618
         }

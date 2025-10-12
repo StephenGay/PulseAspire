@@ -25,6 +25,7 @@ builder.Services.AddSingleton<OllamaService>();
 builder.Services.AddHttpClient<OllamaService>(client =>
 {
     client.BaseAddress = new Uri(ollamaEndpoint);
+    client.Timeout = TimeSpan.FromMinutes(2);
 });
 
 builder.Services.AddSingleton<DataTransferService>();
@@ -33,6 +34,11 @@ builder.Services.AddSingleton<Pulse_AI>();
 builder.Services.AddMudServices();
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new TypeConverter());
+    });
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();

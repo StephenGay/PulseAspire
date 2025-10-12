@@ -1,6 +1,9 @@
+using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
+using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
 using Pulse.Models.PulseContext;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,6 +14,14 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<PulseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("PulseDbConn"),b => b.MigrationsAssembly("Pulse.ApiService")));
+
+builder.Services.AddEndpointsApiExplorer(); // If using Swagger/OpenAPI
+builder.Services.Configure<JsonOptions>(options =>
+{
+    options.SerializerOptions.Converters.Add(new TypeConverter());
+    // Optional: Ignore cycles if your schema has circular refs
+    options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+});
 
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();

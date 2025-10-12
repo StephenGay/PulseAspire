@@ -71,7 +71,7 @@ namespace Pulse.Models.Customers
 
         public DateTime? CreatedDate { get; set; }
 
-        [MaxLength(5)]
+        [MaxLength(10)]
         public string? SalesRepID { get; set; }
 
         public int? RegionID { get; set; }
@@ -105,6 +105,8 @@ namespace Pulse.Models.Customers
         public Region? Region { get; set; }
         public Industry? Industry { get; set; }
         public Company? Company { get; set; }
+        public SalesRepresentative? SalesRepresentative { get; set; }
+        public List<ClientSales>? ClientSales { get; set; }
 
     }
 }

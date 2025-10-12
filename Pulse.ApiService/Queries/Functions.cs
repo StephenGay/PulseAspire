@@ -11,25 +11,32 @@ public class Functions
         await Task.Delay(100);
         var results = new List<Dictionary<string, object>>();
 
-        using (SqlConnection connection = new SqlConnection(connectionString))
+        try
         {
-            connection.Open();
-            using (SqlCommand command = new SqlCommand(query, connection))
-            using (SqlDataReader reader = command.ExecuteReader())
+            using (SqlConnection connection = new SqlConnection(connectionString))
             {
-                while (reader.Read())
+                connection.Open();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                using (SqlDataReader reader = command.ExecuteReader())
                 {
-                    var row = new Dictionary<string, object>();
-                    for (int i = 0; i < reader.FieldCount; i++)
+                    while (reader.Read())
                     {
-                        row[reader.GetName(i)] = reader.GetValue(i);
+                        var row = new Dictionary<string, object>();
+                        for (int i = 0; i < reader.FieldCount; i++)
+                        {
+                            row[reader.GetName(i)] = reader.GetValue(i);
+                        }
+                        results.Add(row);
                     }
-                    results.Add(row);
                 }
             }
+
+            return results;
         }
-
-        return results;
+        catch (Exception ex)
+        {
+            //throw new Exception(ex.Message);
+            return null;
+        }
     }
-
 }

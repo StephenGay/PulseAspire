@@ -1,6 +1,8 @@
 ﻿
 using Pulse.Models.Customers;
 using Pulse.Models.Organizational;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace Pulse.Web.Services
 {
@@ -51,5 +53,17 @@ namespace Pulse.Web.Services
         public Task<Customer> GetgvClient();
         public Task SetgvUser(User user);
         public Task<User> GetgvUser();
+    }
+    public class TypeConverter : JsonConverter<Type>
+    {
+        public override Type Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            throw new NotImplementedException("Deserialization not supported for security reasons.");
+        }
+
+        public override void Write(Utf8JsonWriter writer, Type value, JsonSerializerOptions options)
+        {
+            writer.WriteStringValue(value.FullName); // Serialize as string (e.g., "System.String")
+        }
     }
 }

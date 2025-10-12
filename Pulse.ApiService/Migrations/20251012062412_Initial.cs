@@ -6,11 +6,27 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Pulse.ApiService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "AiSavedQueries",
+                columns: table => new
+                {
+                    AiQueryID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Question = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    SqlQuery = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Timestamp = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AiSavedQueries", x => x.AiQueryID);
+                });
+
             migrationBuilder.CreateTable(
                 name: "BranchMaster",
                 columns: table => new
@@ -64,6 +80,36 @@ namespace Pulse.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PeriodMaster",
+                columns: table => new
+                {
+                    PeriodID = table.Column<int>(type: "int", nullable: false),
+                    Month = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
+                    CalendarYear = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
+                    FinancialYear = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PeriodMaster", x => x.PeriodID);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "UserMaster",
+                columns: table => new
+                {
+                    UserID = table.Column<int>(type: "int", nullable: false),
+                    UserName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserMaster", x => x.UserID);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DivisionMaster",
                 columns: table => new
                 {
@@ -84,6 +130,27 @@ namespace Pulse.ApiService.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_DivisionMaster_CompanyMaster_CompanyID",
+                        column: x => x.CompanyID,
+                        principalTable: "CompanyMaster",
+                        principalColumn: "CompanyID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RepresentativeMaster",
+                columns: table => new
+                {
+                    RepresentativeID = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    CompanyID = table.Column<int>(type: "int", nullable: false),
+                    RepresentativeName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    LinkedUserID = table.Column<int>(type: "int", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RepresentativeMaster", x => x.RepresentativeID);
+                    table.ForeignKey(
+                        name: "FK_RepresentativeMaster_CompanyMaster_CompanyID",
                         column: x => x.CompanyID,
                         principalTable: "CompanyMaster",
                         principalColumn: "CompanyID",
@@ -159,34 +226,34 @@ namespace Pulse.ApiService.Migrations
                     FullChargeClientID = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     ClientID = table.Column<string>(type: "nvarchar(6)", maxLength: 6, nullable: false),
                     ClientName = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
-                    Address1 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Address2 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Address3 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Address4 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    Address5 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    PostalAddress1 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    PostalAddress2 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    PostalAddress3 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    PostalAddress4 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
-                    PostalAddress5 = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: true),
+                    Address1 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    Address2 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    Address3 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    Address4 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    Address5 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    PostalAddress1 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    PostalAddress2 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    PostalAddress3 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    PostalAddress4 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
+                    PostalAddress5 = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
                     Phone = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
                     EMail = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
                     VATNo = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: true),
                     TaxCodeID = table.Column<string>(type: "nvarchar(2)", maxLength: 2, nullable: false),
                     RequireOrderNo = table.Column<bool>(type: "bit", nullable: false),
                     CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    SalesRepID = table.Column<string>(type: "nvarchar(5)", maxLength: 5, nullable: true),
+                    SalesRepID = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     RegionID = table.Column<int>(type: "int", nullable: true),
                     IndustryID = table.Column<int>(type: "int", nullable: true),
                     SisterCompany = table.Column<bool>(type: "bit", nullable: false),
                     Blocked = table.Column<bool>(type: "bit", nullable: false),
                     TermDays = table.Column<int>(type: "int", nullable: true),
-                    CreditLimit = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Ageing01 = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Ageing02 = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Ageing03 = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Ageing04 = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Ageing05 = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CreditLimit = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    Ageing01 = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    Ageing02 = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    Ageing03 = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    Ageing04 = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
+                    Ageing05 = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true),
                     LastVisitDate = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -208,6 +275,39 @@ namespace Pulse.ApiService.Migrations
                         column: x => x.RegionID,
                         principalTable: "RegionMaster",
                         principalColumn: "RegionID");
+                    table.ForeignKey(
+                        name: "FK_ClientMaster_RepresentativeMaster_SalesRepID",
+                        column: x => x.SalesRepID,
+                        principalTable: "RepresentativeMaster",
+                        principalColumn: "RepresentativeID");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClientSales",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    FullClientID = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    PeriodID = table.Column<int>(type: "int", nullable: false),
+                    CompanyID = table.Column<int>(type: "int", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClientSales", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ClientSales_ClientMaster_FullClientID",
+                        column: x => x.FullClientID,
+                        principalTable: "ClientMaster",
+                        principalColumn: "FullClientID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ClientSales_PeriodMaster_PeriodID",
+                        column: x => x.PeriodID,
+                        principalTable: "PeriodMaster",
+                        principalColumn: "PeriodID",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -224,6 +324,21 @@ namespace Pulse.ApiService.Migrations
                 name: "IX_ClientMaster_RegionID",
                 table: "ClientMaster",
                 column: "RegionID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClientMaster_SalesRepID",
+                table: "ClientMaster",
+                column: "SalesRepID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClientSales_FullClientID",
+                table: "ClientSales",
+                column: "FullClientID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClientSales_PeriodID",
+                table: "ClientSales",
+                column: "PeriodID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CountryMaster_ContinentID",
@@ -249,16 +364,36 @@ namespace Pulse.ApiService.Migrations
                 name: "IX_RegionMaster_ProvinceID",
                 table: "RegionMaster",
                 column: "ProvinceID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RepresentativeMaster_CompanyID",
+                table: "RepresentativeMaster",
+                column: "CompanyID");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "ClientMaster");
+                name: "AiSavedQueries");
+
+            migrationBuilder.DropTable(
+                name: "ClientSales");
 
             migrationBuilder.DropTable(
                 name: "DivisionMaster");
+
+            migrationBuilder.DropTable(
+                name: "UserMaster");
+
+            migrationBuilder.DropTable(
+                name: "ClientMaster");
+
+            migrationBuilder.DropTable(
+                name: "PeriodMaster");
+
+            migrationBuilder.DropTable(
+                name: "BranchMaster");
 
             migrationBuilder.DropTable(
                 name: "IndustryMaster");
@@ -267,13 +402,13 @@ namespace Pulse.ApiService.Migrations
                 name: "RegionMaster");
 
             migrationBuilder.DropTable(
-                name: "BranchMaster");
-
-            migrationBuilder.DropTable(
-                name: "CompanyMaster");
+                name: "RepresentativeMaster");
 
             migrationBuilder.DropTable(
                 name: "ProvinceMaster");
+
+            migrationBuilder.DropTable(
+                name: "CompanyMaster");
 
             migrationBuilder.DropTable(
                 name: "CountryMaster");
