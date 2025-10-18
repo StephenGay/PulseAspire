@@ -9,6 +9,9 @@ using Pulse.Models.Customers;
 using Pulse.Models.Organizational;
 using Pulse.Models.Geographic;
 using Pulse.Models.Misc;
+using Pulse.Models.Industries;
+using Pulse.Models.Rollers;
+using Pulse.Models.Compounds;
 
 namespace Pulse.Models.PulseContext
 {
@@ -28,7 +31,11 @@ namespace Pulse.Models.PulseContext
         public DbSet<SalesRepresentative> RepresentativeMaster { get; set; }
         public DbSet<ClientSales> ClientSales {  get; set; }
         public DbSet<Period> PeriodMaster { get; set; }
-
+        public DbSet<IndustryProcess> IndustryProcessMaster { get; set; }
+        public DbSet<RollerType> RollerTypeMaster { get; set; }
+        public DbSet<ShellType> ShellTypeMaster { get; set; }
+        public DbSet<Polymer> PolymerMaster { get; set; }
+        public DbSet<Colour> ColourMaster { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -46,6 +53,11 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new RepresentativeMasterMap());
             modelBuilder.ApplyConfiguration(new ClientSalesMap());
             modelBuilder.ApplyConfiguration(new PeriodMasterMap());
+            modelBuilder.ApplyConfiguration(new IndustryProcessMasterMap());
+            modelBuilder.ApplyConfiguration(new RollerTypeMasterMap());
+            modelBuilder.ApplyConfiguration(new ShellTypeMasterMap());
+            modelBuilder.ApplyConfiguration(new PolymerMasterMap());
+            modelBuilder.ApplyConfiguration(new ColourMasterMap());
 
             base.OnModelCreating(modelBuilder);
         }

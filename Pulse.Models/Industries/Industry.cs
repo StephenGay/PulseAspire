@@ -7,7 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Pulse.Models.Misc
+namespace Pulse.Models.Industries
 {
     public class Industry
     {
@@ -20,5 +20,6 @@ namespace Pulse.Models.Misc
         public required string IndustryName { get; set; }
         public bool IsActive { get; set; } = true;
         public List<Customer>? Customers { get; set; }
+        public List<IndustryProcess>? IndustryProcesses { get; set; }
     }
 }

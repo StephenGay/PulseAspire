@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Pulse.Models.Geographic;
-using Pulse.Models.Misc;
+using Pulse.Models.Industries;
 using Pulse.Models.Organizational;
 
 namespace Pulse.Models.Customers

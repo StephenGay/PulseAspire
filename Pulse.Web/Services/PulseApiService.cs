@@ -1,4 +1,5 @@
 ﻿using Pulse.Models.CustomComponents;
+using Pulse.Models.Misc;
 using System.Data;
 using System.Text;
 using System.Text.Json;
@@ -9,33 +10,40 @@ namespace Pulse.Web.Services
     {
         private readonly HttpClient _httpClient = PulseApiClient;
         private readonly ILogger<PulseApiService> _logger = logger;
+        //private static string _cachedSchema;
+        //private static DateTime _cacheExpiry = DateTime.MinValue;
 
-        public async Task<string> GetDetailedSchemaAsync()
-        {
-            var schemas = await GetSchemaAsync(); // Use your PulseApiService
-            var schemaBuilder = new StringBuilder();
+        //public async Task<string> GetDetailedSchemaAsync()
+        //{
+        //    //if (DateTime.UtcNow < _cacheExpiry && _cachedSchema != null) return _cachedSchema;
 
-            foreach (var schema in schemas)
-            {
-                schemaBuilder.AppendLine($"Entity: {schema.EntityType} (Table: {schema.TableName})");
-                schemaBuilder.AppendLine($"Primary Keys: {string.Join(", ", schema.PrimaryKeys)}");
+        //    var schemas = await GetSchemaAsync(); // Use your PulseApiService
+        //    //var schemaBuilder = new StringBuilder();
 
-                schemaBuilder.AppendLine("Columns:");
-                foreach (var col in schema.Columns)
-                {
-                    schemaBuilder.AppendLine($"- {col.Name} (Type: {col.DataType}, Nullable: {col.IsNullable}, PK: {col.IsPrimaryKey})");
-                }
+        //    //foreach (var schema in schemas)
+        //    //{
+        //    //    schemaBuilder.AppendLine($"Entity: {schema.EntityType} (Table: {schema.TableName})");
+        //    //    schemaBuilder.AppendLine($"Primary Keys: {string.Join(", ", schema.PrimaryKeys)}");
 
-                schemaBuilder.AppendLine("Relationships:");
-                foreach (var rel in schema.Relationships)
-                {
-                    schemaBuilder.AppendLine($"- To {rel.RelatedEntityType} (Table: {rel.RelatedTableName}), Navigation: {rel.NavigationName}, FK Columns: {string.Join(", ", rel.ForeignKeyColumns)}, Cardinality: {rel.Cardinality}");
-                }
-                schemaBuilder.AppendLine(); // Separator
-            }
+        //    //    schemaBuilder.AppendLine("Columns:");
+        //    //    foreach (var col in schema.Columns)
+        //    //    {
+        //    //        schemaBuilder.AppendLine($"- {col.Name} (Type: {col.DataType}, Nullable: {col.IsNullable}, PK: {col.IsPrimaryKey})");
+        //    //    }
 
-            return schemaBuilder.ToString();
-        }
+        //    //    schemaBuilder.AppendLine("Relationships:");
+        //    //    foreach (var rel in schema.Relationships)
+        //    //    {
+        //    //        schemaBuilder.AppendLine($"- To {rel.RelatedEntityType} (Table: {rel.RelatedTableName}), Navigation: {rel.NavigationName}, FK Columns: {string.Join(", ", rel.ForeignKeyColumns)}, Cardinality: {rel.Cardinality}");
+        //    //    }
+        //    //    schemaBuilder.AppendLine(); // Separator
+        //    //}
+
+        //    //_cachedSchema = schemaBuilder.ToString();
+        //    //_cacheExpiry = DateTime.UtcNow.AddMinutes(30); // Refresh interval
+        //    //return _cachedSchema;
+            
+        //}
         public async Task<List<SchemaDto>> GetSchemaAsync()
         {
             string requestUri = "/AI/schema";
@@ -44,12 +52,16 @@ namespace Pulse.Web.Services
             {
                 var response = await _httpClient.GetAsync(requestUri);
                 response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync();
+                var json = await response.Content.ReadAsStringAsync();
 
-                return JsonSerializer.Deserialize<List<SchemaDto>>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                return JsonSerializer.Deserialize<List<SchemaDto>>(json);
+
+                //var content = await response.Content.ReadAsStringAsync();
+
+                //return JsonSerializer.Deserialize<List<SchemaDto>>(content, new JsonSerializerOptions
+                //{
+                //    PropertyNameCaseInsensitive = true
+                //});
             }
             catch (HttpRequestException ex)
             {
@@ -75,7 +87,7 @@ namespace Pulse.Web.Services
                 var response = await _httpClient.GetAsync(requestUri);
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync();
-               
+
                 return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -96,6 +108,41 @@ namespace Pulse.Web.Services
                 _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
                 return default;
             }
+        }
+
+        public async Task<string> GetAiSamples()
+        {
+            var requestUri = "/AI/examples";
+            try
+            {
+                var aiQueries = await GetAsync<List<AiQuery>>(requestUri);
+                string examples = "";
+                if (aiQueries != null && aiQueries.Count > 0)
+                {
+                    examples = "\nExamples of correct queries:\n";
+                    foreach (var ex in aiQueries)
+                    {
+                        examples += $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n";
+                    }
+                }
+                return examples;
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
+                return default;
+            }
+            catch (System.Text.Json.JsonException ex)
+            {
+                _logger.LogError(ex, "JSON deserialization error while processing response from {RequestUri}", requestUri);
+                return default;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
+                return default;
+            }
+
         }
 
         public async Task<List<Dictionary<string, object>>> StringToDictionary(string result)
@@ -163,6 +210,16 @@ namespace Pulse.Web.Services
         public async Task<DataTable> StringToDataTable(string str)
         {
             return await CreateDataTableFromDictionary(await StringToDictionary(str));
+        }
+
+        public async Task<AiQuery?> SaveAiQueryAsync(AiQuery query)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/AI/aiquery", query);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<AiQuery>();
+            }
+            return null;
         }
 
     }

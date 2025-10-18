@@ -1,7 +1,8 @@
 ﻿using Pulse.Models.CustomComponents;
 using StackExchange.Redis;
 using System.Text;
-using static MudBlazor.CategoryTypes;
+using System.Text.Json.Serialization;
+
 
 namespace Pulse.Web.Tools
 {
@@ -178,5 +179,83 @@ namespace Pulse.Web.Tools
                     Generated SQL: '''sql";
             this.Prompt = sP;
         }
+    }
+
+    public class OllamaTagsResponse
+    {
+        public List<OllamaModelInfo> Models { get; set; }
+    }
+
+    public class OllamaModelInfo
+    {
+        public string Name { get; set; }
+    }
+
+    // Ollama /api/chat response structure (single non-stream)
+    public class OllamaChatResponse
+    {
+        [JsonPropertyName("model")]
+        public string Model { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("message")]
+        public OllamaMessage Message { get; set; }  // The assistant's response
+
+        [JsonPropertyName("done")]
+        public bool Done { get; set; }
+
+        // Metrics as before
+        [JsonPropertyName("total_duration")]
+        public long TotalDuration { get; set; }
+
+        // ... other optional fields
+    }
+
+    public class OllamaMessage
+    {
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = "assistant";
+
+        [JsonPropertyName("content")]
+        public string Content { get; set; }  // Generated SQL text
+    }
+
+    public class OllamaGenerateResponse
+    {
+        [JsonPropertyName("model")]
+        public string Model { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("response")]
+        public string Response { get; set; }  // The generated text (e.g., SQL from prompt)
+
+        [JsonPropertyName("done")]
+        public bool Done { get; set; }  // True if generation complete
+
+        // Optional metrics for debugging/performance
+        [JsonPropertyName("context")]
+        public int[] Context { get; set; }  // Token context for continuations (if needed)
+
+        [JsonPropertyName("total_duration")]
+        public long TotalDuration { get; set; }  // Nanoseconds
+
+        [JsonPropertyName("load_duration")]
+        public long LoadDuration { get; set; }
+
+        [JsonPropertyName("prompt_eval_count")]
+        public int PromptEvalCount { get; set; }
+
+        [JsonPropertyName("prompt_eval_duration")]
+        public long PromptEvalDuration { get; set; }
+
+        [JsonPropertyName("eval_count")]
+        public int EvalCount { get; set; }
+
+        [JsonPropertyName("eval_duration")]
+        public long EvalDuration { get; set; }
     }
 }

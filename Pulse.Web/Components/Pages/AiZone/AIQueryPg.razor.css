@@ -1,0 +1,16 @@
+﻿body {
+    /*color: white !important;*/
+}
+.h3-overide {
+    color: white !important;
+}
+
+/*tr {
+    background-color: white !important;
+    color: black !important;
+}*/
+.selected {
+    background-color: lightblue !important;
+    opacity: 1 !important;
+    
+}

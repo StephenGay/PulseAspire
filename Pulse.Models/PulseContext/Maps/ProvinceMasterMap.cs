@@ -14,6 +14,9 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<Province> builder)
         {
             builder.ToTable("ProvinceMaster");
+            builder.HasKey(p => p.ProvinceID);
+            builder.Property(p => p.ProvinceName).HasMaxLength(100).IsRequired();
+            builder.Property(p => p.IsActive).IsRequired().HasDefaultValue(true);
             builder.HasOne(p => p.Country)
                    .WithMany(c => c.Provinces)
                    .HasForeignKey(p => p.CountryID);

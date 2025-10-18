@@ -13,5 +13,7 @@ builder.AddProject<Projects.Pulse_Web>("PulseWebUI")
     .WaitFor(cache)
     .WithReference(apiService)
     .WaitFor(apiService);
-   
+
+//var ollama = builder.AddContainer("ollama", "ollama/ollama").WithHttpEndpoint(11434).WithHealthCheck("/api/tags");
+
 builder.Build().Run();

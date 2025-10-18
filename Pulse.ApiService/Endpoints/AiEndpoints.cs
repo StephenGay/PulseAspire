@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Misc;
 using Pulse.Models.PulseContext;
 using System.Data;
 using System.Text;
@@ -69,6 +70,24 @@ namespace Pulse.ApiService.Endpoints
                     .ToListAsync();
                 return Results.Ok(examples);
             });
+
+            group.MapGet("/savedqueries", async (PulseDbContext dbContext) =>
+            {
+                var savedqueries = await dbContext.AiSavedQueries
+                    .AsNoTracking()
+                    .Where(a => a.IsActive)
+                    .ToListAsync();
+                return Results.Ok(savedqueries);
+            });
+
+            group.MapPost("/aiquery", async (AiQuery aiQuery, PulseDbContext dbContext) =>
+            {
+                dbContext.AiSavedQueries.Add(aiQuery);
+                await dbContext.SaveChangesAsync();
+                return Results.Created($"/AI/aiquery/{aiQuery.AiQueryID}", aiQuery);
+            });
+                
+            
         }
     }
 }

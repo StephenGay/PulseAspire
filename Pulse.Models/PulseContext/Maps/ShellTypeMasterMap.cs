@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Pulse.Models.Industries;
+using Pulse.Models.Rollers;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +9,13 @@ using System.Threading.Tasks;
 
 namespace Pulse.Models.PulseContext.Maps
 {
-    public class IndustryMasterMap : IEntityTypeConfiguration<Industry>
+    public class ShellTypeMasterMap : IEntityTypeConfiguration<ShellType>
     {
-        public void Configure(EntityTypeBuilder<Industry> builder)
+        public void Configure(EntityTypeBuilder<ShellType> builder)
         {
-            builder.ToTable("IndustryMaster");
+            builder.ToTable("ShellTypeMaster");
         }
     }
+    
+    
 }

@@ -8,11 +8,8 @@
     <link rel="stylesheet" href="@Assets["lib/bootstrap/dist/css/bootstrap.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Pulse.Web.styles.css"]" />
-    <link href="_content/MudBlazor/MudBlazor.min.css" rel="stylesheet" />
-    <MudBlazor.MudThemeProvider />
-    <MudBlazor.MudDialogProvider /> 
-    <MudBlazor.MudSnackbarProvider />
-    <MudBlazor.MudPopoverProvider />
+    <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/fluent-ui.min.css" />
+    
     <ImportMap />
     
     <link rel="icon" type="image/png" sizes="16x16" href="Images/FavIcons/favicon 16x16.png" />
@@ -21,14 +18,18 @@
 	<link rel="icon" type="image/png" sizes="180x180" href="Images/FavIcons/favicon 180x180.png" />
 	<link rel="icon" type="image/png" sizes="192x192" href="Images/FavIcons/favicon 192x192.png" />
 	<link rel="icon" type="image/png" sizes="512x512" href="Images/FavIcons/favicon 512x512.png" />
+
     <HeadOutlet />
 </head>
 
 <body>
     <Routes />
+    <Microsoft.FluentUI.AspNetCore.Components.FluentMenuProvider />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/BlazorAnimation/blazorAnimationInterop.js"></script>
-    <script src="_content/MudBlazor/MudBlazor.min.js"></script>
+    
 </body>
+
+   
 
 </html>

@@ -10,6 +10,11 @@ namespace Pulse.Models.PulseContext.Maps
         {
             //throw new NotImplementedException();
             builder.ToTable("ClientMaster");
+            builder.HasKey(c => c.FullClientID);
+            builder.Property(c => c.ClientName).HasMaxLength(40).IsRequired();
+
+
+
             builder.HasOne(c => c.Region)
                    .WithMany(r => r.Customers)
                    .HasForeignKey(c => c.RegionID);

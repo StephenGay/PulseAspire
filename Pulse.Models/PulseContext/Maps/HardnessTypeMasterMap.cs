@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Pulse.Models.Industries;
+using Pulse.Models.Compounds;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,11 +9,11 @@ using System.Threading.Tasks;
 
 namespace Pulse.Models.PulseContext.Maps
 {
-    public class IndustryMasterMap : IEntityTypeConfiguration<Industry>
+    public class HardnessTypeMasterMap : IEntityTypeConfiguration<HardnessType>
     {
-        public void Configure(EntityTypeBuilder<Industry> builder)
+        public void Configure(EntityTypeBuilder<HardnessType> builder)
         {
-            builder.ToTable("IndustryMaster");
+            builder.ToTable("HardnessTypeMaster");
         }
     }
 }

@@ -14,6 +14,9 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<Branch> builder)
         {
             builder.ToTable("BranchMaster");
+            builder.HasKey(b => b.BranchID);
+            builder.Property(b => b.BranchName).HasMaxLength(100).IsRequired();
+            builder.Property(b => b.IsActive).IsRequired().HasDefaultValue(true);
         }
     }
 }

@@ -17,7 +17,12 @@ html, body {
     text-align: center;
     min-height: 100vh;
 }
-
+.ai-toprow {
+    background-color: #f7f7f7;
+    background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);
+    border-bottom: 1px solid rgb(54,91,102);
+    min-height: 3.5rem;
+}
 a, .btn-link {
     color: #006bb7;
 }
@@ -35,6 +40,11 @@ a, .btn-link {
 .content {
     padding-top: 1.1rem;
 }
+
+.fdgrselected {
+    background-color: lightblue !important;
+}
+
 
 h1:focus {
     outline: none;
