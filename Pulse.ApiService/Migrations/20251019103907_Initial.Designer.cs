@@ -12,7 +12,7 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    [Migration("20251012062412_Initial")]
+    [Migration("20251019103907_Initial")]
     partial class Initial
     {
         /// <inheritdoc />
@@ -20,10 +20,177 @@ namespace Pulse.ApiService.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.9")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
+                {
+                    b.Property<string>("CompoundCode")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<decimal>("CalculatedCostPerKg")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CalculatedSpecificGravity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CarbonBlackCharge")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Colour")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("CompoundDescription")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("CompoundRangeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CompoundType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("CostingCostPerKg")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("CustomSaleFactor")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("DateCostUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("HardnessMeasurement")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("HardnessTolerance")
+                        .HasColumnType("int");
+
+                    b.Property<string>("HardnessType")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsImported")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("OverRideCostPerKg")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("OverRideSpecificGravity")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PolymerName")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RevisedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("RevisionCode")
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<DateTime>("RevisionDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevisionReason")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<decimal>("RoyaltyCharge")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SpecificGravity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("CompoundCode");
+
+                    b.HasIndex("CompoundRangeId");
+
+                    b.ToTable("CompoundMaster");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Compounds.CompoundRange", b =>
+                {
+                    b.Property<int>("CompoundRangeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RangeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("CompoundRangeId");
+
+                    b.ToTable("CompoundRangeMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Compounds.CompoundRangeProperty", b =>
+                {
+                    b.Property<int>("CompoundRangePropertyId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CompoundRangeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PropertyText")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("CompoundRangePropertyId");
+
+                    b.HasIndex("CompoundRangeId");
+
+                    b.ToTable("CompoundRangePropertyMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Compounds.HardnessType", b =>
+                {
+                    b.Property<string>("HardnessTypeName")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.HasKey("HardnessTypeName");
+
+                    b.ToTable("HardnessTypeMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Compounds.Polymer", b =>
+                {
+                    b.Property<string>("PolymerName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.HasKey("PolymerName");
+
+                    b.ToTable("PolymerMaster", (string)null);
+                });
 
             modelBuilder.Entity("Pulse.Models.Customers.ClientSales", b =>
                 {
@@ -253,12 +420,14 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("ProvinceName")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("ProvinceID");
 
@@ -273,21 +442,64 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<int>("ProvinceID")
                         .HasColumnType("int");
 
                     b.Property<string>("RegionName")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("RegionID");
 
                     b.HasIndex("ProvinceID");
 
                     b.ToTable("RegionMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Industries.Industry", b =>
+                {
+                    b.Property<int>("IndustryID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IndustryName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.HasKey("IndustryID");
+
+                    b.ToTable("IndustryMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Industries.IndustryProcess", b =>
+                {
+                    b.Property<int>("IndustryProcessID")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IndustryID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ProcessName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("IndustryProcessID");
+
+                    b.HasIndex("IndustryID");
+
+                    b.ToTable("IndustryProcessMaster", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Models.Misc.AiQuery", b =>
@@ -319,22 +531,20 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("AiSavedQueries", (string)null);
                 });
 
-            modelBuilder.Entity("Pulse.Models.Misc.Industry", b =>
+            modelBuilder.Entity("Pulse.Models.Misc.Colour", b =>
                 {
-                    b.Property<int>("IndustryID")
-                        .HasColumnType("int");
-
-                    b.Property<string>("IndustryName")
-                        .IsRequired()
+                    b.Property<string>("ColourName")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
-                    b.HasKey("IndustryID");
+                    b.HasKey("ColourName");
 
-                    b.ToTable("IndustryMaster", (string)null);
+                    b.ToTable("ColourMaster", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Models.Misc.Period", b =>
@@ -376,7 +586,9 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.HasKey("BranchID");
 
@@ -484,6 +696,62 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("UserMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Rollers.RollerType", b =>
+                {
+                    b.Property<int>("RollerTypeID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("RollerTypeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("RollerTypeID");
+
+                    b.ToTable("RollerTypeMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Rollers.ShellType", b =>
+                {
+                    b.Property<int>("ShellTypeID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ShellTypeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("ShellTypeID");
+
+                    b.ToTable("ShellTypeMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
+                {
+                    b.HasOne("Pulse.Models.Compounds.CompoundRange", "CompoundRange")
+                        .WithMany("Compounds")
+                        .HasForeignKey("CompoundRangeId");
+
+                    b.Navigation("CompoundRange");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Compounds.CompoundRangeProperty", b =>
+                {
+                    b.HasOne("Pulse.Models.Compounds.CompoundRange", "CompoundRange")
+                        .WithMany("CompoundRangeProperties")
+                        .HasForeignKey("CompoundRangeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CompoundRange");
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.ClientSales", b =>
                 {
                     b.HasOne("Pulse.Models.Customers.Customer", "Customer")
@@ -511,7 +779,7 @@ namespace Pulse.ApiService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Pulse.Models.Misc.Industry", "Industry")
+                    b.HasOne("Pulse.Models.Industries.Industry", "Industry")
                         .WithMany("Customers")
                         .HasForeignKey("IndustryID");
 
@@ -565,6 +833,17 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Province");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Industries.IndustryProcess", b =>
+                {
+                    b.HasOne("Pulse.Models.Industries.Industry", "Industry")
+                        .WithMany("IndustryProcesses")
+                        .HasForeignKey("IndustryID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Industry");
+                });
+
             modelBuilder.Entity("Pulse.Models.Organizational.Division", b =>
                 {
                     b.HasOne("Pulse.Models.Organizational.Branch", "Branch")
@@ -595,6 +874,13 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Compounds.CompoundRange", b =>
+                {
+                    b.Navigation("CompoundRangeProperties");
+
+                    b.Navigation("Compounds");
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.Customer", b =>
                 {
                     b.Navigation("ClientSales");
@@ -620,9 +906,11 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Customers");
                 });
 
-            modelBuilder.Entity("Pulse.Models.Misc.Industry", b =>
+            modelBuilder.Entity("Pulse.Models.Industries.Industry", b =>
                 {
                     b.Navigation("Customers");
+
+                    b.Navigation("IndustryProcesses");
                 });
 
             modelBuilder.Entity("Pulse.Models.Misc.Period", b =>

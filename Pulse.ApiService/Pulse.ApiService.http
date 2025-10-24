@@ -1,6 +1,6 @@
 @ApiService_HostAddress = http://localhost:5475
 
-GET {{ApiService_HostAddress}}/Customers/Details/1-COL201
+GET {{ApiService_HostAddress}}/AI/ExecuteAiUpdateInsertQry:UPDATE%20ClientMaster%20SET%20IndustryID%20=%209%20WHERE%20FullClientID%20IN%20('1-C_PAC1','1-MAS200','1-OLP200','1-PAC001','1-PAC003','1-PAC204','1-POL215','1-POL405','1-PRO214','1-PRT200')
 Accept: application/json
 
 ###

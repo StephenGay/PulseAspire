@@ -14,6 +14,9 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<RollerType> builder)
         {
             builder.ToTable("RollerTypeMaster");
+            builder.HasMany(rt => rt.IndustryRollerEnvironments)
+                   .WithOne(ire => ire.RollerType)
+                   .HasForeignKey(ire => ire.RollerTypeId);
         }
     }
 }

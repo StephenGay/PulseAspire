@@ -33,11 +33,23 @@ namespace Pulse.ApiService.Migrations
                 {
                     BranchID = table.Column<int>(type: "int", nullable: false),
                     BranchName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_BranchMaster", x => x.BranchID);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ColourMaster",
+                columns: table => new
+                {
+                    ColourName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ColourMaster", x => x.ColourName);
                 });
 
             migrationBuilder.CreateTable(
@@ -54,6 +66,19 @@ namespace Pulse.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CompoundRangeMaster",
+                columns: table => new
+                {
+                    CompoundRangeId = table.Column<int>(type: "int", nullable: false),
+                    RangeName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CompoundRangeMaster", x => x.CompoundRangeId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ContinentMaster",
                 columns: table => new
                 {
@@ -64,6 +89,18 @@ namespace Pulse.ApiService.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ContinentMaster", x => x.ContinentID);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "HardnessTypeMaster",
+                columns: table => new
+                {
+                    HardnessTypeName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_HardnessTypeMaster", x => x.HardnessTypeName);
                 });
 
             migrationBuilder.CreateTable(
@@ -92,6 +129,44 @@ namespace Pulse.ApiService.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_PeriodMaster", x => x.PeriodID);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PolymerMaster",
+                columns: table => new
+                {
+                    PolymerName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PolymerMaster", x => x.PolymerName);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RollerTypeMaster",
+                columns: table => new
+                {
+                    RollerTypeID = table.Column<int>(type: "int", nullable: false),
+                    RollerTypeName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RollerTypeMaster", x => x.RollerTypeID);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ShellTypeMaster",
+                columns: table => new
+                {
+                    ShellTypeID = table.Column<int>(type: "int", nullable: false),
+                    ShellTypeName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ShellTypeMaster", x => x.ShellTypeID);
                 });
 
             migrationBuilder.CreateTable(
@@ -158,6 +233,65 @@ namespace Pulse.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CompoundMaster",
+                columns: table => new
+                {
+                    CompoundCode = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: false),
+                    RevisionCode = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: true),
+                    CompoundDescription = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    CompoundRangeId = table.Column<int>(type: "int", nullable: true),
+                    PolymerName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    HardnessMeasurement = table.Column<int>(type: "int", nullable: true),
+                    HardnessTolerance = table.Column<int>(type: "int", nullable: true),
+                    HardnessType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    CalculatedSpecificGravity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    OverRideSpecificGravity = table.Column<bool>(type: "bit", nullable: false),
+                    SpecificGravity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Colour = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CompoundType = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    CalculatedCostPerKg = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    OverRideCostPerKg = table.Column<bool>(type: "bit", nullable: false),
+                    CostingCostPerKg = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    RoyaltyCharge = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CarbonBlackCharge = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    IsImported = table.Column<bool>(type: "bit", nullable: false),
+                    CustomSaleFactor = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    State = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    RevisionDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RevisedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    RevisionReason = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    DateCostUpdated = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CompoundMaster", x => x.CompoundCode);
+                    table.ForeignKey(
+                        name: "FK_CompoundMaster_CompoundRangeMaster_CompoundRangeId",
+                        column: x => x.CompoundRangeId,
+                        principalTable: "CompoundRangeMaster",
+                        principalColumn: "CompoundRangeId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CompoundRangePropertyMaster",
+                columns: table => new
+                {
+                    CompoundRangePropertyId = table.Column<int>(type: "int", nullable: false),
+                    CompoundRangeId = table.Column<int>(type: "int", nullable: false),
+                    PropertyText = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CompoundRangePropertyMaster", x => x.CompoundRangePropertyId);
+                    table.ForeignKey(
+                        name: "FK_CompoundRangePropertyMaster_CompoundRangeMaster_CompoundRangeId",
+                        column: x => x.CompoundRangeId,
+                        principalTable: "CompoundRangeMaster",
+                        principalColumn: "CompoundRangeId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CountryMaster",
                 columns: table => new
                 {
@@ -178,13 +312,33 @@ namespace Pulse.ApiService.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "IndustryProcessMaster",
+                columns: table => new
+                {
+                    IndustryProcessID = table.Column<int>(type: "int", nullable: false),
+                    IndustryID = table.Column<int>(type: "int", nullable: false),
+                    ProcessName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IndustryProcessMaster", x => x.IndustryProcessID);
+                    table.ForeignKey(
+                        name: "FK_IndustryProcessMaster_IndustryMaster_IndustryID",
+                        column: x => x.IndustryID,
+                        principalTable: "IndustryMaster",
+                        principalColumn: "IndustryID",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "ProvinceMaster",
                 columns: table => new
                 {
                     ProvinceID = table.Column<int>(type: "int", nullable: false),
-                    ProvinceName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    ProvinceName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CountryID = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -202,9 +356,9 @@ namespace Pulse.ApiService.Migrations
                 columns: table => new
                 {
                     RegionID = table.Column<int>(type: "int", nullable: false),
-                    RegionName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    RegionName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ProvinceID = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false)
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -341,6 +495,16 @@ namespace Pulse.ApiService.Migrations
                 column: "PeriodID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_CompoundMaster_CompoundRangeId",
+                table: "CompoundMaster",
+                column: "CompoundRangeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CompoundRangePropertyMaster_CompoundRangeId",
+                table: "CompoundRangePropertyMaster",
+                column: "CompoundRangeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_CountryMaster_ContinentID",
                 table: "CountryMaster",
                 column: "ContinentID");
@@ -354,6 +518,11 @@ namespace Pulse.ApiService.Migrations
                 name: "IX_DivisionMaster_CompanyID",
                 table: "DivisionMaster",
                 column: "CompanyID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IndustryProcessMaster_IndustryID",
+                table: "IndustryProcessMaster",
+                column: "IndustryID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ProvinceMaster_CountryID",
@@ -381,7 +550,31 @@ namespace Pulse.ApiService.Migrations
                 name: "ClientSales");
 
             migrationBuilder.DropTable(
+                name: "ColourMaster");
+
+            migrationBuilder.DropTable(
+                name: "CompoundMaster");
+
+            migrationBuilder.DropTable(
+                name: "CompoundRangePropertyMaster");
+
+            migrationBuilder.DropTable(
                 name: "DivisionMaster");
+
+            migrationBuilder.DropTable(
+                name: "HardnessTypeMaster");
+
+            migrationBuilder.DropTable(
+                name: "IndustryProcessMaster");
+
+            migrationBuilder.DropTable(
+                name: "PolymerMaster");
+
+            migrationBuilder.DropTable(
+                name: "RollerTypeMaster");
+
+            migrationBuilder.DropTable(
+                name: "ShellTypeMaster");
 
             migrationBuilder.DropTable(
                 name: "UserMaster");
@@ -391,6 +584,9 @@ namespace Pulse.ApiService.Migrations
 
             migrationBuilder.DropTable(
                 name: "PeriodMaster");
+
+            migrationBuilder.DropTable(
+                name: "CompoundRangeMaster");
 
             migrationBuilder.DropTable(
                 name: "BranchMaster");

@@ -35,8 +35,38 @@ public class Functions
         }
         catch (Exception ex)
         {
+            //var errorRow = new Dictionary<string, object>
+            //{
+            //    { "Error", ex.Message }
+            //};
+            //results.Add(errorRow);
+            //return results;
             //throw new Exception(ex.Message);
             return null;
+        }
+    }
+    public async Task<int> ExecuteAiUpdateInsertQry(string connectionString, string query)
+    {
+
+        await Task.Delay(100);
+        var results = 0;
+
+        try
+        {
+            using (SqlConnection connection = new SqlConnection(connectionString))
+            {
+                connection.Open();
+                using (SqlCommand command = new SqlCommand(query, connection))
+                {
+                    results = command.ExecuteNonQuery();
+                }
+            }
+
+            return results;
+        }
+        catch (Exception ex)
+        {
+            return results;
         }
     }
 }

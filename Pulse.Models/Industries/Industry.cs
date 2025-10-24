@@ -1,4 +1,5 @@
 ﻿using Pulse.Models.Customers;
+using Pulse.Models.Rollers;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -21,5 +22,6 @@ namespace Pulse.Models.Industries
         public bool IsActive { get; set; } = true;
         public List<Customer>? Customers { get; set; }
         public List<IndustryProcess>? IndustryProcesses { get; set; }
+        public List<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; }
     }
 }

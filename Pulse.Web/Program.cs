@@ -4,12 +4,15 @@ using Microsoft.FluentUI.AspNetCore.Components;
 using Polly;
 using Polly.Extensions.Http;
 using Polly.Timeout;
-using Pulse.Web.Components;
+using Microsoft.Extensions.Options;
+
+
 using Pulse.Web.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Pulse.Web.Tools;
+using Pulse.Models.CustomComponents;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -99,6 +102,7 @@ builder.Services.AddFluentUIComponents();
 
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -135,7 +139,7 @@ app.UseOutputCache();
 
 app.MapStaticAssets();
 
-app.MapRazorComponents<App>()
+app.MapRazorComponents<Pulse.Web.Components.App>()
     .AddInteractiveServerRenderMode();
 
 app.MapDefaultEndpoints();

@@ -3,41 +3,69 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
+@using Pulse.Models.Users
 @using Pulse.Web.Services
 @using System.Data
 @using Pulse.Web.Tools
 @using System.Threading.Tasks
+@using Markdig
 
 @inject Pulse_AI pAI
 @inject PulseApiService pulseApiClient 
 @inject IMessageService MessageService
 @inject IDialogService DialogService
+@inject DataTransferService dtrf
 @inject IJSRuntime JSRuntime
 @inject AccentBaseColor AccentBaseColor
 
 @rendermode InteractiveServer
 
 
-<FluentLayout Style="display: flex; flex-direction: column; height: 100; width: 100%; overflow: hidden;">
+<FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
     
     <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
         <FluentLabel Typo="Typography.Body" Style="color:white">AI Model : </FluentLabel>
+        
         <FluentMenuButton @ref=btnModel Text="@aiModel" OnMenuChanged="btnModelChanged">
+            @* <FluentMenuItem Id="gpt-oss:latest">Chat GPT Oss (20b)</FluentMenuItem>
+            <FluentMenuItem Id="llama3.1:latest">llama 3.1 (8b)</FluentMenuItem>
+            <FluentMenuItem Id="llama3.3:latest">llama 3.3 (70b)</FluentMenuItem>
+            <FluentMenuItem Id="mistral-nemo:latest">mistral-nemo (12b)</FluentMenuItem>
+            <FluentMenuItem Id="qwen3:32b">qwen 3 (32b)</FluentMenuItem> *@
                 @foreach (var model in ollamaModels)
                 {
                 <FluentMenuItem Id="@model">@model</FluentMenuItem>
                 }
         </FluentMenuButton>
+        
         <FluentSpacer />
-        <FluentButton Appearance=@(togChat ? Appearance.Outline : Appearance.Accent) OnClick="ToggleChat">
-            Turn Chat Mode @(togChat ? "Off" : "On")
-        </FluentButton>
-        <FluentSpacer />
-        <FluentButton Appearance="Appearance.Accent" OnClick="ToggleSavedQueries">
-            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.Bookmark())" Slot="start" Style="fill:white;" />
-            @(showSavedQueries ? "Hide" : "Show") Saved Queries
-        </FluentButton>
+        @if (!showSavedQueries)
+        {
+            @if (togChat)
+            {
+                <FluentButton Appearance="Appearance.Accent" OnClick="@ClearChatHistory">Clear History</FluentButton>
+                <FluentButton BackgroundColor=@(togWebSearch ? "green" : "red") Color="white" OnClick="ToggleWebSearch">
+                    Search The Web
+                </FluentButton>
+            }
+            <FluentButton BackgroundColor=@(togChat? "green": "red") Color="white" OnClick="ToggleChat">
+                Chat Mode
+            </FluentButton>
+        }
+        @if (!togChat)
+        {
+            @if (showSavedQueries)
+            {
+                <FluentButton BackgroundColor=@(myFave ? "green" : "red") Color="white" OnClick="ToggleFavourites">
+                    My Favourites@*  @(showSavedQueries ? "On" : "Off") *@
+                </FluentButton>
+            }
+            <FluentButton BackgroundColor=@(showSavedQueries ? "green" : "red") Color="white" OnClick="ToggleSavedQueries">
+                Saved Queries
+            </FluentButton>
+        }
     </FluentStack>
 
     <FluentMessageBarProvider Section="MESSAGES_TOP" />
@@ -65,13 +93,8 @@
 
         @if (togChat) 
         { 
-            <FluentStack Orientation="Orientation.Horizontal">
-                <FluentLabel Typo="Typography.Body" Style="color:white">Chat History</FluentLabel>
-                <FluentButton Appearance="Appearance.Neutral" OnClick="@ClearChatHistory">Clear History</FluentButton>
-            </FluentStack>
-
             <!-- Chat History Display -->
-            <div style="max-height: 100%; width: 100%; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
+            <div @ref="chatContainer" style="max-height: 100%; width: 100%; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
                 @foreach (var message in chatHistory)
                 {
                     @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 10px;">
@@ -81,13 +104,23 @@
                     @if (message.Role.ToUpper() == "USER")
                     {
                         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                            <FluentLabel Typo="Typography.Body" Style="max-width:50%; background-color:dodgerblue; padding:10px;">@message.Content</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Style="max-width:80%; background-color:lightblue; padding:10px; border-radius:15px;">@message.Content</FluentLabel>
                         </FluentStack>
                     }
                     else
                     {
                         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="HorizontalAlignment.Right" Style="margin-bottom: 10px;">
-                            <FluentLabel Typo="Typography.Body" Style="max-width:50%; background-color:khaki; padding:10px;">@message.Content</FluentLabel>
+                             @* <div style="color: black;">
+                                @((MarkupString)FormatMessageToHtml(message.Content))
+                            </div> *@
+                            @* <FluentCard Style="max-width:50%; background-color:khaki; padding:10px;">
+                                <p>@((MarkupString)FormatMessageToHtml(message.Content))</p></FluentCard> *@
+                            @* <FluentLabel Typo="Typography.Body" Style="max-width:50%; background-color:khaki; padding:10px;">@((MarkupString)FormatMessageToHtml(message.Content))</FluentLabel> *@
+
+                            <FluentLabel Typo="Typography.Body" Style="max-width:80%; background-color:lemonchiffon; padding:10px; border-radius:15px;">
+                               @*  @((MarkupString)FormatMessageToHtml(message.Content)) *@
+                                <div style="color: black;">@((MarkupString)ParseToHtml(message.Content)) </div>
+                            </FluentLabel>
                         </FluentStack>
                     }
                 }
@@ -99,7 +132,7 @@
             <FluentLabel Typo="Typography.Body">Saved Queries</FluentLabel>
             @if (savedQueries.Any())
             {
-                <div style="overflow-x: auto; max-width: 100%; background-color: white;">
+                <div style="overflow-x: auto; width: 100%; background-color: white;">
                     <FluentDataGrid Items="@savedQueries.AsQueryable()" TGridItem="AiQuery"
                                     RowClass="@(context => context == selectedSavedQuery ? "fdgrselected" : "")"
                                     SelectionMode="SelectionMode.Single"
@@ -111,23 +144,16 @@
                                     GenerateHeader="GenerateHeaderOption.Sticky">
                         <PropertyColumn Property="@(context => context.AiQueryID)" Title="ID" Sortable="true" />
                         <PropertyColumn Property="@(context => context.Question)" Title="Question" Sortable="true" />
-                        <PropertyColumn Property="@(context => context.Timestamp)" Title="Timestamp" Sortable="true" />
-                        <PropertyColumn Property="@(context => (object)context.IsActive)" Title="Active" Sortable="true" />
-                        <TemplateColumn Title="SQL Query (Truncated)" Context="gridContext">
+                        <PropertyColumn Property="@(context => context.UpVote)" Title="UpVote" Sortable="true" />
+                        <PropertyColumn Property="@(context => context.DownVote)" Title="DownVote" Sortable="true" />
+                        @* <TemplateColumn Title="SQL Query (Truncated)" Context="gridContext">
                             @GetTruncatedSql(gridContext.SqlQuery)
-                        </TemplateColumn>
+                        </TemplateColumn> *@
                     </FluentDataGrid>
                 </div>
 
-                @if (selectedSavedQuery != null)
-                {
-                    <FluentLabel Typo="Typography.Body">Selected: @selectedSavedQuery.Question</FluentLabel>
-                    <FluentButton Appearance="Appearance.Accent" OnClick="@ExecuteSavedQuery">
-                        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
-                        Execute Selected Query
-                    </FluentButton>
-                }
-                <FluentPaginator State="@pagination" Style="color: white;" />
+                
+                <FluentPaginator State="@pagination" Style="color: white; width:100%" />
             }
             else if (isLoadingSaved)
             {
@@ -141,7 +167,7 @@
 
         @if (rows.Any())
         {
-            <div style="overflow-x: auto; max-width: 100%; background-color: white;">
+            <div style="overflow-x: auto; width: 100%; align-content:center; background-color: white;">
                 <FluentDataGrid Items="@rows.AsQueryable()" ResizableColumns="true" GenerateHeader="GenerateHeaderOption.Sticky" AutoFit="true" Pagination="@pagination">
                     @foreach (var column in columns)
                     {
@@ -150,11 +176,7 @@
                     }
                 </FluentDataGrid>
             </div>
-            <FluentPaginator State="@pagination" Style="color: white;" />
-        }
-        else if (isLoading)
-        {
-            <FluentProgress Indeterminate="true" />
+            <FluentPaginator State="@pagination" Style="color: white; width:100%;" />
         }
         else if (!string.IsNullOrEmpty(errorMessage))
         {
@@ -164,19 +186,55 @@
         
 
     </FluentStack>
-    
     <FluentStack Orientation="Orientation.Horizontal" Style="flex: 0 0 auto; padding: 10px;" HorizontalAlignment="HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
-        <FluentStack Orientation="Orientation.Vertical" Width="60%">
-            <FluentLabel Typo="Typography.Body"  Style="color:white; white-space:nowrap;">Enter your question</FluentLabel>
-            <FluentTextField @bind-Value="@query" Placeholder="Enter your question" Appearance="FluentInputAppearance.Outline" Style="width: 100%;" />
-        </FluentStack>          
-    
-        <FluentStack Orientation="Orientation.Horizontal" Width="20%" Style="Height:100%">
-            <FluentButton Appearance="Appearance.Accent" Style="Height:100%" OnClick="@SubmitQuery">
-                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16.Send())" Slot="start" Style="fill:white;" />
-                Submit
+    @if (!showSavedQueries && !isLoading)
+        {
+            <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Right" Width="25%" Style="height:100%">
+                <FluentButton BackgroundColor="red" Style="height:100%; margin-top: 10px; margin-bottom: 10px;" OnClick="@MarkIncorrect">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.Replay())" Slot="start" Style="fill:white;" />
+                </FluentButton>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Vertical" Width="50%">
+                @* <FluentLabel Typo="Typography.Body"  Style="color:white; white-space:nowrap;">Enter your question</FluentLabel> *@
+                <FluentTextArea @ref=txtQ @bind-Value="@query" Placeholder="Enter your question" Rows="3" Appearance="FluentInputAppearance.Outline" Style="width: 100%; height:100%; margin: 10px;" />
+            </FluentStack>
+
+            <FluentStack Orientation="Orientation.Vertical" Width="25%" Style="height:100%">
+                <FluentButton Appearance="Appearance.Accent" Style="height:100%; margin: 10px;" OnClick="@SubmitQuery">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.Send())" Slot="start" Style="fill:white;" />
+
+                </FluentButton>
+            </FluentStack>
+        }
+        else if (isLoading)            
+        {
+            <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Width="50%" Style="height:100%; margin-right:20px;">
+                <FluentLabel Typo="Typography.Body" Style="color:white;">Thinking...</FluentLabel>
+                <FluentProgress Indeterminate="true" Width="100%" Style="margin:10px" />
+                <FluentLabel Typo="Typography.Body" Style="color:white;">Question : @query</FluentLabel>
+            </FluentStack>
+            <FluentButton BackgroundColor="red" Style="margin-top: 10px; margin-bottom: 10px;" OnClick="@CancelQuery">
+                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.RecordStop())" Slot="start" Style="fill:white;" />
+                
             </FluentButton>
-        </FluentStack>
+        }
+        else if (showSavedQueries)
+        {
+            @* @if (selectedSavedQuery != null) *@
+            @* { *@
+                @* <FluentLabel Typo="Typography.Body">Selected: @selectedSavedQuery.Question</FluentLabel> *@
+            <FluentButton Appearance="Appearance.Accent" Disabled="@(selectedSavedQuery != null ? false : true)" Style="margin:50px" OnClick="@btnFaveClick">
+                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
+                @(isFavourite ? "Remove From" : "Add To") Favourites
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Accent" Disabled="@(selectedSavedQuery != null ? false : true)" Style="margin:50px" OnClick="@ExecuteSavedQuery">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
+                    Execute Selected Query
+                </FluentButton>
+            @* } *@
+        }
+
+
     </FluentStack>
 
 </FluentLayout>
@@ -189,31 +247,80 @@
     private bool isLoading = false;
     private bool isCorrect = true;
     private bool togChat = false;
+    private bool myFave = false;
+    private bool isFavourite = false;
+    private bool togWebSearch = false;
     private string errorMessage = string.Empty;
     private string aiSQL = string.Empty;
     private string aiSQLv = string.Empty;
     private string strReasoning = string.Empty;
     private string strResponse = string.Empty;
     private string aiModel = "llama3.1:latest";
-    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
+    private ElementReference chatContainer;
+    private User? user;
+    PaginationState pagination = new PaginationState { ItemsPerPage = 19 };
 
     // Dynamic models for select
-    private List<string> ollamaModels = new();
+    private List<string>? ollamaModels = new();
     // Multi-turn chat history
-    private List<OllamaMessage> chatHistory = new();
+    private List<OllamaMessage>? chatHistory = new();
 
     // Saved Queries state
     private bool showSavedQueries = false;
-    private List<AiQuery> savedQueries = new();
+    private List<AiQuery>? savedQueries = new();
     private AiQuery? selectedSavedQuery;
     private bool isLoadingSaved = false;
 
     private FluentMenuButton btnModel = new();
+    FluentTextArea? txtQ;
 
     private void btnModelChanged(MenuChangeEventArgs args)
     {
         if (args?.Id != null)
+        {
             aiModel = args.Id;
+            // btnModel.Text = args.Value;
+        }
+    }
+
+    private async Task btnFaveClick()
+    {
+        if (!isFavourite)
+        {
+            UserFavouriteQry favouriteQry = new UserFavouriteQry();
+            favouriteQry.UserId = user.UserID;
+            favouriteQry.QueryId = selectedSavedQuery.AiQueryID;
+            var response = await pulseApiClient.SaveFavouriteQueryAsync(favouriteQry);
+            if(response != null)
+            {
+                user.UserFavouriteQueries.Add(response);
+                isFavourite = !isFavourite;
+            }
+        }
+        else
+        {
+            UserFavouriteQry delfav = user.UserFavouriteQueries.FirstOrDefault(q => q.QueryId == selectedSavedQuery.AiQueryID);
+            if(delfav == null){ return; }
+            var dresponse = await pulseApiClient.DeleteFavouriteQueryAsync(delfav.Id);
+            if (dresponse != null)
+            {
+                user.UserFavouriteQueries.Remove(delfav);
+                isFavourite = !isFavourite;
+            }
+        }
+    }
+
+    private async Task SetQuestionFocus()
+    {
+        try
+        {
+            txtQ!.FocusAsync();
+        }
+        catch(Exception ex)
+        {
+            return;
+        }
+
     }
 
     private string GetTruncatedSql(string sql)
@@ -232,6 +339,16 @@
     //     StateHasChanged();  // Ensure UI updates if needed
     // }
 
+    private void ToggleWebSearch()
+    {
+        togWebSearch = !togWebSearch;
+    }
+
+    private void ToggleFavourites()
+    {
+        myFave = !myFave;
+    }
+
     private async Task ToggleChat()
     {
         errorMessage = string.Empty;
@@ -249,9 +366,14 @@
         }
         else
         {
-            query = "Hello!";
-            await SubmitQuery();
+            chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "**Hi there!** <br>I am here to help, so ask away.<br>I can provide insights on the data inside Pulse, or search the web and compare.<br>Just let me know!" });
         }
+    }
+
+    private async Task CancelQuery()
+    {
+        await pAI.CancelQueryAsync();
+        isLoading = false;
     }
 
     private async Task LoadSavedQueries()
@@ -300,7 +422,12 @@
     protected override async Task OnInitializedAsync()
     {
         ollamaModels = await pAI.GetOllamaModelsAsync();
-        aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
+        user = await dtrf.GetgvUser();
+        if(user.UserFavouriteQueries == null)
+        {
+            user.UserFavouriteQueries = await pulseApiClient.GetAsync<List<UserFavouriteQry>>($"/User/Favourites/SavedQueries/GetById/{user.UserID}");
+        }
+        // aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
     }
 
     private async Task ToggleSavedQueries()
@@ -360,7 +487,7 @@
 
     private async Task SubmitQuery()
     {
-        if (string.IsNullOrWhiteSpace(query)) return;
+        if (string.IsNullOrWhiteSpace(query) && isCorrect) return;
 
         isLoading = true;
         errorMessage = string.Empty;
@@ -377,8 +504,16 @@
             if(togChat)
             {
                 // Add user message to history
+                if (!isCorrect)
+                {
+                    query = chatHistory.LastOrDefault(m => m.Role == "user")?.Content;
+                    isCorrect = true;
+                }
                 chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
-                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, aiModel, cts.Token);
+
+                // StateHasChanged();
+                // await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
+                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, aiModel, togWebSearch, cts.Token);
 
                 if (aiSQL.StartsWith("Error:"))
                 {
@@ -388,11 +523,16 @@
                 {
                     // Add assistant response to history
                     chatHistory.Add(new OllamaMessage { Role = "assistant", Content = aiSQL });
+                    // StateHasChanged();
+                    // await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
                 }
+                query = string.Empty;
                 isLoading = false;
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
                 return; 
             }
-            
+
             if (!isCorrect)
             {
                 // If marked incorrect, adjust the query to inform the AI
@@ -432,7 +572,9 @@
         }
         finally
         {
+
             isLoading = false;
+            await SetQuestionFocus();
         }
     }
 
@@ -507,6 +649,44 @@
     private void OnSaveQueryRowClick(FluentDataGridRow<AiQuery> args)
     {
         selectedSavedQuery = args.Item;
+        if (user.UserFavouriteQueries.Count() == 0)
+        {
+            isFavourite = false;
+        }else{
+        isFavourite = user.UserFavouriteQueries.Any(qr => qr.QueryId == selectedSavedQuery.AiQueryID);
+        }
         StateHasChanged();  // Ensure UI updates if needed
+    }
+
+    private string FormatMessageToHtml(string content) //, string role, string toolName)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+
+        // Basic Markdown-like to HTML (customize for your needs)
+        var html = content
+            .Replace("\n", "<br>")
+            .Replace("**", "<strong>")
+            .Replace("`", "<code>")
+            .Replace("```sql", "<pre><code>")
+            .Replace("```", "</code></pre>")
+            .Replace("* ", "<li>"); // Simple list support
+
+        // Style based on role or tool
+        // string style = role switch
+        // {
+        //     "user" => "color: navy;",
+        //     "assistant" => "color: darkgreen;",
+        //     "tool" => $"color: purple; font-style: italic;{(toolName == "web_search" ? " background-color: #f0f8ff;" : "")}",
+        //     _ => ""
+        // };
+
+        // return $"<div style='{style}'>{html}</div>";
+        return html;
+    }
+
+    private string ParseToHtml(string markdownContent)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
+        return Markdown.ToHtml(markdownContent, pipeline);
     }
 }

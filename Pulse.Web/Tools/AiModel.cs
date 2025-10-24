@@ -1,6 +1,7 @@
 ﻿using Pulse.Models.CustomComponents;
 using StackExchange.Redis;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 
@@ -201,16 +202,29 @@ namespace Pulse.Web.Tools
         public DateTime CreatedAt { get; set; }
 
         [JsonPropertyName("message")]
-        public OllamaMessage Message { get; set; }  // The assistant's response
+        public OllamaMessage Message { get; set; }  // Includes content and tool_calls
 
         [JsonPropertyName("done")]
         public bool Done { get; set; }
 
-        // Metrics as before
+        // Metrics
         [JsonPropertyName("total_duration")]
         public long TotalDuration { get; set; }
 
-        // ... other optional fields
+        [JsonPropertyName("load_duration")]
+        public long LoadDuration { get; set; }
+
+        [JsonPropertyName("prompt_eval_count")]
+        public int PromptEvalCount { get; set; }
+
+        [JsonPropertyName("prompt_eval_duration")]
+        public long PromptEvalDuration { get; set; }
+
+        [JsonPropertyName("eval_count")]
+        public int EvalCount { get; set; }
+
+        [JsonPropertyName("eval_duration")]
+        public long EvalDuration { get; set; }
     }
 
     public class OllamaMessage
@@ -220,6 +234,11 @@ namespace Pulse.Web.Tools
 
         [JsonPropertyName("content")]
         public string Content { get; set; }  // Generated SQL text
+
+        [JsonPropertyName("tool_calls")]
+        public List<OllamaToolCall>? ToolCalls { get; set; }  // Plural array, even for single
+
+        public string ToolName { get; set; }  // Custom prop for tool response (not serialized to Ollama, for internal use)
     }
 
     public class OllamaGenerateResponse
@@ -258,4 +277,206 @@ namespace Pulse.Web.Tools
         [JsonPropertyName("eval_duration")]
         public long EvalDuration { get; set; }
     }
+
+    public class OllamaTool
+    {
+        public string Type { get; set; } = "function";
+        public string FunctionName { get; set; }
+        public object FunctionParameters { get; set; }
+        public string Description { get; set; }
+    }
+
+    public class OllamaWebSearchResponse
+    {
+        public List<OllamaWebSearchResult> Results { get; set; }
+    }
+
+    public class OllamaWebFetchResponse
+    {
+        public string Title { get; set; }
+        public string Content { get; set; }
+        public List<OllamaWebLink> Links { get; set; }
+    }
+
+    public class OllamaWebSearchResult
+    {
+        public string Title { get; set; }
+        public string Url { get; set; }
+        public string Snippet { get; set; }
+    }
+
+    public class OllamaWebLink
+    {
+        public string Url { get; set; }
+        public string Text { get; set; }
+    }
+
+    // Tool call class for tool_calls array
+    public class OllamaToolCall
+    {
+        [JsonPropertyName("function")]
+        public OllamaFunctionCall Function { get; set; }
+    }
+
+    public class OllamaFunctionCall
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; }
+
+        [JsonPropertyName("arguments")]
+        public JsonElement Arguments { get; set; }  // Flexible for params like {"query": "value"}
+    }
+    //public class OllamaTagsResponse
+    //{
+    //    public List<OllamaModelInfo> Models { get; set; }
+    //}
+
+    //public class OllamaOptions
+    //{
+    //    public string ApiKey { get; set; } = "";
+    //    public bool OptimizeSchema { get; set; } = true; // Enable keyword-based filtering of schema
+    //    public int MaxSchemaTokens { get; set; } = 1500; // Rough limit to truncate schema text
+    //    public string DefaultModel { get; set; } = "llama3.1:latest"; // Fallback model
+    //    // Add more, e.g., public string OllamaBaseUrl { get; set; } = "http://localhost:11434";
+    //}
+
+    //public class OllamaModelInfo
+    //{
+    //    public string Name { get; set; }
+    //}
+
+    //// Ollama /api/chat response structure (single non-stream)
+    //public class OllamaChatResponse
+    //{
+    //    [JsonPropertyName("model")]
+    //    public string Model { get; set; }
+
+    //    [JsonPropertyName("created_at")]
+    //    public DateTime CreatedAt { get; set; }
+
+    //    [JsonPropertyName("message")]
+    //    public OllamaMessage Message { get; set; }  // Includes content and tool_calls
+
+    //    [JsonPropertyName("done")]
+    //    public bool Done { get; set; }
+
+    //    // Metrics
+    //    [JsonPropertyName("total_duration")]
+    //    public long TotalDuration { get; set; }
+
+    //    [JsonPropertyName("load_duration")]
+    //    public long LoadDuration { get; set; }
+
+    //    [JsonPropertyName("prompt_eval_count")]
+    //    public int PromptEvalCount { get; set; }
+
+    //    [JsonPropertyName("prompt_eval_duration")]
+    //    public long PromptEvalDuration { get; set; }
+
+    //    [JsonPropertyName("eval_count")]
+    //    public int EvalCount { get; set; }
+
+    //    [JsonPropertyName("eval_duration")]
+    //    public long EvalDuration { get; set; }
+    //}
+
+    //public class OllamaMessage
+    //{
+    //    [JsonPropertyName("role")]
+    //    public string Role { get; set; } = "assistant";
+
+    //    [JsonPropertyName("content")]
+    //    public string Content { get; set; }  // Generated SQL text
+
+    //    [JsonPropertyName("tool_calls")]
+    //    public List<OllamaToolCall> ToolCalls { get; set; }  // Plural array, even for single
+
+    //    public string ToolName { get; set; }  // Custom prop for tool response (not serialized to Ollama, for internal use)
+    //}
+
+    //public class OllamaGenerateResponse
+    //{
+    //    [JsonPropertyName("model")]
+    //    public string Model { get; set; }
+
+    //    [JsonPropertyName("created_at")]
+    //    public DateTime CreatedAt { get; set; }
+
+    //    [JsonPropertyName("response")]
+    //    public string Response { get; set; }  // The generated text (e.g., SQL from prompt)
+
+    //    [JsonPropertyName("done")]
+    //    public bool Done { get; set; }  // True if generation complete
+
+    //    // Optional metrics for debugging/performance
+    //    [JsonPropertyName("context")]
+    //    public int[] Context { get; set; }  // Token context for continuations (if needed)
+
+    //    [JsonPropertyName("total_duration")]
+    //    public long TotalDuration { get; set; }  // Nanoseconds
+
+    //    [JsonPropertyName("load_duration")]
+    //    public long LoadDuration { get; set; }
+
+    //    [JsonPropertyName("prompt_eval_count")]
+    //    public int PromptEvalCount { get; set; }
+
+    //    [JsonPropertyName("prompt_eval_duration")]
+    //    public long PromptEvalDuration { get; set; }
+
+    //    [JsonPropertyName("eval_count")]
+    //    public int EvalCount { get; set; }
+
+    //    [JsonPropertyName("eval_duration")]
+    //    public long EvalDuration { get; set; }
+    //}
+
+    //public class OllamaTool
+    //{
+    //    public string Type { get; set; } = "function";
+    //    public string FunctionName { get; set; }
+    //    public object FunctionParameters { get; set; }
+    //    public string Description { get; set; }
+    //}
+
+    //public class OllamaWebSearchResponse
+    //{
+    //    public List<OllamaWebSearchResult> Results { get; set; }
+    //}
+
+    //public class OllamaWebFetchResponse
+    //{
+    //    public string Title { get; set; }
+    //    public string Content { get; set; }
+    //    public List<OllamaWebLink> Links { get; set; }
+    //}
+
+    //public class OllamaWebSearchResult
+    //{
+    //    public string Title { get; set; }
+    //    public string Url { get; set; }
+    //    public string Snippet { get; set; }
+    //}
+
+    //public class OllamaWebLink
+    //{
+    //    public string Url { get; set; }
+    //    public string Text { get; set; }
+    //}
+
+    //// Tool call class for tool_calls array
+    //public class OllamaToolCall
+    //{
+    //    [JsonPropertyName("function")]
+    //    public OllamaFunctionCall Function { get; set; }
+    //}
+
+    //public class OllamaFunctionCall
+    //{
+    //    [JsonPropertyName("name")]
+    //    public string Name { get; set; }
+
+    //    [JsonPropertyName("arguments")]
+    //    public Dictionary<string, object> Arguments { get; set; }  // Flexible for params like {"query": "value"}
+    //}
 }

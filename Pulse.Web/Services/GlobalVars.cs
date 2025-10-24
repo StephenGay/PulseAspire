@@ -1,6 +1,6 @@
 ﻿
 using Pulse.Models.Customers;
-using Pulse.Models.Organizational;
+using Pulse.Models.Users;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 

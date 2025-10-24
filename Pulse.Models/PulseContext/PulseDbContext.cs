@@ -12,6 +12,7 @@ using Pulse.Models.Misc;
 using Pulse.Models.Industries;
 using Pulse.Models.Rollers;
 using Pulse.Models.Compounds;
+using Pulse.Models.Users;
 
 namespace Pulse.Models.PulseContext
 {
@@ -36,6 +37,16 @@ namespace Pulse.Models.PulseContext
         public DbSet<ShellType> ShellTypeMaster { get; set; }
         public DbSet<Polymer> PolymerMaster { get; set; }
         public DbSet<Colour> ColourMaster { get; set; }
+        public DbSet<HardnessType> HardnessTypeMaster { get; set; }
+        public DbSet<CompoundRange> CompoundRangeMaster { get; set; }
+        public DbSet<CompoundRangeProperty> CompoundRangePropertyMaster { get; set; }
+        public DbSet<Compound> CompoundMaster { get; set; }
+        public DbSet<IndustryRollerEnvironment> IndustryRollerEnvironmentMaster { get; set; }
+        public DbSet<IndustryRecommendedCover> IndustryRecommendedCoverMaster { get; set; }
+        public DbSet<ClientContact> ClientContactMaster { get; set; }
+        public DbSet<ClientRollerSpecification> ClientRollerSpecificationMaster { get; set; }
+        public DbSet<ClientRoller> ClientRollerMaster { get; set; }
+        public DbSet<UserFavouriteQry> UserFavouriteQueries {  get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -58,6 +69,17 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new ShellTypeMasterMap());
             modelBuilder.ApplyConfiguration(new PolymerMasterMap());
             modelBuilder.ApplyConfiguration(new ColourMasterMap());
+            modelBuilder.ApplyConfiguration(new HardnessTypeMasterMap());
+            modelBuilder.ApplyConfiguration(new CompoundRangeMasterMap());
+            modelBuilder.ApplyConfiguration(new CompoundRangePropertyMasterMap());
+            modelBuilder.ApplyConfiguration(new CompoundMasterMap());
+            modelBuilder.ApplyConfiguration(new IndustryRollerEnvironmentMasterMap());
+            modelBuilder.ApplyConfiguration(new IndustryRecommendedCoverMasterMap());
+            modelBuilder.ApplyConfiguration(new ClientContactMasterMap());
+            modelBuilder.ApplyConfiguration(new ClientRollerSpecificationMasterMap());
+            modelBuilder.ApplyConfiguration(new ClientRollerMasterMap());
+            modelBuilder.ApplyConfiguration(new UserFavouriteQueryMap());
+
 
             base.OnModelCreating(modelBuilder);
         }

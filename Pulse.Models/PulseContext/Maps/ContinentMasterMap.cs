@@ -14,6 +14,9 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<Continent> builder)
         {
             builder.ToTable("ContinentMaster");
+            builder.HasMany(ct => ct.Countries)
+                   .WithOne(c => c.Continent)
+                   .HasForeignKey(c => c.ContinentID);
         }
 
         

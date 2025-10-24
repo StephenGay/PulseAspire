@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pulse.Models.Industries;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -18,5 +19,6 @@ namespace Pulse.Models.Rollers
         [MaxLength(100)]
         public required string RollerTypeName { get; set; }
         public bool IsActive { get; set; } = true;
+        public List<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; }
     }
 }

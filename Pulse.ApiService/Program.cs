@@ -40,6 +40,7 @@ app.MapDefaultEndpoints();
 app.MapCustomerEndpoints();
 app.MapAiEndpoints();
 app.MapSecurityEndpoints();
+app.MapUserEndpoints();
 
 app.UseHttpsRedirection();
 

@@ -1,4 +1,5 @@
-﻿<!DOCTYPE html>
+﻿@* @using Microsoft.FluentUI.AspNetCore.Components *@
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -9,7 +10,11 @@
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Pulse.Web.styles.css"]" />
     <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/fluent-ui.min.css" />
-    
+  @*   <FluentDesignTheme StorageName="HM_Theme" />
+    <!-- Set the default theme -->
+    <script src="_content/Microsoft.FluentUI.AspNetCore.Components/js/loading-theme.js" type="text/javascript"></script>
+    <loading-theme storage-name="HM_Theme"></loading-theme> *@
+    @* <FluentDesignTheme @bind-Mode="@Mode" @bind-OfficeColor="@OfficeColor" StorageName="theme" /> *@
     <ImportMap />
     
     <link rel="icon" type="image/png" sizes="16x16" href="Images/FavIcons/favicon 16x16.png" />
@@ -27,7 +32,7 @@
     <Microsoft.FluentUI.AspNetCore.Components.FluentMenuProvider />
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     <script src="_content/BlazorAnimation/blazorAnimationInterop.js"></script>
-    
+    <script src="js/site.js"></script>
 </body>
 
    

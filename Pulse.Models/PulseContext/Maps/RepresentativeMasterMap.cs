@@ -17,6 +17,9 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(c => c.Company)
                 .WithMany(r => r.SalesRepresentatives)
                 .HasForeignKey(c => c.CompanyID);
+            builder.HasMany(c => c.Customers)
+                .WithOne(r => r.SalesRepresentative)
+                .HasForeignKey(c => c.SalesRepID);
 
         }
     }

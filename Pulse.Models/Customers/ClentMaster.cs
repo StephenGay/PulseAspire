@@ -107,6 +107,8 @@ namespace Pulse.Models.Customers
         public Company? Company { get; set; }
         public SalesRepresentative? SalesRepresentative { get; set; }
         public List<ClientSales>? ClientSales { get; set; }
+        public List<ClientContact>? ClientContacts { get; set; }
+        public List<ClientRollerSpecification>? ClientRollerSpecifications { get; set; }
 
     }
 }

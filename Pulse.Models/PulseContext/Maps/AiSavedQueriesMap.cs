@@ -19,6 +19,9 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(a => a.SqlQuery).IsRequired();
             builder.Property(a => a.Timestamp).IsRequired();
             builder.Property(a => a.IsActive).HasDefaultValue(true);
+            builder.HasMany(f => f.UserFavouriteQueries)
+                    .WithOne(q => q.AiQuery)
+                    .HasForeignKey(q => q.QueryId);
         }
     }
 }

@@ -20,6 +20,9 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(p => p.Country)
                    .WithMany(c => c.Provinces)
                    .HasForeignKey(p => p.CountryID);
+            builder.HasMany(p => p.Regions)
+                   .WithOne(r => r.Province)
+                   .HasForeignKey(r => r.ProvinceID);
         }
     }
 }

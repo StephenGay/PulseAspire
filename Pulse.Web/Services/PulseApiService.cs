@@ -1,5 +1,6 @@
 ﻿using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
+using Pulse.Models.Users;
 using System.Data;
 using System.Text;
 using System.Text.Json;
@@ -212,6 +213,15 @@ namespace Pulse.Web.Services
             return await CreateDataTableFromDictionary(await StringToDictionary(str));
         }
 
+        public async Task<UserFavouriteQry?> SaveFavouriteQueryAsync(UserFavouriteQry query)
+        {
+            var response = await _httpClient.PostAsJsonAsync("/User/Favourites/SavedQueries/Add/", query);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<UserFavouriteQry>();
+            }
+            return null;
+        }
         public async Task<AiQuery?> SaveAiQueryAsync(AiQuery query)
         {
             var response = await _httpClient.PostAsJsonAsync("/AI/aiquery", query);
@@ -221,7 +231,17 @@ namespace Pulse.Web.Services
             }
             return null;
         }
-
+        public async Task<string?> DeleteFavouriteQueryAsync(int ID)
+        {
+            var response = await _httpClient.DeleteAsync($"/User/Favourites/SavedQueries/Delete/{ID}");
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<string>();
+            }
+            return null;
+        }
     }
 
 }
+
+

@@ -9,7 +9,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace Pulse.Models.Organizational
+namespace Pulse.Models.Users
 {
     public class User
     {
@@ -28,6 +28,7 @@ namespace Pulse.Models.Organizational
         [MaxLength(100)]
         [JsonIgnore]
         public string PasswordHash { get; set; } = string.Empty;
+        public List<UserFavouriteQry>? UserFavouriteQueries { get; set; }
 
         
 

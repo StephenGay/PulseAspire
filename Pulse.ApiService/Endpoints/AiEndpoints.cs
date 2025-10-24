@@ -19,7 +19,7 @@ namespace Pulse.ApiService.Endpoints
                 var schemas = dbContext.Model.GetEntityTypes()
                     .Select(et => new SchemaDto
                     {
-                        EntityType = et.ClrType.Name, // C# entity type, e.g., "ClientMaster"
+                        EntityType = et.ClrType.Name, // C# entity type, e.g., "ClientSales"
                         TableName = et.GetTableName(),
                         PrimaryKeys = et.GetKeys()
                             .Where(k => k.IsPrimaryKey())
@@ -41,7 +41,7 @@ namespace Pulse.ApiService.Endpoints
                                 RelatedEntityType = fk.PrincipalEntityType.ClrType.Name,
                                 RelatedTableName = fk.PrincipalEntityType.GetTableName(),
                                 ForeignKeyColumns = fk.Properties.Select(p => p.GetColumnName()).ToList(),
-                                Cardinality = fk.IsUnique ? (fk.PrincipalToDependent != null ? "OneToOne" : "ManyToOne") : "OneToMany"
+                                Cardinality = fk.IsUnique ? "OneToOne" : "OneToMany"  // Updated: Use IsUnique to determine cardinality (OneToOne if unique FK, otherwise OneToMany)
                             })
                             .ToList()
                     })
@@ -49,7 +49,7 @@ namespace Pulse.ApiService.Endpoints
 
                 return Results.Ok(schemas); // Safe to serialize (no System.Type issues)
             })
-            .Produces<List<SchemaDto>>(200);
+.Produces<List<SchemaDto>>(200);
 
             group.MapGet("/execute:{sqlS}", async (string sqlS, PulseDbContext dbContext) =>
             {
@@ -60,6 +60,39 @@ namespace Pulse.ApiService.Endpoints
             })
                 .Produces<List<Dictionary<string, object>>>(200)
                 ;
+
+            group.MapGet("/ExecuteAiUpdateInsertQry:{sqlS2}", async (string sqlS2, PulseDbContext dbContext) =>
+            {
+                Functions f = new Functions();
+                string sdb = dbContext.Database.GetConnectionString();
+                var qRes = await f.ExecuteAiUpdateInsertQry(sdb, sqlS2);
+                return Results.Ok(qRes);
+            })
+                .Produces<int>(200)
+                ;
+
+            group.MapGet("/execute4bot:{sql}", async (string sql, PulseDbContext dbContext) =>
+            {
+                // Safety: Validate SQL is SELECT-only (e.g., sql.ToLower().StartsWith("select"))
+                if (!sql.TrimStart().ToLowerInvariant().StartsWith("select"))
+                {
+                    return Results.BadRequest("Only SELECT queries allowed.");
+                }
+
+                try
+                {
+                    var data = await dbContext.Database.SqlQueryRaw<dynamic>(sql).ToListAsync();
+                    // Convert dynamic to Dictionary for JSON
+                    var results = data.Select(d => d as IDictionary<string, object>).Select(dict => dict.ToDictionary(pair => pair.Key, pair => pair.Value)).ToList();
+                    return Results.Ok(results);
+                }
+                catch (Exception ex)
+                {
+                    //_logger.LogError(ex, "SQL execution error");
+                    return Results.Problem("Error executing SQL.");
+                }
+            })
+            .Produces<List<Dictionary<string, object>>>(200);
 
             group.MapGet("/examples", async (PulseDbContext dbContext) =>
             {

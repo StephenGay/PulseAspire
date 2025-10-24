@@ -14,6 +14,9 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<Period> builder)
         {
             builder.ToTable("PeriodMaster");
+            builder.HasMany(p => p.ClientSales)
+                   .WithOne(cs => cs.Period)
+                   .HasForeignKey(cs => cs.PeriodID);
         }
     }
 }

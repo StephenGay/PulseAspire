@@ -13,7 +13,7 @@ namespace Pulse.Models.CustomComponents
         public string TableName { get; set; }
         public List<string> PrimaryKeys { get; set; } = new List<string>();
         public List<ColumnDto> Columns { get; set; } = new List<ColumnDto>();
-        public List<RelationshipDto> Relationships { get; set; } = new List<RelationshipDto>();
+        public List<RelationshipDto>? Relationships { get; set; }
     }
 
     public class ColumnDto
@@ -29,7 +29,7 @@ namespace Pulse.Models.CustomComponents
         public string NavigationName { get; set; } // e.g., "Rollers" (collection navigation)
         public string RelatedEntityType { get; set; } // e.g., "Roller"
         public string RelatedTableName { get; set; } // e.g., "Rollers"
-        public List<string> ForeignKeyColumns { get; set; } = new List<string>(); // e.g., ["ClientID"]
+        public List<string> ForeignKeyColumns { get; set; } // e.g., ["ClientID"]
         public string Cardinality { get; set; } // e.g., "OneToMany", "ManyToOne", "OneToOne"
     }
 }

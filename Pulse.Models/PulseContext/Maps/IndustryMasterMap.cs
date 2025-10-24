@@ -14,6 +14,17 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<Industry> builder)
         {
             builder.ToTable("IndustryMaster");
+            builder.HasMany(i => i.Customers)
+                   .WithOne(c => c.Industry)
+                   .HasForeignKey(c => c.IndustryID);
+            builder.HasMany(i => i.IndustryProcesses)
+                   .WithOne(ip => ip.Industry)
+                   .HasForeignKey(ip => ip.IndustryID);
+            builder.HasMany(i => i.IndustryRollerEnvironments)
+                     .WithOne(ire => ire.Industry)
+                     .HasForeignKey(ire => ire.IndustryId);
+            
+
         }
     }
 }

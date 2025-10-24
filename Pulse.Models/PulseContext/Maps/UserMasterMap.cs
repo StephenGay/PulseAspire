@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Pulse.Models.Organizational;
+using Pulse.Models.Users;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,6 +18,9 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(u => u.Email).HasMaxLength(200);
             builder.Property(u => u.PasswordHash).IsRequired().HasMaxLength(256);
             builder.Property(u => u.IsActive).IsRequired();
+            builder.HasMany(q => q.UserFavouriteQueries)
+                .WithOne(u => u.User)
+                .HasForeignKey(u => u.UserId);
         }
     }
     
