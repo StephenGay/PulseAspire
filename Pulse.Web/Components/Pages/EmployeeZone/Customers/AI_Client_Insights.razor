@@ -1,0 +1,211 @@
+﻿@page "/EmployeeZone/Customers/AI_Client_Insights"
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Customers
+@* @using Pulse.Web.Components.Pages.EmployeeZone.Customers.AI_Insights *@
+@inject Pulse.Web.Services.DataTransferService dt
+@inject Pulse.Web.Services.Pulse_AI pAI
+@inject IMenuService msrv
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+    
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
+        <FluentLabel Typo="Typography.Body" Style="color:white">AI Model : </FluentLabel>
+
+        @if (ollamaModels == null)
+        {
+            <FluentButton Appearance="Appearance.Accent" Loading="true" />
+        }
+        else
+        {
+            @* <Select TItem="string" bind-value="aiModel"  Items="ollamaModels" ValueChanged="OnSelectionChanged" Placeholder="Select AI Model" /> *@
+            <select @bind="aiModel" class="form-select" style="width: auto;">
+                @foreach (var model in ollamaModels)
+                {
+                    <option value="@model">@model</option>
+                }
+            </select>
+        }
+
+        <FluentSpacer />
+        @if (!string.IsNullOrEmpty(_Analysis))
+        {
+            <FluentButton Appearance="Appearance.Accent" OnClick="ExportHtmlFile" >Download</FluentButton>
+            <FluentSpacer />
+        }
+
+        <FluentMenuButton @ref=mnuBtn ButtonAppearance="Appearance.Accent" UseMenuService="false" Text="Sales" OnMenuChanged="mnuSalesChange">
+            <FluentMenuItem Id="mnuActualSales">Actual Sales</FluentMenuItem>
+            <FluentMenuItem Id="mnuTrends" >Historic Trends</FluentMenuItem>
+            <FluentMenuItem Id="mnuForecast" >Sales Forecast</FluentMenuItem>
+        </FluentMenuButton>
+        
+        @* <select name="selSales" @bind="_SalesMnuSel" ValueChanged="@selSalesChange" class="form-select" style="width: auto;">
+            <option value="selTrends">Historic Trends</option>
+            <option value="selForecast">Sales Forecast</option>
+        </select> *@
+
+    </FluentStack>
+
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; overflow: auto;">
+        <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: auto;">
+        @if (isLoading)
+        {
+            <div class="div-center-screen">@*  style="height:100%; border: 2px solid black; border-radius: 10px; background-color:white;width:100%;"> *@
+                <FluentProgressRing style="width: 102px; height: 102px;"></FluentProgressRing>
+                    <FluentLabel Typo="Typography.H6" Style="width:100% ; color: black;" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@(firstLoad ? "Fetching Client Data" : LoadHdr)</FluentLabel>
+            </div>
+        }else
+        {
+                <FluentLabel Typo="Typography.PaneHeader" Style="width:100% ; background-color: #bcd1d4; color: #365b66; border: 2px solid black; border-radius: 10px;" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@Hdr</FluentLabel>
+            @((MarkupString)ParseToHtml(_Analysis))
+                @* <Markdown TableCssClass="table table-striped table-hover table-bordered">@_Analysis</Markdown> *@
+            
+        }
+        </div>
+    </FluentStack>
+</FluentLayout>
+<FluentMenuProvider />
+
+@code {
+    private FluentMenuButton mnuBtn = new();
+    private bool isLoading = true;
+    private bool firstLoad = true;
+    private string Hdr = string.Empty;
+    private string LoadHdr = string.Empty;
+    private string qry = string.Empty;
+    private string _Analysis = string.Empty;
+    private string _SalesMnuSel = "Sales";
+    bool open2 = false;
+    private Customer? _client;
+    private string aiModel = "gpt-oss:latest";
+    // Dynamic models for select
+    private List<string>? ollamaModels = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetClientInfo();
+        ollamaModels = await pAI.GetOllamaModelsAsync();
+        firstLoad = false;
+        isLoading = false;
+    }
+
+    private async Task GetClientInfo()
+    {
+        _client = await dt.GetgvSelectedClient();
+        if(_client.ClientSales == null)
+        {
+            _client.ClientSales = await pAI.GetClientSalesAsync(_client.FullClientID);
+            await dt.SetgvSelectedClient(_client);
+        }
+    }
+
+    private async Task ExportHtmlFile()
+    {
+        // Example HTML content
+        string htmlContent = ParseToHtml(_Analysis);
+        string fileName = $"{_client.FullClientID}-{Hdr}.html";
+
+        // Call JavaScript function to download the file
+        await JSRuntime.InvokeVoidAsync("downloadHTMLFile", fileName, htmlContent);
+    }
+    private async Task mnuSalesChange(MenuChangeEventArgs args)
+    {
+        if(args.Id == null){ return; }
+        Hdr = string.Empty;
+        qry = $"This is the sales history for customer {_client.ClientName}.";
+        _Analysis = string.Empty;
+        isLoading = true;
+
+        try
+        {
+            switch (args.Id)
+            {
+                case "mnuActualSales":
+                    Hdr = "Actual Sales";
+                    LoadHdr = "Fetching Client Sales...";
+                    qry += "Show the actual Sales Figures in a table, with the Months as columns and Years as rows.";
+                    break;
+
+                case "mnuTrends":
+                    Hdr = "Analysis & Trends - Historic Sales";
+                    LoadHdr = "Analysing Client Sales...";
+                    qry += "Please analyse them and provide any Insights you might find, as well as any trends or patterns. Respond with a detailed analysis.";
+                    break;
+
+                case "mnuForecast":
+                    LoadHdr = "Creating A 12 Month Sales Forecast...";
+                    Hdr = "12 Month Sales Forecast";
+                    qry += "Please analyse them and create a Sales Forecast for the next 12 months. Include your reasoning.";
+                    break;
+
+                default:
+                    isLoading = false;
+                    return;
+            }
+
+            _Analysis = await pAI.AnalyseClientSalesAsync(qry, _client.ClientSales, aiModel);
+            isLoading = false;
+        }
+        catch(Exception ex)
+        {
+            Hdr = "There was an Error doing the Analysis.";
+            _Analysis = ex.Message;
+            isLoading = false;
+        }
+    }
+
+    private async Task selSalesChange()
+    {
+        // if (_SalesMnuSel == null || _SalesMnuSel == "Sales") { return; }
+        // Hdr = string.Empty;
+        // qry = $"This is the sales history for customer {_client.ClientName}. Please analyse them and ";
+        // _Analysis = string.Empty;
+        // isLoading = true;
+
+        // try
+        // {
+        //     switch (_SalesMnuSel)
+        //     {
+        //         case "selTrends":
+        //             Hdr = "Analysis & Trends - Historic Sales";
+        //             qry += "provide any Insights you might find, as well as any trends or patterns. Respond with a detailed analysis.";
+        //             break;
+
+        //         case "selForecast":
+        //             Hdr = "12 Month Sales Forecast";
+        //             qry += "create a Sales Forecast for the next 12 months. Include your reasoning.";
+        //             break;
+
+        //         default:
+        //             isLoading = false;
+        //             return;
+        //     }
+
+        //     _Analysis = await pAI.AnalyseClientSalesAsync(qry, _client.ClientSales);
+        //     isLoading = false;
+        //     _SalesMnuSel = "Sales";
+        // }
+        // catch (Exception ex)
+        // {
+        //     Hdr = "There was an Error doing the Analysis.";
+        //     _Analysis = ex.Message;
+        //     isLoading = false;
+        // }
+    }
+    private string ParseToHtml(string markdownContent)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
+        var res = Markdig.Markdown.ToHtml(markdownContent, pipeline);
+        res = AddMUcss(res);
+        return res;
+    }
+    private string AddMUcss(string toMU)
+    {
+        toMU = toMU.Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\">");
+        toMU = toMU.Replace("<th>", "<th style=\"background-color: #365b66; color: #bcd1d4;\">");
+        return toMU;
+    }
+}

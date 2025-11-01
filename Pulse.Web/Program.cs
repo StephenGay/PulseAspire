@@ -6,7 +6,6 @@ using Polly.Extensions.Http;
 using Polly.Timeout;
 using Microsoft.Extensions.Options;
 
-
 using Pulse.Web.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,6 +41,12 @@ IAsyncPolicy<HttpResponseMessage> timeoutPolicy = isDevelopment
 // Add service defaults & Aspire client integrations.
 builder.AddServiceDefaults();
 builder.AddRedisOutputCache("cache");
+
+builder.Services.AddBootstrapBlazor(options =>
+{
+    options.ToastDelay = 4000;
+    options.ToastPlacement = BootstrapBlazor.Components.Placement.TopEnd;
+});
 
 var ollamaEndpoint = builder.Configuration["OllamaApi:EndpointHttp"]
     ?? throw new InvalidOperationException("Missing configuration for Ollama:Endpoint");
@@ -99,7 +104,7 @@ builder.Services.AddSingleton<DataTransferService>();
 builder.Services.AddSingleton<Pulse_AI>();
 
 builder.Services.AddFluentUIComponents();
-
+builder.Services.AddDataGridEntityFrameworkAdapter();
 builder.Services.AddHttpForwarderWithServiceDiscovery();
 
 

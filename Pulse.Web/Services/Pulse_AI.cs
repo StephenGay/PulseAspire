@@ -1,16 +1,19 @@
-﻿using Microsoft.Extensions.Options;
+﻿using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Polly.Timeout;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Models.Organizational;
+using Pulse.Web.Services;
 using Pulse.Web.Tools;
 using StackExchange.Redis;
 using System;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
-using Pulse.Web.Services;
 using System.Threading;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -28,12 +31,13 @@ namespace Pulse.Web.Services
         private static string? _cachedExamples;
         private static DateTime _cacheSchemaExpiry = DateTime.MinValue;
         private static DateTime _cacheExamplesExpiry = DateTime.MinValue;
-        
+
         private static string _toolAttemptName = "";
         private static int _toolAttempts = 0;
         private static bool _CancelQuery = false;
         const int MAX_TOOL_ATTEMPTS = 5;
         const int MAX_TOTAL_QRY_ATTEMPTS = 10;
+        const string DEFAULT_MODEL = "gpt-oss:latest";
 
         public Pulse_AI(IHttpClientFactory httpClientFactory, ILogger<Pulse_AI> logger)
         {
@@ -43,7 +47,7 @@ namespace Pulse.Web.Services
                 _ollamaClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
             }
             _pulseApiClient = httpClientFactory.CreateClient("PulseApiClient");
-            
+
             _logger = logger;
         }
 
@@ -310,7 +314,7 @@ namespace Pulse.Web.Services
 
             if (qryLoop >= MAX_TOTAL_QRY_ATTEMPTS)
             {
-                
+
                 return "My apologies, I seem to be caught in a loop. Maybe try and rephrase the question."; //"Error: Maximum query attempts reached. Unable to process the request further.";
             }
 
@@ -795,6 +799,87 @@ namespace Pulse.Web.Services
 
             var contentText = fetchResponse.Content ?? "";
             return contentText.Length > 8000 ? contentText.Substring(0, 8000) + "..." : contentText;
+        }
+
+        public async Task<List<ClientSales>> GetClientSalesAsync(string clientID, CancellationToken ct = default)
+        {
+            List<ClientSales> fallback = new();
+
+            try
+            {
+                // Example endpoint call - Adjust to your actual API (e.g., /api/sales/{clientID})
+                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(clientID)}/Sales", ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(ct);
+                    _logger.LogError("API request failed: Status {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    return fallback;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var sales = JsonSerializer.Deserialize<List<ClientSales>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (sales == null || !sales.Any())
+                {
+                    return fallback;
+                }
+                return sales;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetClientSalesAsync.");
+                return fallback;
+            }
+        }
+        public async Task<string> AnalyseClientSalesAsync(string userQuery, List<ClientSales> sales, string sModel, CancellationToken ct = default)
+        {
+            //var httpClient = _httpClientFactory.CreateClient("PulseApiClient");
+
+            try
+            {
+                var dataText = JsonSerializer.Serialize(sales, new JsonSerializerOptions { WriteIndented = true });
+
+                var prompt = $"""
+                You will be given the sales history for a customer. You are a financial analysist and will examine the data and provide
+                meaninful responses to the user query provided.
+
+                The query will include the customers name which is to be used when referencing the customer, not the client id.
+                The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
+                not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
+                field you are using.
+            
+                Unless it is specifically asked for in the query, do not include the period sales amounts, just the analysis.
+                Note: All Sales Amounts are in ZAR (South African Rands)
+
+                Data:
+                {dataText}
+
+                Query: {userQuery}
+                """;
+
+                var model = sModel;
+                var ollamaRequest = new { model, prompt, stream = false };
+                var jsonContent = JsonSerializer.Serialize(ollamaRequest);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                var ollamaResponse = await _ollamaClient.PostAsync("http://localhost:11434/api/generate", content, ct);
+                if (!ollamaResponse.IsSuccessStatusCode)
+                {
+                    var ollamaError = await ollamaResponse.Content.ReadAsStringAsync(ct);
+                    _logger.LogError("Ollama request failed: {Error}", ollamaError);
+                    return $"Error from Ollama: {ollamaError}";
+                }
+
+                var responseJson = await ollamaResponse.Content.ReadAsStringAsync(ct);
+                var ollamaResult = JsonSerializer.Deserialize<OllamaGenerateResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                return ollamaResult?.Response?.Trim() ?? "No analysis from Ollama.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetClientSalesAnalysisAsync.");
+                return $"Error: {ex.Message}";
+            }
         }
 
         private async Task<List<SchemaDto>> GetSchemaFromApiAsync(CancellationToken ct = default)

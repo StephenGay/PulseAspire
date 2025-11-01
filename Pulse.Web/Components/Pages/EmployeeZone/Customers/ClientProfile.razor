@@ -1,0 +1,102 @@
+﻿@page "/EmployeeZone/Customers/ClientProfile"
+@using Pulse.Models.Customers
+@using Services
+@using System.ComponentModel.DataAnnotations;
+@inject PulseApiService pulseApi
+@inject DataTransferService DataTransferService
+@* @attribute [StreamRendering(true)] *@
+@rendermode InteractiveServer
+
+<PageTitle>Client Profile</PageTitle>
+
+
+@if (_client is null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+    <h3 class="h3Overide">Customer Profile</h3>
+    <EditForm Model="_client" FormName="ClientProfile">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <div class="container">
+            <div class="row">
+                <div class=" mb-3 col-6">
+                    <div class="input-group">
+                        <span class="input-group-text labelOveride">Client ID</span>
+                        <InputText id="clientId" class="form-control controlOveride" @bind-Value="_client.ClientID" Disabled="true" />
+                    </div>
+                </div>
+                <div class="mb-3 col-6">
+                    <label class="form-control labelOveride">
+                        Invoices must show Order No
+                        <InputCheckbox class="form-check-input" @bind-Value="_client.RequireOrderNo" />
+                    </label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-group mb-3 col-12">
+                    <span class="input-group-text labelOveride">Client Name</span>
+                    <InputText id="clientName" class="form-control controlOveride" @bind-Value="_client.ClientName" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="mb-3 col-6">
+                    <label class="form-control labelOveride">Delivery Address</label>
+                    <InputText id="address1" class="form-control controlOveride" @bind-Value="_client.Address1" />
+                    <InputText id="address2" class="form-control controlOveride" @bind-Value="_client.Address2" />
+                    <InputText id="address3" class="form-control controlOveride" @bind-Value="_client.Address3" />
+                    <InputText id="address4" class="form-control controlOveride" @bind-Value="_client.Address4" />
+                    <InputText id="address5" class="form-control controlOveride" @bind-Value="_client.Address5" />
+                </div>
+                <div class="mb-3 col-6">
+                    <label class="form-control labelOveride">Postal Address</label>
+                    <InputText id="Paddress1" class="form-control controlOveride" @bind-Value="_client.PostalAddress1" />
+                    <InputText id="Paddress2" class="form-control controlOveride" @bind-Value="_client.PostalAddress2" />
+                    <InputText id="Paddress3" class="form-control controlOveride" @bind-Value="_client.PostalAddress3" />
+                    <InputText id="Paddress4" class="form-control controlOveride" @bind-Value="_client.PostalAddress4" />
+                    <InputText id="Paddress5" class="form-control controlOveride" @bind-Value="_client.PostalAddress5" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="mb-3 col-6">
+                    <div class="input-group">
+                        <span class="input-group-text labelOveride">VAT Registration No</span>
+                        <InputText id="vat" class="form-control controlOveride" @bind-Value="_client.VATNo" />
+                    </div>
+                </div>
+                <div class="mb-3 col-6">
+                    <div class="input-group">
+                        <span class="input-group-text labelOveride">Telephone No</span>
+                        <InputText id="phone" class="form-control controlOveride" @bind-Value="_client.Phone" />
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="input-group mb-3 col-12">
+                    <span class="input-group-text labelOveride">E-Mail</span>
+                    <InputText id="email" class="form-control controlOveride" @bind-Value="_client.EMail" />
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+
+    </EditForm>
+	</Animation>
+}
+@code {
+    // [CascadingParameter]
+	private string _customer_Id = string.Empty;
+
+    private Customer? _client;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+        // await Task.Delay(500);
+        _client = await DataTransferService.GetgvSelectedClient();
+
+    }
+}

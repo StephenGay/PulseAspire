@@ -24,8 +24,8 @@ namespace Pulse.Models.Customers
         [Required]
         [DefaultValue(0)]
         public required decimal Amount { get; set; }
-        public required Customer Customer { get; set; }
-        public required Period Period { get; set; }
+        public Customer? Customer { get; set; }
+        public Period? Period { get; set; }
 
     }
 }

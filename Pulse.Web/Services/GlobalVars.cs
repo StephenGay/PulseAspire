@@ -11,7 +11,7 @@ namespace Pulse.Web.Services
         //public string gv_clientId { get; set; } = string.Empty;
         public Customer gv_client { get; set; }
         public User gv_user { get; set; }
-
+        public Customer gv_Selected_Client { get; set; }
         public async Task SetgvUser(User user)
         {
             gv_user = user;
@@ -40,10 +40,17 @@ namespace Pulse.Web.Services
         {
             return await Task.FromResult(gv_client);
         }
-        //public async Task<string> GetClientId()
-        //{
-        //    return await Task.FromResult(gv_clientId);
-        //}
+
+        public async Task SetgvSelectedClient(Customer client)
+        {
+            gv_Selected_Client = client;
+            await Task.CompletedTask;
+        }
+
+        public async Task<Customer> GetgvSelectedClient()
+        {
+            return await Task.FromResult(gv_Selected_Client);
+        }
 
     }
 
@@ -51,6 +58,8 @@ namespace Pulse.Web.Services
     {
         public Task SetgvClient(Customer client);
         public Task<Customer> GetgvClient();
+        public Task SetgvSelectedClient(Customer client);
+        public Task<Customer> GetgvSelectedClient();
         public Task SetgvUser(User user);
         public Task<User> GetgvUser();
     }

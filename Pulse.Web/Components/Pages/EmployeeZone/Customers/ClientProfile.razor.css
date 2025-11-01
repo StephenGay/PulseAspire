@@ -1,0 +1,21 @@
+﻿.h3Overide {
+    color: white !important;
+    text-align: center !important;
+}
+
+.labelOveride {
+    background-color: #bcd1d4 !important;
+    color: #365b66 !important;
+    font-weight: bold !important;
+    text-align: center !important;
+    border-right: 1px solid #365b66 !important;
+    border-left: 1px solid #bcd1d4 !important;
+    border-top: 1px solid #bcd1d4 !important;
+    border-bottom: 1px solid #bcd1d4 !important;
+    margin: 1px;
+}
+
+.controlOveride {
+    border: 1px solid #365b66 !important;
+    margin: 1px !important;
+}

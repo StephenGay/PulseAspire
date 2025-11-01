@@ -1,0 +1,181 @@
+﻿@page "/EmployeeZone/Customers/ClientSales"
+@using Pulse.Models.Customers
+@using System.Text.Json
+@using Pulse.Web.Services
+
+@inject DataTransferService DataTransferService
+@inject Pulse.Web.Services.Pulse_AI pAI
+@rendermode InteractiveServer
+
+<FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+    
+    
+
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; overflow: auto;">
+        <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: auto;">
+            @if (isLoading)
+            {
+                <FluentLabel Typo="Typography.Body" Style="color:black;">Loading...</FluentLabel>
+            }
+            else
+            {
+                @if (salesGrid.Any())
+                {
+                    <div style="overflow-x: auto; max-width: 100%; background-color: white;">
+                        <FluentDataGrid Items="@salesGrid.AsQueryable()" ResizableColumns="true"
+                                                                
+                                                                RowSize="DataGridRowSize.Small" 
+                                                               
+                                                                Pagination="@pagination"
+                                                                
+                                                                GenerateHeader="GenerateHeaderOption.Sticky" 
+                                                                AutoFit="true">
+                            @foreach (var column in monthColumns)
+                            {
+                                var localColumn = column;
+                                <PropertyColumn Property="@(r => r[localColumn])" Align=@(column == "Financial Year" ? Align.Center : Align.End)
+                                                Style=@(column == "Financial Year" || column == "Total" ? "background-color:#365b66;color:#bcd1d4;" : "background-color:#bcd1d4;color:#365b66;")  Sortable="false" >
+                                    <HeaderCellItemTemplate>
+                                        <FluentLabel Typo="Typography.H6" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="color:white">@column</FluentLabel>
+                                    </HeaderCellItemTemplate>    
+                                </PropertyColumn>
+
+                            }
+                        </FluentDataGrid>
+                        <FluentPaginator State="@pagination" Style="background-color:#365b66;color: white; width:100%; padding:10px; border-radius:10px;" />
+                    </div>
+                    
+                }
+            }
+        </div>
+    </FluentStack>
+
+</FluentLayout>
+
+
+@code {
+    private List<Dictionary<string, object>> salesGrid = new();
+    private List<string> monthColumns = new(); // Dynamic columns
+    private Customer? _client;
+    private object? selYear;
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+    PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+        // await Task.Delay(3000);
+        await GetClientInfo();
+        await LoadSalesGrid();
+        isLoading = false;
+    }
+
+    private void OnYearRowClick(FluentDataGridRow<object> args)
+    {
+        try
+        {
+            selYear = args.Item;
+            StateHasChanged();  // Ensure UI updates if needed
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+    }
+    private async Task LoadSalesGrid()
+    {
+        try
+        {
+            var sales = _client.ClientSales;
+            if (sales == null || !sales.Any()) return;
+
+            // Group by Year, Month, sum Amount
+            var grouped = sales
+                .Where(s => s.Period != null)
+                .GroupBy(s => new { s.Period.FinancialYear, s.Period.Month })
+                .ToDictionary(g => g.Key, g => g.Sum(s => s.Amount));
+
+            // Unique years for rows
+            // Original line:
+            // monthColumns.AddRange(months.Select(m => m.ToString("MMM"))); // "Jan", "Feb", etc.
+
+            // Fixed line:
+
+            var financialYears = grouped.Keys.Select(k => k.FinancialYear).Distinct().OrderByDescending(y => y).ToList();
+
+            // Unique months for columns (e.g., 1-12)
+            var months = grouped.Keys.Select(k => k.Month).Distinct().ToList();
+            string[] fiscalMonthOrder = { "November", "December", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October" };
+            // int[] fiscalMonthOrder = { 11, 12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+            // Build columns
+            monthColumns = new List<string> { "Financial Year" };
+            foreach (string fiscalMonth in fiscalMonthOrder)
+            {
+                if (months.Contains(fiscalMonth))
+                {
+                    monthColumns.Add(fiscalMonth.ToString().Substring(0,3)); // "Nov", "Dec", "Jan", ..., "Oct"
+                }
+            }
+            // monthColumns.AddRange(months.Select(m => m.ToString().Substring(0,3))); // "Jan", "Feb", etc.
+            //monthColumns.AddRange(months.Select(m => m.ToString("MMM"))); // "Jan", "Feb", etc.
+            monthColumns.Add("Total");
+
+            // Build rows
+            salesGrid.Clear();
+            foreach (var financialYear in financialYears)
+            {
+                var row = new Dictionary<string, object> { ["Financial Year"] = financialYear.ToString() };
+                decimal rowTotal = 0m;
+
+                foreach (var month in months)
+                {
+                    var key = new { FinancialYear = financialYear, Month = month };
+                    row[month.ToString().Substring(0,3)] = grouped.TryGetValue(key, out var amount) ? (object)amount.ToString("#,###") : 0m;
+                    rowTotal += amount;
+                }
+                row["Total"] = (object)rowTotal.ToString("#,###");
+                salesGrid.Add(row);
+            }
+
+            
+            StateHasChanged(); // Refresh grid
+            // var totalRow = new Dictionary<string, object> { ["Financial Year"] = "Total" };
+            // foreach (var col in monthColumns.Skip(1))
+            // {
+            //     totalRow[col] = salesGrid.Sum(r => Convert.ToDecimal(r[col])).ToString("#,###");
+            // }
+            // salesGrid.Add(totalRow);
+            
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading sales grid: {ex.Message}";
+        }
+    }
+
+    
+
+    private void OnSalesGridClick()
+    {
+        LoadSalesGrid(); // Call on button click or event
+    }
+
+    private async Task GetClientInfo()
+    {
+        _client = await DataTransferService.GetgvSelectedClient();
+        
+        if (_client is null)
+        {
+
+        }
+        else
+        {
+            if (_client.ClientSales == null)
+            {
+                _client.ClientSales = await pAI.GetClientSalesAsync(_client.FullClientID);
+                await DataTransferService.SetgvSelectedClient(_client);
+            }
+        }
+    }
+}

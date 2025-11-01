@@ -1,0 +1,63 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Customers
+@using Pulse.Models.Organizational
+@using Pulse.Web.Services
+@using BootstrapBlazor
+@using BootstrapBlazor.Components
+@using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16
+@inject DataTransferService dataTrf
+@inject Pulse.Web.Services.Pulse_AI pAI
+@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <EZ_CustomersNavMenu />
+    </div>
+
+    <FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+       
+        <EZ_CustomersAIMenu />
+       
+        <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; overflow: auto;">
+            @Body
+        </FluentStack>
+
+
+    </FluentLayout>
+</div>
+            
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>
+
+
+@code{
+    private Customer? _customer;
+    private bool isLoading = true;
+    private string _AnalysisResp = string.Empty;
+    private bool showAnalysis = false;
+    
+    private bool showingBody = true;
+    private bool startAni = false;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        await GetClientInfo();
+        isLoading = false;
+    }
+
+    private async Task GetClientInfo()
+    {
+        
+        Customer check = await dataTrf.GetgvSelectedClient();
+        if (check.ClientSales == null)
+        {
+            check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
+            await dataTrf.SetgvSelectedClient(check);
+        }
+        _customer = check;
+    }
+}

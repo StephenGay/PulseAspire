@@ -119,7 +119,25 @@ namespace Pulse.ApiService.Endpoints
                 await dbContext.SaveChangesAsync();
                 return Results.Created($"/AI/aiquery/{aiQuery.AiQueryID}", aiQuery);
             });
-                
+
+            group.MapPut("/savedqueries/vote/{id}/{vote}", async (int id, string vote, PulseDbContext dbContext) =>
+            {
+                var qry = await dbContext.AiSavedQueries.FindAsync(id);
+                if (qry == null)
+                {
+                    return Results.NotFound($"Query ID {id} not found.");
+                }
+                if (vote == "up")
+                {
+                    qry.UpVote++;
+                }
+                else
+                {
+                    qry.DownVote++;
+                }
+                await dbContext.SaveChangesAsync();
+                return Results.Ok(qry);
+            });
             
         }
     }

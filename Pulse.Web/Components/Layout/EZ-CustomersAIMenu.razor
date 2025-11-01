@@ -1,0 +1,224 @@
+﻿@using BootstrapBlazor.Components
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Customers
+@using Pulse.Web.Services
+@inject BootstrapBlazor.Components.ToastService ToastService
+@inject Pulse.Web.Services.Pulse_AI pAI
+@inject DataTransferService dataTrf
+
+@rendermode InteractiveServer 
+
+<BootstrapBlazorRoot>
+
+    
+    <FluentStack Orientation="Orientation.Vertical" Width="100%" Style=@(sState=="OPEN" ? "height: 100vh;" : "flex: 0;")>
+        
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
+                
+            @if (sState == "LOAD")
+            {
+                <FluentLabel Typo="Typography.H5" style="color:white">Loading...</FluentLabel>
+            }
+            else
+            {
+                <FluentLabel Typo="Typography.H5" style="color:white ; height: 100%; align-content:center;">@customer.ClientName</FluentLabel>
+
+                <FluentSpacer />
+            }
+            @if (sState == "IDLE")
+            {
+                <SlideButton  Icon="bi bi-robot" Placement="BootstrapBlazor.Components.Placement.LeftStart" HeaderText="Sales Functions" ShowHeader="true">
+                    <BodyTemplate>
+                        <div class="slide-button-custom-group">
+                            <div class="slide-item-custom" style="margin:5px;">
+                                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
+                                    <HeaderTemplate>
+                                        Sales Analysis
+                                    </HeaderTemplate>
+                                    <BodyTemplate>
+                                        <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse sales history, looking for patterns / trends."></Textarea>
+                                    </BodyTemplate>
+                                    <FooterTemplate>
+                                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnHistoryClick" Text="Start"></Button>
+                                    </FooterTemplate>
+                                </Card>
+                            </div>
+                            <div class="slide-item-custom" style="margin:5px;">
+                                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
+                                    <HeaderTemplate>
+                                        Sales Forecast
+                                    </HeaderTemplate>
+                                    <BodyTemplate>
+                                        <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Generate a 12 month sales forecast for the client."></Textarea>
+                                    </BodyTemplate>
+                                    <FooterTemplate>
+                                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnForecastClick" Text="Start"></Button>
+                                    </FooterTemplate>
+                                </Card>
+                            </div>
+                        </div>
+                    </BodyTemplate>
+                </SlideButton>
+            }
+            @if (sState == "BUSY")
+            {
+                    <Button Color="BootstrapBlazor.Components.Color.Info" IsOutline="true" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="@LoadHdr" />
+            }
+            @if (sState == "WAIT")
+            {
+                    <Button OnClick="@(() => sState = "OPEN")" Color="BootstrapBlazor.Components.Color.Success">View Results</Button>
+            }
+            @if (sState == "OPEN")
+            {
+                    <Button Color="BootstrapBlazor.Components.Color.Dark">Export PDF</Button>
+            }
+            @if (sState == "OPEN" || sState == "WAIT")
+            {
+                    <Button OnClick="@ResetState" Color="BootstrapBlazor.Components.Color.Danger">Clear</Button>
+            }
+
+        </FluentStack>
+
+        @if(sState=="OPEN")
+        {
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="flex: 1; padding: 10px; overflow: auto; height: calc(100vh - 70px);">
+                <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: auto;">
+                    @((MarkupString)_Analysis)
+                </div>
+            </FluentStack>
+        }
+    </FluentStack>
+</BootstrapBlazorRoot>
+
+
+@code {
+
+    private Customer? customer;
+
+    private string LoadHdr = string.Empty;
+    private string Hdr = string.Empty;
+    private string qry = string.Empty;
+    private string _Analysis = string.Empty;
+    private string aiModel = "gpt-oss:latest";
+    private bool isLoading = true;
+    private string sState = "LOAD";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await GetClientInfo();
+        sState = "IDLE";
+    }
+
+    private async Task GetClientInfo()
+    {
+
+        Customer check = await dataTrf.GetgvSelectedClient();
+        if (check.ClientSales == null)
+        {
+            check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
+            await dataTrf.SetgvSelectedClient(check);
+        }
+        customer = check;
+    }
+
+    private async Task btnForecastClick()
+    {
+        LoadHdr = "Creating Forecast";
+        Hdr = "12 Month Sales Forecast";
+        qry = "Please analyse them and create a Sales Forecast for the next 12 months. Include your reasoning.";
+        await ProcessRequest();
+    }
+
+    private async Task btnHistoryClick()
+    {
+        LoadHdr = "Analysing Sales";
+        Hdr = "Analysis & Trends - Historic Sales";
+        qry = "Please analyse them and provide any Insights you might find, as well as any trends or patterns. Respond with a detailed analysis.";
+        await ProcessRequest();
+    }
+
+    private async Task ProcessRequest()
+    {
+        try
+        {
+            sState="BUSY";
+            await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
+
+            if (customer == null || customer.ClientSales == null)
+            {
+                await SendToast("Error", "No Data", "Client or sales data not loaded.");
+                sState = "IDLE";
+                return;
+            }
+
+            qry = $"This is the sales history for customer {customer.ClientName}. {qry}";
+            _Analysis = await pAI.AnalyseClientSalesAsync(qry, customer.ClientSales, aiModel);
+
+            if (_Analysis.StartsWith("Error"))
+            {
+                await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request./n Please try again, maybe with a different AI Model - I won't be offended!/n {_Analysis}");
+                ResetState();
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_Analysis))
+            {
+                await SendToast("Warning", "Nothing Returned", "Either no data matched your query or there was an error processing your request./n If there should have been results, please try again, maybe with a different AI Model.");
+                ResetState();
+                return;
+            }
+
+            _Analysis = ParseToHtml(_Analysis);
+            sState = "WAIT";
+            await SendToast("Success", "Processing Complete", "Your request has been completed and can be viewed when you are ready by clicking the button.");
+
+
+        }
+        catch (Exception ex)
+        {
+            await SendToast("Error", "Exception", ex.Message);
+            ResetState();
+        }
+    }
+
+    private void ResetState()
+    {
+        qry = LoadHdr = Hdr = _Analysis = "";
+        sState = "IDLE"; 
+    }
+
+    private async Task SendToast(string tType, string tTitle, string tContent)
+    {
+        var cat = tType switch
+        {
+            "Success" => ToastCategory.Success,
+            "Information" => ToastCategory.Information,
+            "Error" => ToastCategory.Error,
+            "Warning" => ToastCategory.Warning,
+            _ => ToastCategory.Warning
+        };
+
+        await ToastService.Show(new ToastOption
+        {
+            Category = cat,
+            Title = tTitle,
+            Content = tContent
+        });
+    }
+
+    private string ParseToHtml(string markdown)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var html = Markdig.Markdown.ToHtml(markdown, pipeline);
+        return AddMUcss(html);
+    }
+
+    private string AddMUcss(string html)
+    {
+        return html
+            .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\">")
+            .Replace("<th>", "<th style=\"background-color: #365b66; color: #bcd1d4;\">");
+    }
+}
+   

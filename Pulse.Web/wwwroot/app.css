@@ -52,14 +52,73 @@ a, .btn-link {
 .content {
     padding-top: 1.1rem;
 }
-
-.fdgrselected {
-    background-color: lightblue !important;
+.fdgbrd {
+    border-radius: 30px;
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
+.fdgrselected {
+    background-color: lightblue !important; /* rgb(54,91,102) !important;*/
+    color: white !important; /*#bcd1d4 !important;*/
+}
 
+.bb-dg-row-highlight {
+    --bs-table-striped-bg: #bcd1d4;
+    --bs-table-bg: #409eff;
+    --bs-table-hover-bg: #365b66;
+    --bs-table-striped-color: #365b66;
+    --bs-table-color-state: #fff;
+    --bs-table-hover-color: #bcd1d4;
+}
+.card-body {
+    padding: 1px !important;
+}
+.fdgrunselected {
+    background-color: #bcd1d4;
+    color: rgb(54,91,102) !important;
+   /* border-top: 1px solid rgb(54,91,102) !important;*/
+}
+
+    .fdgrunselected:hover {
+        cursor: pointer;
+        background-color: rgb(54,91,102);
+        color: #bcd1d4 !important;
+    }
+.table-virtualize-demo {
+    /*height: auto;*/
+    margin: 15px;
+}
+
+    .table-virtualize-demo .table-cell {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .table-virtualize-demo .table-fixed-body {
+        overflow-x: hidden !important;
+    }
 h1:focus {
     outline: none;
+}
+tr[row-type='sticky-header'] > th {
+    position: sticky;
+    top: 0;
+    background-color: #365b66 !important;
+    color: white !important;
+    align-content:center;
+    border-color: #bcd1d4 !important;
+    z-index: 2;
+}
+
+.col-sort-button {
+    width: calc(100% - 20px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    /*background: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%) !important;*/
+    /*background-color: #365b66 !important;*/
+    color: #365b66 !important;
+    /*opacity: 0.5;*/
 }
 
 .valid.modified:not([type=checkbox]) {
@@ -92,3 +151,11 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/*.fluent-datagrid-header {
+    background-color: #365b66;*/ /* Fluent UI primary color */
+    /*color: #bcd1d4;
+    font-size: 16px;
+    font-weight: bold;
+}*/
+

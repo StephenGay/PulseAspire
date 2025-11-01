@@ -240,6 +240,16 @@ namespace Pulse.Web.Services
             }
             return null;
         }
+
+        public async Task<bool> RecordQueryVote(int qID, string Vote)
+        {
+            var response = await _httpClient.PutAsJsonAsync($"/AI/savedqueries/vote/{qID}/{Vote}", Vote);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            return false;
+        }
     }
 
 }

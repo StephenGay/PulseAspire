@@ -1,0 +1,17 @@
+﻿.th {
+    background-color: #365b66 !important;
+    color: #bcd1d4 !important;
+    border-bottom: #365b66 !important;
+}
+#hct {
+    background-color: #365b66 !important;
+    color: #bcd1d4 !important;
+    border-bottom: #365b66 !important;
+}
+tr[row-type='sticky-header'] > th {
+    position: sticky;
+    top: 0;
+    background-color: #365b66 !important;
+    color: #bcd1d4;
+    z-index: 2;
+}
