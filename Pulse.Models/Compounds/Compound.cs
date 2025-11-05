@@ -1,5 +1,6 @@
 ﻿using Pulse.Models.Customers;
 using Pulse.Models.Industries;
+using Pulse.Models.Production;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -70,8 +71,9 @@ namespace Pulse.Models.Compounds
         public string RevisionReason { get; set; }
         public DateTime? DateCostUpdated { get; set; }
         public CompoundRange? CompoundRange { get; set; }
-        public List<IndustryRecommendedCover>? IndustryRecommendedCovers { get; set; }
-        public List<ClientRollerSpecification>? ClientRollerSpecifications { get; set; }
+        public ICollection<IndustryRecommendedCover>? IndustryRecommendedCovers { get; set; } = new HashSet<IndustryRecommendedCover>();
+        public ICollection<ClientRollerSpecification>? ClientRollerSpecifications { get; set; } = new HashSet<ClientRollerSpecification>();
+        public ICollection<WorksOrder>? WorksOrders { get; set; } = new HashSet<WorksOrder>();
 
 
 

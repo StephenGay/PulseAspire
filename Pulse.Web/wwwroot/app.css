@@ -35,6 +35,16 @@ html, body {
     border-bottom: 1px solid rgb(54,91,102);
     min-height: 3.5rem;
 }
+.ai-Mnu {
+    background-color: #f7f7f7;
+    background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);
+    border-bottom: 1px solid rgb(54,91,102);
+    /*min-height: 3.5rem;*/
+}
+.myCardHdr {
+    background-color: #365b66 ; 
+    color: #bcd1d4;
+}
 a, .btn-link {
     color: #006bb7;
 }
@@ -58,7 +68,7 @@ a, .btn-link {
 }
 
 .fdgrselected {
-    background-color: lightblue !important; /* rgb(54,91,102) !important;*/
+    background-color: blue !important; /* rgb(54,91,102) !important;*/
     color: white !important; /*#bcd1d4 !important;*/
 }
 
@@ -79,14 +89,15 @@ a, .btn-link {
    /* border-top: 1px solid rgb(54,91,102) !important;*/
 }
 
-    .fdgrunselected:hover {
+    /*.fdgrunselected:hover {
         cursor: pointer;
         background-color: rgb(54,91,102);
         color: #bcd1d4 !important;
-    }
+    }*/
 .table-virtualize-demo {
     /*height: auto;*/
     margin: 15px;
+    
 }
 
     .table-virtualize-demo .table-cell {

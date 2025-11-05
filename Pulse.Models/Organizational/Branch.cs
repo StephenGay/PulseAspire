@@ -18,7 +18,7 @@ namespace Pulse.Models.Organizational
         [MaxLength(100)]
         public required string BranchName { get; set; }
         public bool IsActive { get; set; } = true;
-        public List<Division> Divisions { get; set; } = new();
+        public ICollection<Division>? Divisions { get; set; } = new HashSet<Division>();
 
     }
 }

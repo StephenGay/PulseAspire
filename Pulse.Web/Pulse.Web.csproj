@@ -46,9 +46,6 @@
     <None Update="Components\Pages\AiZone\AIQueryPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Components\Pages\EmployeeZone\Customers\AI_Client_Insights.razor.css">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="Components\Pages\EmployeeZone\Customers\ClientSales.razor.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

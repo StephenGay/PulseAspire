@@ -23,6 +23,6 @@ namespace Pulse.Models.Geographic
         [Required]
         public required Province Province { get; set; }
         public bool IsActive { get; set; } = true;
-        public List<Customer> Customers { get; set; } = new();
+        public ICollection<Customer>? Customers { get; set; } = new HashSet<Customer>();
     }
 }

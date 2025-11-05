@@ -20,8 +20,8 @@ namespace Pulse.Models.Industries
         [MaxLength(100)]
         public required string IndustryName { get; set; }
         public bool IsActive { get; set; } = true;
-        public List<Customer>? Customers { get; set; }
-        public List<IndustryProcess>? IndustryProcesses { get; set; }
-        public List<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; }
+        public ICollection<Customer>? Customers { get; set; } = new HashSet<Customer>();
+        public ICollection<IndustryProcess>? IndustryProcesses { get; set; } = new HashSet<IndustryProcess>();
+        public ICollection<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; } = new HashSet<IndustryRollerEnvironment>();
     }
 }

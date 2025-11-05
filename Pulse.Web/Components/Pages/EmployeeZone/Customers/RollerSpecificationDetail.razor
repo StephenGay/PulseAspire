@@ -1,0 +1,106 @@
+﻿@page "/EmployeeZone/Customers/RollerSpecificationDetail"
+@using Pulse.Models.Compounds
+@using Pulse.Models.CustomComponents
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using Pulse.Web.Services
+
+@inject DataTransferService dtf
+@inject HttpClient Http
+@rendermode InteractiveServer
+
+<FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+    
+    
+
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; overflow: none;">
+        @if (cSpec == null)
+        {
+            <div class="div-center-screen">@*  style="height:100%; border: 2px solid black; border-radius: 10px; background-color:white;width:100%;"> *@
+                <FluentProgressRing style="width: 102px; height: 102px;"></FluentProgressRing>
+                <FluentLabel Typo="Typography.H6" Style="width:100% ; color: black;" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Loading Roller Specification Details...</FluentLabel>
+            </div>
+        }
+        else
+        {
+            <FluentLabel Typo="Typography.H5" Style="color:black;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Style="color:black;">Client ID: @cSpec.FullClientID</FluentLabel>
+            @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; overflow-y: auto; height:40%;">
+                @if(cSpec.ClientRollers != null)
+                {
+                    <br />
+                    <FluentDataGrid Style="background-color: white ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
+                        <PropertyColumn Property="@(r => r.ClientRollerNumber)" Title="Roll No" />
+                        <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
+                        <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
+                        <PropertyColumn Property="@(r => r.ShellWeight)" Title="Shell Weight" />
+                        <PropertyColumn Property="@(r => r.ShellDefects)" Title="Shell Defects" />
+                        <PropertyColumn Property="@(r => r.IsActive)" Title="Active" />
+                    </FluentDataGrid>
+                }
+            </FluentStack>
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; overflow-y: auto; height:40%;">
+                @if (cSpec.WorksOrders != null)
+                {
+                    <br /> 
+                    <FluentDataGrid Style="background-color: white ; width: 100%;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
+                        <TemplateColumn Title="Period">
+                            @context.Period.Month - @context.Period.CalendarYear
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(r => r.WorksOrderNo)" Title="WO No" />
+                        <PropertyColumn Property="@(r => r.WorkType.WorkTypeName)" Title="Work Type" />
+                        <PropertyColumn Property="@(r => r.ClientRollNo)" Title="Roll No" />
+                        <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
+                        <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
+                        <TemplateColumn Title="Cover">
+                            @if (context.Compound != null)
+                            {
+                                @context.Compound.CompoundDescription
+                            }
+                            else
+                            {
+                                <span style="color: #999;">—</span>
+                            }
+                        </TemplateColumn>
+                        <PropertyColumn Property="@(r => r.CoverDiameter)" Title="Cover Diameter" />
+                    </FluentDataGrid>
+                }
+            </FluentStack>
+        }
+    </FluentStack>
+</FluentLayout>
+
+@code {
+    private ClientRollerSpecification? cSpec;
+    private bool isLoading = true;
+    private List<ClientRollerDto>? rollers2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+        // await Task.Delay(3000);
+        await GetSpecInfo();
+        isLoading = false;
+    }
+
+    private async Task GetSpecInfo()
+    {
+        ClientRollerSpecification tmpSpec = await dtf.GetgvSelectedRollSpec();
+        if(tmpSpec.ClientRollers == null)
+        {
+            var rollers = await Http.GetFromJsonAsync<ICollection<ClientRollerDto>>($"http://localhost:7466/Customers/RollerSpecifications/AllDetailsBySpecID/{tmpSpec.ClientRollerSpecificationID}");
+            rollers2 = rollers?.ToList();
+            tmpSpec.ClientRollers = rollers.ToClientRollers();
+            foreach(var roller in tmpSpec.ClientRollers)
+            {
+                roller.WorksOrders = await Http.GetFromJsonAsync<ICollection<WorksOrder>>($"http://localhost:7466/Customers/RollerSpecifications/GetWOByRollerID/{roller.ClientRollerID}") ?? new List<WorksOrder>();
+            }
+            tmpSpec.WorksOrders = await Http.GetFromJsonAsync<ICollection<WorksOrder>>($"http://localhost:7466/Customers/RollerSpecifications/GetWOBySpecID/{tmpSpec.ClientRollerSpecificationID}") ?? new List<WorksOrder>();
+            await dtf.SetgvSelectedRollSpec(tmpSpec);
+        }
+        cSpec = tmpSpec;
+    }
+}

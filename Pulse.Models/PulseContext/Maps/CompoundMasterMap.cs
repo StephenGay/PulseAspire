@@ -27,6 +27,7 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasMany(crs => crs.ClientRollerSpecifications)
                     .WithOne(cs  => cs.Compound)
                     .HasForeignKey(cs => cs.CompoundCode);
+            
 
             // Additional configuration can be added here as needed
         }

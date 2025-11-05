@@ -24,6 +24,6 @@ namespace Pulse.Models.Organizational
         [DefaultValue(true)]
         public bool IsActive { get; set; }
         public Company Company { get; set; }
-        public List<Customer>? Customers { get; set; }
+        public ICollection<Customer>? Customers { get; set; } = new HashSet<Customer>();
     }
 }

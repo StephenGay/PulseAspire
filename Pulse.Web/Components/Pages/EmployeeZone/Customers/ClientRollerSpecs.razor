@@ -1,0 +1,156 @@
+﻿@page "/EmployeeZone/Customers/ClientRollerSpecs"
+@using Pulse.Models.Customers
+@using System.Text.Json
+@using Pulse.Web.Services
+
+
+@inject DataTransferService DataTransferService
+@inject Pulse.Web.Services.Pulse_AI pAI
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<style>
+
+    .table-dark {
+        --bs-table-bg: #365b66 !important;
+    }
+
+    .table {
+        --bs-table-striped-bg: #bcd1d4 !important;
+        --bs-table-striped-color: #365b66 !important;
+        --bs-table-hover-bg: #365b66 !important;
+        --bs-table-active-bg: blue !important;
+        --bs-table-active-color: #fff !important;
+        --bs-table-hover-color: #fff !important;
+    }
+
+    .table-row.active {
+        --bs-table-active-bg-type: blue !important;
+    }
+
+    .table tbody tr.active:not(.is-edit) {
+        --bs-table-active-bg-type: blue !important;
+    }
+</style>
+@if (isLoading)
+{
+    <FluentLabel Typo="Typography.Body" Style="color:black;">Loading...</FluentLabel>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Horizontal" Width="100%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left">
+        <FluentButton Appearance="Appearance.Accent" OnClick="btnSpecDetailClick">View Specification</FluentButton>
+    </FluentStack>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="flex: 1 0 none; overflow-y : scroll; ">
+        <Table TItem="ClientRollerSpecification" Items="Items"
+        HeaderStyle="TableHeaderStyle.Light"
+        IsBordered="true" IsStriped="true" IsFixedFooter="true"
+        @bind-SelectedRow="selSpec" IsMultipleSelect="false"
+        OnQueryAsync="@FixItems"
+        AllowResizing="true"
+        ScrollMode="ScrollMode.Virtual"
+        ShowFilterHeader="true"
+        ClickToSelect="true"
+        OnClickRowCallback="tblClick"
+        ShowFooter="true">
+            <TableColumns>
+                <TableColumn @bind-Field="@context.ClientRollerSpecificationID" Text="Spec ID" Align="Alignment.Center" Sortable="true" Filterable="true" />
+                <TableColumn @bind-Field="@context.Description" Text="Roll Description" Sortable="true" Filterable="true" />
+                <TableColumn @bind-Field="@context.ArticleNumber" Text="Article No" Sortable="true" Filterable="true" />
+                <TableColumn @bind-Field="@context.ShellTypeName" Text="Shell Type" Sortable="true" Filterable="true" />
+                <TableColumn @bind-Field="@context.ShellLength" Text="Shell Length" Align="Alignment.Center" Sortable="true" Filterable="true" />
+                <TableColumn @bind-Field="@context.ShellDiameter" Text="Shell Diameter" Align="Alignment.Center" Sortable="true" Filterable="true" />
+                <TableColumn @bind-Field="@context.CompoundCode" Text="Cover Compound" Align="Alignment.Center" Sortable="true" Filterable="true" />
+            </TableColumns>
+            <TableFooter>
+                <TableFooterCell colspan="7" Text="Count：" Align="Alignment.Left" />
+            </TableFooter>
+        </Table>
+    </FluentStack>
+}
+
+@code {
+    Customer? _client;
+    private bool isLoading = true;
+    private string errorMessage = string.Empty;
+    private List<ClientRollerSpecification>? Items { get; set; }
+    private ClientRollerSpecification? selSpec;
+    PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+        // await Task.Delay(3000);
+        await GetClientInfo();
+        isLoading = false;
+    }
+
+    private async Task btnSpecDetailClick()
+    {
+        if(selSpec != null)
+        {
+
+            await DataTransferService.SetgvSelectedRollSpec(selSpec);
+            Navigation.NavigateTo("/EmployeeZone/Customers/RollerSpecificationDetail");
+        }
+    }
+    private async Task<QueryData<ClientRollerSpecification>> FixItems(QueryPageOptions options)
+    {
+        var filters = options.ToFilter();
+        var tmpItems = _client.ClientRollerSpecifications.AsQueryable();
+        var items = tmpItems.Where(filters.GetFilterFunc<ClientRollerSpecification>());
+        //return await Task.FromResult(items.ToList());
+
+        var isSorted = false;
+        if (options.AdvancedSortList.Count != 0)
+        {
+            items = items.Sort(options.AdvancedSortList);
+            isSorted = true;
+        }
+
+        if (!string.IsNullOrEmpty(options.SortName))
+        {
+            items = items.Sort(options.SortName, options.SortOrder);
+            isSorted = true;
+        }
+
+        var enumerable = items.ToList();
+        var total = enumerable.Count;
+
+        items = enumerable.Skip((options.PageIndex - 1) * options.PageItems).Take(options.PageItems).ToList();
+
+        return await Task.FromResult(new QueryData<ClientRollerSpecification>()
+        {
+            Items = items,
+
+            TotalCount = total,
+            IsSorted = isSorted,
+            IsFiltered = filters.HasFilters()
+        });
+    }
+    private Task tblClick(ClientRollerSpecification item)
+    {
+        selSpec = item;
+        StateHasChanged();
+        return Task.CompletedTask;
+    }
+    private async Task GetClientInfo()
+    {
+        _client = await DataTransferService.GetgvSelectedClient();
+
+        if (_client is null)
+        {
+
+        }
+        else
+        {
+            if (_client.ClientRollerSpecifications == null)
+            {
+                _client.ClientRollerSpecifications = await pAI.GetClientRollerSpecificationsAsync(_client.FullClientID);
+                await DataTransferService.SetgvSelectedClient(_client);
+                
+            }
+        }
+    }
+
+}

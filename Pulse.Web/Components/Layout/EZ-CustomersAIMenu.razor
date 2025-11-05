@@ -1,16 +1,33 @@
 ﻿@using BootstrapBlazor.Components
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
 @using Pulse.Web.Services
+@using System.Text.Json
+
 @inject BootstrapBlazor.Components.ToastService ToastService
+
 @inject Pulse.Web.Services.Pulse_AI pAI
 @inject DataTransferService dataTrf
-
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory HttpClientFactory
 @rendermode InteractiveServer 
 
-<BootstrapBlazorRoot>
+<style>
+    .card-header{
+        background-color: #365b66 !important;
+        color: white !important;
+        font-weight : bolder !important;
+    }
 
+    .card-footer {
+        background-color: #bcd1d4 !important;
+        border: 1px solid #365b66 !important;
+    }
+</style>
+
+<BootstrapBlazorRoot>
     
     <FluentStack Orientation="Orientation.Vertical" Width="100%" Style=@(sState=="OPEN" ? "height: 100vh;" : "flex: 0;")>
         
@@ -28,88 +45,182 @@
             }
             @if (sState == "IDLE")
             {
-                <SlideButton  Icon="bi bi-robot" Placement="BootstrapBlazor.Components.Placement.LeftStart" HeaderText="Sales Functions" ShowHeader="true">
-                    <BodyTemplate>
-                        <div class="slide-button-custom-group">
-                            <div class="slide-item-custom" style="margin:5px;">
-                                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
-                                    <HeaderTemplate>
-                                        Sales Analysis
-                                    </HeaderTemplate>
-                                    <BodyTemplate>
-                                        <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse sales history, looking for patterns / trends."></Textarea>
-                                    </BodyTemplate>
-                                    <FooterTemplate>
-                                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnHistoryClick" Text="Start"></Button>
-                                    </FooterTemplate>
-                                </Card>
-                            </div>
-                            <div class="slide-item-custom" style="margin:5px;">
-                                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
-                                    <HeaderTemplate>
-                                        Sales Forecast
-                                    </HeaderTemplate>
-                                    <BodyTemplate>
-                                        <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Generate a 12 month sales forecast for the client."></Textarea>
-                                    </BodyTemplate>
-                                    <FooterTemplate>
-                                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnForecastClick" Text="Start"></Button>
-                                    </FooterTemplate>
-                                </Card>
-                            </div>
-                        </div>
-                    </BodyTemplate>
-                </SlideButton>
+                <button  type="button" style="background-color: #365b66; color: white; height:80%" @onclick="@(e => IsOpen = !IsOpen)"><h3 class="bi bi-robot" /></button>
             }
             @if (sState == "BUSY")
             {
-                    <Button Color="BootstrapBlazor.Components.Color.Info" IsOutline="true" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="@LoadHdr" />
-            }
-            @if (sState == "WAIT")
-            {
-                    <Button OnClick="@(() => sState = "OPEN")" Color="BootstrapBlazor.Components.Color.Success">View Results</Button>
-            }
-            @if (sState == "OPEN")
-            {
-                    <Button Color="BootstrapBlazor.Components.Color.Dark">Export PDF</Button>
+                    <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="@LoadHdr" />
             }
             @if (sState == "OPEN" || sState == "WAIT")
             {
-                    <Button OnClick="@ResetState" Color="BootstrapBlazor.Components.Color.Danger">Clear</Button>
+                <Button OnClick="@ResetState" Color="BootstrapBlazor.Components.Color.Info">New / Clear</Button>
             }
+            @if (sState == "WAIT")
+            {
+                <Button OnClick="@OpenResults" Color="BootstrapBlazor.Components.Color.Success" style="border: 1px solid #365b66; background-color:green;" Icon="bi bi-list-task">  View Results</Button>
+            }
+            @if (sState == "OPEN")
+            {
+                <Button Icon="bi bi-file-pdf-fill" Color="BootstrapBlazor.Components.Color.Danger" IsOutline="true" IsAsync="true" OnClick="ExportToPdf"><strong> PDF</strong></Button>
+                <Button Color="BootstrapBlazor.Components.Color.Dark" Icon="bi bi-browser-chrome" IsOutline="true" IsAsync="true" OnClick="ExportHtmlFile"><strong> HTML</strong></Button>
+                <Button OnClick="@(() => sState = "WAIT")" Color="BootstrapBlazor.Components.Color.Danger">Close <i class="bi bi-x-circle-fill"></i></Button>
+            }
+            
 
         </FluentStack>
-
+        <Drawer Placement="Placement.Right" @bind-IsOpen="@IsOpen" AllowResize="true">
+            <div class="d-flex ai-Mnu justify-content-end align-items-center flex-row" style="height: 5%;">
+                <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@(e => IsOpen = false)"><i class="bi bi-x-circle-fill"></i></button>
+                <label style="padding-top:3%;height:100%;width:50%; align-items:center; text-align:center"><strong>A.I. CONTEXT MENU</strong></label>
+                <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-volume-up-fill"></i></ToggleButton>
+                <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-mic-fill"></i></ToggleButton>
+                <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@TestSpeech"><i class="bi bi-x-circle-fill"></i></button>
+            </div>
+            <div class="d-flex ai-Mnu justify-content-end align-items-stretch flex-column" style="height: 95%;">
+                
+                
+                <Textarea rows="8" style="border : 1px solid black ; width:90%; margin-left:5% ; margin-right:5%;" @bind-Value="txtQ" PlaceHolder="Select Sales or Production and ask a question..." />
+                <Stack IsRow="true" class="justify-content-evenly align-items-center">
+                <button type="button" class="btn btn-success" style="color: black ; border : 1px solid black ; width:35%; margin-top:10px;margin-left:20px;" @onclick="btnAskAIClick">Ask</button>
+                <Toggle Value="@isSales" ValueChanged="togProdSales" OnText="Sales" OffText="Production" Color="BootstrapBlazor.Components.Color.Primary" style="width:35%; margin-top:10px;margin-right:20px;" />
+                 </Stack>
+                <StackItem class="flex-grow-1" >
+                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                        <HeaderTemplate>
+                            Roller Analysis
+                        </HeaderTemplate>
+                        <BodyTemplate>
+                            <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse the selected roller."></Textarea>
+                        </BodyTemplate>
+                        <FooterTemplate>
+                            <Button Color="BootstrapBlazor.Components.Color.Dark" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnRollAnalysisClick" Text="Start"></Button>
+                        </FooterTemplate>
+                    </Card>
+                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                        <HeaderTemplate>
+                            Sales Analysis
+                        </HeaderTemplate>
+                        <BodyTemplate>
+                            <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse sales history, looking for patterns / trends."></Textarea>
+                        </BodyTemplate>
+                        <FooterTemplate>
+                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnHistoryClick" Text="Start"></Button>
+                        </FooterTemplate>
+                    </Card>
+                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:20px" IsCenter="true">
+                        <HeaderTemplate>
+                            Sales Forecast
+                        </HeaderTemplate>
+                        <BodyTemplate>
+                            <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Generate a 12 month sales forecast for the client."></Textarea>
+                        </BodyTemplate>
+                        <FooterTemplate>
+                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnForecastClick" Text="Start"></Button>
+                        </FooterTemplate>
+                    </Card>
+                </StackItem>
+                
+                
+            </div>
+        </Drawer>
         @if(sState=="OPEN")
         {
             <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="flex: 1; padding: 10px; overflow: auto; height: calc(100vh - 70px);">
-                <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: auto;">
+                <div id="aiResult" style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: auto;">
                     @((MarkupString)_Analysis)
                 </div>
             </FluentStack>
         }
     </FluentStack>
+    
 </BootstrapBlazorRoot>
 
 
 @code {
 
     private Customer? customer;
+    [Inject]
+    private WebSpeechService? WebSpeechService { get; set; }
+    [Inject]
+    private DrawerService? DrawerService { get; set; }
+
+    private bool IsOpen = false;
+
 
     private string LoadHdr = string.Empty;
     private string Hdr = string.Empty;
     private string qry = string.Empty;
     private string _Analysis = string.Empty;
     private string aiModel = "gpt-oss:latest";
+    private string txtQ = string.Empty;
+    public bool isSales { get; set; }
     private bool isLoading = true;
     private string sState = "LOAD";
+    string fileName = string.Empty;
+    private bool useSpeechOutput = true;
 
+    private async Task SayIt(string text)
+    {
+        if (WebSpeechService != null && useSpeechOutput)
+        {
+            var synthesizer = await WebSpeechService.CreateSynthesizerAsync();
+            await synthesizer.SpeakAsync(text, "(Microsoft Ava)(en_US)");
+        }
+        // Microsoft Ava Online(Natural) - English(United States)(en - US)
+    }
+    private async Task TestSpeech()
+    {
+        SayIt("This is a test to debug voices");
+    }
+    private async Task OpenResults()
+    {
+        sState = "OPEN";
+        if(!useSpeechOutput){ return; }
+        string sp;
+        if (LoadHdr == "Analysing Sales")
+        {
+            if (_Analysis.IndexOf("Conclusion") > -1)
+            {
+                sp = _Analysis.Substring(_Analysis.IndexOf("Conclusion") + 10);
+                SayIt(sp);
+            }
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         await GetClientInfo();
         sState = "IDLE";
     }
+    private void togProdSales(bool val)
+    {
+        isSales = val;
+    }
+    private async Task btnAskAIClick()
+    {
+        if (isSales)
+        {
+            LoadHdr = "Processing Sales Qry";
+            Hdr = "Custom Sales Qry";
+            qry = txtQ;
+            await GenerateSalesPrompt();
+        }
+        else
+        {
+            LoadHdr = "Processing Production Qry";
+            Hdr = "Custom Production Qry";
+            qry = txtQ;
+            await GenerateProductionPrompt();
+        }
+    }
 
+    private async Task btnRollAnalysisClick()
+    {
+        LoadHdr = "Analysing Roller";
+        Hdr = "Roller Analysis";
+        qry = "Examine the history of the ClientRollers included in the specification and see if there is a predictable cycle for when the rollers require work to be done. Take note of the Work Type ";
+        qry += "and see if there are any patterns. Provide insights and recommendations based on your analysis. Analyse sales prices and costs to ensure they make sense.";
+        await GenerateProductionPrompt();
+    }
     private async Task GetClientInfo()
     {
 
@@ -127,7 +238,47 @@
         LoadHdr = "Creating Forecast";
         Hdr = "12 Month Sales Forecast";
         qry = "Please analyse them and create a Sales Forecast for the next 12 months. Include your reasoning.";
-        await ProcessRequest();
+        await GenerateSalesPrompt();
+    }
+
+    private async Task ExportHtmlFile()
+    {
+
+        // Call JavaScript function to download the file
+        await JSRuntime.InvokeVoidAsync("downloadHTMLFile", $"{fileName}.html" , _Analysis);
+    }
+
+    private async Task ExportToPdf()
+    {
+        if (string.IsNullOrEmpty(_Analysis))
+        {
+            await SendToast("Warning", "No Data", "No analysis to export.");
+            return;
+        }
+
+        try
+        {
+            var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
+            var request = new PdfRequest
+            {
+                Html = _Analysis,
+                FileName = fileName
+            };
+
+            var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
+            response.EnsureSuccessStatusCode();
+
+            var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(pdfBytes);
+            // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
+
+            await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
+            // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
+        }
+        catch (Exception ex)
+        {
+            await SendToast("Error", "Export Failed", ex.Message);
+        }
     }
 
     private async Task btnHistoryClick()
@@ -135,25 +286,108 @@
         LoadHdr = "Analysing Sales";
         Hdr = "Analysis & Trends - Historic Sales";
         qry = "Please analyse them and provide any Insights you might find, as well as any trends or patterns. Respond with a detailed analysis.";
-        await ProcessRequest();
+        await GenerateSalesPrompt();
     }
 
-    private async Task ProcessRequest()
+    private async Task GenerateSalesPrompt()
+    {
+        if (customer == null || customer.ClientSales == null)
+        {
+            await SendToast("Error", "No Data", "Client or sales data not loaded.");
+            sState = "IDLE";
+            return;
+        }
+
+        qry = $"This is the sales history for customer {customer.ClientName}. {qry}";
+
+        fileName = $"{customer.FullClientID}-{Hdr.Replace(" ", "_")}";
+
+        var dataText = JsonSerializer.Serialize(customer.ClientSales.ToList(), new JsonSerializerOptions { WriteIndented = true });
+
+        var prompt = $@"""
+                You will be given the sales history for a customer. You are a financial analysist and will examine the data and provide
+                meaninful responses to the user query provided.
+
+                The query will include the customers name which is to be used when referencing the customer, not the client id.
+                The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
+                not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
+                field you are using.
+
+                Unless it is specifically asked for in the query, do not include the period sales amounts, just the analysis.
+                Note: All Sales Amounts are in ZAR (South African Rands)
+
+                Data:
+    {dataText}
+
+                Query: {qry}
+                """;
+        await ProcessRequest(prompt);
+
+    }
+
+    private async Task GenerateProductionPrompt()
+    {
+        ClientRollerSpecification? rollerSpec = await dataTrf.GetgvSelectedRollSpec();
+
+        if (rollerSpec == null)
+        {
+            await SendToast("Error", "No Data", "Roller Spec not loaded.");
+            sState = "IDLE";
+            return;
+        }
+
+        qry = $"This is the Roller Specification for customer . {qry}";
+
+        fileName = $"{customer.FullClientID}-{Hdr.Replace(" ", "_")}";
+
+        var dataText = JsonSerializer.Serialize(rollerSpec, new JsonSerializerOptions { WriteIndented = true });
+
+        var prompt = $@"""
+                You area an analyst at H&M Rollers, a company that provides services related to industrial rollers. Primarily this is recovering
+                rollers with new rubber or polyurethane covers, but also includes manufacturing new rollers from scratch based on customer specifications.
+                You will be provided with a roller specification to analyse.
+
+                The contents of the specification is as follows:
+                1. The specification itself provides details on the roller's physical characteristics, such as dimensions, materials, and construction methods. This
+                   is if a new roller is to be manufactured and a new cover is to be applied.
+                2. The actual physical rollers that are worked on are attached as sub-objects within the specification called ClientRoller. These are identified using Roll Numbers where
+                   possible.
+                3. The ClientRoller objects include all the Work Orders when working on them. These Work Orders have sub-objects for Periods and Work Types. It is important to note
+                    the Work Type as rollers may go through a couple of Regrinds before a new cover is applied.
+
+                You are to use the data provided to answer the user query in a meaningful way.Note: Any monetary amounts will be in South African Rands (ZAR).
+
+                The query is for customer {customer.ClientName} ,use the name when referencing the customer, not the client id.
+                The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
+                not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
+                field you are using.
+
+                The Roller Specification and it's subjects are here followed by the users query.
+
+                Data:
+    {dataText}
+
+                Query: {qry}
+                """;
+        await ProcessRequest(prompt);
+
+    }
+
+    private async Task ProcessRequest(string prompt)
     {
         try
         {
             sState="BUSY";
+
             await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
 
-            if (customer == null || customer.ClientSales == null)
-            {
-                await SendToast("Error", "No Data", "Client or sales data not loaded.");
-                sState = "IDLE";
-                return;
-            }
 
-            qry = $"This is the sales history for customer {customer.ClientName}. {qry}";
-            _Analysis = await pAI.AnalyseClientSalesAsync(qry, customer.ClientSales, aiModel);
+
+
+            IsOpen = false;
+
+
+            _Analysis = await pAI.AskPulseAIAsync(prompt, aiModel);
 
             if (_Analysis.StartsWith("Error"))
             {
@@ -171,6 +405,7 @@
 
             _Analysis = ParseToHtml(_Analysis);
             sState = "WAIT";
+            // fileName = $"{customer.FullClientID}-{Hdr}";
             await SendToast("Success", "Processing Complete", "Your request has been completed and can be viewed when you are ready by clicking the button.");
 
 
@@ -184,13 +419,18 @@
 
     private void ResetState()
     {
-        qry = LoadHdr = Hdr = _Analysis = "";
+        qry = LoadHdr = Hdr = _Analysis = fileName = "";
         sState = "IDLE"; 
     }
 
     private async Task SendToast(string tType, string tTitle, string tContent)
     {
-        var cat = tType switch
+        if (useSpeechOutput)
+        {
+            await SayIt(tContent);
+            return;
+        }
+            var cat = tType switch
         {
             "Success" => ToastCategory.Success,
             "Information" => ToastCategory.Information,

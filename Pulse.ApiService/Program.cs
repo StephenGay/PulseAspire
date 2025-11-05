@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Pulse.ApiService;
@@ -26,6 +27,7 @@ builder.Services.Configure<JsonOptions>(options =>
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -41,6 +43,7 @@ app.MapCustomerEndpoints();
 app.MapAiEndpoints();
 app.MapSecurityEndpoints();
 app.MapUserEndpoints();
+app.MapUtilitiesEndpoints();
 
 app.UseHttpsRedirection();
 

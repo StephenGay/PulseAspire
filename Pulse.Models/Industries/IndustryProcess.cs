@@ -21,7 +21,7 @@ namespace Pulse.Models.Industries
         public required string ProcessName { get; set; }
         public bool IsActive { get; set; } = true;
         public Industry? Industry { get; set; }
-        public List<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; }
+        public ICollection<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; } = new HashSet<IndustryRollerEnvironment>();
 
 
     }

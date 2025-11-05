@@ -831,31 +831,62 @@ namespace Pulse.Web.Services
                 return fallback;
             }
         }
-        public async Task<string> AnalyseClientSalesAsync(string userQuery, List<ClientSales> sales, string sModel, CancellationToken ct = default)
+
+        public async Task<List<ClientRollerSpecification>> GetClientRollerSpecificationsAsync(string clientID, CancellationToken ct = default)
+        {
+            List<ClientRollerSpecification> fallback = new();
+
+            try
+            {
+                // Example endpoint call - Adjust to your actual API (e.g., /api/sales/{clientID})
+                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(clientID)}/RollerSpecifications", ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(ct);
+                    _logger.LogError("API request failed: Status {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    return fallback;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var specs = JsonSerializer.Deserialize<List<ClientRollerSpecification>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (specs == null || !specs.Any())
+                {
+                    return fallback;
+                }
+                return specs;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetClientRollerSpecificationsAsync.");
+                return fallback;
+            }
+        }
+        public async Task<string> AskPulseAIAsync(string prompt, string sModel, CancellationToken ct = default)
         {
             //var httpClient = _httpClientFactory.CreateClient("PulseApiClient");
 
             try
             {
-                var dataText = JsonSerializer.Serialize(sales, new JsonSerializerOptions { WriteIndented = true });
+                //var dataText = JsonSerializer.Serialize(sales, new JsonSerializerOptions { WriteIndented = true });
 
-                var prompt = $"""
-                You will be given the sales history for a customer. You are a financial analysist and will examine the data and provide
-                meaninful responses to the user query provided.
+                //var prompt = $"""
+                //You will be given the sales history for a customer. You are a financial analysist and will examine the data and provide
+                //meaninful responses to the user query provided.
 
-                The query will include the customers name which is to be used when referencing the customer, not the client id.
-                The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
-                not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
-                field you are using.
+                //The query will include the customers name which is to be used when referencing the customer, not the client id.
+                //The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
+                //not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
+                //field you are using.
             
-                Unless it is specifically asked for in the query, do not include the period sales amounts, just the analysis.
-                Note: All Sales Amounts are in ZAR (South African Rands)
+                //Unless it is specifically asked for in the query, do not include the period sales amounts, just the analysis.
+                //Note: All Sales Amounts are in ZAR (South African Rands)
 
-                Data:
-                {dataText}
+                //Data:
+                //{dataText}
 
-                Query: {userQuery}
-                """;
+                //Query: {userQuery}
+                //""";
 
                 var model = sModel;
                 var ollamaRequest = new { model, prompt, stream = false };

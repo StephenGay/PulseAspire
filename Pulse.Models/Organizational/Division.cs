@@ -21,10 +21,10 @@ namespace Pulse.Models.Organizational
         public required int CompanyID { get; set; }
         [Required]
         public required int BranchID { get; set; }
-        [Required]
-        public required Company Company { get; set; }
-        [Required]
-        public required Branch Branch { get; set; }
+        
+        public Company? Company { get; set; }
+        
+        public Branch? Branch { get; set; }
 
     }
 }

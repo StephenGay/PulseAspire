@@ -978,6 +978,173 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("RepresentativeMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Production.WorkType", b =>
+                {
+                    b.Property<int>("WorkTypeID")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("LockToProductCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)");
+
+                    b.Property<int>("SortOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("TargetWorkingDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("WorkTypeMaterial")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("WorkTypeName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("WorkTypeID");
+
+                    b.HasIndex("IsActive")
+                        .HasDatabaseName("IX_WorkType_IsActive");
+
+                    b.HasIndex("SortOrder")
+                        .HasDatabaseName("IX_WorkType_SortOrder");
+
+                    b.ToTable("WorkTypeMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorksOrder", b =>
+                {
+                    b.Property<int>("WorksOrderNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ClientOrderNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ClientPRNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ClientRFQNo")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ClientRollNo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ClientRollerID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ClientRollerSpecificationID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CompoundCode")
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("CoverCompoundCode")
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<decimal?>("CoverDiameter")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("DateStarted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("DivisionID")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("FullClientID")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<decimal>("MaterialCost")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("PeriodID")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("SellPrice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal?>("ShellDiameter")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("ShellLength")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Status")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("UndelQty")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("WorkTypeID")
+                        .HasColumnType("int");
+
+                    b.HasKey("WorksOrderNo")
+                        .HasName("PK__WorksOrder");
+
+                    b.HasIndex("ClientRollerID");
+
+                    b.HasIndex("ClientRollerSpecificationID");
+
+                    b.HasIndex("CompoundCode");
+
+                    b.HasIndex("DateStarted")
+                        .HasDatabaseName("IX_WorksOrder_DateStarted");
+
+                    b.HasIndex("DivisionID");
+
+                    b.HasIndex("FullClientID")
+                        .HasDatabaseName("IX_WorksOrder_FullClientID");
+
+                    b.HasIndex("PeriodID")
+                        .HasDatabaseName("IX_WorksOrder_PeriodID");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_WorksOrder_Status");
+
+                    b.HasIndex("WorkTypeID");
+
+                    b.HasIndex("FullClientID", "PeriodID", "Status")
+                        .HasDatabaseName("IX_WorksOrder_ClientPeriodStatus");
+
+                    b.ToTable("WorksOrder", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Rollers.RollerType", b =>
                 {
                     b.Property<int>("RollerTypeID")
@@ -1295,6 +1462,59 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Production.WorksOrder", b =>
+                {
+                    b.HasOne("Pulse.Models.Customers.ClientRoller", "ClientRoller")
+                        .WithMany("WorksOrders")
+                        .HasForeignKey("ClientRollerID");
+
+                    b.HasOne("Pulse.Models.Customers.ClientRollerSpecification", "ClientRollerSpecification")
+                        .WithMany("WorksOrders")
+                        .HasForeignKey("ClientRollerSpecificationID");
+
+                    b.HasOne("Pulse.Models.Compounds.Compound", "Compound")
+                        .WithMany("WorksOrders")
+                        .HasForeignKey("CompoundCode");
+
+                    b.HasOne("Pulse.Models.Organizational.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Customers.Customer", "Customer")
+                        .WithMany("WorksOrders")
+                        .HasForeignKey("FullClientID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Misc.Period", "Period")
+                        .WithMany()
+                        .HasForeignKey("PeriodID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.WorkType", "WorkType")
+                        .WithMany()
+                        .HasForeignKey("WorkTypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClientRoller");
+
+                    b.Navigation("ClientRollerSpecification");
+
+                    b.Navigation("Compound");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Division");
+
+                    b.Navigation("Period");
+
+                    b.Navigation("WorkType");
+                });
+
             modelBuilder.Entity("Pulse.Models.Users.UserFavouriteQry", b =>
                 {
                     b.HasOne("Pulse.Models.Misc.AiQuery", "AiQuery")
@@ -1319,6 +1539,8 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("ClientRollerSpecifications");
 
                     b.Navigation("IndustryRecommendedCovers");
+
+                    b.Navigation("WorksOrders");
                 });
 
             modelBuilder.Entity("Pulse.Models.Compounds.CompoundRange", b =>
@@ -1328,9 +1550,16 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Compounds");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Customers.ClientRoller", b =>
+                {
+                    b.Navigation("WorksOrders");
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.ClientRollerSpecification", b =>
                 {
                     b.Navigation("ClientRollers");
+
+                    b.Navigation("WorksOrders");
                 });
 
             modelBuilder.Entity("Pulse.Models.Customers.Customer", b =>
@@ -1340,6 +1569,8 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("ClientRollerSpecifications");
 
                     b.Navigation("ClientSales");
+
+                    b.Navigation("WorksOrders");
                 });
 
             modelBuilder.Entity("Pulse.Models.Geographic.Continent", b =>

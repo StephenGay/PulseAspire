@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Pulse.Models.Geographic;
 using Pulse.Models.Industries;
 using Pulse.Models.Organizational;
+using Pulse.Models.Production;
 
 namespace Pulse.Models.Customers
 {
@@ -106,9 +107,10 @@ namespace Pulse.Models.Customers
         public Industry? Industry { get; set; }
         public Company? Company { get; set; }
         public SalesRepresentative? SalesRepresentative { get; set; }
-        public List<ClientSales>? ClientSales { get; set; }
-        public List<ClientContact>? ClientContacts { get; set; }
-        public List<ClientRollerSpecification>? ClientRollerSpecifications { get; set; }
+        public ICollection<ClientSales>? ClientSales { get; set; } //= new HashSet<ClientSales>();
+        public ICollection<ClientContact>? ClientContacts { get; set; } //= new HashSet<ClientContact>();
+        public ICollection<ClientRollerSpecification>? ClientRollerSpecifications { get; set; } //= new HashSet<ClientRollerSpecification>();
+        public ICollection<WorksOrder>? WorksOrders { get; set; } //= new HashSet<WorksOrder>();
 
     }
 }

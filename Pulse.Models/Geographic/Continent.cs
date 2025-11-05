@@ -18,7 +18,7 @@ namespace Pulse.Models.Geographic
         [MaxLength(100)]
         public required string ContinentName { get; set; }
         public bool IsActive { get; set; } = true;
-        public List<Country> Countries { get; set; } = new();
+        public ICollection<Country>? Countries { get; set; } = new HashSet<Country>();
 
     }
 }

@@ -28,9 +28,9 @@ namespace Pulse.Models.Users
         [MaxLength(100)]
         [JsonIgnore]
         public string PasswordHash { get; set; } = string.Empty;
-        public List<UserFavouriteQry>? UserFavouriteQueries { get; set; }
+        public ICollection<UserFavouriteQry>? UserFavouriteQueries { get; set; } = new HashSet<UserFavouriteQry>();
 
-        
+
 
     }
 }

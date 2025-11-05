@@ -25,6 +25,6 @@ namespace Pulse.Models.Misc
         [DefaultValue(0)]
         public int DownVote { get; set; } = 0;
         public bool IsActive { get; set; } = true;
-        public List<UserFavouriteQry>? UserFavouriteQueries { get; set; }
+        public ICollection<UserFavouriteQry>? UserFavouriteQueries { get; set; }
     }
 }

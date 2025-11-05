@@ -12,6 +12,7 @@ namespace Pulse.Web.Services
         public Customer gv_client { get; set; }
         public User gv_user { get; set; }
         public Customer gv_Selected_Client { get; set; }
+        public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
         public async Task SetgvUser(User user)
         {
             gv_user = user;
@@ -51,7 +52,16 @@ namespace Pulse.Web.Services
         {
             return await Task.FromResult(gv_Selected_Client);
         }
+        public async Task SetgvSelectedRollSpec(ClientRollerSpecification rollSpec)
+        {
+            gv_Selected_Roll_Spec = rollSpec;
+            await Task.CompletedTask;
+        }
 
+        public async Task<ClientRollerSpecification> GetgvSelectedRollSpec()
+        {
+            return await Task.FromResult(gv_Selected_Roll_Spec);
+        }
     }
 
     public interface IDataTransferService
@@ -62,6 +72,8 @@ namespace Pulse.Web.Services
         public Task<Customer> GetgvSelectedClient();
         public Task SetgvUser(User user);
         public Task<User> GetgvUser();
+        public Task SetgvSelectedRollSpec(ClientRollerSpecification rollSpec);
+        public Task<ClientRollerSpecification> GetgvSelectedRollSpec();
     }
     public class TypeConverter : JsonConverter<Type>
     {

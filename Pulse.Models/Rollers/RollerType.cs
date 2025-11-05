@@ -19,6 +19,6 @@ namespace Pulse.Models.Rollers
         [MaxLength(100)]
         public required string RollerTypeName { get; set; }
         public bool IsActive { get; set; } = true;
-        public List<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; }
+        public ICollection<IndustryRollerEnvironment>? IndustryRollerEnvironments { get; set; } = new HashSet<IndustryRollerEnvironment>();
     }
 }

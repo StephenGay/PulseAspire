@@ -30,7 +30,7 @@ namespace Pulse.Models.Industries
         [Required]
         public RollerType RollerType { get; set; }
         public IndustryProcess? IndustryProcess { get; set; }
-        public List<IndustryRecommendedCover>? IndustryRecommendedCovers { get; set; }
+        public ICollection<IndustryRecommendedCover>? IndustryRecommendedCovers { get; set; } = new HashSet<IndustryRecommendedCover>();
 
     }
 }

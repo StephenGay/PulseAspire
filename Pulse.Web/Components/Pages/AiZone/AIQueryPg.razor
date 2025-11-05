@@ -25,6 +25,17 @@
 @rendermode InteractiveServer
 
 
+<style>
+    :root {
+        --datagrid-hover-color: lightyellow;
+    }
+
+    .fluent-data-grid {
+        --fluent-data-grid-resize-handle-color: var(--neutral-stroke-rest) !important;
+        
+    }
+</style>
+
 <FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
     
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
@@ -185,6 +196,7 @@
                                             OnRowClick="OnSaveQueryRowClick"
                                             ResizableColumns="true"
                                             Pagination="@pagination"
+                                                ShowHover="true"
                                             AutoFit="true"
                                             Style="width: 100%;" 
                                             GenerateHeader="GenerateHeaderOption.Sticky">

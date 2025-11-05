@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pulse.Models.Production;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -34,6 +35,8 @@ namespace Pulse.Models.Customers
         public bool IsActive { get; set; } = true;
 
         public ClientRollerSpecification? ClientRollerSpecification { get; set; }
+
+        public ICollection<WorksOrder>? WorksOrders { get; set; } = new HashSet<WorksOrder>();
 
     }
 }

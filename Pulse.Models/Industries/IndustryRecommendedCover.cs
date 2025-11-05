@@ -23,9 +23,9 @@ namespace Pulse.Models.Industries
         public required int IndustryRollerEnvironmentId { get; set; }
         [DefaultValue(true)]
         public bool IsActive { get; set; }
-        [Required]
-        public Compound Compound { get; set; }
-        [Required]
-        public IndustryRollerEnvironment IndustryRollerEnvironment { get; set; }
+        
+        public Compound? Compound { get; set; }
+        
+        public IndustryRollerEnvironment? IndustryRollerEnvironment { get; set; }
     }
 }

@@ -22,6 +22,6 @@ namespace Pulse.Models.Geographic
         [Required]
         public required Country Country { get; set; }
         public bool IsActive { get; set; } = true;
-        public List<Region> Regions { get; set; } = new();
+        public ICollection<Region>? Regions { get; set; } = new HashSet<Region>();
     }
 }

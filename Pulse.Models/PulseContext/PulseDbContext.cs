@@ -13,6 +13,7 @@ using Pulse.Models.Industries;
 using Pulse.Models.Rollers;
 using Pulse.Models.Compounds;
 using Pulse.Models.Users;
+using Pulse.Models.Production;
 
 namespace Pulse.Models.PulseContext
 {
@@ -47,6 +48,8 @@ namespace Pulse.Models.PulseContext
         public DbSet<ClientRollerSpecification> ClientRollerSpecificationMaster { get; set; }
         public DbSet<ClientRoller> ClientRollerMaster { get; set; }
         public DbSet<UserFavouriteQry> UserFavouriteQueries {  get; set; }
+        public DbSet<WorkType> WorkTypeMaster { get; set; }
+        public DbSet<WorksOrder> WorksOrder { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -79,6 +82,8 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new ClientRollerSpecificationMasterMap());
             modelBuilder.ApplyConfiguration(new ClientRollerMasterMap());
             modelBuilder.ApplyConfiguration(new UserFavouriteQueryMap());
+            modelBuilder.ApplyConfiguration(new WorkTypeMasterMap());
+            modelBuilder.ApplyConfiguration(new WorksOrderMap());
 
 
             base.OnModelCreating(modelBuilder);

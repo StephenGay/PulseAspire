@@ -131,6 +131,11 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasForeignKey(crs => crs.FullClientID);
                 //.OnDelete(DeleteBehavior.Cascade);
 
+            builder.HasMany(c => c.WorksOrders)
+                .WithOne(wo => wo.Customer)
+                .HasForeignKey(wo => wo.FullClientID);
+            //.OnDelete(DeleteBehavior.Cascade);
+
             // Indexes for performance
             builder.HasIndex(c => c.ClientName) // For name searches
                 .HasDatabaseName("IX_ClientMaster_ClientName");

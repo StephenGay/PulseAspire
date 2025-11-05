@@ -1,4 +1,5 @@
 ﻿using Pulse.Models.Compounds;
+using Pulse.Models.Production;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -71,8 +72,10 @@ namespace Pulse.Models.Customers
         public bool IsActive { get; set; } = true;
 
         public Customer? Customer { get; set; }
-        public List<ClientRoller>? ClientRollers { get; set; }
+        public ICollection<ClientRoller>? ClientRollers { get; set; } //= new HashSet<ClientRoller>();
         public Compound? Compound { get; set; }
+
+        public ICollection<WorksOrder>? WorksOrders { get; set; } // = new HashSet<WorksOrder>();
 
     }
 }

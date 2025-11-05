@@ -44,9 +44,10 @@ builder.AddRedisOutputCache("cache");
 
 builder.Services.AddBootstrapBlazor(options =>
 {
-    options.ToastDelay = 4000;
-    options.ToastPlacement = BootstrapBlazor.Components.Placement.TopEnd;
+    options.ToastDelay = 8000;
+    options.ToastPlacement = BootstrapBlazor.Components.Placement.TopCenter;
 });
+
 
 var ollamaEndpoint = builder.Configuration["OllamaApi:EndpointHttp"]
     ?? throw new InvalidOperationException("Missing configuration for Ollama:Endpoint");

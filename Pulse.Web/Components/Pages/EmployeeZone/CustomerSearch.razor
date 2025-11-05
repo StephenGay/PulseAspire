@@ -9,6 +9,30 @@
 @attribute [StreamRendering(true)]
 @rendermode InteractiveServer
 
+<style>
+    
+    .table-dark{
+    --bs-table-bg: #365b66 !important;
+        
+        
+        
+    }
+    .table{
+        --bs-table-striped-bg: #bcd1d4 !important;
+        --bs-table-striped-color: #365b66 !important;
+        --bs-table-hover-bg: #365b66 !important;
+        --bs-table-active-bg: blue !important;
+        --bs-table-active-color: #fff !important;
+        --bs-table-hover-color: #fff !important;
+    }
+    .table-row.active{
+        --bs-table-active-bg-type: blue !important;
+    }
+
+    .table tbody tr.active:not(.is-edit) {
+        --bs-table-active-bg-type: blue !important;
+    }
+</style>
 
 <FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: auto;">
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
@@ -20,7 +44,8 @@
     </FluentStack>
 
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="flex: 1 0 none; overflow-y : scroll; " >
-        <Table TItem="Customer" class="table-virtualize-demo bb-dg-row-highlight"
+        <Table TItem="Customer" class="table-virtualize-demo"
+            HeaderStyle="TableHeaderStyle.Dark"
            IsBordered="true" IsStriped="true" IsFixedFooter="true"
            Items="FilteredCustomers" ScrollMode="ScrollMode.Virtual"
            ClickToSelect="true" OnClickRowCallback="@ClickRow"

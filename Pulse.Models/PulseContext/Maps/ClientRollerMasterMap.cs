@@ -17,6 +17,10 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(crs => crs.ClientRollerSpecification)
                 .WithMany(cr => cr.ClientRollers)
                 .HasForeignKey(crs => crs.ClientRollerSpecificationID);
+
+            builder.HasMany(w => w.WorksOrders)
+                .WithOne(cr => cr.ClientRoller)
+                .HasForeignKey(w => w.ClientRollerID);
         }
     }
 }
