@@ -47,6 +47,14 @@ namespace Pulse.Models.Production
         public decimal MaterialCost { get; set; }
         public decimal SellPrice { get; set; }
         public string? Status { get; set; }
+        public int ProductionStageID { get; set; }
+        public DateTime? ProgressChange {  get; set; }
+        [MaxLength(255)]
+        public string? ProgressComment { get; set; }
+        [MaxLength(50)]
+        public string? ProductionStageName { get; set; }
+        public DateTime? RequiredDate { get; set; }
+        public DateTime? InvoicedDate { get; set; }
 
         public ClientRollerSpecification? ClientRollerSpecification { get; set; }
         public ClientRoller? ClientRoller { get; set; }
@@ -55,5 +63,6 @@ namespace Pulse.Models.Production
         public WorkType? WorkType { get; set; }
         public Period? Period { get; set; }
         public Division? Division { get; set; }
+        public ProductionStage? ProductionStage { get; set; }
     }
 }

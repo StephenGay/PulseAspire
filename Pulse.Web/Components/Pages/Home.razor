@@ -147,7 +147,7 @@ else if (showEmpLogin)
 		validationMessage = string.Empty;
 		await _DataTransferService.SetgvUser(user);
 
-		Navigation.NavigateTo("/EmployeeZone/");
+		Navigation.NavigateTo("/DivisionLogon?nextpage=/EmployeeZone/");
     }
 	
 	public static string HashPassword(string password)

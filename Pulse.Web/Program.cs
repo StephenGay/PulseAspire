@@ -48,7 +48,6 @@ builder.Services.AddBootstrapBlazor(options =>
     options.ToastPlacement = BootstrapBlazor.Components.Placement.TopCenter;
 });
 
-
 var ollamaEndpoint = builder.Configuration["OllamaApi:EndpointHttp"]
     ?? throw new InvalidOperationException("Missing configuration for Ollama:Endpoint");
 

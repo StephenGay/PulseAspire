@@ -44,6 +44,7 @@ app.MapAiEndpoints();
 app.MapSecurityEndpoints();
 app.MapUserEndpoints();
 app.MapUtilitiesEndpoints();
+app.MapDivisionEndpoints();
 
 app.UseHttpsRedirection();
 

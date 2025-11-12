@@ -1,5 +1,7 @@
 ﻿
 using Pulse.Models.Customers;
+using Pulse.Models.Organizational;
+using Pulse.Models.Production;
 using Pulse.Models.Users;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -12,7 +14,11 @@ namespace Pulse.Web.Services
         public Customer gv_client { get; set; }
         public User gv_user { get; set; }
         public Customer gv_Selected_Client { get; set; }
+        public ClientCurrentStats gv_Selected_ClientStats { get; set; }
+        public Division gv_Selected_Division { get; set; }
+        public List<WorkInProgressDto> gv_Selected_Division_WIP { get; set; }
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
+        public string gv_AIContext_Mode { get; set; }
         public async Task SetgvUser(User user)
         {
             gv_user = user;
@@ -62,6 +68,46 @@ namespace Pulse.Web.Services
         {
             return await Task.FromResult(gv_Selected_Roll_Spec);
         }
+        public async Task SetgvSelectedClientStats(ClientCurrentStats stats)
+        {
+            gv_Selected_ClientStats = stats;
+            await Task.CompletedTask;
+        }
+
+        public async Task<ClientCurrentStats> GetgvSelectedClientStats()
+        {
+            return await Task.FromResult(gv_Selected_ClientStats);
+        }
+        public async Task SetgvSelectedDivision(Division div)
+        {
+            gv_Selected_Division = div;
+            await Task.CompletedTask;
+        }
+
+        public async Task<Division> GetgvSelectedDivision()
+        {
+            return await Task.FromResult(gv_Selected_Division);
+        }
+        public async Task SetgvSelectedDivisionWIP(List<WorkInProgressDto> wip)
+        {
+            gv_Selected_Division_WIP = wip;
+            await Task.CompletedTask;
+        }
+
+        public async Task<List<WorkInProgressDto>> GetgvSelectedDivisionWIP()
+        {
+            return await Task.FromResult(gv_Selected_Division_WIP);
+        }
+        public async Task SetgvAIContextMode(string mode)
+        {
+            gv_AIContext_Mode = mode;
+            await Task.CompletedTask;
+        }
+
+        public async Task<string> GetgvAIContextMode()
+        {
+            return await Task.FromResult(gv_AIContext_Mode);
+        }
     }
 
     public interface IDataTransferService
@@ -74,6 +120,14 @@ namespace Pulse.Web.Services
         public Task<User> GetgvUser();
         public Task SetgvSelectedRollSpec(ClientRollerSpecification rollSpec);
         public Task<ClientRollerSpecification> GetgvSelectedRollSpec();
+        public Task SetgvSelectedClientStats(ClientCurrentStats stats);
+        public Task<ClientCurrentStats> GetgvSelectedClientStats();
+        public Task SetgvSelectedDivision(Division div);
+        public Task<Division> GetgvSelectedDivision();
+        public Task SetgvSelectedDivisionWIP(List<WorkInProgressDto> wip);
+        public Task<List<WorkInProgressDto>> GetgvSelectedDivisionWIP();
+        public Task<string> GetgvAIContextMode();
+        public Task SetgvAIContextMode(string mode);
     }
     public class TypeConverter : JsonConverter<Type>
     {

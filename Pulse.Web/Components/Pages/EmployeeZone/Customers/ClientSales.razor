@@ -2,6 +2,8 @@
 @using Pulse.Models.Customers
 @using System.Text.Json
 @using Pulse.Web.Services
+@using BootstrapBlazor.Components
+@using Microsoft.FluentUI.AspNetCore.Components
 
 @inject DataTransferService DataTransferService
 @inject Pulse.Web.Services.Pulse_AI pAI
@@ -21,12 +23,15 @@
             {
                 @if (salesGrid.Any())
                 {
-                    <div style="overflow-x: none; max-width: 100%; background-color: white;">
+                    @* <div style="overflow-x: none; max-width: 100%; max-height:50%; background-color: white;"> *@
+                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 0; height:50%; border: 1px solid #365b66; margin-bottom:5px ; border-radius:10px; padding: 10px; overflow: none;">
                         <FluentDataGrid Items="@salesGrid.AsQueryable()" ResizableColumns="true"
                                                                 
                                                                 RowSize="DataGridRowSize.Small" 
                                                                
                                                                 Pagination="@pagination"
+                                                                Virtualize="true"
+                                                                Style="width:100%"
                                                                 
                                                                 GenerateHeader="GenerateHeaderOption.Sticky" 
                                                                 AutoFit="true">
@@ -43,8 +48,23 @@
                             }
                         </FluentDataGrid>
                         <FluentPaginator State="@pagination" Style="background-color:#365b66;color: white; width:100%; padding:10px; border-radius:10px;" />
-                    </div>
-                    
+                    </FluentStack>
+                    @* <div style="overflow-x: none; max-width: 100%; height:50%; background-color: white;"> *@
+                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 0; height:50%; padding: 10px; border: 1px solid #365b66; border-radius:10px; overflow: none;">
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%" Style="flex: 0;">
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Width="50%">
+                                    <FluentButton Appearance="Appearance.Accent" OnClick="btnMinusYr">-</FluentButton>
+                                    <FluentLabel Typo="Typography.Subject" >Years</FluentLabel>
+                                    <FluentButton Appearance="Appearance.Accent" OnClick="btnAddYr">+</FluentButton>
+                                </FluentStack>
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Width="50%">
+                                <FluentButton Loading=@(!IsByYear? @loading : false) OnClick="@toggleGraphAsync" Appearance=@(IsByYear? Appearance.Outline: Appearance.Accent)>Monthly Sales</FluentButton>
+                                <FluentButton Loading=@(IsByYear ? @loading : false) OnClick="@toggleGraphAsync" Appearance=@(!IsByYear? Appearance.Outline: Appearance.Accent)>Yearly Sales</FluentButton>
+                                </FluentStack>
+                            </FluentStack>
+                        
+                        <Chart OnInitAsync="OnInitAsync" Height="100%"  Width="100%" @ref="chart" />
+                    </FluentStack>
                 }
             }
         </div>
@@ -58,9 +78,14 @@
     private List<string> monthColumns = new(); // Dynamic columns
     private Customer? _client;
     private object? selYear;
+    private bool IsByYear = false;
+    private bool loading = false;
+    private int showYears = 3;
     private bool isLoading = true;
     private string errorMessage = string.Empty;
-    PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
+    PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+    private Chart? chart;
+    private ChartDataSource chartDS = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -70,7 +95,19 @@
         await LoadSalesGrid();
         isLoading = false;
     }
-
+    private async Task btnAddYr()
+    {
+        showYears++;
+        await RefreshData();
+        chart.Reload();
+    }
+    private async Task btnMinusYr()
+    {
+        showYears--;
+        if(showYears==0){ showYears++; }
+        await RefreshData();
+        chart.Reload();
+    }
     private void OnYearRowClick(FluentDataGridRow<object> args)
     {
         try
@@ -82,6 +119,14 @@
         {
             return;
         }
+    }
+    private async Task toggleGraphAsync()
+    {
+        IsByYear = !IsByYear;
+        loading = true;
+        await RefreshData();
+        chart.Reload();
+        loading = false;
     }
     private async Task LoadSalesGrid()
     {
@@ -138,7 +183,6 @@
                 salesGrid.Add(row);
             }
 
-            
             StateHasChanged(); // Refresh grid
             // var totalRow = new Dictionary<string, object> { ["Financial Year"] = "Total" };
             // foreach (var col in monthColumns.Skip(1))
@@ -146,7 +190,7 @@
             //     totalRow[col] = salesGrid.Sum(r => Convert.ToDecimal(r[col])).ToString("#,###");
             // }
             // salesGrid.Add(totalRow);
-            
+
         }
         catch (Exception ex)
         {
@@ -154,7 +198,123 @@
         }
     }
 
-    
+    private async Task<ChartDataSource> OnInitAsync()
+    {
+        var ds = new ChartDataSource();
+        /* ds.Type = (IsByYear ? "ChartType.Bar" : "ChartType.Line");  */ // Explicitly set to line
+        // ds.Options.Title = (IsByYear ? "" : "Monthly ") + "Sales by Financial Year";
+        ds.Options.X.Title = (IsByYear ? "Financial Year" : "Month");
+        ds.Options.Y.Title = "Amount";
+        ds.Options.LegendPosition = ChartLegendPosition.Top;
+        ds.Options.Responsive = true;
+
+        var borderColors = new[]
+        {
+            "rgba(255, 0, 0, 1)","rgba(255, 99, 132, 0.5)", "rgba(54, 162, 235, 1)", "rgba(255, 206, 86, 1)",
+            "rgba(75, 192, 192, 1)", "rgba(153, 102, 255, 1)", "rgba(255, 159, 64, 1)"
+        };
+        var backgroundColors = new[]
+        {
+            "rgba(255, 0, 0, 1)", "rgba(255, 99, 132, 0.8)", "rgba(54, 162, 235, 0.2)", "rgba(255, 206, 86, 0.2)",
+            "rgba(75, 192, 192, 0.2)", "rgba(153, 102, 255, 0.2)", "rgba(255, 159, 64, 0.2)"
+        };
+
+        if (IsByYear)
+        {
+            int indexYear = 0;
+            List<string> varYrLbl = new();
+            List<object> YrTot = new();
+
+            foreach (var row in salesGrid.OrderByDescending(r => r["Financial Year"]))  // Ascending years for logical order
+            {
+                if (indexYear < showYears)
+                {
+                    var year = row["Financial Year"].ToString();
+                    varYrLbl.Add(year);
+                    YrTot.Add(Convert.ToDecimal(row["Total"]));
+                }
+                indexYear++;
+            }
+            ds.Labels = varYrLbl;
+            ds.Data.Add(new ChartDataset
+            {
+                Label = "Sales",
+                Data = YrTot,
+                BorderColor = new[] { borderColors[indexYear % borderColors.Length] },
+                BackgroundColor = new[] { backgroundColors[indexYear % backgroundColors.Length] },
+                // BorderWidth = (index == 0 ? 8 : 2),
+                Fill = false // (index == 0)  // Optional: Area fill under line
+            });
+        }
+        else
+        {
+            // X-axis labels: Months in fiscal order (abbreviated)
+            var fiscalMonthOrder = new[] { "November", "December", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October" };
+            var presentMonths = salesGrid.Any() ? monthColumns.Skip(1).Take(monthColumns.Count - 2).ToList() : new List<string>();  // e.g., ["Nov", "Dec", ...]
+            ds.Labels = presentMonths;
+
+            // Colors for datasets (one per year)
+
+
+            // Datasets: One per financial year, data aligned to months
+            int index = 0;
+            foreach (var row in salesGrid.OrderByDescending(r => r["Financial Year"]))  // Ascending years for logical order
+            {
+                if (index < showYears)
+                {
+                    var year = row["Financial Year"].ToString();
+                    // var data = { row.TryGetValue("NOV"), row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"] }; //presentMonths.Select(m => row.TryGetValue(m, out var val) ? (object)val : 0m).ToList();
+
+                    var data = presentMonths.Select(m =>
+                    {
+                        if (row.TryGetValue(m, out var val))
+                        {
+                            if (val is string s)
+                            {
+                                // Parse formatted string, removing commas
+                                if (decimal.TryParse(s.Replace(",", ""), out var parsed))
+                                    return (object)parsed;
+                            }
+                            else if (val is decimal d)
+                            {
+                                return (object)d;
+                            }
+                        }
+
+                        return (object)0m;
+                    }).ToList();
+
+                    ds.Data.Add(new ChartDataset
+                        {
+                            Label = $"FY {year}",
+                            Data = data,
+                            BorderColor = new[] { borderColors[index % borderColors.Length] },
+                            BackgroundColor = new[] { backgroundColors[index % backgroundColors.Length] },
+                            BorderWidth = (index == 0 ? 8 : 2),
+                            Fill = false // (index == 0)  // Optional: Area fill under line
+                        });
+                }
+                index++;
+            }
+        }
+        return await Task.FromResult(ds);
+    }
+
+    private async Task RefreshData()
+    {
+        if (chart != null)
+        {
+            // Refetch data, rebuild grid, then update chart
+            await OnInitAsync();  // Re-run data load and grid build
+            // await chart.Update();
+            StateHasChanged();
+        }
+    }
+    private async Task<string> GetDataColour(int indexData)
+    {
+        var colors = new[] { "#4e79a7", "#f28e2c", "#e15759", "#76b7b2", "#59a14f", "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab", "#d37295", "#fabfd2" };
+        return colors[indexData % colors.Length];
+    }
 
     private void OnSalesGridClick()
     {
@@ -163,6 +323,7 @@
 
     private async Task GetClientInfo()
     {
+        await DataTransferService.SetgvAIContextMode("ClientSales");
         _client = await DataTransferService.GetgvSelectedClient();
         
         if (_client is null)

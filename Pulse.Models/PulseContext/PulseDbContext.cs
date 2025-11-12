@@ -47,9 +47,17 @@ namespace Pulse.Models.PulseContext
         public DbSet<ClientContact> ClientContactMaster { get; set; }
         public DbSet<ClientRollerSpecification> ClientRollerSpecificationMaster { get; set; }
         public DbSet<ClientRoller> ClientRollerMaster { get; set; }
-        public DbSet<UserFavouriteQry> UserFavouriteQueries {  get; set; }
+        public DbSet<UserFavouriteQry> UserFavouriteQueries { get; set; }
         public DbSet<WorkType> WorkTypeMaster { get; set; }
         public DbSet<WorksOrder> WorksOrder { get; set; }
+        public DbSet<ProductionStage> ProductionStageMaster {  get; set; }
+        public DbSet<WorkCentre> WorkCentreMaster { get; set; }
+        public DbSet<WorkCentreFunctions> WorkCentreFunctionsMaster { get; set; }
+        public DbSet<ProductionPlanItem> ProductionPlanItems {  get; set; }  
+        public DbSet<EquipmentCategory> EquipmentCategoryMaster { get; set; }
+        public DbSet<EquipmentItem> EquipmentItemMaster { get; set; }
+        public DbSet<EquipmentCapability> EquipmentCapabilities {  get; set; }
+        public DbSet<ClientCalendarEvent> ClientCalendarEvents {  get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -84,7 +92,14 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new UserFavouriteQueryMap());
             modelBuilder.ApplyConfiguration(new WorkTypeMasterMap());
             modelBuilder.ApplyConfiguration(new WorksOrderMap());
-
+            modelBuilder.ApplyConfiguration(new ProductionStageMasterMap());
+            modelBuilder.ApplyConfiguration(new WorkCentreMasterMap());
+            modelBuilder.ApplyConfiguration(new WorkCentreFunctionsMappingMap());
+            modelBuilder.ApplyConfiguration(new ProductionPlanItemsMap());
+            modelBuilder.ApplyConfiguration(new EquipmentCategoryMasterMap());
+            modelBuilder.ApplyConfiguration(new EquipmentItemMasterMap());
+            modelBuilder.ApplyConfiguration(new EquipmentCapabilitiesMap());
+            modelBuilder.ApplyConfiguration(new ClientCalendarEventsMap());
 
             base.OnModelCreating(modelBuilder);
         }

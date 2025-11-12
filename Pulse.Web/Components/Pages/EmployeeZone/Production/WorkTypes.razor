@@ -1,0 +1,46 @@
+﻿@page "/EmployeeZone/Production/WorkTypes"
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using Pulse.Web.Components.Layout
+@using Pulse.Web.Services
+@inject Pulse.Web.Services.PulseApiService pApiClient
+@inject DataTransferService dTrf
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<div class="div-center-screen" style="align-items:center">
+    <ListView TItem="WorkType" Items="@_allWorkTypes" style="align-items:center; max-width:60%" OnListViewItemClick="OnWTClick" Height="100%">
+        <HeaderTemplate>
+            <div style="color:white">WORK TYPES</div>
+        </HeaderTemplate>
+        <BodyTemplate>
+            <Card IsShadow="true" HeaderText="@context.WorkTypeName">
+                <BodyTemplate>
+                    <FluentLabel Typo="Typography.Body" >Target : @context.TargetWorkingDays Days</FluentLabel>    
+                    <FluentLabel Typo="Typography.Body">Material : @context.WorkTypeMaterial</FluentLabel>
+                </BodyTemplate>
+            </Card>
+        </BodyTemplate>
+        <FooterTemplate>
+            @* <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button OnClick="@ButtonClick" Color="Color.Info">Information</Button></div> *@
+        </FooterTemplate>
+    </ListView>
+</div>
+
+
+@code {
+    
+    List<WorkType>? _allWorkTypes;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allWorkTypes = await pApiClient.GetAsync<List<WorkType>>("/Divisions/GetWorkTypes");
+    }
+
+    private async Task OnWTClick(WorkType w)
+    {
+        
+        Navigation.NavigateTo($"/Production/ProductionStages?WorkTypeID={w.WorkTypeID}");
+    }
+}

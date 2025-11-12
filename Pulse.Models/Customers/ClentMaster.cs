@@ -111,6 +111,7 @@ namespace Pulse.Models.Customers
         public ICollection<ClientContact>? ClientContacts { get; set; } //= new HashSet<ClientContact>();
         public ICollection<ClientRollerSpecification>? ClientRollerSpecifications { get; set; } //= new HashSet<ClientRollerSpecification>();
         public ICollection<WorksOrder>? WorksOrders { get; set; } //= new HashSet<WorksOrder>();
+        public ICollection<ClientCalendarEvent>? ClientCalendarEvents { get; set; }
 
     }
 }

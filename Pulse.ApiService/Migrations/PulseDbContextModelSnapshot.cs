@@ -46,6 +46,9 @@ namespace Pulse.ApiService.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<decimal>("CompoundDifficultyMultiplier")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int?>("CompoundRangeId")
                         .HasColumnType("int");
 
@@ -191,6 +194,53 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("PolymerMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Customers.ClientCalendarEvent", b =>
+                {
+                    b.Property<int>("EventId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EventId"));
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ClientName")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ClientRollerNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ClientSpecificationID")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("End")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullClientID")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("Start")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("");
+
+                    b.HasKey("EventId");
+
+                    b.HasIndex("FullClientID");
+
+                    b.ToTable("ClientCalendarEvents", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.ClientContact", b =>
                 {
                     b.Property<int>("ClientContactId")
@@ -311,6 +361,9 @@ namespace Pulse.ApiService.Migrations
                 {
                     b.Property<int>("ClientRollerSpecificationID")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("AdditionalRollDifficultyMultiplier")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ArticleNumber")
                         .HasMaxLength(50)
@@ -856,6 +909,27 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("ColourMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Misc.EquipmentCategory", b =>
+                {
+                    b.Property<string>("EquipmentCategoryID")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("EquipmentCategoryName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.HasKey("EquipmentCategoryID");
+
+                    b.ToTable("EquipmentCategoryMaster", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Misc.Period", b =>
                 {
                     b.Property<int>("PeriodID")
@@ -978,6 +1052,251 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("RepresentativeMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
+                {
+                    b.Property<string>("EquipmentItemID")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("ProductionStageID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.HasKey("EquipmentItemID", "ProductionStageID");
+
+                    b.HasIndex("ProductionStageID");
+
+                    b.ToTable("EquipmentCapabilities", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.EquipmentItem", b =>
+                {
+                    b.Property<string>("EquipmentItemID")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<string>("DivisionID")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("EquipmentCategoryID")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<decimal>("EquipmentDifficultyMultiplier")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,4)")
+                        .HasDefaultValue(1m);
+
+                    b.Property<string>("EquipmentItemDescription")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("FixedAssetNo")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("ManufacturerName")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("EquipmentItemID");
+
+                    b.HasIndex("DivisionID");
+
+                    b.HasIndex("EquipmentCategoryID");
+
+                    b.ToTable("EquipmentItems", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.ProductionPlanItem", b =>
+                {
+                    b.Property<int>("ProductionPlanItemID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductionPlanItemID"));
+
+                    b.Property<DateTime?>("ActualEndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualStartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedByUserID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DivisionID")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("EquipmentItemID")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<bool>("IsPulsePlan")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("PlannedEndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("PlannedStartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ProductionStageID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)")
+                        .HasDefaultValue("Unplanned");
+
+                    b.Property<int>("WorkOrderNo")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductionPlanItemID");
+
+                    b.ToTable("ProductionPlanItems", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.ProductionStage", b =>
+                {
+                    b.Property<int>("ProductionStageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BaseMinutesAtStage")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("BaseValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("DifficultyMeasurement")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("DivisionID")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<bool>("HasMaterial")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("IsOptional")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ProductionStageName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("RequiresPlanning")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<bool>("RequiresSignOff")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("ResultsPage")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("StepNo")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkTypeID")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WorkTypeID1")
+                        .HasColumnType("int");
+
+                    b.HasKey("ProductionStageId");
+
+                    b.HasIndex("DivisionID");
+
+                    b.HasIndex("WorkTypeID");
+
+                    b.HasIndex("WorkTypeID1");
+
+                    b.ToTable("ProductionStageMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorkCentre", b =>
+                {
+                    b.Property<int>("WorkCentreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BranchID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DivisionID")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<string>("WorkCentreName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("WorkCentreId");
+
+                    b.HasIndex("BranchID");
+
+                    b.HasIndex("DivisionID");
+
+                    b.ToTable("WorkCentreMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorkCentreFunctions", b =>
+                {
+                    b.Property<int>("WorkCentreID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(0);
+
+                    b.Property<int>("ProductionStageID")
+                        .HasColumnType("int")
+                        .HasColumnOrder(1);
+
+                    b.Property<int>("WorkCentreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WorkCentreID", "ProductionStageID");
+
+                    b.HasIndex("ProductionStageID");
+
+                    b.ToTable("WorkCentreFunctionsMapping", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Production.WorkType", b =>
                 {
                     b.Property<int>("WorkTypeID")
@@ -989,7 +1308,6 @@ namespace Pulse.ApiService.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<string>("LockToProductCode")
-                        .IsRequired()
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
@@ -1080,6 +1398,9 @@ namespace Pulse.ApiService.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
+                    b.Property<DateTime?>("InvoicedDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<decimal>("MaterialCost")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,2)")
@@ -1088,8 +1409,25 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("PeriodID")
                         .HasColumnType("int");
 
+                    b.Property<int>("ProductionStageID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProductionStageName")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime?>("ProgressChange")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ProgressComment")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("RequiredDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<decimal>("SellPrice")
                         .ValueGeneratedOnAdd()
@@ -1133,6 +1471,8 @@ namespace Pulse.ApiService.Migrations
 
                     b.HasIndex("PeriodID")
                         .HasDatabaseName("IX_WorksOrder_PeriodID");
+
+                    b.HasIndex("ProductionStageID");
 
                     b.HasIndex("Status")
                         .HasDatabaseName("IX_WorksOrder_Status");
@@ -1249,6 +1589,15 @@ namespace Pulse.ApiService.Migrations
                         .IsRequired();
 
                     b.Navigation("CompoundRange");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Customers.ClientCalendarEvent", b =>
+                {
+                    b.HasOne("Pulse.Models.Customers.Customer", "Customer")
+                        .WithMany("ClientCalendarEvents")
+                        .HasForeignKey("FullClientID");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("Pulse.Models.Customers.ClientContact", b =>
@@ -1462,6 +1811,100 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
+                {
+                    b.HasOne("Pulse.Models.Production.EquipmentItem", "EquipmentItem")
+                        .WithMany("EquipmentCapabilities")
+                        .HasForeignKey("EquipmentItemID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.ProductionStage", "ProductionStage")
+                        .WithMany("EquipmentCapabilities")
+                        .HasForeignKey("ProductionStageID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EquipmentItem");
+
+                    b.Navigation("ProductionStage");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.EquipmentItem", b =>
+                {
+                    b.HasOne("Pulse.Models.Organizational.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Misc.EquipmentCategory", "EquipmentCategory")
+                        .WithMany("EquipmentItems")
+                        .HasForeignKey("EquipmentCategoryID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Division");
+
+                    b.Navigation("EquipmentCategory");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.ProductionStage", b =>
+                {
+                    b.HasOne("Pulse.Models.Organizational.Division", "Division")
+                        .WithMany()
+                        .HasForeignKey("DivisionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.WorkType", "WorkType")
+                        .WithMany()
+                        .HasForeignKey("WorkTypeID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.WorkType", null)
+                        .WithMany("ProductionStages")
+                        .HasForeignKey("WorkTypeID1");
+
+                    b.Navigation("Division");
+
+                    b.Navigation("WorkType");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorkCentre", b =>
+                {
+                    b.HasOne("Pulse.Models.Organizational.Branch", null)
+                        .WithMany()
+                        .HasForeignKey("BranchID")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Organizational.Division", null)
+                        .WithMany()
+                        .HasForeignKey("DivisionID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorkCentreFunctions", b =>
+                {
+                    b.HasOne("Pulse.Models.Production.ProductionStage", "ProductionStage")
+                        .WithMany()
+                        .HasForeignKey("ProductionStageID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.WorkCentre", "WorkCentre")
+                        .WithMany("WorkCentreFunctions")
+                        .HasForeignKey("WorkCentreID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProductionStage");
+
+                    b.Navigation("WorkCentre");
+                });
+
             modelBuilder.Entity("Pulse.Models.Production.WorksOrder", b =>
                 {
                     b.HasOne("Pulse.Models.Customers.ClientRoller", "ClientRoller")
@@ -1494,6 +1937,12 @@ namespace Pulse.ApiService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("Pulse.Models.Production.ProductionStage", "ProductionStage")
+                        .WithMany()
+                        .HasForeignKey("ProductionStageID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("Pulse.Models.Production.WorkType", "WorkType")
                         .WithMany()
                         .HasForeignKey("WorkTypeID")
@@ -1511,6 +1960,8 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Division");
 
                     b.Navigation("Period");
+
+                    b.Navigation("ProductionStage");
 
                     b.Navigation("WorkType");
                 });
@@ -1564,6 +2015,8 @@ namespace Pulse.ApiService.Migrations
 
             modelBuilder.Entity("Pulse.Models.Customers.Customer", b =>
                 {
+                    b.Navigation("ClientCalendarEvents");
+
                     b.Navigation("ClientContacts");
 
                     b.Navigation("ClientRollerSpecifications");
@@ -1617,6 +2070,11 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("UserFavouriteQueries");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Misc.EquipmentCategory", b =>
+                {
+                    b.Navigation("EquipmentItems");
+                });
+
             modelBuilder.Entity("Pulse.Models.Misc.Period", b =>
                 {
                     b.Navigation("ClientSales");
@@ -1639,6 +2097,26 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Organizational.SalesRepresentative", b =>
                 {
                     b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.EquipmentItem", b =>
+                {
+                    b.Navigation("EquipmentCapabilities");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.ProductionStage", b =>
+                {
+                    b.Navigation("EquipmentCapabilities");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorkCentre", b =>
+                {
+                    b.Navigation("WorkCentreFunctions");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorkType", b =>
+                {
+                    b.Navigation("ProductionStages");
                 });
 
             modelBuilder.Entity("Pulse.Models.Rollers.RollerType", b =>

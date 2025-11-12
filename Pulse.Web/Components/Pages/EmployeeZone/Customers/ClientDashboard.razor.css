@@ -95,7 +95,10 @@
     }
 
 .mySuccess {
-    background-color: #D7EACE !important;
+    background-color: #f7f7f7 !important;
+    background-image: linear-gradient(135deg, rgb(54,91,102) 0%, #bcd1d4 40%) !important;
+    /*background-color: #D7EACE !important;*/
+    color: black !important;
     text-align: center !important;
     padding-right: 1em !important;
     border: 1px solid #224713 !important;
@@ -103,6 +106,8 @@
 
 .myWarning {
     background-color: #D79394 !important;
+    background-image: linear-gradient(135deg, #D79394 90%, rgb(255,0,0) 10%) !important;
+    color: white !important;
     text-align: center !important;
     font-weight: bold !important;
     border: 1px solid #6F0607 !important;

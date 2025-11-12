@@ -27,6 +27,7 @@ namespace Pulse.Models.Production
         public int SortOrder { get; set; }
         [DefaultValue(true)]
         public bool IsActive { get; set; } = true;
+        public ICollection<ProductionStage>? ProductionStages { get; set; }
 
     }
 }

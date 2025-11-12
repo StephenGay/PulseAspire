@@ -1,0 +1,41 @@
+﻿@page "/EmployeeZone/Production/ChangeDivision"
+@using Pulse.Models.Organizational
+@using Pulse.Web.Services
+@inject Pulse.Web.Services.PulseApiService pApiClient
+@inject DataTransferService dTrf
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+
+<ListView TItem="Division" Items="@_allDivisions" style="align-content:center" OnListViewItemClick="OnDivisionClick" Height="100%">
+    <HeaderTemplate>
+        <div style="color:white">SELECT A DIVISION</div>
+    </HeaderTemplate>
+    <BodyTemplate>
+        <Card>
+            <BodyTemplate>
+                <img src="Images/Divisions/@(context.DivisionID).jpg" />
+                <div class="lv-demo-desc" style="text-align:center;margin:5px;">@context.DivisionName</div>
+            </BodyTemplate>
+        </Card>
+    </BodyTemplate>
+    <FooterTemplate>
+        <div class="text-end">
+            
+        </div>
+    </FooterTemplate>
+</ListView>
+@code {
+    List<Division>? _allDivisions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allDivisions = await pApiClient.GetAsync<List<Division>>("/Divisions/GetAll");
+    }
+
+    private async Task OnDivisionClick(Division div)
+    {
+        await dTrf.SetgvSelectedDivision(div);
+        Navigation.NavigateTo("/EmployeeZone/Production/ProductionDashboard");
+    }
+}

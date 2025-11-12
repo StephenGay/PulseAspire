@@ -57,8 +57,8 @@ namespace Pulse.ApiService.Endpoints
                     .ToListAsync();
                 return Results.Ok(sales);
             })
-            .WithName("GetCustomerSalesById")
-            .Produces<object[]>(200);
+                .WithName("GetCustomerSalesById")
+                .Produces<object[]>(200);
 
             group.MapGet(ByIdPath + "/RollerSpecifications", async (string fullclientid, PulseDbContext dbContext) =>
             {
@@ -68,8 +68,8 @@ namespace Pulse.ApiService.Endpoints
                     .ToListAsync();
                 return Results.Ok(specs);
             })
-            .WithName("GetCustomerRollerSpecificationsById")
-            .Produces<List<ClientRollerSpecification>>(200);
+                .WithName("GetCustomerRollerSpecificationsById")
+                .Produces<List<ClientRollerSpecification>>(200);
 
             group.MapGet("/RollerSpecifications/GetWOByRollerID/{rollId}", async (int rollId, PulseDbContext db) =>
             {
@@ -95,7 +95,7 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetRollerWObyId")
                 .Produces<List<WorksOrder>>(200);
 
-                group.MapGet("/RollerSpecifications/AllDetailsBySpecID/{specId}", async (int specId, PulseDbContext db) =>
+            group.MapGet("/RollerSpecifications/AllDetailsBySpecID/{specId}", async (int specId, PulseDbContext db) =>
             {
                 // 1. Verify the spec exists
                 var specExists = await db.ClientRollerSpecificationMaster
@@ -187,8 +187,28 @@ namespace Pulse.ApiService.Endpoints
                 // 3. Return the collection directly (no wrapper)
                 return Results.Ok(rollers);
             })
-            .WithName("GetRollersForSpecification")
-            .WithOpenApi();
+                .WithName("GetRollersForSpecification")
+                .WithOpenApi();
+
+            group.MapGet(ByIdPath + "/CurrentStats", async (string fullclientid, PulseDbContext db) =>
+            {
+                var openWOCount = await db.WorksOrder
+                    .Where(wo => wo.FullClientID == fullclientid && wo.UndelQty > 0)
+                    .CountAsync();
+
+                var openQuoteCount = 0;
+                var isset = true;
+
+                var stats = new ClientCurrentStats {
+                    FullClientID = fullclientid,
+                    isSet = isset,
+                    countWipWOs = openWOCount,
+                    countOpenQuotes = openQuoteCount
+                };
+                return Results.Ok(stats);
+            })
+                .WithName("GetClientStats")
+                .WithOpenApi();
         }
     }
 }

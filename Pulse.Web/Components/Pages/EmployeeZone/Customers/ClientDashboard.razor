@@ -10,174 +10,119 @@
 
 <PageTitle>Customer Dashboard</PageTitle>
 
-@if (isLoading)
+@if (_client == null)
 {
     <div>Loading...</div>
 }
 else
 {
-    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Enabled="startAni" Delay="@TimeSpan.FromSeconds(0.5)"> 
-     <div class="container">
-       
-        <div class="row"> 
-            
-            <div class="col-md-4 ">
-       
-                <div class="row">
-                    <div class="col-12"> 
-                        @* <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(3)" Delay="@TimeSpan.FromSeconds(5)">  *@
-                            <div class="section-card">
-                                <h3 class="text-xl font-bold h3-add-pad">Profile Overview</h3>
-                                <div class="divSectionCard">
-                                    <p><strong>Contact Person:</strong> John Doe</p>
-                                    <p><strong>Email:</strong> john.doe@example.com</p>
-                                    <p><strong>Account ID:</strong> @_client.ClientID</p>
-                                    <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToProfile">Edit Profile</button>
-                                </div>
-                            </div>
-                        @* </Animation> *@
-                    </div>
-                </div>
-                
-                <div class="row">
-                    <div class="col-12">
-                        @* <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2)"> *@
-                            <div class="section-card">
-                                <h3 class="text-xl font-bold h3-add-pad">Roll Specifications</h3>
-                                <div class="divSectionCard">
-                                    <p>View and manage your roll specifications.</p>
-                                    <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToRollers">Go to Specifications</button>
-                                </div>
-                            </div>
-						@* </Animation> *@
-                    </div>
-				</div>
-            </div>
-                    
-            
-            <div class="col-md-4">
-                
-                <div class="row">
-                    <div class="col-12">
-                        @* <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2.5)"> *@
-                            <div class="section-card">
-                                <h3 class="text-xl font-bold h3-add-pad">Work In Progress</h3>
-                                <div class="divSectionCard">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <h1><span class="badge text-bg-primary">@WOCount</span></h1>
-                                        </Div>
-                                        <div class="col-6">
-                                            <p>Work Orders are currently in Progress.</p>
-                                            <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToWIP">View Status</button>
-                                        </Div>
-                                    </div>
-                                </div>
-                            </div>
-						@* </Animation> *@
-                    </div>
-				</div>
-                
-                <div class="row">
-                    <div class="col-12">
-                        @* <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(3)"> *@
-        <div class="section-card">
-                                <h3 class="text-xl font-bold h3-add-pad">Open Quotations</h3>
-                                <div class="divSectionCard">
-                                    <div class="row">
-                                        <div class="col-6">
-                                            <h1><span class="badge text-bg-primary">@QuoteCount</span></h1>
-                                        </div>
-                                        <div class="col-6">
-                                            <p>Quotations are Open.</p>
-                                            <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToQuotes">View Quotes</button>
-                                        </Div>
-                                    </div>
-                                </div>
-                            </div>
-						@* </Animation> *@
-                    </div>
-                </div>
-            </div>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Width="100%" Style="height: 100%; overflow-y : scroll;">
 
-            <div class="col-md-4">
-                <div class="row">
-                    <div class="col-12">
-                       @*  <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(3.5)"> *@
-                            <div class="section-card">
-                                <h3 class="text-xl font-bold h3-add-pad">Accounts</h3>
-                                <div class="divSectionCard">
+        @if(stats.countWipWOs>0)
+        {
+            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                    <HeaderTemplate>
+                        Work Orders In Progress
+                    </HeaderTemplate>
+                    <BodyTemplate>
+                        <h1><span class="badge text-bg-primary">@stats.countWipWOs</span></h1>
+                    </BodyTemplate>
+                    <FooterTemplate>
+                        <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToWIP">View Status</button>
+                    </FooterTemplate>
+                </Card>
+		    </Animation>
+        }
+        @if (stats.countOpenQuotes > 0)
+        {
+            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                    <HeaderTemplate>
+                        Open Quotations
+                    </HeaderTemplate>
+                    <BodyTemplate>
+                        <h1><span class="badge text-bg-primary">@stats.countOpenQuotes</span></h1>
+                    </BodyTemplate>
+                    <FooterTemplate>
+                        <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToQuotes">View Quotes</button>
+                    </FooterTemplate>
+                </Card>
+            </Animation>
+        }
+    @if (accWarning)
+    {
+            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                    <HeaderTemplate>
+                        Account Status Warning
+                    </HeaderTemplate>
+                    <BodyTemplate>
+                        <FluentStack Orientation="Orientation.Vertical" Style="flex :content">
+                        <div style="padding:20px">
+                            <FluentStack Orientation="Orientation.Horizontal" Style="flex :content">
+                                <FluentStack Orientation="Orientation.Vertical" Style="flex :content">
                                     <p><strong>Payment Terms:</strong> @_client.TermDays Days</p>
-					                <p><strong>Credit Limit:</strong> @String.Format("{0:#,##0.00;(#,##0.00)}", _client.CreditLimit)</p>
-                                    <table class="table table-bordered">
-                                        <tr class=@dCur>
-                                            <td class=@dCur>
-                                                Current
-                                            </td>
-                                            <td class=@dCur>
-                                                @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing05)
-                                            </td>
-                                        </tr>
-                                        <tr class=@d30>
-                                            <td class=@d30>
-                                                30 Days
-                                            </td>
-                                            <td class=@d30>
-                                                @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing04)
-                                            </td>
-                                        </tr>
-                                        <tr class=@d60>
-                                            <td class=@d60>
-                                                60 Days
-                                            </td>
-                                            <td class=@d60>
-                                                @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing03)
-                                            </td>
-                                        </tr>
-                                        <tr class=@d90>
-                                            <td class=@d90>
-                                                90 Days
-                                            </td>
-                                            <td class=@d90>
-                                                @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing02)
-                                            </td>
-                                        </tr>
-                                        <tr class=@d120>
-                                            <td class=@d120>
-                                                120 Days+
-                                            </td>
-                                            <td class=@d120>
-                                                @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing01)
-                                            </td>
-                                        </tr>
-                                    </table>
-                                    <a href="payment.html" class="btn btn-primary btnOveride mt-4" id="payButton">Pay Now</a>
-                                </div>
-                            </div>
-						@* </Animation> *@
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-12">
-                        
-                       @*  <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(4)"> *@
-        <div class="section-card">
-                                <h3 class="text-xl font-bold h3-add-pad">Recent Activity</h3>
-                                <div class="divSectionCard">
-                                    <ul class="list-group list-group-flush">
-                                        <li class="list-group-item">Updated roll specifications - 2025-08-10</li>
-                                        <li class="list-group-item">Logged in - 2025-08-09</li>
-                                        <li class="list-group-item">Viewed dashboard - 2025-08-08</li>
-                                    </ul>
-                                </div>
-                            </div>
-						@* </Animation> *@
-                     </div>
-                </div>
-            </div>
-        </div>
-    </div> 
-    </Animation> 
+                                    <p><strong>Credit Limit:</strong> @String.Format("{0:#,##0.00;(#,##0.00)}", _client.CreditLimit)</p>
+                                    
+                                </FluentStack>
+
+                        <table class="table table-bordered">
+                            <tr class=@dCur>
+                                <td class=@dCur>
+                                    Current
+                                </td>
+                                <td class=@dCur>
+                                    @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing05)
+                                </td>
+                            </tr>
+                            <tr class=@d30>
+                                <td class=@d30>
+                                    30 Days
+                                </td>
+                                <td class=@d30>
+                                    @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing04)
+                                </td>
+                            </tr>
+                            <tr class=@d60>
+                                <td class=@d60>
+                                    60 Days
+                                </td>
+                                <td class=@d60>
+                                    @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing03)
+                                </td>
+                            </tr>
+                            <tr class=@d90>
+                                <td class=@d90>
+                                    90 Days
+                                </td>
+                                <td class=@d90>
+                                    @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing02)
+                                </td>
+                            </tr>
+                            <tr class=@d120>
+                                <td class=@d120>
+                                    120 Days+
+                                </td>
+                                <td class=@d120>
+                                    @String.Format("{0:#,##0.00;(#,##0.00)}", _client.Ageing01)
+                                </td>
+                            </tr>
+                        </table>
+                            </FluentStack>
+                        </div>
+                            <div style="align-self:center"> <strong>Balance:</strong> @String.Format("{0:#,##0.00;(#,##0.00)}", _client.CreditLimit)</div>
+                            </FluentStack>
+                    </BodyTemplate>
+                    <FooterTemplate>
+                        <button class="btn btn-primary btnOveride">Follow Up</button>
+                        @* <a href="payment.html" class="btn btn-primary btnOveride mt-4" id="payButton">Follow Up</a> *@
+                    </FooterTemplate>
+                </Card>
+            </Animation>
+    }
+            
+    </FluentStack>
 }
 
 @code {
@@ -191,6 +136,8 @@ else
     private string? d30 = string.Empty;
     private string? dCur = string.Empty;
     private bool isLoading = true;
+    private bool accWarning = false;
+    private ClientCurrentStats? stats;
     private int WOCount = 0;
     private int QuoteCount = 0;
     private bool startAni = false;
@@ -205,28 +152,34 @@ else
 
     private async Task GetClientInfo()
     {
-        _client = await DataTransferService.GetgvSelectedClient();
+        Customer _cust = await DataTransferService.GetgvSelectedClient();
         // await Task.Delay(3000);
         // _client = await pulseApi.GetAsync<Customer>($"Customers/Details/{_customer_Id}");
         //.GetClientByIdAsync(_customer_Id);
-        if (_client is null)
+        if (_cust is null)
         {
 
         }
         else
         {
-            if (_client.ClientSales == null)
+            if (_cust.ClientSales == null)
             {
-                _client.ClientSales = await pAI.GetClientSalesAsync(_client.FullClientID);
-                await DataTransferService.SetgvSelectedClient(_client);
+                _cust.ClientSales = await pAI.GetClientSalesAsync(_cust.FullClientID);
+                await DataTransferService.SetgvSelectedClient(_cust);
             }
-            if (_client.Ageing01 > 0) { d120 = "myWarning"; } else { d120 = "mySuccess"; }
-            if (_client.Ageing02 > 0 && _client.TermDays < 90) { d90 = "myWarning"; } else { d90 = "mySuccess"; }
-            if (_client.Ageing03 > 0 && _client.TermDays < 60) { d60 = "myWarning"; } else { d60 = "mySuccess"; }
-            if (_client.Ageing04 > 0 && _client.TermDays < 30) { d30 = "myWarning"; } else { d30 = "mySuccess"; }
-            if (_client.Ageing05 > 0 && _client.TermDays < 1) { dCur = "myWarning"; } else { dCur = "mySuccess"; }
-            // WOCount = await CustomerService.GetClientWIPCountAsync("1-COL201");
-            // QuoteCount = await CustomerService.GetClientOpenQuotationCountAsync("1-COL201");
+            stats = await DataTransferService.GetgvSelectedClientStats();
+            if (stats == null || stats.FullClientID != _cust.FullClientID){
+                stats = await pAI.GetClientStatsAsync(_cust.FullClientID);
+                await DataTransferService.SetgvSelectedClientStats(stats);
+            }
+            
+            if (_cust.Ageing01 > 0) { d120 = "myWarning"; accWarning = true; } else { d120 = "mySuccess"; }
+            if (_cust.Ageing02 > 0 && _cust.TermDays < 90) { d90 = "myWarning"; accWarning = true; } else { d90 = "mySuccess"; }
+            if (_cust.Ageing03 > 0 && _cust.TermDays < 60) { d60 = "myWarning"; accWarning = true; } else { d60 = "mySuccess"; }
+            if (_cust.Ageing04 > 0 && _cust.TermDays < 30) { d30 = "myWarning"; accWarning = true; } else { d30 = "mySuccess"; }
+            if (_cust.Ageing05 > 0 && _cust.TermDays < 1) { dCur = "myWarning"; accWarning = true; } else { dCur = "mySuccess"; }
+            
+            _client = _cust;
 
         }
     }

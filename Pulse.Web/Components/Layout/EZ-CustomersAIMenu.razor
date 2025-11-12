@@ -45,7 +45,9 @@
             }
             @if (sState == "IDLE")
             {
-                <button  type="button" style="background-color: #365b66; color: white; height:80%" @onclick="@(e => IsOpen = !IsOpen)"><h3 class="bi bi-robot" /></button>
+                <button type="button" style="background-color: transparent ; color: #365b66; height:80%" @onclick="btnOpenAIMenu"><h3 class="bi bi-robot" /></button>
+
+                
             }
             @if (sState == "BUSY")
             {
@@ -76,50 +78,54 @@
                 <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-mic-fill"></i></ToggleButton>
                 <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@TestSpeech"><i class="bi bi-x-circle-fill"></i></button>
             </div>
-            <div class="d-flex ai-Mnu justify-content-end align-items-stretch flex-column" style="height: 95%;">
-                
-                
-                <Textarea rows="8" style="border : 1px solid black ; width:90%; margin-left:5% ; margin-right:5%;" @bind-Value="txtQ" PlaceHolder="Select Sales or Production and ask a question..." />
-                <Stack IsRow="true" class="justify-content-evenly align-items-center">
-                <button type="button" class="btn btn-success" style="color: black ; border : 1px solid black ; width:35%; margin-top:10px;margin-left:20px;" @onclick="btnAskAIClick">Ask</button>
-                <Toggle Value="@isSales" ValueChanged="togProdSales" OnText="Sales" OffText="Production" Color="BootstrapBlazor.Components.Color.Primary" style="width:35%; margin-top:10px;margin-right:20px;" />
-                 </Stack>
+            <div class="d-flex ai-Mnu justify-content-start align-items-stretch flex-column" style="height: 95%;">
+                <br />
                 <StackItem class="flex-grow-1" >
-                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
-                        <HeaderTemplate>
-                            Roller Analysis
-                        </HeaderTemplate>
-                        <BodyTemplate>
-                            <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse the selected roller."></Textarea>
-                        </BodyTemplate>
-                        <FooterTemplate>
-                            <Button Color="BootstrapBlazor.Components.Color.Dark" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnRollAnalysisClick" Text="Start"></Button>
-                        </FooterTemplate>
-                    </Card>
-                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
-                        <HeaderTemplate>
-                            Sales Analysis
-                        </HeaderTemplate>
-                        <BodyTemplate>
-                            <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse sales history, looking for patterns / trends."></Textarea>
-                        </BodyTemplate>
-                        <FooterTemplate>
-                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnHistoryClick" Text="Start"></Button>
-                        </FooterTemplate>
-                    </Card>
-                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:20px" IsCenter="true">
-                        <HeaderTemplate>
-                            Sales Forecast
-                        </HeaderTemplate>
-                        <BodyTemplate>
-                            <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Generate a 12 month sales forecast for the client."></Textarea>
-                        </BodyTemplate>
-                        <FooterTemplate>
-                            <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnForecastClick" Text="Start"></Button>
-                        </FooterTemplate>
-                    </Card>
+                    @if (AIMode == "RollerSpecification")
+                    {
+                        <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                            <HeaderTemplate>
+                                Roller Analysis
+                            </HeaderTemplate>
+                            <BodyTemplate>
+                                <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse the selected roller."></Textarea>
+                            </BodyTemplate>
+                            <FooterTemplate>
+                                <Button Color="BootstrapBlazor.Components.Color.Dark" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnRollAnalysisClick" Text="Start"></Button>
+                            </FooterTemplate>
+                        </Card>
+                    }else if (AIMode == "ClientSales")
+                    {
+                        <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                            <HeaderTemplate>
+                                Sales Analysis
+                            </HeaderTemplate>
+                            <BodyTemplate>
+                                <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Analyse sales history, looking for patterns / trends."></Textarea>
+                            </BodyTemplate>
+                            <FooterTemplate>
+                                <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnHistoryClick" Text="Start"></Button>
+                            </FooterTemplate>
+                        </Card>
+                        <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:20px" IsCenter="true">
+                            <HeaderTemplate>
+                                Sales Forecast
+                            </HeaderTemplate>
+                            <BodyTemplate>
+                                <Textarea rows="2" style="width:100%; height:100%;" readonly placeholder="Generate a 12 month sales forecast for the client."></Textarea>
+                            </BodyTemplate>
+                            <FooterTemplate>
+                                <Button Color="BootstrapBlazor.Components.Color.Info" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnForecastClick" Text="Start"></Button>
+                            </FooterTemplate>
+                        </Card>
+                    }
                 </StackItem>
-                
+                <br />
+                <Textarea rows="8" style="border : 1px solid black ; width:90%; margin-left:5% ; margin-right:5%;" @bind-Value="txtQ" PlaceHolder="Ask a question..." />
+                <Stack IsRow="true" class="justify-content-evenly align-items-center">
+                    <button type="button" class="btn btn-success" style="color: black ; border : 1px solid black ; width:35%; margin-top:10px;margin-left:20px;" @onclick="btnAskAIClick">Ask</button>
+                    <Toggle Value="@isSales" ValueChanged="togProdSales" OnText="Sales" OffText="Production" Color="BootstrapBlazor.Components.Color.Primary" style="width:35%; margin-top:10px;margin-right:20px;" />
+                </Stack>
                 
             </div>
         </Drawer>
@@ -157,6 +163,7 @@
     private bool isLoading = true;
     private string sState = "LOAD";
     string fileName = string.Empty;
+    private string? AIMode; 
     private bool useSpeechOutput = true;
 
     private async Task SayIt(string text)
@@ -171,6 +178,11 @@
     private async Task TestSpeech()
     {
         SayIt("This is a test to debug voices");
+    }
+    private async Task btnOpenAIMenu()
+    {
+        AIMode = await dataTrf.GetgvAIContextMode();
+        IsOpen = true;
     }
     private async Task OpenResults()
     {

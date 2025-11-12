@@ -25,50 +25,124 @@
         }
         else
         {
-            <FluentLabel Typo="Typography.H5" Style="color:black;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
-            <FluentLabel Typo="Typography.Body" Style="color:black;">Client ID: @cSpec.FullClientID</FluentLabel>
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%" Style="padding: 10px; flex: 0">
+            <FluentLabel Typo="Typography.Body" Style="color:white; width:50%;text-align:start;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Style="color:white; width:50%;text-align:end;">@cSpec.Description</FluentLabel>
+            </FluentStack>
             @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; overflow-y: auto; height:40%;">
-                @if(cSpec.ClientRollers != null)
-                {
-                    <br />
-                    <FluentDataGrid Style="background-color: white ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
-                        <PropertyColumn Property="@(r => r.ClientRollerNumber)" Title="Roll No" />
-                        <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
-                        <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
-                        <PropertyColumn Property="@(r => r.ShellWeight)" Title="Shell Weight" />
-                        <PropertyColumn Property="@(r => r.ShellDefects)" Title="Shell Defects" />
-                        <PropertyColumn Property="@(r => r.IsActive)" Title="Active" />
-                    </FluentDataGrid>
-                }
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; flex: 1; overflow-y: auto; height:100%;">
+               @*  <Tab IsCard="true" ShowClose="true" TabStyle="TabStyle.Capsule" style="Height:100% ; width:100% ;" AllowDrag="true" ShowToolbar="true">
+                    <TabItem Text="Details" Icon="fa-solid fa-user">
+                        <div>I am a user manager</div>
+                    </TabItem>
+                    <TabItem Text="Roll Numbers" Icon="fa-solid fa-gauge-high">
+                        @if (cSpec.ClientRollers != null)
+                        {
+                            <br />
+                            <FluentDataGrid Style="background-color: white ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
+                                <PropertyColumn Property="@(r => r.ClientRollerNumber)" Title="Roll No" />
+                                <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
+                                <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
+                                <PropertyColumn Property="@(r => r.ShellWeight)" Title="Shell Weight" />
+                                <PropertyColumn Property="@(r => r.ShellDefects)" Title="Shell Defects" />
+                                <PropertyColumn Property="@(r => r.IsActive)" Title="Active" />
+                            </FluentDataGrid>
+                        }
+                    </TabItem>
+                    <TabItem Text="Work Order History" Icon="fa-solid fa-sitemap">
+                        @if (cSpec.WorksOrders != null)
+                        {
+                            <FluentDataGrid Style="background-color: white ; width: 100%;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
+                                <TemplateColumn Title="Period">
+                                    @context.Period.Month - @context.Period.CalendarYear
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(r => r.WorksOrderNo)" Title="WO No" />
+                                <PropertyColumn Property="@(r => r.WorkType.WorkTypeName)" Title="Work Type" />
+                                <PropertyColumn Property="@(r => r.ClientRollNo)" Title="Roll No" />
+                                <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
+                                <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
+                                <TemplateColumn Title="Cover">
+                                    @if (context.Compound != null)
+                                    {
+                                        @context.Compound.CompoundDescription
+                                    }
+                                    else
+                                    {
+                                        <span style="color: #999;">—</span>
+                                    }
+                                </TemplateColumn>
+                                <PropertyColumn Property="@(r => r.CoverDiameter)" Title="Cover Diameter" />
+                            </FluentDataGrid>
+                        }
+                    </TabItem>
+                    <TabItem Text="Attachments " Icon="fa-solid fa-building-columns">
+                        <div>I am department management</div>
+                    </TabItem>
+                </Tab> *@
+               <Collapse IsAccordion="false" style="width:100%; height:100%; border-radius:10px;">
+                    <CollapseItems>
+                        <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="false">
+                            <div>Consistent with real life: consistent with real-life processes, logic, follow the user's habits of language and concepts;</div>
+                            <div>Consistent in the interface: All elements and structures need to be consistent, such as design styles, icons and text, the location of elements, and so on.</div>
+                            <div style="flex 1"><Empty /></div>
+                        </CollapseItem>
+                        <CollapseItem Text="Roll Numbers" Icon="bi bi-disc-fill" IsCollapsed="false">
+                            
+                            <div style="flex 1">
+                                @if (cSpec.ClientRollers != null)
+                                {
+                                    <FluentDataGrid Style="background-color: white ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
+                                        <PropertyColumn Property="@(r => r.ClientRollerNumber)" Title="Roll No" />
+                                        <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
+                                        <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
+                                        <PropertyColumn Property="@(r => r.ShellWeight)" Title="Shell Weight" />
+                                        <PropertyColumn Property="@(r => r.ShellDefects)" Title="Shell Defects" />
+                                        <PropertyColumn Property="@(r => r.IsActive)" Title="Active" />
+                                    </FluentDataGrid>
+                                }
+                            </div>
+                        </CollapseItem>
+                        <CollapseItem Text="Work Order History" Icon="bi bi-files">
+                            
+                            <div style="flex 1">
+                                @if (cSpec.WorksOrders != null)
+                                {
+                                    <FluentDataGrid Style="background-color: white ; width: 100%;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
+                                        <TemplateColumn Title="Period">
+                                            @context.Period.Month - @context.Period.CalendarYear
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(r => r.WorksOrderNo)" Title="WO No" />
+                                        <PropertyColumn Property="@(r => r.WorkType.WorkTypeName)" Title="Work Type" />
+                                        <PropertyColumn Property="@(r => r.ClientRollNo)" Title="Roll No" />
+                                        <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
+                                        <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
+                                        <TemplateColumn Title="Cover">
+                                            @if (context.Compound != null)
+                                            {
+                                                @context.Compound.CompoundDescription
+                                            }
+                                            else
+                                            {
+                                                <span style="color: #999;">—</span>
+                                            }
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(r => r.CoverDiameter)" Title="Cover Diameter" />
+                                    </FluentDataGrid>
+                                }
+                            </div>
+                        </CollapseItem>
+                        <CollapseItem Text="Attachments" Icon="bi bi-paperclip">
+                            <div>User decision-making: according to the scene can give the user action advice or security tips, but can not replace the user to make decisions;</div>
+                            <div>Results controllable: Users are free to perform actions, including undoing, falling back, and terminating the current operation.</div>
+                        </CollapseItem>
+                        <div style="flex 1"><Empty /></div>
+                    </CollapseItems>
+                </Collapse>
+                
             </FluentStack>
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; overflow-y: auto; height:40%;">
-                @if (cSpec.WorksOrders != null)
-                {
-                    <br /> 
-                    <FluentDataGrid Style="background-color: white ; width: 100%;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
-                        <TemplateColumn Title="Period">
-                            @context.Period.Month - @context.Period.CalendarYear
-                        </TemplateColumn>
-                        <PropertyColumn Property="@(r => r.WorksOrderNo)" Title="WO No" />
-                        <PropertyColumn Property="@(r => r.WorkType.WorkTypeName)" Title="Work Type" />
-                        <PropertyColumn Property="@(r => r.ClientRollNo)" Title="Roll No" />
-                        <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
-                        <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
-                        <TemplateColumn Title="Cover">
-                            @if (context.Compound != null)
-                            {
-                                @context.Compound.CompoundDescription
-                            }
-                            else
-                            {
-                                <span style="color: #999;">—</span>
-                            }
-                        </TemplateColumn>
-                        <PropertyColumn Property="@(r => r.CoverDiameter)" Title="Cover Diameter" />
-                    </FluentDataGrid>
-                }
-            </FluentStack>
+            @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; overflow-y: auto; height:40%;">
+                
+            </FluentStack> *@
         }
     </FluentStack>
 </FluentLayout>
@@ -88,6 +162,7 @@
 
     private async Task GetSpecInfo()
     {
+        await dtf.SetgvAIContextMode("RollerSpecification");
         ClientRollerSpecification tmpSpec = await dtf.GetgvSelectedRollSpec();
         if(tmpSpec.ClientRollers == null)
         {

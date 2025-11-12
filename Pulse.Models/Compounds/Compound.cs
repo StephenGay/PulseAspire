@@ -69,6 +69,8 @@ namespace Pulse.Models.Compounds
         [Required]
         [MaxLength(255)]
         public string RevisionReason { get; set; }
+        [DefaultValue(1)]
+        public decimal CompoundDifficultyMultiplier { get; set; } = 1;
         public DateTime? DateCostUpdated { get; set; }
         public CompoundRange? CompoundRange { get; set; }
         public ICollection<IndustryRecommendedCover>? IndustryRecommendedCovers { get; set; } = new HashSet<IndustryRecommendedCover>();

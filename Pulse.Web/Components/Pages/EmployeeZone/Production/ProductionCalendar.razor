@@ -1,0 +1,70 @@
+﻿@page "/EmployeeZone/Production/ProductionCalendar"
+@using Pulse.Models.CustomComponents
+@using Pulse.Models.Organizational
+@using Pulse.Web.Services
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject PulseApiService pApi
+@inject DataTransferService dt
+
+@rendermode InteractiveServer
+
+<FluentCard Style="width:100% ; height:100%">
+    <FluentStack Orientation="Orientation.Vertical" Style="flex: 0">
+    <h3>WIP Calendar – Division @DivisionId</h3>
+    </FluentStack>
+    <FluentStack Orientation="Orientation.Vertical" Style="height:100%;flex: 1;overflow-y : hidden;">
+    @* @if (events == null)
+    {
+        <FluentProgressRing />
+    }
+    else
+    { *@
+        <div id='calendar' style="flex: 1 1; width:100%;"></div>
+        @* <FullCalendar Events="events"
+                      DateClicked="HandleDateClick"
+                      EventClicked="HandleEventClick" /> *@
+    @* } *@
+    </FluentStack>
+</FluentCard>
+
+@code {
+    public string? DivisionId; 
+    private List<CalendarEvent>? events;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Division x = await dt.GetgvSelectedDivision();
+            DivisionId = x.DivisionID;
+
+            events = await pApi.GetAsync<List<CalendarEvent>>(
+                      $"/Divisions/{DivisionId}/GetWIP/Planning");
+            // var events = new[]
+            // {
+            //     new { title = "Meeting", start = DateTime.Now },
+            //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
+            // };
+            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events);
+        }
+    }
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     events = await pApi.GetAsync<List<CalendarEvent>>(
+    //                  $"/Divisions/{DivisionId}/GetWIP/Planning");
+    // }
+
+    private Task HandleDateClick(string isoDate)
+    {
+        // e.g. open a dialog to create a new order on that date
+        return Task.CompletedTask;
+    }
+
+    private Task HandleEventClick(string eventId)
+    {
+        // navigate to order detail page
+        Navigation.NavigateTo($"/worksorder/{eventId}");
+        return Task.CompletedTask;
+    }
+}

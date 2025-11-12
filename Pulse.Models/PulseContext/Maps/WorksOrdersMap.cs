@@ -129,8 +129,11 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(wo => wo.ClientRoller)
                    .WithMany(cr => cr.WorksOrders)
                    .HasForeignKey(wo => wo.ClientRollerID);
-                   //.OnDelete(DeleteBehavior.SetNull)
-                   //.HasConstraintName("FK_WorksOrder_ClientRoller");
+            //.OnDelete(DeleteBehavior.SetNull)
+            //.HasConstraintName("FK_WorksOrder_ClientRoller");
+            builder.HasOne(wo => wo.ProductionStage)
+                 .WithMany()
+                 .HasForeignKey(wo => wo.ProductionStageID);
 
          
                    //.OnDelete(DeleteBehavior.SetNull)

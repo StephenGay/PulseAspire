@@ -1,0 +1,66 @@
+﻿@page "/EmployeeZone/Production/WorkInProgress"
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using System.Net.Http.Json
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Web.Services
+@* @inject HttpClient Http *@
+@inject PulseApiService pApiClient
+@inject DataTransferService dataTrf
+@inject IJSRuntime JS // For alerts or advanced JS interop
+@rendermode InteractiveServer
+<FluentHeader>Work In Progress for Division @Division.DivisionName</FluentHeader>
+
+@if (wipItems is null)
+{
+    <FluentProgressRing />
+}
+else if (!wipItems.Any())
+{
+    <FluentMessageBar Severity="MessageSeverity.Info">No WIP items found.</FluentMessageBar>
+}
+else
+{
+    <FluentStack Orientation="Orientation.Vertical" Style="background-color:white; border:1px solid black; border-radius:10px;margin:10px;padding:10px;" >
+        <FluentDataGrid Items="@wipItemsQueryable" TGridItem="WorkInProgressDto" GenerateHeader="GenerateHeaderOption.Sticky" ResizableColumns="true" Pagination="@pagination" AutoFit="true">
+            <PropertyColumn Property="@(c => c.WorksOrderNo)" Sortable="true" Title="Order No" />
+            <PropertyColumn Property="@(c => c.WorkTypeName)" Sortable="true" Title="Work Type" />
+            <PropertyColumn Property="@(c => c.ClientName)" Sortable="true" Title="Client" />
+            <PropertyColumn Property="@(c => c.Description)" Title="Description" />
+            <PropertyColumn Property="@(c => c.UndelQty)" Sortable="true" Title="Qty" />
+            <PropertyColumn Property="@(c => c.MaterialCost)" Sortable="true" Title="Cost" Format="C2" /> <!-- Currency format -->
+            <PropertyColumn Property="@(c => c.SellPrice)" Sortable="true" Title="Sell Price" Format="C2" />
+            <PropertyColumn Property="@(c => c.ProductionStageName)" Sortable="true" Title="Stage" />
+            <PropertyColumn Property="@(c => c.RequiredDate)" Sortable="true" Title="Required" Format="dd/MM/yy" />
+            <PropertyColumn Property="@(c => c.WorkCentreName)" Sortable="true" Title="Work Centre" />
+            <PropertyColumn Property="@(c => c.DateStarted)" Sortable="true" Title="Started" Format="dd/MM/yy" />
+            
+            <!-- Add more columns as needed; omit if not displayed -->
+        </FluentDataGrid>
+        <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%" />
+    </FluentStack>
+}
+
+@code {
+    public Division? Division;
+    private List<WorkInProgressDto>? wipItems;
+    private IQueryable<WorkInProgressDto>? wipItemsQueryable;
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Division = await dataTrf.GetgvSelectedDivision();
+            wipItems = await pApiClient.GetAsync<List<WorkInProgressDto>>($"/Divisions/{Division.DivisionID}/GetWIP");
+            await dataTrf.SetgvSelectedDivisionWIP(wipItems);
+            wipItemsQueryable = wipItems?.AsQueryable();
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("alert", $"Error loading WIP: {ex.Message}");
+        }
+    }
+
+    
+}

@@ -68,6 +68,8 @@ namespace Pulse.Models.Customers
         public decimal? CoverLeftOffset { get; set; } = 0;
         [DefaultValue(0)]
         public decimal? CoverMinimumDiameter { get; set; } = 0;
+        [DefaultValue(1)]
+        public decimal AdditionalRollDifficultyMultiplier { get; set; } = 1;
         [DefaultValue(true)]
         public bool IsActive { get; set; } = true;
 

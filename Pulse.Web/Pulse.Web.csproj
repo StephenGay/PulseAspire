@@ -11,6 +11,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Components\Layout\NavMenu.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Components\Layout\NavMenu.razor.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Components\Pages\EmployeeZone\Customers\AI Insights\CustomerSearch.razor" />
   </ItemGroup>
 
@@ -23,6 +33,7 @@
     <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="9.5.2" />
     <PackageReference Include="BlazorAnimation" Version="2.2.0" />
     <PackageReference Include="BootstrapBlazor" Version="9.11.4" />
+    <PackageReference Include="BootstrapBlazor.Chart" Version="9.0.4" />
     <PackageReference Include="BootstrapBlazor.FontAwesome" Version="9.1.2" />
     <PackageReference Include="Markdig" Version="0.43.0" />
     <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="9.0.10" />
@@ -40,6 +51,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Components\Layout\EZ_AI_Menu.razor.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Components\Layout\EZ-CustomersAIMenu.razor.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -48,6 +62,9 @@
     </None>
     <None Update="Components\Pages\EmployeeZone\Customers\ClientSales.razor.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Components\Pages\EmployeeZone\Production\WorkInProgress.razor.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

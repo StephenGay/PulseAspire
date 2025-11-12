@@ -1,0 +1,34 @@
+﻿@using Pulse.Models.Organizational
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@inject DataTransferService dtrf
+
+<Logout ImageUrl="Images/Defaults/DefaultProfile.png" DisplayName="@user.UserName" UserName="@division.DivisionName" class="bg-primary">
+    <LinkTemplate>
+        <a href="#">
+            <i class="fa-solid fa-user"></i><span>Dashboard</span>
+        </a>
+        <a href="#">
+            <i class="fa-solid fa-gear"></i><span>Preferences</span>
+        </a>
+        <a href="/DivisionLogon">
+            <i class="fa-solid fa-gear"></i><span>Change Division</span>
+        </a>
+        <LogoutLink Url="/logouts" />
+    </LinkTemplate>
+</Logout>
+<div style="height: 3.5rem;"></div>
+
+@code {
+
+    private User? user;
+    private Division? division;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+
+        user = await dtrf.GetgvUser();
+        division = await dtrf.GetgvSelectedDivision();
+    }
+}

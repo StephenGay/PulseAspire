@@ -832,6 +832,36 @@ namespace Pulse.Web.Services
             }
         }
 
+        public async Task<ClientCurrentStats> GetClientStatsAsync(string fullclientID, CancellationToken ct = default)
+        {
+            ClientCurrentStats fallback = new();
+
+            try
+            {
+                // Example endpoint call - Adjust to your actual API (e.g., /api/sales/{clientID})
+                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(fullclientID)}/CurrentStats", ct);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync(ct);
+                    _logger.LogError("API request failed: Status {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
+                    return fallback;
+                }
+
+                var json = await response.Content.ReadAsStringAsync(ct);
+                var stats = JsonSerializer.Deserialize<ClientCurrentStats>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (stats == null)
+                {
+                    return fallback;
+                }
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetClientStatsAsync.");
+                return fallback;
+            }
+        }
         public async Task<List<ClientRollerSpecification>> GetClientRollerSpecificationsAsync(string clientID, CancellationToken ct = default)
         {
             List<ClientRollerSpecification> fallback = new();

@@ -10,6 +10,7 @@ window.cleanupMenuButton = function (id) {
         // Remove event listeners or cleanup
     }
 };
+
 function downloadHTMLFile(filename, content) {
     const blob = new Blob([content], { type: "text/html" });
     const link = document.createElement("a");
