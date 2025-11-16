@@ -387,6 +387,7 @@
 
     private async Task ProcessRequest(string prompt)
     {
+        IsOpen = false;
         try
         {
             sState="BUSY";
@@ -396,7 +397,7 @@
 
 
 
-            IsOpen = false;
+            
 
 
             _Analysis = await pAI.AskPulseAIAsync(prompt, aiModel);
@@ -440,7 +441,7 @@
         if (useSpeechOutput)
         {
             await SayIt(tContent);
-            return;
+            
         }
             var cat = tType switch
         {

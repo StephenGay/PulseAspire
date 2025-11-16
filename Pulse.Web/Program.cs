@@ -1,17 +1,17 @@
 using BlazorAnimation;
-using Microsoft.FluentUI.AspNetCore.Components;
-
-using Polly;
-using Polly.Extensions.Http;
-using Polly.Timeout;
-using Microsoft.Extensions.Options;
-
-using Pulse.Web.Services;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Pulse.Web.Tools;
+using Microsoft.Extensions.Options;
+using Microsoft.FluentUI.AspNetCore.Components;
+using Microsoft.Identity.Web;
+using Polly;
+using Polly.Extensions.Http;
+using Polly.Timeout;
 using Pulse.Models.CustomComponents;
+using Pulse.Web.Services;
+using Pulse.Web.Tools;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -42,6 +42,14 @@ IAsyncPolicy<HttpResponseMessage> timeoutPolicy = isDevelopment
 builder.AddServiceDefaults();
 builder.AddRedisOutputCache("cache");
 
+var initialScopes = builder.Configuration.GetValue<string>("DownstreamApi:Scopes")?.Split(' ') ?? [];  // Dynamically load scopes from config
+builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))
+    .EnableTokenAcquisitionToCallDownstreamApi(initialScopes)
+    .AddDownstreamApi("Pulse.Web", builder.Configuration.GetSection("DownstreamApi"))
+    .AddDistributedTokenCaches();  // Use Redis/SQL for production
+
+builder.Services.AddDistributedMemoryCache();  // For token cache in dev
 builder.Services.AddBootstrapBlazor(options =>
 {
     options.ToastDelay = 8000;
@@ -124,6 +132,9 @@ builder.Services.Configure<AnimationOptions>(Guid.NewGuid().ToString(), c => { }
 //        // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
 //        client.BaseAddress = new("https+http://apiservice");
 //    });
+builder.Services.AddAuthorization();
+
+builder.Services.AddCascadingAuthenticationState();
 
 var app = builder.Build();
 
@@ -141,7 +152,8 @@ app.UseHttpsRedirection();
 app.UseAntiforgery();
 
 app.UseOutputCache();
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.MapStaticAssets();
 
 app.MapRazorComponents<Pulse.Web.Components.App>()

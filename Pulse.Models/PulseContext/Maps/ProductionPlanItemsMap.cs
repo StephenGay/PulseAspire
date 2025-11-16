@@ -65,12 +65,16 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasDefaultValue(false)
                 .IsRequired();
 
-            // If there are relationships (e.g., to WorkOrder, Division, ProductionStage, User), add them here.
+            //If there are relationships(e.g., to WorkOrder, Division, ProductionStage, User), add them here.
             // For example:
-            // builder.HasOne(p => p.WorkOrder)
-            //     .WithMany(w => w.ProductionPlanItems)
-            //     .HasForeignKey(p => p.WorkOrderNo)
+            builder.HasOne(p => p.WorksOrder)
+                .WithMany()
+                .HasForeignKey(p => p.WorkOrderNo);
             //     .OnDelete(DeleteBehavior.Cascade); // Adjust as needed
+
+            builder.HasOne(p => p.ProductionStage)
+                .WithMany()
+                .HasForeignKey(p => p.ProductionStageID);
         }
     }
 }

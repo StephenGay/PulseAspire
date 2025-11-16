@@ -67,6 +67,6 @@
     private async Task OnWTPSClick(ProductionStage p)
     {
 
-        //Navigation.NavigateTo($"/Production/ProductionStages?WorkTypeID={w.WorkTypeID}");
+        Navigation.NavigateTo($"/Production/ProductionStageEquipment?ProductionStageID={p.ProductionStageId}");
     }
 }

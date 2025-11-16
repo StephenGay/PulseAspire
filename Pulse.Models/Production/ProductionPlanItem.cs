@@ -32,5 +32,8 @@ namespace Pulse.Models.Production
         [Required]
         [DefaultValue(false)]
         public bool IsPulsePlan { get; set; } = false;
-    }
+
+        public WorksOrder? WorksOrder { get; set; }
+        public ProductionStage? ProductionStage { get; set; }
+        }
 }

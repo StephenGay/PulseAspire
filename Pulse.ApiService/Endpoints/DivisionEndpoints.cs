@@ -50,6 +50,16 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetWorkTypeProdStagesByDiv")
                 .Produces<List<ProductionStage>>(StatusCodes.Status200OK);
 
+            group.MapGet("/GetProductionStageEquipment/{productionStageId}", async (int productionStageId, PulseDbContext db) =>
+                await db.EquipmentCapabilities
+                .AsNoTracking()
+                .Where(w => w.ProductionStageID == productionStageId)
+                .Include(e => e.EquipmentItem)
+                    .ThenInclude(i => i.EquipmentCategory!) 
+                .ToListAsync())
+                .WithName("GetProdStageEquipment")
+                .Produces<List<EquipmentCapability>>(StatusCodes.Status200OK);
+
             group.MapGet(ByDivIdPath + "/GetWIP", async (string divisionId, PulseDbContext db) =>
             {
                 try
@@ -122,6 +132,155 @@ namespace Pulse.ApiService.Endpoints
             .WithName("GetWipPlan")
             .WithOpenApi();
 
+            group.MapGet(ByDivIdPath + "/GetWIP/PlanItems", async (string divisionId, PulseDbContext db) =>
+            {
+
+                var items = await db.ProductionPlanItems
+                    .Where(p => p.DivisionID == divisionId && p.Status == "Planned")
+                    .Include(wo => wo.WorksOrder)
+                        .ThenInclude(c => c.Customer)
+
+                    .Select(p => new ProductionPlanEvent
+                    {
+                        Id = p.ProductionPlanItemID,
+                        ResourceId = p.EquipmentItemID,
+                        Title = p.WorkOrderNo.ToString(),
+                        Start = p.PlannedStartTime,
+                        End = p.PlannedEndTime,
+                        BackgroundColor = "#c3e6cb",
+                        ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
+                        Description = p.WorksOrder != null ? p.WorksOrder.Description : null
+                    })
+                    .ToListAsync();
+
+
+                //const string sql = @"
+                //    SELECT  ProductionPlanItemID      AS Id,
+                //            EquipmentItemID AS ResourceId,
+                //            WorkOrderNo AS Title,
+                //            PlannedStartTime       AS Start,
+                //            PlannedEndTime      AS [End],
+                //            '#c3e6cb' AS BackgroundColor
+                //    FROM    dbo.ProductionPlanItems
+                //    WHERE   DivisionID = @divisionId
+                //      AND   Status = 'Planned'";
+
+                //var param = new SqlParameter("@divisionId", divisionId);
+
+                //var events = await db.Database
+                //    .SqlQueryRaw<ProductionPlanEvent>(sql, param)
+                //    .ToListAsync();
+
+                return Results.Ok(items);
+            })
+            .WithName("GetWipPlannedItems")
+            .WithOpenApi();
+
+            group.MapGet(ByDivIdPath + "/GetWIP/UnPlannedItems", async (string divisionId, PulseDbContext db) =>
+            {
+                var items = await db.ProductionPlanItems
+                    .Where(p => p.DivisionID == divisionId && p.Status == "Unplanned")
+                    .Include(wo => wo.WorksOrder)
+                        .ThenInclude(c => c.Customer)
+
+                    .Select(p => new ProductionUnPlannedEvent
+                    {
+                        Id = p.ProductionPlanItemID,
+                        //ResourceId = p.EquipmentItemID,
+                        Title = p.WorkOrderNo.ToString(),
+                        //Start = p.PlannedStartTime,
+                        //End = p.PlannedEndTime,
+                        BackgroundColor = "#c3e6cb",
+                        ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
+                        Description = p.WorksOrder != null ? p.WorksOrder.Description : null,
+                        Stage = p.ProductionStage.ProductionStageName
+                    })
+                    .ToListAsync();
+
+                //const string sql = @"
+                //    SELECT  ProductionPlanItemID      AS Id,
+                //            CONCAT('WO No: ', WorkOrderNo) AS Title,
+                //            '#c3e6cb' AS BackgroundColor
+                //    FROM    dbo.ProductionPlanItems
+                //    WHERE   DivisionID = @divisionId
+                //      AND   Status = 'Unplanned'";
+
+                //var param = new SqlParameter("@divisionId", divisionId);
+
+                //var events = await db.Database
+                //    .SqlQueryRaw<ProductionUnPlannedEvent>(sql, param)
+                //    .ToListAsync();
+
+                return Results.Ok(items);
+            })
+            .WithName("GetWipUnPlannedItems")
+            .WithOpenApi();
+
+            group.MapGet(ByDivIdPath + "/GetPlanningEquipment", async (string divisionId, PulseDbContext db) =>
+            {
+                const string sql = @"
+                    SELECT  EquipmentItemID      AS Id,
+                            EquipmentItemDescription AS Title
+                    FROM    dbo.EquipmentItems
+                    WHERE   DivisionID = @divisionId
+                      AND   IsActive=1";
+
+                var param = new SqlParameter("@divisionId", divisionId);
+
+                var resources = await db.Database
+                    .SqlQueryRaw<ProductionPlanResource>(sql, param)
+                    .ToListAsync();
+
+                return Results.Ok(resources);
+            })
+            .WithName("GetWipPlanEquip")
+            .WithOpenApi();
+
+            group.MapGet("/WIP/GetPlanItem/{itemID}", async (int itemID, PulseDbContext db) =>
+            {
+                var item = await db.ProductionPlanItems
+                    .Where(p => p.ProductionPlanItemID == itemID)
+                    .Include(wo => wo.WorksOrder)
+                        .ThenInclude(c => c.Customer)
+                    .Select(p => new ProductionPlanEvent
+                    {
+                        Id = p.ProductionPlanItemID,
+                        ResourceId = p.EquipmentItemID,
+                        Title = p.WorkOrderNo.ToString(),
+                        Start = p.PlannedStartTime,
+                        End = p.PlannedEndTime,
+                        BackgroundColor = "#c3e6cb",
+                        ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
+                        Description = p.WorksOrder != null ? p.WorksOrder.Description : null
+                    })
+                    .FirstOrDefaultAsync();
+                if (item == null)
+                {
+                    return Results.NotFound($"No Plan Item found with ID {itemID}");
+                }
+                return Results.Ok(item);
+            })
+            .WithName("GetWipPlanItemById")
+            .WithOpenApi();
+
+            group.MapPut("/WIP/UpdateProductionPlanItem/{id}", async (int id, ProductionPlanItem updatedItem, PulseDbContext db) =>
+            {
+                var item = await db.ProductionPlanItems
+                    .FirstOrDefaultAsync(p => p.ProductionPlanItemID == id);
+                if (item == null)
+                {
+                    return Results.NotFound($"No Plan Item found with ID {id}");
+                }
+                item.EquipmentItemID = updatedItem.EquipmentItemID;
+                item.PlannedStartTime = updatedItem.PlannedStartTime;
+                item.PlannedEndTime = updatedItem.PlannedEndTime;
+                item.Status = "Planned";
+                await db.SaveChangesAsync();
+                return Results.Ok(updatedItem);
+            })
+                .WithName("UpdateWIPPlanItem")
+                .WithOpenApi();
         }
+                
     }
 }

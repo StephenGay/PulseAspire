@@ -68,6 +68,7 @@ namespace Pulse.ApiService.Endpoints
                 var qRes = await f.ExecuteAiUpdateInsertQry(sdb, sqlS2);
                 return Results.Ok(qRes);
             })
+                .RequireAuthorization("AdminOnly")
                 .Produces<int>(200)
                 ;
 

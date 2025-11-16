@@ -1,5 +1,6 @@
 ﻿using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
+using Pulse.Models.Production;
 using Pulse.Models.Users;
 using System.Data;
 using System.Text;
@@ -241,6 +242,15 @@ namespace Pulse.Web.Services
             return null;
         }
 
+        public async Task<ProductionPlanItem> UpdatePlanItem(ProductionPlanItem pI) 
+        {
+            var response = await _httpClient.PutAsJsonAsync($"/Divisions/WIP/UpdateProductionPlanItem/{pI.ProductionPlanItemID}", pI);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<ProductionPlanItem>();
+            }
+            return null;
+        }
         public async Task<bool> RecordQueryVote(int qID, string Vote)
         {
             var response = await _httpClient.PutAsJsonAsync($"/AI/savedqueries/vote/{qID}/{Vote}", Vote);

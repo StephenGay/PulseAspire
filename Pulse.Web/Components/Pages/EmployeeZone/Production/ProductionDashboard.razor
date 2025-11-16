@@ -1,6 +1,58 @@
 ﻿@page "/EmployeeZone/Production/ProductionDashboard"
-<h3>ProductionDashboard</h3>
+@using Azure
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Identity.Abstractions
+@using static MappingExtensions
+ @inject IDownstreamApi DownstreamApi
+ @rendermode InteractiveServer
 
+
+<div style="margin-top:150px;margin-left:150px">
+    @if (start)
+    {
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2)">
+        <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button Size="Size.ExtraLarge" OnClick="() => start=false" Color="BootstrapBlazor.Components.Color.Success">Start</Button></div>
+        </Animation>
+    }
+    else if (ti)
+    {
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+        <FluentStack Orientation="Orientation.Vertical" >
+        <FlipClock ViewMode="FlipClockViewMode.Count" ></FlipClock>
+            
+            <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button Size="Size.ExtraLarge" style="margin-top:20px;" OnClick="() => ti = false" Color="BootstrapBlazor.Components.Color.Danger">Stop</Button></div>
+        </FluentStack>
+        </Animation>
+    }
+    else
+    {
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+        <h1 class="display-1" style="color:white">Good Job!!!</h1>
+        </Animation>    
+        <Animation Effect="@Effect.FadeInRightBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2.5)">
+        <h1 class="display-1" style="color:white">Happy Now?</h1>
+        </Animation>
+    }
+    
+</div>
+@* <AuthorizeView Roles="admin">
+    <Authorized>
+        <FluentButton>Admin Action</FluentButton>
+    </Authorized>
+    <NotAuthorized>
+        <FluentMessageBar>Access Denied</FluentMessageBar>
+    </NotAuthorized>
+</AuthorizeView> *@
 @code {
+    private bool start = true;
+    private bool stop = false;
+    private bool ti = true;
+
+    // private async Task CallApi()
+    // {
+    //     var response = await DownstreamApi.PostForUserAsync<MyResponse>("MyApi", "/api/query", new NaturalLanguageQuery ("Show all users"));
+    //     // Process response (e.g., display in FluentDataGrid)
+    // }
+
 
 }

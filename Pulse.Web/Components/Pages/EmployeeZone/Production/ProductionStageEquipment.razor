@@ -1,0 +1,73 @@
+﻿@page "/Production/ProductionStageEquipment"
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using Pulse.Web.Components.Layout
+@using Pulse.Web.Services
+@inject Pulse.Web.Services.PulseApiService pApiClient
+@inject DataTransferService dTrf
+@inject NavigationManager Navigation
+
+@rendermode InteractiveServer
+
+<div class="div-center-screen" style="align-items:center">
+    <ListView TItem="EquipmentCapability" Items="@_allPSEquip" style="align-items:center; width:100%" OnListViewItemClick="OnPSEClick">
+        <HeaderTemplate>
+            <div style="color:white">PRODUCTION STAGE CAPABLE EQUIPMENT</div>
+        </HeaderTemplate>
+        <BodyTemplate>
+            <Card IsShadow="true">
+                <HeaderTemplate>
+                    <FluentLabel Typo="Typography.H6" style="color:white"><strong>EQUIPMENT ID @context.EquipmentItemID</strong></FluentLabel>
+                </HeaderTemplate>
+                <BodyTemplate>
+                    <br />
+                    @if(context.EquipmentItem.EquipmentCategory != null)
+                    {
+                        <FluentLabel Typo="Typography.Body">Category: @context.EquipmentItem.EquipmentCategory.EquipmentCategoryName</FluentLabel>
+                    }
+                    else
+                    {
+                        <FluentLabel Typo="Typography.Body">Category: Unassigned</FluentLabel>
+                    }
+                    <FluentLabel Typo="Typography.Body">Description: @context.EquipmentItem.EquipmentItemDescription</FluentLabel>
+                    <br />
+                </BodyTemplate>
+                <FooterTemplate>
+                    @* <Button OnClick="@btnWorkCentreClick" Color="BootstrapBlazor.Components.Color.Info">Work Centre</Button>
+                    <Button OnClick="@btnEquipClick" Color="BootstrapBlazor.Components.Color.Info">Equipment</Button> *@
+                </FooterTemplate>
+            </Card>
+        </BodyTemplate>
+        <FooterTemplate>
+            @* <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button OnClick="@ButtonClick" Color="BootstrapBlazor.Components.Color.Info">Information</Button></div> *@
+        </FooterTemplate>
+    </ListView>
+</div>
+
+
+@code {
+    [Parameter][SupplyParameterFromQuery(Name = "ProductionStageID")] public int? psID { get; set; }
+    List<EquipmentCapability>? _allPSEquip;
+    Division? d;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // d = await dTrf.GetgvSelectedDivision();
+        _allPSEquip = await pApiClient.GetAsync<List<EquipmentCapability>>($"/Divisions/GetProductionStageEquipment/{psID}");
+    }
+    private async Task btnWorkCentreClick()
+    {
+        // Navigation.NavigateTo($"/Production/ProductionStages/{w.WorkTypeID}");
+    }
+    private async Task btnEquipClick()
+    {
+
+        //Navigation.NavigateTo($"/Production/ProductionStages/{w.WorkTypeID}");
+
+    }
+    private async Task OnPSEClick(EquipmentCapability e)
+    {
+
+        //Navigation.NavigateTo($"/Production/ProductionStages?WorkTypeID={w.WorkTypeID}");
+    }
+}

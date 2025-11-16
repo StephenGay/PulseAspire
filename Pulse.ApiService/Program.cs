@@ -1,6 +1,7 @@
 
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
 using Pulse.Models.PulseContext;
@@ -16,6 +17,14 @@ builder.Services.AddProblemDetails();
 builder.Services.AddDbContext<PulseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("PulseDbConn"),b => b.MigrationsAssembly("Pulse.ApiService")));
 
+builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
+    options.AddPolicy("UserAccess", policy => policy.RequireRole("user", "admin"));  // Allow user or admin
+});
+
 builder.Services.AddEndpointsApiExplorer(); // If using Swagger/OpenAPI
 builder.Services.Configure<JsonOptions>(options =>
 {
@@ -28,6 +37,7 @@ builder.Services.Configure<JsonOptions>(options =>
 builder.Services.AddOpenApi();
 
 
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -37,6 +47,9 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapDefaultEndpoints();
 app.MapCustomerEndpoints();

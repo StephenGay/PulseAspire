@@ -9,18 +9,54 @@
 
 @rendermode InteractiveServer
 
+<style>
+    #external-events {
+        padding: 10px;
+        /* width: 150px; */
+        height: auto;
+        max-height: 600px;
+        overflow: auto;
+        border: 1px solid #ccc;
+        background: #eee;
+        text-align: left;
+    }
+    #external-events .fc-event {
+        margin: 10px 0;
+        cursor: pointer;
+        padding: 4px;
+        background-color: #3788d8;
+        color: white;
+        border-radius: 3px;
+        }
+</style>
+
 <FluentCard Style="width:100% ; height:100%">
     <FluentStack Orientation="Orientation.Vertical" Style="flex: 0">
     <h3>WIP Calendar – Division @DivisionId</h3>
     </FluentStack>
-    <FluentStack Orientation="Orientation.Vertical" Style="height:100%;flex: 1;overflow-y : hidden;">
+    @* <FluentStack Orientation="Orientation.Vertical" Style="height:100%;flex: 1;overflow-y : scroll;"> *@
+    <FluentStack Orientation="Orientation.Horizontal" Style="height:100%;flex: 1;overflow-y : scroll;">
+
     @* @if (events == null)
     {
         <FluentProgressRing />
     }
     else
     { *@
-        <div id='calendar' style="flex: 1 1; width:100%;"></div>
+        <div id='external-events' style="flex: 1 1; max-width:10%;">
+            @if(unplannedWO != null)
+            {
+                foreach( var item in unplannedWO)
+                    {
+                    string eventInfo = $"{item.ClientName}<br />{item.Description}<br />{item.Stage}";
+                        <Popover Placement="Placement.Bottom" Title="@item.Title" Content="@eventInfo" IsHtml="true">
+                    <div class="fc-event" data-id=@item.Id >@item.Title</div>
+                    </Popover>
+                     @* <div class="fc-event" data-event="id: @item.Id">@item.Title</div> *@
+                    }
+            }
+        </div>
+        <div id='calendar' style="flex: 1 1; width:90%;"></div>
         @* <FullCalendar Events="events"
                       DateClicked="HandleDateClick"
                       EventClicked="HandleEventClick" /> *@
@@ -30,30 +66,47 @@
 
 @code {
     public string? DivisionId; 
-    private List<CalendarEvent>? events;
+    private List<ProductionPlanEvent>? events;
+    private List<ProductionUnPlannedEvent>? unplannedWO;
+    private List<ProductionPlanResource>? resources;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
+        // if (events != null && resources != null)
         {
             Division x = await dt.GetgvSelectedDivision();
             DivisionId = x.DivisionID;
 
-            events = await pApi.GetAsync<List<CalendarEvent>>(
-                      $"/Divisions/{DivisionId}/GetWIP/Planning");
+            events = await pApi.GetAsync<List<ProductionPlanEvent>>(
+                      $"/Divisions/{DivisionId}/GetWIP/PlanItems");
+
+            resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
+
+            // unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{DivisionId}/GetWIP/UnPlannedItems");
             // var events = new[]
             // {
             //     new { title = "Meeting", start = DateTime.Now },
             //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
             // };
-            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events);
+            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources);
         }
+
+    } 
+    protected override async Task OnInitializedAsync()
+    {
+        Division y = await dt.GetgvSelectedDivision();
+
+        unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{y.DivisionID}/GetWIP/UnPlannedItems");
+        // var events = new[]
+        // {
+        //     new { title = "Meeting", start = DateTime.Now },
+        //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
+        // };
+        // await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources);
+        
+        
     }
-    // protected override async Task OnInitializedAsync()
-    // {
-    //     events = await pApi.GetAsync<List<CalendarEvent>>(
-    //                  $"/Divisions/{DivisionId}/GetWIP/Planning");
-    // }
 
     private Task HandleDateClick(string isoDate)
     {

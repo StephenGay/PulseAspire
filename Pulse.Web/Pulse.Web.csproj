@@ -41,6 +41,8 @@
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.13.0" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.DataGrid.EntityFrameworkAdapter" Version="4.13.0" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.13.0" />
+    <PackageReference Include="Microsoft.Identity.Web" Version="4.0.1" />
+    <PackageReference Include="Microsoft.Identity.Web.DownstreamApi" Version="4.0.1" />
     <PackageReference Include="Polly" Version="8.6.4" />
   </ItemGroup>
 

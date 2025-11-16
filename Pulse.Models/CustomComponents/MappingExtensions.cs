@@ -75,4 +75,7 @@ public static class MappingExtensions
                     : null
             }).ToHashSet() ?? new HashSet<WorksOrder>()
         }).ToHashSet();
+
+    public record MyResponse(IEnumerable<object> Results);
+    public record NaturalLanguageQuery(string Text);
 }

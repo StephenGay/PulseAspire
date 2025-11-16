@@ -621,7 +621,7 @@ namespace Pulse.Web.Services
                     _ => "Unknown tool"
                 };
 
-                if (toolResult.IsNullOrEmpty() || toolResult == "Unknown tool")
+                if (string.IsNullOrEmpty(toolResult) || toolResult == "Unknown tool")
                 {
                     _toolAttempts++;
                     _toolAttemptName = toolCall.Function.Name;

@@ -1,0 +1,121 @@
+﻿
+@inject IJSRuntime JS
+@inject PulseApiService pApi
+@inject DataTransferService dt
+@using Microsoft.JSInterop
+@using System.Text.Json
+@using Microsoft.AspNetCore.Components.Web
+@using Pulse.Models.CustomComponents
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using Pulse.Web.Services
+
+<div id="external-events" style="flex: 1 1; max-width:10%;">
+    @if (unplannedWO != null)
+    {
+        foreach (var item in unplannedWO)
+        {
+            string eventInfo = $"{item.ClientName}<br />{item.Description}<br />{item.Stage}";
+            <Popover Placement="Placement.Bottom" Title="@item.Title" Content="@eventInfo" IsHtml="true">
+                <div class="fc-event" data-id=@item.Id>@item.Title</div>
+            </Popover>
+            @* <div class="fc-event" data-event="id: @item.Id">@item.Title</div> *@
+        }
+    }
+</div>
+<div id="calendar" class="fc-container" style="width:90%;"></div>
+@* <div id="calendar" class="fc-container"></div> *@
+
+@code {
+    // [Parameter] public string ElementId { get; set; } = "calendar";
+    // [Parameter] public IEnumerable<CalendarEvent> Events { get; set; } = Array.Empty<CalendarEvent>();
+
+    // // These are the callbacks from JS
+    // [Parameter] public EventCallback<string> DateClicked { get; set; }
+    // [Parameter] public EventCallback<string> EventClicked { get; set; }
+
+    public string? DivisionId;
+    private List<ProductionPlanEvent>? events;
+    private List<ProductionUnPlannedEvent>? unplannedWO;
+
+    private IJSObjectReference? calendarModule;
+    private DotNetObjectReference<ProductionPlanCalendar>? dotNetRef;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Division x = await dt.GetgvSelectedDivision();
+            DivisionId = x.DivisionID;
+
+            events = await pApi.GetAsync<List<ProductionPlanEvent>>(
+                      $"/Divisions/{DivisionId}/GetWIP/PlanItems");
+
+            calendarModule = await JS.InvokeAsync<IJSObjectReference>("import", "js/calendarInterop.js");
+            dotNetRef = DotNetObjectReference.Create(this);
+
+
+            // var json = JsonSerializer.Serialize(Events,
+            //     new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
+
+            await calendarModule.InvokeVoidAsync("initCalendar", "calendar", dotNetRef, events);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Division y = await dt.GetgvSelectedDivision();
+
+        unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{y.DivisionID}/GetWIP/UnPlannedItems");
+        // var events = new[]
+        // {
+        //     new { title = "Meeting", start = DateTime.Now },
+        //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
+        // };
+        // await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources);
+
+
+    }
+    [JSInvokable]
+    public async Task HandleEventDrop(int eventId, string newStart, string newEnd)
+    {
+        // Parse dates (ISO format from JS)
+        var start = DateTime.Parse(newStart);
+        var end = string.IsNullOrEmpty(newEnd) ? (DateTime?)null : DateTime.Parse(newEnd);
+        // var updatedEvent = new ProductionPlanEvent() { eventId, string.Empty, start, end };
+        ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{eventId}");
+        updatedEvent.PlannedStartTime = start;
+        updatedEvent.PlannedEndTime = end;
+        await pApi.UpdatePlanItem(updatedEvent);
+        // Create updated model
+        // var updatedEvent = new ProductionPlanEvent(eventId);  // Title not needed for update
+        // updatedEvent.Id = eventId;
+        // Post to API securely via DownstreamApi (handles Entra token)
+        // await DownstreamApi.PutForUserAsync<object>("MyApi", $"/api/events/{eventId}", updatedEvent);
+
+        // Optional: Refresh calendar or show FluentToast success
+    }
+
+    public void Dispose()
+    {
+        dotNetRef?.Dispose();
+    }
+    // These are called from JavaScript
+    // [JSInvokable]
+    // public Task HandleDateClick(string isoDate) => DateClicked.InvokeAsync(isoDate);
+
+    // [JSInvokable]
+    // public Task HandleEventClick(string eventId) => EventClicked.InvokeAsync(eventId);
+
+    // public async ValueTask DisposeAsync()
+    // {
+    //     if (module is not null) await module.DisposeAsync();
+    //     dotNetRef?.Dispose();
+    // }
+}
+
+<style>
+    .fc-container {
+        height: 680px;
+    }
+</style>
