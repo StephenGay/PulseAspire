@@ -75,6 +75,9 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(p => p.ProductionStage)
                 .WithMany()
                 .HasForeignKey(p => p.ProductionStageID);
+            builder.HasOne(p => p.EquipmentItem)
+                .WithMany()
+                .HasForeignKey(p => p.EquipmentItemID);
         }
     }
 }

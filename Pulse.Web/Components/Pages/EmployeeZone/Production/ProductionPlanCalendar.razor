@@ -37,7 +37,7 @@
     public string? DivisionId;
     private List<ProductionPlanEvent>? events;
     private List<ProductionUnPlannedEvent>? unplannedWO;
-
+    private List<ProductionPlanResource>? resources;
     private IJSObjectReference? calendarModule;
     private DotNetObjectReference<ProductionPlanCalendar>? dotNetRef;
 
@@ -51,14 +51,16 @@
             events = await pApi.GetAsync<List<ProductionPlanEvent>>(
                       $"/Divisions/{DivisionId}/GetWIP/PlanItems");
 
-            calendarModule = await JS.InvokeAsync<IJSObjectReference>("import", "js/calendarInterop.js");
+            resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
+
+            calendarModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/calendarInterop.js");
             dotNetRef = DotNetObjectReference.Create(this);
 
 
             // var json = JsonSerializer.Serialize(Events,
             //     new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase });
 
-            await calendarModule.InvokeVoidAsync("initCalendar", "calendar", dotNetRef, events);
+            await calendarModule.InvokeVoidAsync("initCalendar", "calendar", dotNetRef, events, resources);
         }
     }
 

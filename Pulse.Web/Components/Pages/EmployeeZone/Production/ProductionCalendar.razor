@@ -1,7 +1,9 @@
 ﻿@page "/EmployeeZone/Production/ProductionCalendar"
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Organizational
+@using Pulse.Models.Production
 @using Pulse.Web.Services
+@* @using Microsoft.JSInterop *@
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject PulseApiService pApi
@@ -13,111 +15,293 @@
     #external-events {
         padding: 10px;
         /* width: 150px; */
-        height: auto;
-        max-height: 600px;
+        /* height: auto; */
+        /* max-height: 600px; */
         overflow: auto;
         border: 1px solid #ccc;
-        background: #eee;
-        text-align: left;
+        border-radius: 10px;
+        background: #bcd1d4;
+        text-align: center;
     }
     #external-events .fc-event {
         margin: 10px 0;
         cursor: pointer;
         padding: 4px;
-        background-color: #3788d8;
+            background-color: #365b66;
         color: white;
         border-radius: 3px;
         }
 </style>
 
-<FluentCard Style="width:100% ; height:100%">
-    <FluentStack Orientation="Orientation.Vertical" Style="flex: 0">
-    <h3>WIP Calendar – Division @DivisionId</h3>
-    </FluentStack>
-    @* <FluentStack Orientation="Orientation.Vertical" Style="height:100%;flex: 1;overflow-y : scroll;"> *@
-    <FluentStack Orientation="Orientation.Horizontal" Style="height:100%;flex: 1;overflow-y : scroll;">
 
-    @* @if (events == null)
-    {
-        <FluentProgressRing />
-    }
-    else
-    { *@
-        <div id='external-events' style="flex: 1 1; max-width:10%;">
-            @if(unplannedWO != null)
-            {
-                foreach( var item in unplannedWO)
-                    {
-                    string eventInfo = $"{item.ClientName}<br />{item.Description}<br />{item.Stage}";
-                        <Popover Placement="Placement.Bottom" Title="@item.Title" Content="@eventInfo" IsHtml="true">
-                    <div class="fc-event" data-id=@item.Id >@item.Title</div>
-                    </Popover>
-                     @* <div class="fc-event" data-event="id: @item.Id">@item.Title</div> *@
-                    }
-            }
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%;">
+    <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: scroll;">
+        <FluentStack Orientation="Orientation.Horizontal" Style="flex: 0">
+            <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start">
+                <h6>PRODUCTION PLAN – @DivisionId</h6>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Bottom">
+                <h6>WORK CENTRE </h6>
+                <FluentSelect Items=@workCentres 
+                        TOption="WorkCentre"
+                          OptionText="@(i => i.WorkCentreName)"
+                          OptionValue="@(i => i.WorkCentreId.ToString())"
+                            Placeholder="All Work Centres"
+                            Appearance="Appearance.Accent"
+                          OptionSelected="@(i => i.WorkCentreId == (workCentre!=null ? workCentre.WorkCentreId : null))"
+                          SelectedOptionChanged="wcChanged"
+                          @bind-Value="@selWC" />
+            @if(workCentre != null)
+                {
+                    <FluentButton IconEnd="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.DismissCircle())"
+                                  Title="Clear"
+                                  OnClick="btnClearWC" />
+                }
+            </FluentStack>
+        </FluentStack>
+        <br />
+        <FluentDivider Style="width: 100%;" Role="DividerRole.Presentation"></FluentDivider>
+        <br />
+        <FluentStack Orientation="Orientation.Horizontal" Style="overflow : scroll;">
+
+
+            <div id='external-events' style="width:10%;">
+                @if(unplannedWO != null)
+                {
+                    foreach( var item in unplannedWO)
+                        {
+                        string eventInfo = $"{item.ClientName}<br />{item.Description}<br />{item.Stage}";
+                            <Popover Placement="Placement.Bottom" Title="@item.Title" Content="@eventInfo" IsHtml="true">
+                    <div id="@item.Id" class="fc-event" >@item.Title</div>
+                        </Popover>
+                    
+                        }
+                }
+            </div>
+            <div id='calendar' style="width:90%;"></div>
+        
+        </FluentStack>
         </div>
-        <div id='calendar' style="flex: 1 1; width:90%;"></div>
-        @* <FullCalendar Events="events"
-                      DateClicked="HandleDateClick"
-                      EventClicked="HandleEventClick" /> *@
-    @* } *@
-    </FluentStack>
-</FluentCard>
+</FluentStack>
+<div>
+    <FluentDialog @ref="_myFluentDialog" >
+        <FluentDialogHeader Visible="false" />
+        
+        @if (selectedItem != null)
+        {
+            <h4>@selectedItem.WorksOrder.Customer.ClientName</h4>
+            <div></div>
+            <div>WO No: @selectedItem.WorkOrderNo.ToString()</div>
+            <div>@selectedItem.WorksOrder.WorkType.WorkTypeName</div>
+            <div>@selectedItem.ProductionStage.ProductionStageName</div> 
+            <div>Planned Start: @selectedItem.PlannedStartTime</div>
+            <div>Planned End: @selectedItem.PlannedEndTime</div>
+            <div>Equipment: @selectedItem.EquipmentItem!.EquipmentItemDescription</div>
+        }
+        <FluentButton Appearance="Appearance.Accent" Autofocus="true" @onclick="OnCloseDialog">Close dialog</FluentButton>
+        <FluentButton>Another button</FluentButton>
+
+    </FluentDialog>
+</div>
+<Modal @ref="Modal" IsKeyboard="true">
+    <ModalDialog Title="Production Plan Item" ShowSaveButton="false" Size="Size.Medium">
+        <BodyTemplate>
+            
+            
+        </BodyTemplate>
+    </ModalDialog>
+</Modal>
 
 @code {
     public string? DivisionId; 
     private List<ProductionPlanEvent>? events;
     private List<ProductionUnPlannedEvent>? unplannedWO;
     private List<ProductionPlanResource>? resources;
+    private DotNetObjectReference<ProductionCalendar>? dotNetRef;
+    private List<WorkCentre>? workCentres;
+    private WorkCentre? workCentre;
+    private FluentDialog? _myFluentDialog;
+    private bool isLoaded = false;
+    private ProductionPlanItem? selectedItem;
+    public string? selWC;
+    private IJSObjectReference? calendarModule;
+    private Modal? Modal { get; set; }
 
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+            _myFluentDialog!.Hide();
+    }
+    private void OnCloseDialog()
+    {
+        _myFluentDialog!.Hide();
+    }
+    private async void btnClearWC()
+    {
+        workCentre = null;
+        selWC = string.Empty;
+        events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
+        resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
+        await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         // if (events != null && resources != null)
+        // @bind-Hidden="@Hidden" aria-label="Simple dialog" Modal=@_modal TrapFocus=@_trapFocus PreventScroll=@_preventScroll @ondialogdismiss=OnDismiss
         {
             Division x = await dt.GetgvSelectedDivision();
             DivisionId = x.DivisionID;
 
-            events = await pApi.GetAsync<List<ProductionPlanEvent>>(
-                      $"/Divisions/{DivisionId}/GetWIP/PlanItems");
+            events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
 
+
+            //resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
             resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
-
-            // unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{DivisionId}/GetWIP/UnPlannedItems");
-            // var events = new[]
-            // {
-            //     new { title = "Meeting", start = DateTime.Now },
-            //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
-            // };
-            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources);
+            dotNetRef = DotNetObjectReference.Create(this);
+            calendarModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/fullcalendarInterop.js");
+            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+            // await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", dotNetRef, events, resources);
+            isLoaded = true;
         }
 
     } 
+
+    private async void wcChanged(WorkCentre wc)
+    {
+        if(isLoaded == false)
+        {
+            return;
+        }
+        workCentre = wc;
+        selWC = wc.WorkCentreId.ToString();
+        //resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
+        resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
+        events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/GetWIP/PlanItems/ByWorkCentre/{selWC}");
+        await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+
+
+    }
+
     protected override async Task OnInitializedAsync()
     {
         Division y = await dt.GetgvSelectedDivision();
 
         unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{y.DivisionID}/GetWIP/UnPlannedItems");
-        // var events = new[]
+        workCentres = await pApi.GetAsync<List<WorkCentre>>($"/Divisions/{y.DivisionID}/GetWorkCentres");
+        workCentre = workCentres.FirstOrDefault();
+        selWC = workCentre.WorkCentreId.ToString();
+    }
+
+    [JSInvokable]
+    public async Task OnEventDropped(string planId, string timeStart, string equipID, string dur)
+    {
+        ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
+        var start = DateTime.Parse(timeStart);
+        DateTime eD;
+
+        // if (dur == "move")
         // {
-        //     new { title = "Meeting", start = DateTime.Now },
-        //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
-        // };
-        // await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources);
-        
-        
+        // if(updatedEvent.PlannedStartTime != null && updatedEvent.PlannedEndTime != null)
+        // {
+
+        // }
+        // DateTime? st = updatedEvent.PlannedStartTime;
+        // DateTime? end = if (updatedEvent.PlannedEndTime == null) { st; }else { updatedEvent.PlannedEndTime; }
+        // TimeSpan duration = end - updatedEvent.PlannedStartTime;
+        //     eD = start.Add(dur);
+        // }
+        // else
+        // {
+        int Hrs = Convert.ToInt32(dur.Substring(0, dur.IndexOf(":")));
+        int min = Convert.ToInt32(dur.Substring(dur.IndexOf(":") + 1, 2));
+        TimeSpan d = new TimeSpan(Hrs, min, 0);
+        eD = start.Add(d);
+        // }
+
+        updatedEvent.PlannedStartTime = start;
+        updatedEvent.PlannedEndTime = eD;
+        updatedEvent.EquipmentItemID = equipID;
+        await pApi.UpdatePlanItem(updatedEvent);
     }
 
-    private Task HandleDateClick(string isoDate)
+    [JSInvokable]
+    public async Task OnEventClicked(string planId)
     {
-        // e.g. open a dialog to create a new order on that date
-        return Task.CompletedTask;
+        selectedItem = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
+        _myFluentDialog!.Show();
+        // Modal.Toggle();
+        // ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
+        // var start = DateTime.Parse(timeStart);
+        // DateTime eD;
+
+        // if (dur == "move")
+        // {
+        // if(updatedEvent.PlannedStartTime != null && updatedEvent.PlannedEndTime != null)
+        // {
+
+        // }
+        // DateTime? st = updatedEvent.PlannedStartTime;
+        // DateTime? end = if (updatedEvent.PlannedEndTime == null) { st; }else { updatedEvent.PlannedEndTime; }
+        // TimeSpan duration = end - updatedEvent.PlannedStartTime;
+        //     eD = start.Add(dur);
+        // }
+        // else
+        // {
+        // int Hrs = Convert.ToInt32(dur.Substring(0, dur.IndexOf(":")));
+        // int min = Convert.ToInt32(dur.Substring(dur.IndexOf(":") + 1, 2));
+        // TimeSpan d = new TimeSpan(Hrs, min, 0);
+        // eD = start.Add(d);
+        // }
+
+        // updatedEvent.PlannedStartTime = start;
+        // updatedEvent.PlannedEndTime = eD;
+        // updatedEvent.EquipmentItemID = equipID;
+        // await pApi.UpdatePlanItem(updatedEvent);
     }
 
-    private Task HandleEventClick(string eventId)
+    [JSInvokable]
+    public async Task OnEventChanged(string planId, string timeStart, string timeEnd, string equipID)
     {
-        // navigate to order detail page
-        Navigation.NavigateTo($"/worksorder/{eventId}");
-        return Task.CompletedTask;
+        ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
+        var start = DateTime.Parse(timeStart);
+        var end = DateTime.Parse(timeEnd);
+
+        updatedEvent.PlannedStartTime = start;
+        updatedEvent.PlannedEndTime = end;
+        if(equipID != "Same")
+        {
+            updatedEvent.EquipmentItemID = equipID;
+        }
+        
+        await pApi.UpdatePlanItem(updatedEvent);
     }
+
+    [JSInvokable]
+    public async Task OnEventResized(string planId, string timeStart, string timeEnd)
+    {
+        ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
+        var start = DateTime.Parse(timeStart);
+        var end = DateTime.Parse(timeEnd);
+
+        updatedEvent.PlannedStartTime = start;
+        updatedEvent.PlannedEndTime = end;
+        await pApi.UpdatePlanItem(updatedEvent);
+    }
+    public void Dispose()
+    {
+        dotNetRef?.Dispose();
+    }
+    // private Task HandleDateClick(string isoDate)
+    // {
+    //     // e.g. open a dialog to create a new order on that date
+    //     return Task.CompletedTask;
+    // }
+
+    // private Task HandleEventClick(string eventId)
+    // {
+    //     // navigate to order detail page
+    //     Navigation.NavigateTo($"/worksorder/{eventId}");
+    //     return Task.CompletedTask;
+    // }
 }

@@ -2,8 +2,10 @@
 @using Azure
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.Identity.Abstractions
+@using Pulse.Models.Production
 @using static MappingExtensions
  @inject IDownstreamApi DownstreamApi
+@inject Pulse.Web.Services.PulseApiService pApiClient
  @rendermode InteractiveServer
 
 
@@ -11,7 +13,7 @@
     @if (start)
     {
         <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2)">
-        <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button Size="Size.ExtraLarge" OnClick="() => start=false" Color="BootstrapBlazor.Components.Color.Success">Start</Button></div>
+        <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button Size="Size.ExtraLarge" OnClick="btnStartWIP" Color="BootstrapBlazor.Components.Color.Success">Start</Button></div>
         </Animation>
     }
     else if (ti)
@@ -48,6 +50,15 @@
     private bool stop = false;
     private bool ti = true;
 
+    private async void btnStartWIP()
+    {
+        List<WorkInProgressDto> wp = await pApiClient.GetAsync<List<WorkInProgressDto>>("/Divisions/150/GetWIP");
+        foreach (var item in wp)
+        {
+            var p = pApiClient.GetAsync<List<ProductionPlanItem>>($"/Divisions/Production/WorkOrder/{item.WorksOrderNo}/CreateProductionPlan");
+        }
+        ti = true;
+    }
     // private async Task CallApi()
     // {
     //     var response = await DownstreamApi.PostForUserAsync<MyResponse>("MyApi", "/api/query", new NaturalLanguageQuery ("Show all users"));

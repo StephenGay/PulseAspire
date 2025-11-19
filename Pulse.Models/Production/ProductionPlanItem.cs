@@ -18,6 +18,8 @@ namespace Pulse.Models.Production
         [MaxLength(5)]
         public string DivisionID { get; set; }
         [Required]
+        public int StepNo { get; set; }
+        [Required]
         public int ProductionStageID { get; set; }
         [MaxLength(10)]
         public string? EquipmentItemID { get; set; }
@@ -35,5 +37,6 @@ namespace Pulse.Models.Production
 
         public WorksOrder? WorksOrder { get; set; }
         public ProductionStage? ProductionStage { get; set; }
-        }
+        public EquipmentItem? EquipmentItem { get; set; }
+    }
 }

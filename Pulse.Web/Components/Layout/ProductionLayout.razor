@@ -14,16 +14,17 @@
         <Production_Nav_Menu />
     </div>
 
-    <FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+    <FluentLayout Style="flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
        
         <EZ_AI_Menu />
        
-        <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; overflow: auto;">
+        <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="height:100%; padding: 10px; overflow: auto;">
             @Body
         </FluentStack>
 
 
     </FluentLayout>
+    
 </div>
             
 
@@ -36,6 +37,7 @@
 
 @code{
     private Customer? _customer;
+    
     private bool isLoading = true;
     private string _AnalysisResp = string.Empty;
     private bool showAnalysis = false;

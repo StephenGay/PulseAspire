@@ -232,6 +232,16 @@ namespace Pulse.Web.Services
             }
             return null;
         }
+        
+        public async Task<EquipmentCapability?> AddEquipmentCapabilityAsync(EquipmentCapability eqCap)
+        {
+            var response = await _httpClient.PostAsJsonAsync("Divisions/Equipment/Capabilities/Add/", eqCap);
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<EquipmentCapability>();
+            }
+            return null;
+        }
         public async Task<string?> DeleteFavouriteQueryAsync(int ID)
         {
             var response = await _httpClient.DeleteAsync($"/User/Favourites/SavedQueries/Delete/{ID}");
@@ -242,14 +252,14 @@ namespace Pulse.Web.Services
             return null;
         }
 
-        public async Task<ProductionPlanItem> UpdatePlanItem(ProductionPlanItem pI) 
+        public async Task<bool> UpdatePlanItem(ProductionPlanItem pI) 
         {
             var response = await _httpClient.PutAsJsonAsync($"/Divisions/WIP/UpdateProductionPlanItem/{pI.ProductionPlanItemID}", pI);
             if (response.IsSuccessStatusCode)
             {
-                return await response.Content.ReadFromJsonAsync<ProductionPlanItem>();
+                return true;
             }
-            return null;
+            return false;
         }
         public async Task<bool> RecordQueryVote(int qID, string Vote)
         {

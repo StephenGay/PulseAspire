@@ -1163,10 +1163,24 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(15)")
                         .HasDefaultValue("Unplanned");
 
+                    b.Property<int>("StepNo")
+                        .HasColumnType("int");
+
                     b.Property<int>("WorkOrderNo")
                         .HasColumnType("int");
 
+                    b.Property<int?>("WorksOrderNo")
+                        .HasColumnType("int");
+
                     b.HasKey("ProductionPlanItemID");
+
+                    b.HasIndex("EquipmentItemID");
+
+                    b.HasIndex("ProductionStageID");
+
+                    b.HasIndex("WorkOrderNo");
+
+                    b.HasIndex("WorksOrderNo");
 
                     b.ToTable("ProductionPlanItems", (string)null);
                 });
@@ -1822,7 +1836,7 @@ namespace Pulse.ApiService.Migrations
                     b.HasOne("Pulse.Models.Production.ProductionStage", "ProductionStage")
                         .WithMany("EquipmentCapabilities")
                         .HasForeignKey("ProductionStageID")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.NoAction)
                         .IsRequired();
 
                     b.Navigation("EquipmentItem");
@@ -1846,6 +1860,35 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Division");
 
                     b.Navigation("EquipmentCategory");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.ProductionPlanItem", b =>
+                {
+                    b.HasOne("Pulse.Models.Production.EquipmentItem", "EquipmentItem")
+                        .WithMany()
+                        .HasForeignKey("EquipmentItemID");
+
+                    b.HasOne("Pulse.Models.Production.ProductionStage", "ProductionStage")
+                        .WithMany()
+                        .HasForeignKey("ProductionStageID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.WorksOrder", "WorksOrder")
+                        .WithMany()
+                        .HasForeignKey("WorkOrderNo")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Production.WorksOrder", null)
+                        .WithMany("ProductionPlanItems")
+                        .HasForeignKey("WorksOrderNo");
+
+                    b.Navigation("EquipmentItem");
+
+                    b.Navigation("ProductionStage");
+
+                    b.Navigation("WorksOrder");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.ProductionStage", b =>
@@ -2117,6 +2160,11 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Production.WorkType", b =>
                 {
                     b.Navigation("ProductionStages");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.WorksOrder", b =>
+                {
+                    b.Navigation("ProductionPlanItems");
                 });
 
             modelBuilder.Entity("Pulse.Models.Rollers.RollerType", b =>

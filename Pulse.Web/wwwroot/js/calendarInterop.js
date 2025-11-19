@@ -1,7 +1,7 @@
-﻿export function initCalendar(elementId, dotNetRef, initialEvents) {
+﻿export function initCalendar(elementId, dotNetRef, initialEvents, resources) {
     var calendarEl = document.getElementById(elementId);
     var calendar = new FullCalendar.Calendar(calendarEl, {
-        initialView: 'dayGridMonth',
+        initialView: 'resourceTimelineDay',
         editable: true,
         events: initialEvents || [],  // Use provided events
         eventDrop: function(info) {
