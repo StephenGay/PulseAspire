@@ -187,8 +187,7 @@ namespace Pulse.ApiService.Endpoints
                 // 3. Return the collection directly (no wrapper)
                 return Results.Ok(rollers);
             })
-                .WithName("GetRollersForSpecification")
-                .WithOpenApi();
+                .WithName("GetRollersForSpecification");
 
             group.MapGet(ByIdPath + "/CurrentStats", async (string fullclientid, PulseDbContext db) =>
             {
@@ -207,8 +206,7 @@ namespace Pulse.ApiService.Endpoints
                 };
                 return Results.Ok(stats);
             })
-                .WithName("GetClientStats")
-                .WithOpenApi();
+                .WithName("GetClientStats");
         }
     }
 }

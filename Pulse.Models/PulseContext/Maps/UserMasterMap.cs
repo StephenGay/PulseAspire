@@ -21,6 +21,10 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasMany(q => q.UserFavouriteQueries)
                 .WithOne(u => u.User)
                 .HasForeignKey(u => u.UserId);
+            builder.HasOne(us => us.UserSettings)
+                   .WithOne(u => u.User)
+                   .HasForeignKey<User>(us => us.UserID)
+                   .OnDelete(DeleteBehavior.ClientCascade);
         }
     }
     

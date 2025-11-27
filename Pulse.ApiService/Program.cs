@@ -1,56 +1,86 @@
 
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Web;
+using Microsoft.IdentityModel.Tokens;
 using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
+using Pulse.ApiService.Security;
+using Pulse.Models;
 using Pulse.Models.PulseContext;
+using Pulse.Models.Users;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add service defaults & Aspire client integrations.
-builder.AddServiceDefaults();
+#region Add Aspire Scaffolding
+    builder.AddServiceDefaults();
+    builder.Services.AddProblemDetails();
+#endregion
 
-// Add services to the container.
-builder.Services.AddProblemDetails();
+// Setup Connection to Database
 builder.Services.AddDbContext<PulseDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("PulseDbConn"),b => b.MigrationsAssembly("Pulse.ApiService")));
 
-builder.Services.AddMicrosoftIdentityWebApiAuthentication(builder.Configuration, "AzureAd");
+#region Setup Identity and Authentication
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("PulseDbConn"), b => b.MigrationsAssembly("Pulse.ApiService")));
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
 
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("admin"));
-    options.AddPolicy("UserAccess", policy => policy.RequireRole("user", "admin"));  // Allow user or admin
-});
+// Below code to be changed for production use with proper CORS settings
+builder.Services.AddCors(options => options.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod().AllowCredentials()));
 
-builder.Services.AddEndpointsApiExplorer(); // If using Swagger/OpenAPI
-builder.Services.Configure<JsonOptions>(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    })
+    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme);
+
+builder.Services.AddAuthorization();
+builder.Services.AddScoped<TokenService>();
+#endregion
+
+// Makes JSON Serializer safer & more robust
+builder.Services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
 {
     options.SerializerOptions.Converters.Add(new TypeConverter());
-    // Optional: Ignore cycles if your schema has circular refs
     options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
 });
 
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+// More Aspire Scaffolding
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddOpenApi();
 
-
-
+// Build App
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Post Build Configuration
 app.UseExceptionHandler();
-
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+//app.MapGet("/secure-data", () => "Protected data").RequireAuthorization();
+app.UseHttpsRedirection();
 
-app.UseAuthentication();
-app.UseAuthorization();
-
+// Map Custom Endpoints
 app.MapDefaultEndpoints();
 app.MapCustomerEndpoints();
 app.MapAiEndpoints();
@@ -58,8 +88,8 @@ app.MapSecurityEndpoints();
 app.MapUserEndpoints();
 app.MapUtilitiesEndpoints();
 app.MapDivisionEndpoints();
+app.MapTechnicalEndpoints();
 
-app.UseHttpsRedirection();
-
+// Let's Go!
 await app.RunAsync();
 

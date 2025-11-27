@@ -31,14 +31,20 @@
         color: white;
         border-radius: 3px;
         }
+    .wcSelect{
+        border: 1px solid black;
+        text-align:center;
+    }
 </style>
 
 
-<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%;">
-    <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: scroll;">
+@* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%;"> *@
+@* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%; padding: 10px;"> *@
+    @* <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: scroll;"> *@
+    <div style="width:100%; height:95%; padding: 20px; border: 2px solid black; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
         <FluentStack Orientation="Orientation.Horizontal" Style="flex: 0">
-            <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start">
-                <h6>PRODUCTION PLAN – @DivisionId</h6>
+        <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Bottom">
+                <h6>PRODUCTION PLAN</h6>
             </FluentStack>
             <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Bottom">
                 <h6>WORK CENTRE </h6>
@@ -46,8 +52,8 @@
                         TOption="WorkCentre"
                           OptionText="@(i => i.WorkCentreName)"
                           OptionValue="@(i => i.WorkCentreId.ToString())"
+                          Class="wcSelect"
                             Placeholder="All Work Centres"
-                            Appearance="Appearance.Accent"
                           OptionSelected="@(i => i.WorkCentreId == (workCentre!=null ? workCentre.WorkCentreId : null))"
                           SelectedOptionChanged="wcChanged"
                           @bind-Value="@selWC" />
@@ -59,13 +65,14 @@
                 }
             </FluentStack>
         </FluentStack>
-        <br />
-        <FluentDivider Style="width: 100%;" Role="DividerRole.Presentation"></FluentDivider>
-        <br />
-        <FluentStack Orientation="Orientation.Horizontal" Style="overflow : scroll;">
 
+        <FluentDivider Style="width: 100%; margin-top:5px;margin-bottom:5px;" Role="DividerRole.Presentation"></FluentDivider>
 
-            <div id='external-events' style="width:10%;">
+        @* <FluentStack Orientation="Orientation.Horizontal" Style="overflow : scroll;"> *@
+        <FluentStack Orientation="Orientation.Horizontal" Style="flex: 1; overflow: hidden; display: flex;">
+
+            @* <div id='external-events' style="width:10%;"> *@
+            <div id='external-events' style="width:10%; height: 100%; overflow-y: auto;">
                 @if(unplannedWO != null)
                 {
                     foreach( var item in unplannedWO)
@@ -78,13 +85,13 @@
                         }
                 }
             </div>
-            <div id='calendar' style="width:90%;"></div>
-        
+            @* <div id='calendar' style="width:90%;"></div> *@
+            <div id='calendar' style="width:90%; height: 100%; overflow-y: auto;"></div>
         </FluentStack>
-        </div>
-</FluentStack>
+    </div>
+@* </FluentStack> *@
 <div>
-    <FluentDialog @ref="_myFluentDialog" >
+    <FluentDialog @ref="_myFluentDialog" Hidden="true" >
         <FluentDialogHeader Visible="false" />
         
         @if (selectedItem != null)
@@ -103,14 +110,7 @@
 
     </FluentDialog>
 </div>
-<Modal @ref="Modal" IsKeyboard="true">
-    <ModalDialog Title="Production Plan Item" ShowSaveButton="false" Size="Size.Medium">
-        <BodyTemplate>
-            
-            
-        </BodyTemplate>
-    </ModalDialog>
-</Modal>
+
 
 @code {
     public string? DivisionId; 
@@ -125,12 +125,12 @@
     private ProductionPlanItem? selectedItem;
     public string? selWC;
     private IJSObjectReference? calendarModule;
-    private Modal? Modal { get; set; }
+    private Division? y;
 
     protected override void OnAfterRender(bool firstRender)
     {
-        if (firstRender)
-            _myFluentDialog!.Hide();
+        // if (firstRender)
+        //     _myFluentDialog!.Hide();
     }
     private void OnCloseDialog()
     {
@@ -140,21 +140,22 @@
     {
         workCentre = null;
         selWC = string.Empty;
+        unplannedWO = null;
         events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
         resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
         await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+        unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{DivisionId}/GetWIP/UnPlannedItems");
+        StateHasChanged();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
-        // if (events != null && resources != null)
-        // @bind-Hidden="@Hidden" aria-label="Simple dialog" Modal=@_modal TrapFocus=@_trapFocus PreventScroll=@_preventScroll @ondialogdismiss=OnDismiss
         {
+            // _myFluentDialog!.Hide();
             Division x = await dt.GetgvSelectedDivision();
             DivisionId = x.DivisionID;
 
             events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
-
 
             //resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
             resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
@@ -164,7 +165,6 @@
             // await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", dotNetRef, events, resources);
             isLoaded = true;
         }
-
     } 
 
     private async void wcChanged(WorkCentre wc)
@@ -175,22 +175,23 @@
         }
         workCentre = wc;
         selWC = wc.WorkCentreId.ToString();
+        unplannedWO = null;
         //resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
         resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
         events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/GetWIP/PlanItems/ByWorkCentre/{selWC}");
+        unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/GetWIP/UnPlannedItems/ByWorkCentre/{selWC}");
         await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
-
-
+        StateHasChanged();
     }
 
     protected override async Task OnInitializedAsync()
     {
-        Division y = await dt.GetgvSelectedDivision();
-
+        y = await dt.GetgvSelectedDivision();
+        await dt.SetgvContextArea(0);
         unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{y.DivisionID}/GetWIP/UnPlannedItems");
         workCentres = await pApi.GetAsync<List<WorkCentre>>($"/Divisions/{y.DivisionID}/GetWorkCentres");
-        workCentre = workCentres.FirstOrDefault();
-        selWC = workCentre.WorkCentreId.ToString();
+        // workCentre = workCentres.FirstOrDefault();
+        // selWC = workCentre.WorkCentreId.ToString();
     }
 
     [JSInvokable]
@@ -222,7 +223,7 @@
         updatedEvent.PlannedStartTime = start;
         updatedEvent.PlannedEndTime = eD;
         updatedEvent.EquipmentItemID = equipID;
-        await pApi.UpdatePlanItem(updatedEvent);
+        await pApi.UpdatePlanItemAsync(updatedEvent);
     }
 
     [JSInvokable]
@@ -274,7 +275,7 @@
             updatedEvent.EquipmentItemID = equipID;
         }
         
-        await pApi.UpdatePlanItem(updatedEvent);
+        await pApi.UpdatePlanItemAsync(updatedEvent);
     }
 
     [JSInvokable]
@@ -286,22 +287,12 @@
 
         updatedEvent.PlannedStartTime = start;
         updatedEvent.PlannedEndTime = end;
-        await pApi.UpdatePlanItem(updatedEvent);
+        await pApi.UpdatePlanItemAsync(updatedEvent);
     }
+
     public void Dispose()
     {
         dotNetRef?.Dispose();
     }
-    // private Task HandleDateClick(string isoDate)
-    // {
-    //     // e.g. open a dialog to create a new order on that date
-    //     return Task.CompletedTask;
-    // }
-
-    // private Task HandleEventClick(string eventId)
-    // {
-    //     // navigate to order detail page
-    //     Navigation.NavigateTo($"/worksorder/{eventId}");
-    //     return Task.CompletedTask;
-    // }
+    
 }

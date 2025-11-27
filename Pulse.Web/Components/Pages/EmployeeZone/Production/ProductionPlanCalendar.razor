@@ -75,9 +75,8 @@
         //     new { title = "Conference", start = DateTime.Now.AddDays(2) }
         // };
         // await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources);
-
-
     }
+
     [JSInvokable]
     public async Task HandleEventDrop(int eventId, string newStart, string newEnd)
     {
@@ -88,7 +87,7 @@
         ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{eventId}");
         updatedEvent.PlannedStartTime = start;
         updatedEvent.PlannedEndTime = end;
-        await pApi.UpdatePlanItem(updatedEvent);
+        await pApi.UpdatePlanItemAsync(updatedEvent);
         // Create updated model
         // var updatedEvent = new ProductionPlanEvent(eventId);  // Title not needed for update
         // updatedEvent.Id = eventId;

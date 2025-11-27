@@ -1,277 +1,267 @@
-﻿using Pulse.Models.CustomComponents;
+﻿using Microsoft.AspNetCore.Authentication;
+using Pulse.Models.AI;
+using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
 using Pulse.Models.Production;
 using Pulse.Models.Users;
 using System.Data;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Pulse.Web.Services
 {
-    internal sealed class PulseApiService(HttpClient PulseApiClient, ILogger<PulseApiService> logger)
+    public sealed class PulseApiService
     {
-        private readonly HttpClient _httpClient = PulseApiClient;
-        private readonly ILogger<PulseApiService> _logger = logger;
-        //private static string _cachedSchema;
-        //private static DateTime _cacheExpiry = DateTime.MinValue;
+        private readonly HttpClient _httpClient;
+        private readonly ILogger<PulseApiService> _logger;
 
-        //public async Task<string> GetDetailedSchemaAsync()
-        //{
-        //    //if (DateTime.UtcNow < _cacheExpiry && _cachedSchema != null) return _cachedSchema;
-
-        //    var schemas = await GetSchemaAsync(); // Use your PulseApiService
-        //    //var schemaBuilder = new StringBuilder();
-
-        //    //foreach (var schema in schemas)
-        //    //{
-        //    //    schemaBuilder.AppendLine($"Entity: {schema.EntityType} (Table: {schema.TableName})");
-        //    //    schemaBuilder.AppendLine($"Primary Keys: {string.Join(", ", schema.PrimaryKeys)}");
-
-        //    //    schemaBuilder.AppendLine("Columns:");
-        //    //    foreach (var col in schema.Columns)
-        //    //    {
-        //    //        schemaBuilder.AppendLine($"- {col.Name} (Type: {col.DataType}, Nullable: {col.IsNullable}, PK: {col.IsPrimaryKey})");
-        //    //    }
-
-        //    //    schemaBuilder.AppendLine("Relationships:");
-        //    //    foreach (var rel in schema.Relationships)
-        //    //    {
-        //    //        schemaBuilder.AppendLine($"- To {rel.RelatedEntityType} (Table: {rel.RelatedTableName}), Navigation: {rel.NavigationName}, FK Columns: {string.Join(", ", rel.ForeignKeyColumns)}, Cardinality: {rel.Cardinality}");
-        //    //    }
-        //    //    schemaBuilder.AppendLine(); // Separator
-        //    //}
-
-        //    //_cachedSchema = schemaBuilder.ToString();
-        //    //_cacheExpiry = DateTime.UtcNow.AddMinutes(30); // Refresh interval
-        //    //return _cachedSchema;
-            
-        //}
-        public async Task<List<SchemaDto>> GetSchemaAsync()
+        public PulseApiService(HttpClient httpClient, ILogger<PulseApiService> logger)
         {
-            string requestUri = "/AI/schema";
+            _httpClient = httpClient;
+            _logger = logger;
+        }
 
+        public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default)
+        {
             try
             {
-                var response = await _httpClient.GetAsync(requestUri);
+                var response = await _httpClient.GetAsync(requestUri, ct);
                 response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync();
-
-                return JsonSerializer.Deserialize<List<SchemaDto>>(json);
-
-                //var content = await response.Content.ReadAsStringAsync();
-
-                //return JsonSerializer.Deserialize<List<SchemaDto>>(content, new JsonSerializerOptions
-                //{
-                //    PropertyNameCaseInsensitive = true
-                //});
+                var content = await response.Content.ReadAsStringAsync(ct);
+                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
-                return default;
+                throw;
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "JSON deserialization error while processing response from {RequestUri}", requestUri);
-                return default;
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
-                return default;
+                throw;
             }
         }
 
-        public async Task<T?> GetAsync<T>(string requestUri)
+        public async Task<TResponse> PostAsync<TRequest, TResponse>(string requestUri, TRequest payload, CancellationToken ct = default)
         {
-            try
+            var response = await _httpClient.PostAsJsonAsync(requestUri, payload, ct);
+            if (!response.IsSuccessStatusCode)
             {
-                var response = await _httpClient.GetAsync(requestUri);
-                response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync();
-
-                return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions
+                var errorContent = await response.Content.ReadAsStringAsync(ct);
+                // Parse JSON errors if present
+                try
                 {
-                    PropertyNameCaseInsensitive = true
-                });
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
-                return default;
-            }
-            catch (System.Text.Json.JsonException ex)
-            {
-                _logger.LogError(ex, "JSON deserialization error while processing response from {RequestUri}", requestUri);
-                return default;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
-                return default;
-            }
-        }
-
-        public async Task<string> GetAiSamples()
-        {
-            var requestUri = "/AI/examples";
-            try
-            {
-                var aiQueries = await GetAsync<List<AiQuery>>(requestUri);
-                string examples = "";
-                if (aiQueries != null && aiQueries.Count > 0)
-                {
-                    examples = "\nExamples of correct queries:\n";
-                    foreach (var ex in aiQueries)
-                    {
-                        examples += $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n";
-                    }
+                    var errors = JsonSerializer.Deserialize<List<Dictionary<string, string>>>(errorContent);
+                    var messages = errors?.Select(e => e["ErrorMessage"] ?? e.ToString());
+                    throw new HttpRequestException($"API error: {response.StatusCode} - {string.Join(", ", messages)}");
                 }
-                return examples;
+                catch
+                {
+                    throw new HttpRequestException($"API error: {response.StatusCode} - {errorContent}");
+                }
+            }
+            return await response.Content.ReadFromJsonAsync<TResponse>(ct);
+        }
+
+        public async Task<bool> PutAsync<TRequest>(string requestUri, TRequest payload, CancellationToken ct = default)
+        {
+            try
+            {
+                var response = await _httpClient.PutAsJsonAsync(requestUri, payload, ct);
+                response.EnsureSuccessStatusCode();
+                return true;
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
-                return default;
-            }
-            catch (System.Text.Json.JsonException ex)
-            {
-                _logger.LogError(ex, "JSON deserialization error while processing response from {RequestUri}", requestUri);
-                return default;
+                _logger.LogError(ex, "HTTP request error while putting to {RequestUri}", requestUri);
+                throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
-                return default;
+                _logger.LogError(ex, "Unexpected error while putting to {RequestUri}", requestUri);
+                throw;
             }
-
         }
 
-        public async Task<List<Dictionary<string, object>>> StringToDictionary(string result)
+        public async Task<string?> DeleteAsync(string requestUri, CancellationToken ct = default)
+        {
+            try
+            {
+                var response = await _httpClient.DeleteAsync(requestUri, ct);
+                response.EnsureSuccessStatusCode();
+                return await response.Content.ReadAsStringAsync(ct);
+            }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "HTTP request error while deleting {RequestUri}", requestUri);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error while deleting {RequestUri}", requestUri);
+                throw;
+            }
+        }
+
+        public async Task<List<SchemaDto>> GetSchemaAsync(CancellationToken ct = default)
+        {
+            try
+            {
+                return await GetAsync<List<SchemaDto>>("/AI/schema", ct) ?? new List<SchemaDto>();
+            }
+            catch
+            {
+                return new List<SchemaDto>();
+            }
+        }
+
+        public async Task<string> GetAiSamples(CancellationToken ct = default)
+        {
+            try
+            {
+                var aiQueries = await GetAsync<List<AiQuery>>("/AI/examples", ct) ?? new List<AiQuery>();
+                if (!aiQueries.Any()) return "";
+
+                var sb = new StringBuilder("\nExamples of correct queries:\n");
+                foreach (var ex in aiQueries)
+                {
+                    sb.AppendLine($"Question: {ex.Question}");
+                    sb.AppendLine($"SQL: {ex.SqlQuery}");
+                }
+                return sb.ToString();
+            }
+            catch
+            {
+                return "";
+            }
+        }
+
+        public List<Dictionary<string, object>> StringToDictionary(string result)
         {
             var results = new List<Dictionary<string, object>>();
             if (string.IsNullOrWhiteSpace(result))
             {
-                Console.WriteLine("ExtractResultsFromResult: Result is empty.");
+                _logger.LogWarning("StringToDictionary: Result is empty.");
                 return results;
             }
 
-            var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            
+            var lines = result.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             foreach (var line in lines)
             {
-                if (!string.IsNullOrWhiteSpace(line))
-                {
-                    
-                    try
-                    {
-                        var row = JsonSerializer.Deserialize<Dictionary<string, object>>(line);
-                        results.Add(row);
+                if (string.IsNullOrWhiteSpace(line)) continue;
 
-                    }
-                    catch (JsonException ex)
-                    {
-                        Console.WriteLine($"ExtractResultsFromResult: Failed to parse JSON row: {line}, Error: {ex.Message}");
-                    }
+                try
+                {
+                    var row = JsonSerializer.Deserialize<Dictionary<string, object>>(line, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    if (row != null) results.Add(row);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning(ex, "Failed to parse JSON row: {Line}", line);
                 }
             }
             return results;
         }
 
-        public async Task<DataTable> CreateDataTableFromDictionary(List<Dictionary<string, object>> results)
+        public DataTable CreateDataTableFromDictionary(List<Dictionary<string, object>> results)
         {
             var dataTable = new DataTable();
             if (results == null || results.Count == 0)
             {
-                Console.WriteLine("CreateDataTableFromResults: No results to display.");
+                _logger.LogWarning("CreateDataTableFromDictionary: No results to display.");
                 return dataTable;
             }
 
-            // Use the first row to define columns
             var firstRow = results.First();
             foreach (var key in firstRow.Keys)
             {
-                dataTable.Columns.Add(key, typeof(string)); // Use string for simplicity; adjust if needed
+                dataTable.Columns.Add(key, typeof(object));  // Use object to handle various types
             }
 
-            // Add rows
             foreach (var row in results)
             {
                 var dataRow = dataTable.NewRow();
                 foreach (var kvp in row)
                 {
-                    // Convert values to string to handle nulls and different types
-                    dataRow[kvp.Key] = kvp.Value?.ToString() ?? "NULL";
+                    dataRow[kvp.Key] = kvp.Value ?? DBNull.Value;
                 }
                 dataTable.Rows.Add(dataRow);
             }
-
             return dataTable;
         }
 
-        public async Task<DataTable> StringToDataTable(string str)
+        public DataTable StringToDataTable(string str)
         {
-            return await CreateDataTableFromDictionary(await StringToDictionary(str));
+            return CreateDataTableFromDictionary(StringToDictionary(str));
         }
 
-        public async Task<UserFavouriteQry?> SaveFavouriteQueryAsync(UserFavouriteQry query)
+        public async Task<string?> AddNewRoleAsync(string newRoleName, CancellationToken ct = default)
         {
-            var response = await _httpClient.PostAsJsonAsync("/User/Favourites/SavedQueries/Add/", query);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<UserFavouriteQry>();
-            }
-            return null;
-        }
-        public async Task<AiQuery?> SaveAiQueryAsync(AiQuery query)
-        {
-            var response = await _httpClient.PostAsJsonAsync("/AI/aiquery", query);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<AiQuery>();
-            }
-            return null;
-        }
-        
-        public async Task<EquipmentCapability?> AddEquipmentCapabilityAsync(EquipmentCapability eqCap)
-        {
-            var response = await _httpClient.PostAsJsonAsync("Divisions/Equipment/Capabilities/Add/", eqCap);
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<EquipmentCapability>();
-            }
-            return null;
-        }
-        public async Task<string?> DeleteFavouriteQueryAsync(int ID)
-        {
-            var response = await _httpClient.DeleteAsync($"/User/Favourites/SavedQueries/Delete/{ID}");
-            if (response.IsSuccessStatusCode)
-            {
-                return await response.Content.ReadFromJsonAsync<string>();
-            }
-            return null;
+            return await PostAsync<object, string>("/Security/roles", new { Name = newRoleName }, ct);
         }
 
-        public async Task<bool> UpdatePlanItem(ProductionPlanItem pI) 
+        public async Task AssignRoleToUserAsync(string userId, string roleName, CancellationToken ct = default)
         {
-            var response = await _httpClient.PutAsJsonAsync($"/Divisions/WIP/UpdateProductionPlanItem/{pI.ProductionPlanItemID}", pI);
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-            return false;
+            var payload = new { RoleName = roleName };
+            await PostAsync<object, object>($"/Security/users/{userId}/roles", payload, ct);
         }
-        public async Task<bool> RecordQueryVote(int qID, string Vote)
+
+        public async Task<UserFavouriteQry?> SaveFavouriteQueryAsync(UserFavouriteQry query, CancellationToken ct = default)
         {
-            var response = await _httpClient.PutAsJsonAsync($"/AI/savedqueries/vote/{qID}/{Vote}", Vote);
-            if (response.IsSuccessStatusCode)
-            {
-                return true;
-            }
-            return false;
+            return await PostAsync<UserFavouriteQry, UserFavouriteQry>("/User/Favourites/SavedQueries/Add/", query, ct);
+        }
+
+        public async Task<AiQuery?> SaveAiQueryAsync(AiQuery query, CancellationToken ct = default)
+        {
+            return await PostAsync<AiQuery, AiQuery>("/AI/aiquery", query, ct);
+        }
+
+        public async Task<ContextualPrompt?> SaveCustomPromptAsync(ContextualPrompt prompt, CancellationToken ct = default)
+        {
+            return await PostAsync<ContextualPrompt, ContextualPrompt>("/AI/ContextualPrompt", prompt,ct);
+        }
+        public async Task<AuthenticationToken?> UserLoginAsync(LoginModel model, CancellationToken ct = default)
+        {
+            return await PostAsync<LoginModel, AuthenticationToken>("/Security/login", model, ct);
+            // Caller should set headers: _httpClient.DefaultRequestHeaders.Authorization = new("Bearer", token);
+        }
+
+        public async Task<AuthenticationToken?> UserRegisterAsync(RegisterModel model, CancellationToken ct = default)
+        {
+            return await PostAsync<RegisterModel, AuthenticationToken>("/Security/register", model, ct);
+            // Caller handles token
+        }
+
+        public async Task<EquipmentCapability?> AddEquipmentCapabilityAsync(EquipmentCapability eqCap, CancellationToken ct = default)
+        {
+            return await PostAsync<EquipmentCapability, EquipmentCapability>("Divisions/Equipment/Capabilities/Add/", eqCap, ct);
+        }
+
+        public async Task<WorkCentreFunctions?> AddWorkCentreFunctionAsync(WorkCentreFunctions wcFunc, CancellationToken ct = default)
+        {
+            return await PostAsync<WorkCentreFunctions, WorkCentreFunctions>("Divisions/WorkCentre/Functions/Add/", wcFunc, ct);
+        }
+
+        public async Task<string?> DeleteFavouriteQueryAsync(int ID, CancellationToken ct = default)
+        {
+            return await DeleteAsync($"/User/Favourites/SavedQueries/Delete/{ID}", ct);
+        }
+
+        public async Task<bool> UpdatePlanItemAsync(ProductionPlanItem pI, CancellationToken ct = default)
+        {
+            return await PutAsync($"/Divisions/WIP/UpdateProductionPlanItem/{pI.ProductionPlanItemID}", pI, ct);
+        }
+
+        public async Task<bool> RecordQueryVoteAsync(int qID, string vote, CancellationToken ct = default)
+        {
+            return await PutAsync($"/AI/savedqueries/vote/{qID}/{Uri.EscapeDataString(vote)}", vote, ct);
         }
     }
-
 }
-
-

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Pulse.Models.AI;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
 using Pulse.Models.PulseContext;
@@ -103,6 +104,31 @@ namespace Pulse.ApiService.Endpoints
                     .Select(a => new { a.Question, a.SqlQuery })
                     .ToListAsync();
                 return Results.Ok(examples);
+            });
+            
+            group.MapGet("/GetContextualPromptById/{promptid}", async (int promptid, PulseDbContext dbContext) =>
+            {
+                var prompt = await dbContext.ContextualPromptMaster
+                    .AsNoTracking()
+                    .Where(a => a.ContextualPromptId == promptid)
+                    .FirstOrDefaultAsync();
+                return Results.Ok(prompt);
+            });
+
+            group.MapPost("/ContextualPrompt", async (ContextualPrompt prompt, PulseDbContext dbContext) =>
+            {
+                dbContext.ContextualPromptMaster.Add(prompt);
+                await dbContext.SaveChangesAsync();
+                return Results.Created($"/AI/ContextualPrompt/{prompt.ContextualPromptId}", prompt);
+            });
+
+            group.MapGet("/GetContextualPromptsByAreaId/{areaid}", async (int areaid, PulseDbContext dbContext) =>
+            {
+                var prompts = await dbContext.ContextualPromptMaster
+                    .AsNoTracking()
+                    .Where(a => a.ContextualAreaId == areaid)
+                    .ToListAsync();
+                return Results.Ok(prompts);
             });
 
             group.MapGet("/savedqueries", async (PulseDbContext dbContext) =>

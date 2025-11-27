@@ -9,19 +9,33 @@ using System.Text.RegularExpressions;
 
 namespace Pulse.Web.Services
 {
-    internal sealed class OllamaService(HttpClient httpOllama, ILogger<OllamaService> logger)
+    public sealed class OllamaService
     {
-        private readonly HttpClient _httpOllama = httpOllama;
-        private readonly ILogger<OllamaService> _logger = logger;
-        public async Task<T?> PostAsync<T>(string requestUri, object payload)
+        private readonly HttpClient _httpOllama;
+        private readonly ILogger<OllamaService> _logger;
+        private readonly string _ollamaApiKey;
+        private readonly string _localBaseAddress = "http://localhost:11434"; // Your local Ollama instance
+        private readonly string _cloudBaseAddress = "https://ollama.com"; // For web_search, etc.
+
+        public OllamaService(HttpClient httpOllama, ILogger<OllamaService> logger, IConfiguration configuration)
         {
+            _ollamaApiKey = configuration["OllamaApi:Key"] ?? string.Empty; // Already in your config
+            httpOllama.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
+            _httpOllama = httpOllama;
+            // _httpOllama.BaseAddress = new Uri(_localBaseAddress); // Default to local
+            _logger = logger;
+            
+        }
+        public async Task<T?> PostAsync<T>(string requestUri, object payload, CancellationToken ct = default)
+        {
+            //ConfigureClientForEndpoint(requestUri);
             try
             {
                 var jsonPayload = JsonSerializer.Serialize(payload);
-                var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
-                var response = await _httpOllama.PostAsync(requestUri, content);
+                using var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+                using var response = await _httpOllama.PostAsync(requestUri, content, ct);
                 response.EnsureSuccessStatusCode();
-                var responseContent = await response.Content.ReadAsStringAsync();
+                var responseContent = await response.Content.ReadAsStringAsync(ct);
                 return JsonSerializer.Deserialize<T>(responseContent, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -30,26 +44,27 @@ namespace Pulse.Web.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
-                return default;
+                throw;
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "JSON deserialization error while processing response from {RequestUri}", requestUri);
-                return default;
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
-                return default;
+                throw;
             }
         }
-        public async Task<T?> GetAsync<T>(string requestUri)
+        public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default)
         {
+            //ConfigureClientForEndpoint(requestUri);
             try
             {
-                var response = await _httpOllama.GetAsync(requestUri);
+                using var response = await _httpOllama.GetAsync(requestUri, ct);
                 response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync();
+                var content = await response.Content.ReadAsStringAsync(ct);
                 return JsonSerializer.Deserialize<T>(content, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
@@ -58,120 +73,107 @@ namespace Pulse.Web.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
-                return default;
+                throw;
             }
             catch (JsonException ex)
             {
                 _logger.LogError(ex, "JSON deserialization error while processing response from {RequestUri}", requestUri);
-                return default;
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error while accessing {RequestUri}", requestUri);
-                return default;
+                throw;
             }
         }
-        public async Task<string> GenerateSQLQueryAsync(string strModel, string schema, string examples, string naturalLanguageQuery)
+
+        private void ConfigureClientForEndpoint(string endpoint)
         {
-
-            //var prompt = $@"
-            //    You are an expert in SQL Server 2022 T-SQL. Given this schema:
-            //    {schema}
-
-            //    {examples}
-
-            //    User question: {naturalLanguageQuery}
-
-            //    Generate a valid SQL Server 2022 SELECT query in plain text. Return ONLY the T-SQL query.
-            //    Use schema for accurate joins/columns.
-            //    ";
-
+            if (endpoint.StartsWith("https://ollama.com", StringComparison.OrdinalIgnoreCase))
+            {
+                _httpOllama.BaseAddress = new Uri(_cloudBaseAddress);
+                if (!string.IsNullOrEmpty(_ollamaApiKey))
+                {
+                    _httpOllama.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
+                }
+                else
+                {
+                    _logger.LogWarning("Ollama API key missing for cloud endpoint {Endpoint}", endpoint);
+                }
+            }
+            else
+            {
+                _httpOllama.BaseAddress = new Uri(_localBaseAddress);
+                _httpOllama.DefaultRequestHeaders.Authorization = null; // Clear for local
+            }
+        }
+        public async Task<string> GenerateSQLQueryAsync(string strModel, string schema, string examples, string naturalLanguageQuery, CancellationToken ct = default)
+        {
             var strPrompt = $"""
-                    You are a SQL expert for a SQL Server 2022 database. Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the following schema and user question.
-                    - Use exact table/column names.
-                    - Respect relationships for joins (e.g., use FK columns).
-                    - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-                    - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
-                    - Prefix the SQL statement with [SQL Start] and End with [SQL End].
-
-                    Database Schema:
-                    {schema}
-
-                    {examples}
-
-                    User Question: {naturalLanguageQuery}
-                    """;
+                You are a SQL expert for a SQL Server 2022 database.
+                - You will be provided with the database schema and a user question.
+                - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the schema and user question.
+                - Use the table/column names that are in the schema.
+                - Respect relationships for joins
+                - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
+                - Format DateTime data types as "dd-MM-yy"
+                - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
+              
+                Schema:
+                {schema}
+                {examples}
+                User Question:
+                {naturalLanguageQuery}
+                """;
 
             var requestBody = new
             {
-                //model = ai.ModelName,
-                //prompt = ai.Prompt,
                 model = strModel,
                 prompt = strPrompt,
                 stream = false,
-                max_tokens = 512,
-                temperature = 0.0
+                options = new { temperature = 0.0, num_predict = 8000 }
             };
 
-            try
+            var ollamaResponse = await PostAsync<OllamaGenerateResponse>("/api/generate", requestBody, ct);
+            if (ollamaResponse == null || !ollamaResponse.Done || string.IsNullOrEmpty(ollamaResponse.Response))
             {
-                var jsonRequest = JsonSerializer.Serialize(requestBody);
-                var httpContent = new StringContent(jsonRequest, System.Text.Encoding.UTF8, "application/json");
-                //var response = await _httpOllama.PostAsJsonAsync("/api/generate", requestBody);
-                var response = await _httpOllama.PostAsync("/api/generate", httpContent);
-                response.EnsureSuccessStatusCode();
-                var responseString = await response.Content.ReadAsStringAsync();
-                var ollamaResponse = JsonSerializer.Deserialize<OllamaGenerateResponse>(responseString, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+                throw new InvalidOperationException("Ollama generation incomplete or empty.");
+            }
 
-                if (ollamaResponse == null || !ollamaResponse.Done)
+            var fullResponse = ollamaResponse.Response.Trim();
+
+            // Extract SQL: First try [SQL Start]/[SQL End], then fallback to ```sql
+            var sqlStart = fullResponse.IndexOf("[SQL Start]");
+            if (sqlStart >= 0)
+            {
+                sqlStart += "[SQL Start]".Length;
+                var sqlEnd = fullResponse.IndexOf("[SQL End]", sqlStart);
+                if (sqlEnd > sqlStart)
                 {
-                    throw new Exception("Ollama generation incomplete or failed.");
+                    return fullResponse.Substring(sqlStart, sqlEnd - sqlStart).Trim();
                 }
-
-                // Extract and trim the generated SQL
-                return ollamaResponse.Response?.Trim() ?? "Error: Empty response from Ollama.";
             }
-            //if (!response.IsSuccessStatusCode)
-            //{
-            //    var errorContent = await response.Content.ReadAsStringAsync();
-            //    return $"Error: Ollama returned status {response.StatusCode}. Details: {errorContent}";
-            //}
 
-            //var responseContent = await response.Content.ReadFromJsonAsync<JsonElement>();
-            //var rawResponse = responseContent.GetProperty("response").GetString()?.Trim();
-
-            //if (string.IsNullOrWhiteSpace(rawResponse))
-            //{
-            //    return "Error: Generated SQL query is empty.";
-            //}
-
-            ////var match = Regex.Match(rawResponse, @"^\s*SELECT\s+.*?(?:;|$)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-            ////var sqlQuery = match.Success ? match.Value.Trim() : null;
-            //var sqlQuery = rawResponse;
-            //if (sqlQuery == null)
-            //    return $"Error: Generated query is not a valid SELECT statement.\nGenerated: {rawResponse}";
-            //if (!sqlQuery.EndsWith(";")) sqlQuery += ";";
-
-            //return $"Generated SQL: {sqlQuery}";
-            //}
-            
-            catch (HttpRequestException httpEx)
+            // Fallback to markdown or plain SELECT
+            sqlStart = fullResponse.IndexOf("```sql");
+            if (sqlStart >= 0)
             {
-                // Handle Ollama offline, network issues
-                throw new Exception($"Ollama connection error: {httpEx.Message}. Ensure Ollama is running on localhost:11434.");
+                sqlStart += 6; // Skip ```sql
+                var sqlEnd = fullResponse.IndexOf("```", sqlStart);
+                if (sqlEnd > sqlStart)
+                {
+                    return fullResponse.Substring(sqlStart, sqlEnd - sqlStart).Trim();
+                }
             }
-            catch (JsonException jsonEx)
+
+            // Regex fallback for plain SELECT
+            var match = Regex.Match(fullResponse, @"SELECT\s+.*?(?:;|$)", RegexOptions.IgnoreCase | RegexOptions.Singleline | RegexOptions.Multiline);
+            if (match.Success)
             {
-                // Handle malformed response
-                throw new Exception($"Ollama response parsing error: {jsonEx.Message}");
+                return match.Value.Trim();
             }
-            catch (Exception ex)
-            {
-                return $"Error: General: {ex.Message}";
-            }
+
+            throw new InvalidOperationException($"No valid SQL found in Ollama response: {fullResponse}");
         }
     }
 }

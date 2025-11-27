@@ -14,6 +14,7 @@ using Pulse.Models.Rollers;
 using Pulse.Models.Compounds;
 using Pulse.Models.Users;
 using Pulse.Models.Production;
+using Pulse.Models.AI;
 
 namespace Pulse.Models.PulseContext
 {
@@ -58,6 +59,9 @@ namespace Pulse.Models.PulseContext
         public DbSet<EquipmentItem> EquipmentItemMaster { get; set; }
         public DbSet<EquipmentCapability> EquipmentCapabilities {  get; set; }
         public DbSet<ClientCalendarEvent> ClientCalendarEvents {  get; set; }
+        public DbSet<ContextualArea> ContextualAreaMaster { get; set; }
+        public DbSet<ContextualPrompt> ContextualPromptMaster { get; set; }
+        public DbSet<UserSettings> UserSettingsMaster { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -100,6 +104,9 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new EquipmentItemMasterMap());
             modelBuilder.ApplyConfiguration(new EquipmentCapabilitiesMap());
             modelBuilder.ApplyConfiguration(new ClientCalendarEventsMap());
+            modelBuilder.ApplyConfiguration(new ContextualAreaMasterMap());
+            modelBuilder.ApplyConfiguration(new ContextualPromptMasterMap());
+            modelBuilder.ApplyConfiguration(new UserSettingsMasterMap());
 
             base.OnModelCreating(modelBuilder);
         }

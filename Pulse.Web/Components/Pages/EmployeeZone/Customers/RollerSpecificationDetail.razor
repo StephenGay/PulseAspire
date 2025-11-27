@@ -2,20 +2,54 @@
 @using Pulse.Models.Compounds
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
+@using Pulse.Models.Industries
 @using Pulse.Models.Misc
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
+@using Pulse.Models.Rollers
 @using Pulse.Web.Services
 
 @inject DataTransferService dtf
+@inject PulseApiService pApiClient
 @inject HttpClient Http
 @rendermode InteractiveServer
 
+<style>
+    .accordion{
+    --bs-accordion-active-color: white !important;
+    --bs-accordion-active-bg: #365b66 !important;
+    --bs-accordion-color: white !important;
+    --bs-accordion-bg: #365b66 !important;
+    }
+    .accordion-button{
+        color: white !important;
+    }
+    .accordion-item{
+        background-color: #bcd1d4 !important;
+    }
+
+    :global(fluent-select::part(label)) {
+        display: block !important;
+        margin-bottom: 0.25rem !important;
+    }
+
+    
+    fluent-select {
+        display: inline-block !important; /* prevent Bootstrap flex rules */
+        vertical-align: top;
+    }
+
+        /* Optional: make sure the select itself fills width if desired */
+        fluent-select::part(control) {
+            width: 100%;
+        }
+    
+</style>
 <FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
     
     
 
-    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; overflow: none;">
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; background-color:white; border-radius: 10px;overflow: auto;">
         @if (cSpec == null)
         {
             <div class="div-center-screen">@*  style="height:100%; border: 2px solid black; border-radius: 10px; background-color:white;width:100%;"> *@
@@ -26,72 +60,121 @@
         else
         {
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%" Style="padding: 10px; flex: 0">
-            <FluentLabel Typo="Typography.Body" Style="color:white; width:50%;text-align:start;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
-                <FluentLabel Typo="Typography.Body" Style="color:white; width:50%;text-align:end;">@cSpec.Description</FluentLabel>
+            <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:start;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
+                <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:end;">@cSpec.Description</FluentLabel>
             </FluentStack>
             @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; flex: 1; overflow-y: auto; height:100%;">
-               @*  <Tab IsCard="true" ShowClose="true" TabStyle="TabStyle.Capsule" style="Height:100% ; width:100% ;" AllowDrag="true" ShowToolbar="true">
-                    <TabItem Text="Details" Icon="fa-solid fa-user">
-                        <div>I am a user manager</div>
-                    </TabItem>
-                    <TabItem Text="Roll Numbers" Icon="fa-solid fa-gauge-high">
-                        @if (cSpec.ClientRollers != null)
-                        {
-                            <br />
-                            <FluentDataGrid Style="background-color: white ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
-                                <PropertyColumn Property="@(r => r.ClientRollerNumber)" Title="Roll No" />
-                                <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
-                                <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
-                                <PropertyColumn Property="@(r => r.ShellWeight)" Title="Shell Weight" />
-                                <PropertyColumn Property="@(r => r.ShellDefects)" Title="Shell Defects" />
-                                <PropertyColumn Property="@(r => r.IsActive)" Title="Active" />
-                            </FluentDataGrid>
-                        }
-                    </TabItem>
-                    <TabItem Text="Work Order History" Icon="fa-solid fa-sitemap">
-                        @if (cSpec.WorksOrders != null)
-                        {
-                            <FluentDataGrid Style="background-color: white ; width: 100%;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
-                                <TemplateColumn Title="Period">
-                                    @context.Period.Month - @context.Period.CalendarYear
-                                </TemplateColumn>
-                                <PropertyColumn Property="@(r => r.WorksOrderNo)" Title="WO No" />
-                                <PropertyColumn Property="@(r => r.WorkType.WorkTypeName)" Title="Work Type" />
-                                <PropertyColumn Property="@(r => r.ClientRollNo)" Title="Roll No" />
-                                <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
-                                <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
-                                <TemplateColumn Title="Cover">
-                                    @if (context.Compound != null)
-                                    {
-                                        @context.Compound.CompoundDescription
-                                    }
-                                    else
-                                    {
-                                        <span style="color: #999;">—</span>
-                                    }
-                                </TemplateColumn>
-                                <PropertyColumn Property="@(r => r.CoverDiameter)" Title="Cover Diameter" />
-                            </FluentDataGrid>
-                        }
-                    </TabItem>
-                    <TabItem Text="Attachments " Icon="fa-solid fa-building-columns">
-                        <div>I am department management</div>
-                    </TabItem>
-                </Tab> *@
+              
                <Collapse IsAccordion="false" style="width:100%; height:100%; border-radius:10px;">
                     <CollapseItems>
-                        <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="false">
-                            <div>Consistent with real life: consistent with real-life processes, logic, follow the user's habits of language and concepts;</div>
-                            <div>Consistent in the interface: All elements and structures need to be consistent, such as design styles, icons and text, the location of elements, and so on.</div>
-                            <div style="flex 1"><Empty /></div>
+                        <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="false" >
+                            <FluentStack Orientation="Orientation.Vertical"
+                                         HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
+                                         VerticalAlignment="VerticalAlignment.Center"
+                                         VerticalGap="20">
+                                         
+                               
+                                <FluentStack Orientation="Orientation.Horizontal"
+                                             HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
+                                             VerticalAlignment="VerticalAlignment.Center"
+                                             HorizontalGap="4"
+                                             >
+                                    <FluentTextField @bind-Value=cSpec.Description Style="min-width:40%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Roller Description</FluentTextField>
+                                    <FluentSpacer />
+                                    <FluentTextField @bind-Value=cSpec.ArticleNumber Style="min-width:20%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Article Number</FluentTextField>
+                                    <FluentSpacer />
+                                    <FluentTextField @bind-Value=cSpec.DrawingNumber Style="min-width:20%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Drawing Number</FluentTextField>
+                                </FluentStack>
+                                
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;">
+                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Shell Details</FluentLabel>
+                                    <FluentStack Orientation="Orientation.Horizontal"
+                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
+                                                 VerticalAlignment="VerticalAlignment.Center"
+                                                 Style="padding:10px;"
+                                                 HorizontalGap="4">
+                                        <FluentNumberField @bind-Value=cSpec.ShellDiameter Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Diameter</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.ShellMinimumDiameter Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Minimum Diameter</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.ShellLength Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Length</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.ShellWeight Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Weight</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentTextField @bind-Value=cSpec.ShellTypeName Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Type</FluentTextField>
+                                    </FluentStack>
+                                </FluentStack>
+
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;">
+                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Cover Details</FluentLabel>
+                                    <FluentStack Orientation="Orientation.Horizontal"
+                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
+                                                 VerticalAlignment="VerticalAlignment.Center"
+                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-top:10px;"
+                                                 HorizontalGap="4">
+                                        <FluentTextField @bind-Value=cSpec.CompoundCode Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Compound</FluentTextField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.HardnessRequired Appearance="FluentInputAppearance.Filled" ReadOnly="true">Hardness Required</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.HardnessToleranceAllowed Appearance="FluentInputAppearance.Filled">Tolerance Allowed</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentTextField @bind-Value=cSpec.HardnessTypeRequired Appearance="FluentInputAppearance.Filled" ReadOnly="true">Hardness Type</FluentTextField>
+                                    </FluentStack>
+                                    <FluentStack Orientation="Orientation.Horizontal"
+                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
+                                                 VerticalAlignment="VerticalAlignment.Center"
+                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-bottom:10px;"
+                                                 HorizontalGap="4">
+                                        <FluentNumberField @bind-Value=cSpec.CoverLength Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Length</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.CoverDiameter Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Diameter</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.CoverLeftOffset Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Left Offset</FluentNumberField>
+                                        <FluentSpacer />
+                                        <FluentNumberField @bind-Value=cSpec.CoverMinimumDiameter Appearance="FluentInputAppearance.Filled" ReadOnly="true">Minimum Regrind Diameter</FluentNumberField>
+                                    </FluentStack>
+                                </FluentStack>
+
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;">
+                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Operating Environment</FluentLabel>
+                                    <FluentStack Orientation="Orientation.Horizontal"
+                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
+                                                 VerticalAlignment="VerticalAlignment.Center"
+                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-top:10px;"
+                                                 HorizontalGap="4">
+                                        
+                                            <FluentSelect TOption="RollerType" Items="rollerTypes" OptionValue="@(r=>r.RollerTypeID.ToString())"
+                                                        Label="Roller Type"
+                                                      ReadOnly="true"
+                                                          OptionText="@(r=>r.RollerTypeName)"
+                                                          Placeholder="Select Roller Type..."
+                                                      @bind-SelectedOption="@selectedRollerType"></FluentSelect>
+                                        
+                                        <FluentSpacer />
+                                        <FluentTextField @bind-Value=cSpec.MachineType Appearance="FluentInputAppearance.Filled" ReadOnly="true">Machine Type</FluentTextField>
+                                        <FluentSpacer />
+                                        
+                                            <FluentSelect Label="Process" TOption="IndustryProcess" Items="industryProcesses" OptionValue="@(r => r.IndustryProcessID.ToString())"
+                                                      ReadOnly="true"
+                                                      
+                                                          Appearance="Appearance.Outline"
+                                                          OptionText="@(r=>r.ProcessName)"
+                                                          Placeholder="Select Process..."
+                                                          @bind-SelectedOption="@selectedProcess" />
+                                        
+                                        @* <FluentNumberField @bind-Value=cSpec.ProcessID Appearance="FluentInputAppearance.Filled" ReadOnly="true">Process</FluentNumberField> *@
+                                    </FluentStack>
+                                    <FluentTextField @bind-Value=cSpec.RollerFunction Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-bottom:10px;width:100%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Roller Function</FluentTextField>
+                                </FluentStack>
+                            </FluentStack>
                         </CollapseItem>
-                        <CollapseItem Text="Roll Numbers" Icon="bi bi-disc-fill" IsCollapsed="false">
+                        <CollapseItem Text="Roll Numbers" Icon="bi bi-disc-fill" IsCollapsed="true" >
                             
                             <div style="flex 1">
                                 @if (cSpec.ClientRollers != null)
                                 {
-                                    <FluentDataGrid Style="background-color: white ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
+                                    <FluentDataGrid Style="background-color: white; color: black ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
                                         <PropertyColumn Property="@(r => r.ClientRollerNumber)" Title="Roll No" />
                                         <PropertyColumn Property="@(r => r.ShellLength)" Title="Shell Length" />
                                         <PropertyColumn Property="@(r => r.ShellDiameter)" Title="Shell Diameter" />
@@ -107,7 +190,7 @@
                             <div style="flex 1">
                                 @if (cSpec.WorksOrders != null)
                                 {
-                                    <FluentDataGrid Style="background-color: white ; width: 100%;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
+                                    <FluentDataGrid Style="background-color: white; color: black ; width: 100%;; border-radius:20px;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
                                         <TemplateColumn Title="Period">
                                             @context.Period.Month - @context.Period.CalendarYear
                                         </TemplateColumn>
@@ -135,7 +218,6 @@
                             <div>User decision-making: according to the scene can give the user action advice or security tips, but can not replace the user to make decisions;</div>
                             <div>Results controllable: Users are free to perform actions, including undoing, falling back, and terminating the current operation.</div>
                         </CollapseItem>
-                        <div style="flex 1"><Empty /></div>
                     </CollapseItems>
                 </Collapse>
                 
@@ -151,19 +233,36 @@
     private ClientRollerSpecification? cSpec;
     private bool isLoading = true;
     private List<ClientRollerDto>? rollers2;
+    private List<RollerType>? rollerTypes;
+    private RollerType? selectedRollerType;
+    private IndustryProcess? selectedProcess;
+    private List<IndustryProcess>? industryProcesses;
+    private Customer? customer;
 
     protected override async Task OnInitializedAsync()
     {
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
         await GetSpecInfo();
+        rollerTypes = await pApiClient.GetAsync<List<RollerType>>("/Technical/RollerTypes/GetAll");
         isLoading = false;
     }
 
     private async Task GetSpecInfo()
     {
         await dtf.SetgvAIContextMode("RollerSpecification");
+        await dtf.SetgvContextArea(2);
         ClientRollerSpecification tmpSpec = await dtf.GetgvSelectedRollSpec();
+        customer = await dtf.GetgvSelectedClient();
+        if (customer.IndustryID == null)
+        {
+            industryProcesses = new List<IndustryProcess>();
+        }
+        else
+        {
+            industryProcesses = await pApiClient.GetAsync<List<IndustryProcess>>($"/Technical/IndustryProcess/GetByIndustry/{customer.IndustryID}");
+        }
+        
         if(tmpSpec.ClientRollers == null)
         {
             var rollers = await Http.GetFromJsonAsync<ICollection<ClientRollerDto>>($"http://localhost:7466/Customers/RollerSpecifications/AllDetailsBySpecID/{tmpSpec.ClientRollerSpecificationID}");

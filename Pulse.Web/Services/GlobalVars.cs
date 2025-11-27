@@ -5,6 +5,7 @@ using Pulse.Models.Production;
 using Pulse.Models.Users;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Toolbelt.Blazor.SpeechSynthesis;
 
 namespace Pulse.Web.Services
 {
@@ -19,9 +20,13 @@ namespace Pulse.Web.Services
         public List<WorkInProgressDto> gv_Selected_Division_WIP { get; set; }
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
         public string gv_AIContext_Mode { get; set; }
+        public    int gv_Context_Area { get; set; }
+        public SpeechSynthesisVoice gv_User_AI_Voice { get; set; }
+        public string gvUserFirstName { get; set; }
         public async Task SetgvUser(User user)
         {
             gv_user = user;
+            gvUserFirstName = gv_user.UserName.Split(' ')[0];
             await Task.CompletedTask;
         }
         public async Task<User> GetgvUser()
@@ -29,6 +34,33 @@ namespace Pulse.Web.Services
             return await Task.FromResult(gv_user);
         }
 
+        public async Task SetgvUserFirstName(string firstName)
+        {
+            gvUserFirstName = firstName;
+            await Task.CompletedTask;
+        }
+        public async Task<string> GetgvUserFirstName()
+        {
+            return await Task.FromResult(gvUserFirstName);
+        }
+        public async Task SetgvUserAIVoice(SpeechSynthesisVoice aiVoice)
+        {
+            gv_User_AI_Voice = aiVoice;
+            await Task.CompletedTask;
+        }
+        public async Task<SpeechSynthesisVoice> GetgvUserAIVoice()
+        {
+            return await Task.FromResult(gv_User_AI_Voice);
+        }
+        public async Task SetgvContextArea(int areaID)
+        {
+            gv_Context_Area = areaID;
+            await Task.CompletedTask;
+        }
+        public async Task<int> GetgvContextArea()
+        {
+            return await Task.FromResult(gv_Context_Area);
+        }
         //public async Task SetClientId(string clientId)
         //{
         //    gv_clientId = clientId;
@@ -128,6 +160,14 @@ namespace Pulse.Web.Services
         public Task<List<WorkInProgressDto>> GetgvSelectedDivisionWIP();
         public Task<string> GetgvAIContextMode();
         public Task SetgvAIContextMode(string mode);
+        public Task SetgvContextArea(int areaID);
+        public Task<int> GetgvContextArea();
+
+        public Task SetgvUserAIVoice(SpeechSynthesisVoice aiVoice);
+        public Task<SpeechSynthesisVoice> GetgvUserAIVoice();
+
+        public Task SetgvUserFirstName(string firstName);
+        public Task<string> GetgvUserFirstName();
     }
     public class TypeConverter : JsonConverter<Type>
     {

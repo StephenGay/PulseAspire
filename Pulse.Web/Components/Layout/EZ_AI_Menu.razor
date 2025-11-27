@@ -47,7 +47,7 @@
             }
             @if (sState == "IDLE")
             {
-                <button  type="button" style="background-color: #365b66; color: white; height:80%" @onclick="@(e => IsOpen = !IsOpen)"><h3 class="bi bi-robot" /></button>
+                <button  type="button" style="background-color: #365b66; color: white; height:80%" @onclick="OpenAIMenu"><h3 class="bi bi-robot" /></button>
             }
             @if (sState == "BUSY")
             {
@@ -134,10 +134,25 @@
     public bool isSales { get; set; }
     private bool isLoading = true;
     private string sState = "LOAD";
+    private int? ContextAreaId;
     string fileName = string.Empty;
     private bool useSpeechOutput = true;
     private Division? Division;
 
+    private async Task OpenAIMenu()
+    {
+        ContextAreaId = await dataTrf.GetgvContextArea();
+        switch (ContextAreaId)
+        {
+            case 3:
+                IsOpen = true;
+                break;
+            default:
+                SendToast("Warning", "Invalid Page", "This page does not have contextual AI yet.");
+                return;
+        }
+        
+    }
     private async Task SayIt(string text)
     {
         if (WebSpeechService != null && useSpeechOutput)
@@ -149,6 +164,8 @@
         }
         // Microsoft Ava Online(Natural) - English(United States)(en - US)
     }
+
+    
     private async Task TestSpeech()
     {
         SayIt("This is a test to debug voices");

@@ -43,13 +43,13 @@ else
     </FluentStack>
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="flex: 1 0 none; overflow-y : scroll; ">
         <Table TItem="ClientRollerSpecification" Items="Items"
-        HeaderStyle="TableHeaderStyle.Light"
-        IsBordered="true" IsStriped="true" IsFixedFooter="true"
+        HeaderStyle="TableHeaderStyle.Dark"
+        IsBordered="true" IsStriped="false" IsFixedFooter="true"
         @bind-SelectedRow="selSpec" IsMultipleSelect="false"
         OnQueryAsync="@FixItems"
         AllowResizing="true"
         ScrollMode="ScrollMode.Virtual"
-        ShowFilterHeader="true"
+        ShowFilterHeader="false"
         ClickToSelect="true"
         OnClickRowCallback="tblClick"
         ShowFooter="true">
@@ -82,6 +82,7 @@ else
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
         await GetClientInfo();
+        await DataTransferService.SetgvContextArea(0);
         isLoading = false;
     }
 

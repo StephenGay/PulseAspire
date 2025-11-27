@@ -30,7 +30,7 @@ namespace Pulse.Models.Users
         public string PasswordHash { get; set; } = string.Empty;
         public ICollection<UserFavouriteQry>? UserFavouriteQueries { get; set; } = new HashSet<UserFavouriteQry>();
 
-
+        public UserSettings UserSettings { get; set; } = new UserSettings();
 
     }
 }

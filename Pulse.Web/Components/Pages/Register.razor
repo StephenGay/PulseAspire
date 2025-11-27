@@ -1,0 +1,39 @@
+﻿@page "/register"
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users  // If RegisterModel is shared
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject Pulse.Web.Services.PulseApiService pApi
+@inject IJSRuntime JS  // For optional token storage
+@rendermode InteractiveServer
+
+<FluentCard>
+    <h3>Register</h3>
+    <FluentTextField @bind-Value="registerModel.Email" Label="Email" />
+    <FluentTextField @bind-Value="registerModel.FullName" Label="Full Name" />
+    <FluentTextField @bind-Value="registerModel.Password" Label="Password" Type="password" />
+    <FluentTextField @bind-Value="registerModel.ConfirmPassword" Label="Confirm Password" Type="password" />
+    <FluentButton Appearance="Appearance.Accent" @onclick="HandleRegister">Register</FluentButton>
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <FluentMessageBar Severity="MessageSeverity.Error">@errorMessage</FluentMessageBar>
+    }
+</FluentCard>
+
+    @code {
+    private RegisterModel registerModel = new();
+    private string errorMessage;
+
+    private async Task HandleRegister()
+    {
+        var response = await pApi.UserRegisterAsync(registerModel);
+        if (response != null)
+        {
+            Navigation.NavigateTo("/DivisionLogon");
+        }
+        else
+        {
+            errorMessage = "Registration failed.";
+        }
+    }
+}

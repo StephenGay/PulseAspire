@@ -339,6 +339,7 @@
     private async Task GetClientInfo()
     {
         await DataTransferService.SetgvAIContextMode("ClientSales");
+        await DataTransferService.SetgvContextArea(1);
         _client = await DataTransferService.GetgvSelectedClient();
         
         if (_client is null)

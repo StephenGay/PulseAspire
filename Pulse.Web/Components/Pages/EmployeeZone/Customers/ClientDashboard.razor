@@ -147,6 +147,7 @@ else
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
         await GetClientInfo();
+        await DataTransferService.SetgvContextArea(0);
         isLoading = false;
     }
 

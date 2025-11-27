@@ -23,17 +23,17 @@ else
 {
     <FluentStack Orientation="Orientation.Vertical" Style="background-color:white; border:1px solid black; border-radius:10px;margin:10px;padding:10px;" >
         <FluentDataGrid Items="@wipItemsQueryable" TGridItem="WorkInProgressDto" GenerateHeader="GenerateHeaderOption.Sticky" ResizableColumns="true" Pagination="@pagination" AutoFit="true">
-            <PropertyColumn Property="@(c => c.WorksOrderNo)" Sortable="true" Title="Order No" />
+            <PropertyColumn Property="@(c => c.WorksOrderNo)" Sortable="true" Align="Align.Center" Title="WO No" />
             <PropertyColumn Property="@(c => c.WorkTypeName)" Sortable="true" Title="Work Type" />
             <PropertyColumn Property="@(c => c.ClientName)" Sortable="true" Title="Client" />
             <PropertyColumn Property="@(c => c.Description)" Title="Description" />
-            <PropertyColumn Property="@(c => c.UndelQty)" Sortable="true" Title="Qty" />
-            <PropertyColumn Property="@(c => c.MaterialCost)" Sortable="true" Title="Cost" Format="C2" /> <!-- Currency format -->
-            <PropertyColumn Property="@(c => c.SellPrice)" Sortable="true" Title="Sell Price" Format="C2" />
+            <PropertyColumn Property="@(c => c.UndelQty)" Sortable="true" Align="Align.Center" Title="Qty" Format="#,##0.##" />
+            <PropertyColumn Property="@(c => c.MaterialCost)" Sortable="true" Title="Cost" Align="Align.End" Format="#,##0.00" /> <!-- Currency format -->
+            <PropertyColumn Property="@(c => c.SellPrice)" Sortable="true" Title="Sell Price" Align="Align.End" Format="#,##0.00" />
             <PropertyColumn Property="@(c => c.ProductionStageName)" Sortable="true" Title="Stage" />
-            <PropertyColumn Property="@(c => c.RequiredDate)" Sortable="true" Title="Required" Format="dd/MM/yy" />
+            <PropertyColumn Property="@(c => c.RequiredDate)" Sortable="true" Title="Required" Align="Align.Center" Format="dd/MM/yy" />
             <PropertyColumn Property="@(c => c.WorkCentreName)" Sortable="true" Title="Work Centre" />
-            <PropertyColumn Property="@(c => c.DateStarted)" Sortable="true" Title="Started" Format="dd/MM/yy" />
+            <PropertyColumn Property="@(c => c.DateStarted)" Sortable="true" Title="Started" Align="Align.Center" Format="dd/MM/yy" />
             
             <!-- Add more columns as needed; omit if not displayed -->
         </FluentDataGrid>
@@ -52,6 +52,7 @@ else
         try
         {
             Division = await dataTrf.GetgvSelectedDivision();
+            await dataTrf.SetgvContextArea(3);
             wipItems = await pApiClient.GetAsync<List<WorkInProgressDto>>($"/Divisions/{Division.DivisionID}/GetWIP");
             await dataTrf.SetgvSelectedDivisionWIP(wipItems);
             wipItemsQueryable = wipItems?.AsQueryable();

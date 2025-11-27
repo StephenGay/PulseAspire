@@ -9,8 +9,8 @@
 
 @rendermode InteractiveServer
 
-<div class="div-center-screen" style="align-items:center">
-    <ListView TItem="ProductionStage" Items="@_allWTPS" style="align-items:center; width:100%" OnListViewItemClick="OnWTPSClick" >
+@* <div class="div-center-screen" style="align-items:center"> *@
+    <ListView TItem="ProductionStage" Items="@_allWTPS"  style="align-items:center; width:100%" OnListViewItemClick="OnWTPSClick" >
         <HeaderTemplate>
             <div style="color:white">WORK TYPE PRODUCTION STAGES</div>
         </HeaderTemplate>
@@ -20,11 +20,11 @@
                     <FluentLabel Typo="Typography.H6" style="color:white"><strong>STEP @context.StepNo: @context.ProductionStageName</strong></FluentLabel>
                 </HeaderTemplate>
                 <BodyTemplate>
-                    <br />
-                    <FluentLabel Typo="Typography.Body">Compare: @context.DifficultyMeasurement</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">Base Value: @context.BaseValue = @context.BaseMinutesAtStage mins at Stage</FluentLabel>
-                    <FluentLabel Typo="Typography.Body">Results Page: @context.ResultsPage</FluentLabel>
-                    <br />
+                    
+                    <FluentLabel Typo="Typography.Body" Style="margin-top:5px;padding-left:10px">Compare: @context.DifficultyMeasurement</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Style="padding-left:10px">Base Value: @context.BaseValue = @context.BaseMinutesAtStage mins at Stage</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Style="margin-bottom:5px;padding-left:10px">Results Page: @context.ResultsPage</FluentLabel>
+                    
                 </BodyTemplate>
                 <FooterTemplate>
                     <Badge IsPill="true" Color=@(context.HasMaterial? BootstrapBlazor.Components.Color.Primary : BootstrapBlazor.Components.Color.Light)>Material</Badge>
@@ -41,7 +41,7 @@
             @* <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button OnClick="@ButtonClick" Color="BootstrapBlazor.Components.Color.Info">Information</Button></div> *@
         </FooterTemplate>
     </ListView>
-</div>
+@* </div> *@
 
 
 @code {
@@ -52,6 +52,7 @@
     protected override async Task OnInitializedAsync()
     {
         d = await dTrf.GetgvSelectedDivision();
+        await dTrf.SetgvContextArea(0);
         _allWTPS = await pApiClient.GetAsync<List<ProductionStage>>($"/Divisions/{d.DivisionID}/GetProductionStagesByWorkType/{wtID}");
     }
     private async Task btnWorkCentreClick()

@@ -1,69 +1,70 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
-using Polly.Timeout;
+﻿using Microsoft.Extensions.Logging;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
-using Pulse.Models.Organizational;
-using Pulse.Web.Services;
 using Pulse.Web.Tools;
-using StackExchange.Redis;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
-using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Threading.Tasks;
+// 
 
 namespace Pulse.Web.Services
 {
     public class Pulse_AI
     {
-        private readonly HttpClient _ollamaClient;
         private readonly HttpClient _pulseApiClient;
-        private readonly ILogger<Pulse_AI> _logger; // Optional for logging
-        //private readonly OllamaOptions _options;
-        private readonly string _ollamaApiKey = "76c15b3643ba413aac7429bbb64e119a._BO65S6KcVBYl9PpsPwSc5WI";
+        private readonly ILogger<Pulse_AI> _logger;
+        private readonly OllamaService _ollamaservice;
+        private readonly string _ollamaApiKey;
         private static string? _cachedSchema;
         private static string? _cachedExamples;
         private static DateTime _cacheSchemaExpiry = DateTime.MinValue;
         private static DateTime _cacheExamplesExpiry = DateTime.MinValue;
-
+        private static readonly object _cacheLock = new();
         private static string _toolAttemptName = "";
         private static int _toolAttempts = 0;
         private static bool _CancelQuery = false;
-        const int MAX_TOOL_ATTEMPTS = 5;
-        const int MAX_TOTAL_QRY_ATTEMPTS = 10;
-        const string DEFAULT_MODEL = "gpt-oss:latest";
+        private const int MAX_TOOL_ATTEMPTS = 5;
+        private const int MAX_TOTAL_QRY_ATTEMPTS = 10;
+        private const string DEFAULT_MODEL = "gpt-oss:latest";
 
-        public Pulse_AI(IHttpClientFactory httpClientFactory, ILogger<Pulse_AI> logger)
+        public Pulse_AI(IHttpClientFactory httpClientFactory, OllamaService ollamaService, ILogger<Pulse_AI> logger, IConfiguration configuration)
         {
-            _ollamaClient = httpClientFactory.CreateClient("OllamaClient");
-            if (!string.IsNullOrEmpty(_ollamaApiKey))
-            {
-                _ollamaClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
-            }
             _pulseApiClient = httpClientFactory.CreateClient("PulseApiClient");
-
+            _ollamaservice = ollamaService;
             _logger = logger;
+            
         }
 
-        public async Task CancelQueryAsync() { _CancelQuery = true; await Task.CompletedTask; }
+        public Task CancelQueryAsync()
+        {
+            _CancelQuery = true;
+            return Task.CompletedTask;
+        }
         public async Task<Dictionary<string, string>> GetSQLFromOllamaAsync(string userQuery, string strModel, CancellationToken ct = default)
         {
-            Dictionary<string, string> dResult = new()
+            var dResult = new Dictionary<string, string>
             {
                 { "Status", "" },
                 { "Comments", "" },
                 { "SQL", "" }
             };
 
-            //var httpClient = _httpClientFactory.CreateClient("OllamaClient");
-
-            string schemaText = await GetDetailedSchemaAsync(userQuery, ct);
+            string schemaText;
+            lock (_cacheLock)
+            {
+                schemaText = DateTime.UtcNow < _cacheSchemaExpiry ? _cachedSchema ?? "" : "";
+            }
+            if (string.IsNullOrEmpty(schemaText))
+            {
+                schemaText = await GetDetailedSchemaAsync(ct);
+            }
             if (string.IsNullOrEmpty(schemaText))
             {
                 dResult["Status"] = "Error";
@@ -71,31 +72,31 @@ namespace Pulse.Web.Services
                 return dResult;
             }
 
-            string examples = await GetAiExamplesAsync();
+            string examples = await GetAiExamplesAsync(ct);
+
             string isRetry = "";
             if (userQuery.StartsWith("The previous SQL query was incorrect. Please provide a revised SQL query. "))
             {
                 isRetry = "NOTE: The previous SQL query given was incorrect. Please provide a revised SQL query.";
                 userQuery = userQuery.Replace("The previous SQL query was incorrect. Please provide a revised SQL query. ", "");
             }
+
             var strPrompt = $"""
-            You are a SQL expert for a SQL Server 2022 database. 
-            - You will be provided with the database schema and a user question.
-            - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the schema and user question.
-            - Use the table/column names that are in the schema.
-            - Respect relationships for joins
-            - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-            - Format DateTime data types as "dd-MM-yy"
-            - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
-           
-            Schema:
-            {schemaText}
-
-            {examples}
-
-            User Question: 
-            {userQuery}
-            """;
+                You are a SQL expert for a SQL Server 2022 database.
+                - You will be provided with the database schema and a user question.
+                - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the schema and user question.
+                - Use the table/column names that are in the schema.
+                - Respect relationships for joins
+                - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
+                - Format DateTime data types as "dd-MM-yy"
+                - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
+              
+                Schema:
+                {schemaText}
+                {examples}
+                User Question:
+                {userQuery}
+                """;
 
             var ollamaRequest = new
             {
@@ -105,22 +106,16 @@ namespace Pulse.Web.Services
                 options = new { temperature = 0.0, num_predict = 8000 }
             };
 
-            var jsonContent = JsonSerializer.Serialize(ollamaRequest);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
             try
             {
-                var response = await _ollamaClient.PostAsync("/api/generate", content, ct);
-                response.EnsureSuccessStatusCode();
-                var responseJson = await response.Content.ReadAsStringAsync(ct);
-                var ollamaResponse = JsonSerializer.Deserialize<OllamaGenerateResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
+                var ollamaResponse = await _ollamaservice.PostAsync<OllamaGenerateResponse>("/api/generate", ollamaRequest, ct);
                 if (ollamaResponse == null || !ollamaResponse.Done)
                 {
                     dResult["Status"] = "Error";
                     dResult["Comments"] = "Ollama generation incomplete.";
                     return dResult;
                 }
+
                 var fullResponse = ollamaResponse.Response?.Trim() ?? "";
                 if (string.IsNullOrEmpty(fullResponse))
                 {
@@ -128,14 +123,15 @@ namespace Pulse.Web.Services
                     dResult["Comments"] = "Ollama returned an empty response.";
                     return dResult;
                 }
-                var sqlStartAt = fullResponse.IndexOf("```sql");
+
+                var sqlStartAt = fullResponse.IndexOf("```sql", StringComparison.OrdinalIgnoreCase);
                 if (sqlStartAt < 0)
                 {
-                    sqlStartAt = fullResponse.IndexOf("SELECT");
+                    sqlStartAt = fullResponse.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
                 }
                 else
                 {
-                    sqlStartAt += 6; // Move past '''sql
+                    sqlStartAt += 6;
                 }
                 if (sqlStartAt < 0)
                 {
@@ -143,74 +139,48 @@ namespace Pulse.Web.Services
                     dResult["Comments"] = "Ollama did not return a SQL statement.";
                     return dResult;
                 }
-                var sqlEndAt = fullResponse.IndexOf("```", sqlStartAt);
+
+                var sqlEndAt = fullResponse.IndexOf("```", sqlStartAt, StringComparison.OrdinalIgnoreCase);
                 if (sqlEndAt < 0) sqlEndAt = fullResponse.Length;
+
                 var sql = fullResponse.Substring(sqlStartAt, sqlEndAt - sqlStartAt).Trim();
                 dResult["Status"] = "Success";
-                fullResponse = fullResponse.Substring(0, sqlStartAt).Trim();
-                if (fullResponse.EndsWith("```sql")) { fullResponse = fullResponse.Substring(0, fullResponse.Length - 6).Trim(); }
-                dResult["Comments"] = fullResponse;
+                var comments = fullResponse.Substring(0, sqlStartAt).Trim();
+                if (comments.EndsWith("```sql", StringComparison.OrdinalIgnoreCase))
+                {
+                    comments = comments.Substring(0, comments.Length - 6).Trim();
+                }
+                dResult["Comments"] = comments;
                 dResult["SQL"] = sql;
                 return dResult;
             }
-            catch (TimeoutRejectedException tre)
+            catch (Exception ex) when (ex is TimeoutException || ex is TaskCanceledException)
             {
-                _logger.LogError(tre, "Ollama timed out after policy timeout.");
+                _logger.LogError(ex, "Ollama request timed out or canceled.");
                 dResult["Status"] = "Error";
-                dResult["Comments"] = "Ollama generation timed out—prompt too complex or model overload. Try simpler query or optimize schema.";
+                dResult["Comments"] = "Ollama timed out or canceled—try a simpler query.";
                 return dResult;
             }
-            catch (TaskCanceledException tce) when (!ct.IsCancellationRequested)
+            catch (Exception ex)
             {
-                // This catches actual timeouts (HttpClient.Timeout exceeded)
-                _logger.LogError(tce, "Ollama request timed out after {TimeoutSeconds}s", _ollamaClient.Timeout.TotalSeconds);
+                _logger.LogError(ex, "Error in GetSQLFromOllamaAsync.");
                 dResult["Status"] = "Error";
-                dResult["Comments"] = "Ollama timed out—prompt too complex, service slow, or network issue. Try a simpler query.";
-                return dResult;
-            }
-            catch (TaskCanceledException) when (ct.IsCancellationRequested)
-            {
-                // Optional: Handle explicit cancellation (e.g., via CancellationToken.Pass to PostAsync)
-                _logger.LogWarning("Ollama request was canceled explicitly.");
-                dResult["Status"] = "Error";
-                dResult["Comments"] = "Ollama request was cancelled.";
+                dResult["Comments"] = $"Unexpected error: {ex.Message}";
                 return dResult;
             }
         }
-        private async Task<string> GetDetailedSchemaAsync(string userQuery, CancellationToken ct = default)
+        private async Task<string> GetDetailedSchemaAsync(CancellationToken ct = default)
         {
+            lock (_cacheLock)
+            {
+                if (DateTime.UtcNow < _cacheSchemaExpiry && _cachedSchema != null) return _cachedSchema;
+            }
+
             try
             {
-
-                if (DateTime.UtcNow < _cacheSchemaExpiry && _cachedSchema != null) return _cachedSchema;
-
-                //var apiClient = _httpClientFactory.CreateClient("PulseApiClient");
-                var response = await _pulseApiClient.GetAsync("/AI/schema", ct);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-                _logger.LogDebug("Schema JSON: {Json}", json);
-
-                // Deserialize with fallback
-                List<SchemaDto> schemas;
-                try
-                {
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        AllowTrailingCommas = true // Extra safety for malformed JSON
-                    };
-                    schemas = JsonSerializer.Deserialize<List<SchemaDto>>(json, options) ?? new List<SchemaDto>();
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogWarning(ex, "Deserialization failed - Fallback parsing.");
-                    schemas = ParseSchemaFallback(json);
-                }
-
+                var schemas = await GetSchemaFromApiAsync(ct);
                 if (!schemas.Any())
                 {
-                    _logger.LogWarning("No schemas deserialized.");
                     return "";
                 }
 
@@ -218,16 +188,14 @@ namespace Pulse.Web.Services
                 foreach (var schema in schemas)
                 {
                     schemaBuilder.AppendLine($"Entity: {schema.EntityType} (Table: {schema.TableName})");
-                    schemaBuilder.AppendLine($"Primary Keys: {(schema.PrimaryKeys != null ? string.Join(", ", schema.PrimaryKeys) : "None")}");
-
+                    schemaBuilder.AppendLine($"Primary Keys: {string.Join(", ", schema.PrimaryKeys ?? Enumerable.Empty<string>())}");
                     schemaBuilder.AppendLine("Columns:");
-                    foreach (var col in schema.Columns ?? new List<ColumnDto>())
+                    foreach (var col in schema.Columns ?? Enumerable.Empty<ColumnDto>())
                     {
                         schemaBuilder.AppendLine($"- {col.Name} (Type: {col.DataType}, Nullable: {col.IsNullable}, PK: {col.IsPrimaryKey})");
                     }
-
                     schemaBuilder.AppendLine("Relationships:");
-                    if (schema.Relationships == null || !schema.Relationships.Any())
+                    if (schema.Relationships?.Any() != true)
                     {
                         schemaBuilder.AppendLine("- None");
                     }
@@ -235,14 +203,17 @@ namespace Pulse.Web.Services
                     {
                         foreach (var rel in schema.Relationships)
                         {
-                            schemaBuilder.AppendLine($"- To {rel.RelatedEntityType} (Table: {rel.RelatedTableName}), Navigation: {rel.NavigationName}, FK Columns: {(rel.ForeignKeyColumns != null ? string.Join(", ", rel.ForeignKeyColumns) : "None")}, Cardinality: {rel.Cardinality}");
+                            schemaBuilder.AppendLine($"- To {rel.RelatedEntityType} (Table: {rel.RelatedTableName}), Navigation: {rel.NavigationName}, FK Columns: {string.Join(", ", rel.ForeignKeyColumns ?? Enumerable.Empty<string>())}, Cardinality: {rel.Cardinality}");
                         }
                     }
-                    schemaBuilder.AppendLine(); // Separator
+                    schemaBuilder.AppendLine();
                 }
 
-                _cachedSchema = schemaBuilder.ToString();
-                _cacheSchemaExpiry = DateTime.UtcNow.AddMinutes(120);
+                lock (_cacheLock)
+                {
+                    _cachedSchema = schemaBuilder.ToString();
+                    _cacheSchemaExpiry = DateTime.UtcNow.AddMinutes(120);
+                }
                 return _cachedSchema;
             }
             catch (Exception ex)
@@ -251,422 +222,306 @@ namespace Pulse.Web.Services
                 return "";
             }
         }
-        public async Task<string> GetAiExamplesAsync()
+        public async Task<string> GetAiExamplesAsync(CancellationToken ct = default)
         {
-            if (DateTime.UtcNow < _cacheExamplesExpiry && _cachedExamples != null) return _cachedExamples;
-
-            //var apiClient = _httpClientFactory.CreateClient("PulseApiClient");
-            var response = await _pulseApiClient.GetAsync("/AI/examples");
-            response.EnsureSuccessStatusCode();
-            var content = await response.Content.ReadAsStringAsync();
-
-            var aiQueries = JsonSerializer.Deserialize<List<AiQuery>>(content, new JsonSerializerOptions
+            lock (_cacheLock)
             {
-                PropertyNameCaseInsensitive = true
-            });
-            string examples = "";
-            if (aiQueries != null && aiQueries.Count > 0)
-            {
-                examples = "\nExamples of correct queries:\n";
-                foreach (var ex in aiQueries)
-                {
-                    examples += $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n";
-                }
+                if (DateTime.UtcNow < _cacheExamplesExpiry && _cachedExamples != null) return _cachedExamples;
             }
-            _cachedExamples = examples;
-            _cacheExamplesExpiry = DateTime.UtcNow.AddMinutes(60);
-            return _cachedExamples;
+
+            try
+            {
+                var response = await _pulseApiClient.GetAsync("/AI/examples", ct);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync(ct);
+                var aiQueries = JsonSerializer.Deserialize<List<AiQuery>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<AiQuery>();
+
+                var examples = aiQueries.Any() ? "\nExamples of correct queries:\n" + string.Join("\n", aiQueries.Select(ex => $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n")) : "";
+
+                lock (_cacheLock)
+                {
+                    _cachedExamples = examples;
+                    _cacheExamplesExpiry = DateTime.UtcNow.AddMinutes(60);
+                }
+                return examples;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to fetch AI examples.");
+                return "";
+            }
         }
         public async Task<List<string>> GetOllamaModelsAsync(CancellationToken ct = default)
         {
-            //var httpClient = _httpClientFactory.CreateClient("OllamaClient");
             try
             {
-                var response = await _ollamaClient.GetAsync("/api/tags", ct);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-                var tags = JsonSerializer.Deserialize<OllamaTagsResponse>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                var tags = await _ollamaservice.GetAsync<OllamaTagsResponse>("/api/tags", ct);
                 return tags?.Models?.Select(m => m.Name).ToList() ?? new List<string>();
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to fetch Ollama models - Using fallback.");
-                return new List<string> { "llama3.1:latest", "gemma3:27b", "sqlcoder:15b" }; // Fallback static
+                return new List<string> { "llama3.1:latest", "gemma3:27b", "sqlcoder:15b" };
             }
         }
         public async Task<string> ChatWithOllamaAsync(List<OllamaMessage> historyMessages, string sModel, bool enableSearch = true, CancellationToken ct = default, int qryLoop = 0)
         {
-            //var httpClient = _httpClientFactory.CreateClient("OllamaClient");
-            //if (!string.IsNullOrEmpty(_ollamaApiKey))
-            //{
-            //    httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey); // From config/env
-            //}
-            //else
-            //{
-            //    throw new InvalidOperationException("Ollama API key is missing in configuration.");
-            //}
-
             if (_CancelQuery)
             {
                 _CancelQuery = false;
+                _toolAttempts = 0;
+                _toolAttemptName = "";
                 return "Ok, I cancelled the query.";
             }
-
             if (qryLoop >= MAX_TOTAL_QRY_ATTEMPTS)
             {
-
-                return "My apologies, I seem to be caught in a loop. Maybe try and rephrase the question."; //"Error: Maximum query attempts reached. Unable to process the request further.";
+                _toolAttempts = 0;
+                _toolAttemptName = "";
+                return "My apologies, I seem to be caught in a loop. Maybe try and rephrase the question.";
             }
 
-            string schemaText = await GetDetailedSchemaAsync("NotNeeded", ct);
+            var schemaText = await GetDetailedSchemaAsync(ct);
             if (string.IsNullOrEmpty(schemaText))
             {
-                return "Error : Unable to retrieve database schema information.";
+                return "Error: Unable to retrieve database schema information.";
             }
 
-            string examples = await GetAiExamplesAsync();
-            // (SELECT only unless {user.UserID} is 1)
+            var examples = await GetAiExamplesAsync(ct);
+
             var systemMessage = new OllamaMessage
             {
                 Role = "system",
-                Content = $"""
-                    You are PulseAI, assistant for H&M Rollers[](https://www.hmrollers.com/), covering rollers with Rubber, Polyurethane, etc., for paper, steel, food processing industries. Answer queries on operations, products, services, or general topics using:
-                    - Database schema for internal data (e.g., customer counts, roller materials).
-                    - 'web_search' for trends/external info; 'web_fetch' for URL content.
-                    - 'execute_sql' to run SQL queries .
+                //Content = $"""
+                //    You are PulseAI, a helpful AI for H&M Rollers[](https://www.hmrollers.com/), covering rollers with Rubber, Polyurethane, etc., for paper, steel, food processing industries. Answer queries on operations, products, services, or general topics using:
+                //    - Database schema for internal data (e.g., customer counts, roller materials).
+                //    - 'web_search' for trends/external info; 'web_fetch' for URL content.
+                //    - 'execute_sql' to run SQL queries (SELECT only).
+                //    Schema:
+                //    {schemaText}
+                //    Examples:
+                //    {examples}
+                //    User Question: {historyMessages.LastOrDefault(m => m.Role == "user")?.Content ?? ""}
+                //    **Steps**:
+                //    1. Check schema for relevant tables (e.g., ClientMaster for customers).
+                //    2. If DB needed, generate concise SELECT query (use exact table/column names, WHERE for filters, JOIN only if required).
+                //    3. Run query via 'execute_sql'.
+                //    4. If external info needed, use 'web_search' once, then 'web_fetch' if specific URL required.
+                //    5. After one tool call per type, deliver final answer — no further calls.
 
+                //    (Do not include the SQL Query in your response)
+                //    **Output Format** (always use this structure):
+                //    **Web Search Results**(if used):
+                //    1. [Title](URL): Snippet...
+                //    2. ...
+                //    **SQL Results**(if used): Summary of data, e.g., "42 customers start with A."
+                //    Answer: Concise response with citations [1], [2].
+                //    End with offer to help further.
+                //    **Rules**:
+                //    - Use schema for SQL; respect joins, nullability, data types (e.g., LIKE for strings).
+                //    - Cite web sources. If no answer, say "I don't know."
+                //    - One tool call per type; stop after results.
+                //    """
+                Content = $"""
+                    You are PulseAI, a helpful AI performing services for H&M Rollers, a company that primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials.
+                    Website: https://www.hmrollers.com/ . We cover rollers for various industries including paper, steel, food processing, and more. You will be assisting your colleagues by answering 
+                    questions related to our business operations, products, and services as well as general topics.
+
+                    To enable you to do this effectively, you will rely on your general knowledge, access to web search tools, and querying our internal SQL Server 2022 database. You will decide when 
+                    to use each resource to best answer the user's questions. Sometimes, you may need to use multiple resources in sequence to gather the necessary information. 
+
+                    -If you need to look up recent information, trends or other information not contained in the database, you can use the 'web_search' tool
+                        to perform web searches and the 'web_fetch' tool to retrieve full content from specific URLs
+
+                    The user question is:
+                    {historyMessages.Last(m => m.Role == "user")?.Content}
+
+                    - Check the following schema to see if you need information from the database:
                     Schema:
                     {schemaText}
 
-                    Examples:
                     {examples}
 
-                    User Question: {historyMessages.Last(m => m.Role == "user")?.Content}
+                    If you need information from the database, create a SQL Statement based on the Schema using these guidelines:
+                    - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
+                    - Ensure that you use the exact table and column names from the schema.
+                    - Respect relationships for joins
+                    - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
+                    - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
 
-                    **Steps**:
-                    1. Check schema for relevant tables (e.g., ClientMaster for customers).
-                    2. If DB needed, generate concise SELECT query (use exact table/column names, WHERE for filters, JOIN only if required).
-                    3. Run query via 'execute_sql' for SELECT queries 'execute_action_sql' for others.
-                    4. If external info needed, use 'web_search' once, then 'web_fetch' if specific URL required.
-                    5. After one tool call per type, deliver final answer — no further calls.
-                    
-                    (Do not include the SQL Query in your response)
+                    - Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
+                    - If you require more information to answer a question, you can ask clarifying questions to the user.
+                    - Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
 
-                    **Output Format** (always use this structure):
-                    
-                    **Web Search Results**(if used):
-                            1. [Title](URL): Snippet...
-                            2. ...
-
-                    Answer: concise response with citations.
-                    End with offer to help further.
-
-                    **Rules**:
-                    - Use schema for SQL; respect joins, nullability, data types (e.g., LIKE for strings).
-                    - Cite web sources as [1], [2]. If no answer, say "I don't know."
-                    - One tool call per type; stop after results.
+                    - If tool results (e.g., web_search) are provided in the conversation, use them to refine your answer.
+                    - **CRITICAL: After tool results, provide the final answer without further tool calls. Do not re-search or re-query the same info.**
+                    - Always aim to provide clear, concise, and accurate information in your responses.
+                    - Remember to cite sources when using web search results to support your answers.
+                    - If you do not know the answer to a question, then say you do not know. Do not make up an answer.
+                    - All amounts are South African Rands (ZAR)
+                    - End your answers with a friendly remark or offer further assistance.
                     """
             };
 
-            //5. **Extract**: If web_search has results, call 'web_fetch' to retrieve more info is needed
-            //**Web Search Results**(if used):
-            //        1. [Title](URL): / n
-            //                Snippet...
-            //        2. ...
-            // **Output Format** (always use this structure):
-            // Final Answer: concise response with citations.
-            //        **SQL Query * *(if executed):
-            //        Results: **summary of data, e.g., "42 customers start with A." * *
-            //```sql
-            //        your_sql
-            // Final Answer: concise response with citations. End with offer to help further.
-            // Results: summary of data, e.g., "42 customers start with A."
-            //Content = $"""
-            //    You are PulseAI, an AI assistant performing services for H&M Rollers, a company that primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials.
-            //    Website: https://www.hmrollers.com/ . We cover rollers for various industries including paper, steel, food processing, and more. You will be assisting your colleagues by answering 
-            //    questions related to our business operations, products, and services as well as general topics.
-
-            //    To enable you to do this effectively, you will rely on your general knowledge, access to web search tools, and querying our internal SQL Server 2022 database. You will decide when 
-            //    to use each resource to best answer the user's questions. Sometimes, you may need to use multiple resources in sequence to gather the necessary information. 
-
-            //    -If you need to look up recent information, trends or other information not contained in the database, you can use the 'web_search' tool
-            //        to perform web searches and the 'web_fetch' tool to retrieve full content from specific URLs
-
-            //    The user question is:
-            //    {historyMessages.Last(m => m.Role == "user")?.Content}
-
-            //    - Check the following schema to see if you need information from the database:
-            //    Schema:
-            //    {schemaText}
-
-            //    {examples}
-
-            //    If you need information from the database, create a SQL Statement based on the Schema using these guidelines:
-            //    - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
-            //    - Ensure that you use the exact table and column names from the schema.
-            //    - Respect relationships for joins
-            //    - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-            //    - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
-
-            //    - Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
-            //    - If you require more information to answer a question, you can ask clarifying questions to the user.
-            //    - Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
-
-            //    - If tool results (e.g., web_search) are provided in the conversation, use them to refine your answer.
-            //    - **CRITICAL: After tool results, provide the final answer without further tool calls. Do not re-search or re-query the same info.**
-            //    - Always aim to provide clear, concise, and accurate information in your responses.
-            //    - Remember to cite sources when using web search results to support your answers.
-            //    - If you do not know the answer to a question, then say you do not know. Do not make up an answer.
-            //    - End your answers with a friendly remark or offer further assistance.
-            //    """
-            //Content = $"""
-            //    You are a knowledgeable AI assistant, designed to have friendly chats with users on a large range of topics.
-            //    Sometimes, the user will ask you questions that require querying a SQL Server 2022 database to get accurate answers, if the information is not in your training data,
-            //    especially for recent or company-specific data. For these questions, you must generate and execute SQL queries against the database to retrieve the necessary information.
-            //    The database to query is named dbPulse and the schema is as follows:
-            //    {schemaText}
-            //    Go through the schema thoroughly and understand the table relationships (use FK columns) and how the different entities are
-            //    structured.You can gain access to the database with the following connection string:
-            //    Server=localhost\Dev;Database=dbPulse;Trusted_Connection=True;TrustServerCertificate=True;
-            //    Query the database if needed in order to answer the question below. If you need to ask clarifying questions, then do so.
-            //    If the question does not pertain to the database or its contents, then use your general knowledge to answer. If needed, use web_search to fetch latest info (e.g., trends)
-            //    If you do not know the answer to a question, then say you do not know. Do not make up an answer.
-            //    {examples}
-            //    When you need to query the database, generate a valid SQL Server 2022 T-SQL query to get the data you need.
-            //    Always use SELECT statements only. Do not use DDL or DML statements.
-            //    Ensure that you use the exact table and column names from the schema.
-            //    When filtering on string columns, use the LIKE operator. When filtering on date columns, use CAST to ensure correct format.
-            //    When creating ratios, cast the numerator as float to avoid integer division.
-            //    Always optimize your queries to return only the data you need. Use WHERE clauses to filter data, JOINs only when necessary, and TOP to limit results.
-            //    If your response includes a SQL Query, ensure it is a valid SELECT string (no \n) then use the 'execute_sql' tool with the SQL Query as the argument
-            //    - Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
-            //    The user question is below. Go through it carefully, and then formulate your response
-            //    User question: {historyMessages.Last(m => m.Role == "user")?.Content}
-            //    """
-            //};
-
-            // Combine system + history
             var messages = new List<OllamaMessage> { systemMessage };
             messages.AddRange(historyMessages);
 
-            // Define tools (web_search and web_fetch)
             var tools = new List<object>();
-
-
             if (enableSearch)
             {
-                tools.Add(new
-                {
-                    type = "function",
-                    function = new
-                    {
-                        name = "web_search",
-                        description = "Search the web for current information.",
-                        parameters = new
-                        {
-                            type = "object",
-                            properties = new
-                            {
-                                query = new { type = "string", description = "Search query" }
-                            },
-                            required = new[] { "query" }
-                        }
-                    }
-                });
-                tools.Add(new
-                {
-                    type = "function",
-                    function = new
-                    {
-                        name = "web_fetch",
-                        description = "Fetch full content from a URL.",
-                        parameters = new
-                        {
-                            type = "object",
-                            properties = new
-                            {
-                                url = new { type = "string", description = "URL to fetch" }
-                            },
-                            required = new[] { "url" }
-                        }
-                    }
-                });
+                tools.Add(new { type = "function", function = new { name = "web_search", description = "Search the web for current information.", parameters = new { type = "object", properties = new { query = new { type = "string", description = "Search query" } }, required = new[] { "query" } } } });
+                tools.Add(new { type = "function", function = new { name = "web_fetch", description = "Fetch full content from a URL.", parameters = new { type = "object", properties = new { url = new { type = "string", description = "URL to fetch" } }, required = new[] { "url" } } } });
             }
-            tools.Add(new
-            {
-                type = "function",
-                function = new
-                {
-                    name = "execute_sql",
-                    description = "Execute a SQL query against the dbPulse database and return results.",
-                    parameters = new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            sql = new { type = "string", description = "The SQL query to execute" }
-                        },
-                        required = new[] { "sql" }
-                    }
-                }
-            });
-            tools.Add(new
-            {
-                type = "function",
-                function = new
-                {
-                    name = "execute_action_sql",
-                    description = "Execute a SQL query against the dbPulse database and return results.",
-                    parameters = new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            sql = new { type = "string", description = "The SQL query to execute" }
-                        },
-                        required = new[] { "sql" }
-                    }
-                }
-            });
-            var canThink = false;
-            if (sModel == "gpt-oss:latest" || sModel == "qwen3:32b" || sModel == "deepseek-r1:14b") { canThink = true; }
+            tools.Add(new { type = "function", function = new { name = "execute_sql", description = "Execute a SELECT SQL query against the dbPulse database and return results.", parameters = new { type = "object", properties = new { sql = new { type = "string", description = "The SQL query to execute" } }, required = new[] { "sql" } } } });
+            // Commented: execute_action_sql for safety (enable with user auth)
+            // tools.Add(new { type = "function", function = new { name = "execute_action_sql", ... } });
+
+            var canThink = sModel is "gpt-oss:latest" or "qwen3:32b" or "deepseek-r1:14b";
+
             var ollamaRequest = new
             {
                 model = sModel,
                 messages = messages.ToArray(),
                 tools = tools.ToArray(),
-                think = canThink, // Enable reasoning/tool calls
+                think = canThink,
                 stream = false,
-                options = new { temperature = 0.0, num_ctx = 32000 } // num_predict = 8000 }
+                options = new { temperature = 0.0, num_ctx = 32000 }
             };
-
-            var jsonContent = JsonSerializer.Serialize(ollamaRequest);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             try
             {
-                _logger.LogInformation("Starting Ollama chat for query: {Query}", historyMessages.Last().Content);
-                var response = await _ollamaClient.PostAsync("/api/chat", content, ct);
-                response.EnsureSuccessStatusCode();
-                var responseJson = await response.Content.ReadAsStringAsync(ct);
-
-                // Deserialization with fallback
-                OllamaChatResponse ollamaResponse;
-                try
-                {
-                    ollamaResponse = JsonSerializer.Deserialize<OllamaChatResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                catch (JsonException)
-                {
-                    // Fallback: Parse with JsonDocument for robust handling
-                    using var doc = JsonDocument.Parse(responseJson);
-                    var root = doc.RootElement;
-
-                    ollamaResponse = new OllamaChatResponse
-                    {
-                        Model = root.TryGetProperty("model", out var modelProp) ? modelProp.GetString() : null,
-                        Done = root.TryGetProperty("done", out var doneProp) ? doneProp.GetBoolean() : false,
-                        Message = root.TryGetProperty("message", out var msgProp) ? new OllamaMessage
-                        {
-                            Role = msgProp.TryGetProperty("role", out var roleProp) ? roleProp.GetString() : null,
-                            Content = msgProp.TryGetProperty("content", out var contentProp) ? contentProp.GetString() : null,
-                            ToolCalls = msgProp.TryGetProperty("tool_calls", out var toolProp) && toolProp.ValueKind == JsonValueKind.Array ?
-                                toolProp.EnumerateArray().Select(t => new OllamaToolCall
-                                {
-                                    Function = new OllamaFunctionCall
-                                    {
-                                        Name = t.TryGetProperty("function", out var func) ? (func.TryGetProperty("name", out var name) ? name.GetString() : null) : null,
-                                        Arguments = func.TryGetProperty("arguments", out var args) ? args : default(JsonElement)
-                                    }
-                                }).ToList() : null
-                        } : null
-                    };
-
-                    if (ollamaResponse == null || string.IsNullOrEmpty(ollamaResponse.Message?.Content))
-                    {
-                        throw new Exception("Fallback deserialization failed - Ollama response malformed.");
-                    }
-                }
-
-
-
-
-                // Handle tool calls if any (recursive for multi-turn)
-                if (ollamaResponse.Message.ToolCalls != null && ollamaResponse.Message.ToolCalls.Any())
+                _logger.LogInformation("Starting Ollama chat for query: {Query}", historyMessages.LastOrDefault()?.Content);
+                var ollamaResponse = await _ollamaservice.PostAsync<OllamaChatResponse>("/api/chat", ollamaRequest, ct);
+                if (ollamaResponse?.Message?.ToolCalls?.Any() == true)
                 {
                     await HandleToolCalls(ollamaResponse.Message.ToolCalls, messages, sModel, ct);
-                    // Re-call chat with updated messages for final response
                     return await ChatWithOllamaAsync(messages, sModel, enableSearch, ct, qryLoop + 1);
                 }
                 _logger.LogInformation("Ollama chat completed.");
-                return ollamaResponse.Message.Content.Trim();
+                return ollamaResponse?.Message?.Content?.Trim() ?? "No response from Ollama.";
             }
-            catch (TaskCanceledException tce) when (!ct.IsCancellationRequested)
+            catch (Exception ex)
             {
-                _logger.LogError(tce, "Ollama chat timed out.");
-                throw new Exception("Ollama chat timed out—prompt too complex or service slow.");
+                _logger.LogError(ex, "Error in ChatWithOllamaAsync.");
+                _toolAttempts = 0;
+                _toolAttemptName = "";
+                return $"Error: {ex.Message}";
+                //throw new Exception($"Ollama chat failed: {ex.Message}");
             }
         }
         private async Task HandleToolCalls(List<OllamaToolCall> toolCalls, List<OllamaMessage> messages, string model, CancellationToken ct)
         {
+            var knownTools = new HashSet<string> { "execute_sql", "web_search", "web_fetch" /*, "execute_action_sql" if enabled */ };
+
             foreach (var toolCall in toolCalls)
             {
-                var arguments = toolCall.Function.Arguments; // JsonElement
-                var toolResult = toolCall.Function.Name switch
-                {
-                    "execute_sql" => await ExecuteSqlToolAsync(arguments, ct),
-                    "execute_action_sql" => await ExecuteActionSqlToolAsync(arguments, ct),
-                    "web_search" => await WebSearchAsync(arguments, ct),
-                    "web_fetch" => await WebFetchAsync(arguments, ct),
-                    _ => "Unknown tool"
-                };
+                var args = toolCall.Function.Arguments; // JsonElement
+                var toolName = toolCall.Function.Name ?? "unknown"; // Null-check for safety
 
-                if (string.IsNullOrEmpty(toolResult) || toolResult == "Unknown tool")
+                string toolResult;
+
+                if (_toolAttemptName == toolName && _toolAttempts >= MAX_TOOL_ATTEMPTS)
                 {
-                    _toolAttempts++;
-                    _toolAttemptName = toolCall.Function.Name;
+                    toolResult = $"Error: Max attempts ({MAX_TOOL_ATTEMPTS}) reached for tool '{toolName}'. Skipping.";
+                    _logger.LogWarning(toolResult);
+                }
+                else if (!knownTools.Contains(toolName))
+                {
+                    if(toolName == "assistant<|channel|>commentary") 
+                    {
+                        toolResult = "Ignoring commentary tool call.";
+                        _logger.LogInformation("Ignoring commentary tool call.");
+                        continue;
+                    }
+                    toolResult = $"Invalid tool name '{toolName}'. Available tools: {string.Join(", ", knownTools)}. Please use a valid tool or respond directly.";
+                    _logger.LogWarning("Invalid tool call attempted: {Name}", toolName);
                 }
                 else
                 {
-                    // Append tool result as message
-                    _toolAttempts = 0; // Reset on success
+                    try
+                    {
+                        switch (toolName)
+                        {
+                            case "execute_sql":
+                                if (!args.TryGetProperty("sql", out var sqlProp))
+                                {
+                                    toolResult = "Error: Missing 'sql' argument for execute_sql.";
+                                    break;
+                                }
+                                var sql = sqlProp.GetString() ?? "";
+                                toolResult = await ExecuteSqlToolAsync(sql, ct);
+                                break;
+
+                            case "web_search":
+                                if (!args.TryGetProperty("query", out var queryProp))
+                                {
+                                    toolResult = "Error: Missing 'query' argument for web_search.";
+                                    break;
+                                }
+                                var query = queryProp.GetString() ?? "";
+                                toolResult = await WebSearchAsync(query, ct);
+                                break;
+
+                            case "web_fetch":
+                                if (!args.TryGetProperty("url", out var urlProp))
+                                {
+                                    toolResult = "Error: Missing 'url' argument for web_fetch.";
+                                    break;
+                                }
+                                var url = urlProp.GetString() ?? "";
+                                toolResult = await WebFetchAsync(url, ct);
+                                break;
+
+                            // Add case for "execute_action_sql" if enabling it
+
+                            default:
+                                toolResult = $"Unexpected tool: {toolName}"; // Shouldn't hit if checked above
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, $"Tool '{toolName}' execution failed.");
+                        toolResult = $"Error in tool '{toolName}': {ex.Message}";
+                    }
+                }
+
+                // Update attempt tracking
+                if (toolResult.StartsWith("Error") || toolResult.StartsWith("Invalid"))
+                {
+                    if (_toolAttemptName == toolName) _toolAttempts++;
+                    else
+                    {
+                        _toolAttemptName = toolName;
+                        _toolAttempts = 1;
+                    }
+                }
+                else
+                {
+                    _toolAttempts = 0;
                     _toolAttemptName = "";
                 }
-                messages.Add(new OllamaMessage
-                {
-                    Role = "tool",
-                    Content = toolResult,
-                    ToolName = toolCall.Function.Name
-                });
-            }
-        }
 
-        private async Task<string> ExecuteSqlToolAsync(JsonElement args, CancellationToken ct)
-        {
-            string sql = args.TryGetProperty("sql", out var sqlProp) ? sqlProp.GetString() ?? "" : "";
-            if (string.IsNullOrEmpty(sql))
-            {
-                sql = args.TryGetProperty("query", out var sqlProp2) ? sqlProp2.GetString() ?? "" : "";
-                if (string.IsNullOrEmpty(sql))
+                // Only add if not skipping max attempts
+                if (!toolResult.Contains("Skipping"))
                 {
-                    sql = args.TryGetProperty("arguments", out var sqlProp3) ? sqlProp3.GetString() ?? "" : "";
+                    messages.Add(new OllamaMessage { Role = "tool", Content = toolResult, ToolName = toolName });
                 }
             }
-
+        }
+        private async Task<string> ExecuteSqlToolAsync(string sql, CancellationToken ct)
+        {
             if (string.IsNullOrEmpty(sql))
             {
                 return "Error: Missing 'sql' argument.";
             }
-            //var apiClient = _httpClientFactory.CreateClient("PulseApiClient");
+
             try
             {
                 _logger.LogInformation("Executing SQL tool: {Sql}", sql);
-                // TESTING PUTTING THIS BACK
-                //sql = sql.Replace("/n", " ");
-                var response = await _pulseApiClient.GetAsync($"/AI/execute:{sql}", ct);
+                sql = sql.Replace("\n", " "); // Fixed
+                var response = await _pulseApiClient.GetAsync($"/AI/execute:{Uri.EscapeDataString(sql)}", ct);
                 response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-                return json; // Return raw JSON data for Ollama to use in next turn
+                return await response.Content.ReadAsStringAsync(ct);
             }
             catch (Exception ex)
             {
@@ -695,7 +550,7 @@ namespace Pulse.Web.Services
             {
                 _logger.LogInformation("Executing SQL Action tool: {Sql}", sql);
                 // TESTING PUTTING THIS BACK
-                //sql = sql.Replace("/n", " ");
+                //sql = sql.Replace("\n", " ");
                 var response = await _pulseApiClient.GetAsync($"/AI/ExecuteAiUpdateInsertQry:{sql}", ct);
                 response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(ct);
@@ -708,244 +563,116 @@ namespace Pulse.Web.Services
                 return $"Error executing SQL: {ex.Message}";
             }
         }
-        private async Task<string> WebSearchAsync(JsonElement args, CancellationToken ct)
+        private async Task<string> WebSearchAsync(string query, CancellationToken ct)
         {
-            string query = args.TryGetProperty("query", out var queryProp) ? queryProp.GetString() ?? "" : "";
             if (string.IsNullOrEmpty(query))
             {
                 return "Error: Missing 'query' argument for web_search.";
             }
 
-            //var httpClient = _httpClientFactory.CreateClient("OllamaClient");
-            //httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey); // Ensure key sent
-
             var searchRequest = new { query };
-            var jsonContent = JsonSerializer.Serialize(searchRequest);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
             try
             {
-                _logger.LogInformation("Calling Ollama web_search with query: {Query}", query);
-                var response = await _ollamaClient.PostAsync("https://ollama.com/api/web_search", content, ct); // Cloud API
-                response.EnsureSuccessStatusCode();
-                var searchJson = await response.Content.ReadAsStringAsync(ct);
-
-                // Deserialization with case-insensitive options
-                OllamaWebSearchResponse searchResponse;
-                try
-                {
-                    searchResponse = JsonSerializer.Deserialize<OllamaWebSearchResponse>(searchJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                catch (JsonException)
-                {
-                    // Fallback: Parse with JsonDocument if standard fails
-                    using var doc = JsonDocument.Parse(searchJson);
-                    var root = doc.RootElement;
-
-                    searchResponse = new OllamaWebSearchResponse
-                    {
-                        Results = root.TryGetProperty("results", out var resultsProp) && resultsProp.ValueKind == JsonValueKind.Array
-                            ? resultsProp.EnumerateArray().Select(r => new OllamaWebSearchResult
-                            {
-                                Title = r.TryGetProperty("title", out var titleProp) ? titleProp.GetString() : null,
-                                Url = r.TryGetProperty("url", out var urlProp) ? urlProp.GetString() : null,
-                                Snippet = r.TryGetProperty("snippet", out var snippetProp) ? snippetProp.GetString() : null
-                            }).ToList()
-                            : null
-                    };
-                }
-
+                _logger.LogInformation("Calling web_search with query: {Query}", query);
+                var searchResponse = await _ollamaservice.PostAsync<OllamaWebSearchResponse>("https://ollama.com/api/web_search", searchRequest, ct); // Note: Consider replacing with local or other API for production
                 if (searchResponse?.Results == null || !searchResponse.Results.Any())
                 {
-                    _logger.LogWarning("Web search returned null or empty results for query: {Query}", query);
                     return "No web search results found.";
                 }
 
-                // Format results text
-                //var resultText = string.Join("\n", searchResponse.Results.Select(r => $"{r.Title}: {r.Snippet} ({r.Url})"));
                 var resultText = string.Join("|", searchResponse.Results.Select(r => $"[{r.Title}]({r.Url}): {r.Snippet}"));
-                return resultText.Length > 8000 ? resultText.Substring(0, 8000) + "..." : resultText;
-            }
-            catch (HttpRequestException hre)
-            {
-                _logger.LogError(hre, "Web search HTTP error - Check API key or network.");
-                return $"Error in web search: {hre.Message}. Ensure Ollama API key is valid.";
+                return resultText.Length > 8000 ? resultText[..8000] + "..." : resultText;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unexpected error in web search.");
+                _logger.LogError(ex, "Web search error.");
                 return $"Error in web search: {ex.Message}";
             }
         }
-
-        private async Task<string> WebFetchAsync(JsonElement args, CancellationToken ct)
+        private async Task<string> WebFetchAsync(string url, CancellationToken ct)
         {
-            string url = args.TryGetProperty("url", out var urlProp) ? urlProp.GetString() ?? "" : "";
             if (string.IsNullOrEmpty(url))
             {
                 return "Error: Missing 'url' argument for web_fetch.";
             }
-            //var httpClient = _httpClientFactory.CreateClient("OllamaClient");
-            //httpClient.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
 
             var fetchRequest = new { url };
-            var jsonContent = JsonSerializer.Serialize(fetchRequest);
-            var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-            var response = await _ollamaClient.PostAsync("https://ollama.com/api/web_fetch", content, ct);
-            response.EnsureSuccessStatusCode();
-            var fetchJson = await response.Content.ReadAsStringAsync(ct);
-            var fetchResponse = JsonSerializer.Deserialize<OllamaWebFetchResponse>(fetchJson);
-
-            var contentText = fetchResponse.Content ?? "";
-            return contentText.Length > 8000 ? contentText.Substring(0, 8000) + "..." : contentText;
-        }
-
-        public async Task<List<ClientSales>> GetClientSalesAsync(string clientID, CancellationToken ct = default)
-        {
-            List<ClientSales> fallback = new();
 
             try
             {
-                // Example endpoint call - Adjust to your actual API (e.g., /api/sales/{clientID})
-                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(clientID)}/Sales", ct);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(ct);
-                    _logger.LogError("API request failed: Status {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
-                    return fallback;
-                }
-
-                var json = await response.Content.ReadAsStringAsync(ct);
-                var sales = JsonSerializer.Deserialize<List<ClientSales>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (sales == null || !sales.Any())
-                {
-                    return fallback;
-                }
-                return sales;
+                var fetchResponse = await _ollamaservice.PostAsync<OllamaWebFetchResponse>("https://ollama.com/api/web_fetch", fetchRequest, ct);
+                var contentText = fetchResponse?.Content ?? "";
+                return contentText.Length > 8000 ? contentText[..8000] + "..." : contentText;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetClientSalesAsync.");
-                return fallback;
+                _logger.LogError(ex, "Web fetch error.");
+                return $"Error in web fetch: {ex.Message}";
             }
         }
-
-        public async Task<ClientCurrentStats> GetClientStatsAsync(string fullclientID, CancellationToken ct = default)
+        public async Task<List<ClientSales>> GetClientSalesAsync(string clientID, CancellationToken ct = default)
         {
-            ClientCurrentStats fallback = new();
-
             try
             {
-                // Example endpoint call - Adjust to your actual API (e.g., /api/sales/{clientID})
-                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(fullclientID)}/CurrentStats", ct);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(ct);
-                    _logger.LogError("API request failed: Status {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
-                    return fallback;
-                }
-
+                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(clientID)}/Sales", ct);
+                response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(ct);
-                var stats = JsonSerializer.Deserialize<ClientCurrentStats>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (stats == null)
-                {
-                    return fallback;
-                }
-                return stats;
+                return JsonSerializer.Deserialize<List<ClientSales>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<ClientSales>();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching client sales.");
+                return new List<ClientSales>();
+            }
+        }
+        public async Task<ClientCurrentStats> GetClientStatsAsync(string fullclientID, CancellationToken ct = default)
+        {
+            try
+            {
+                var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(fullclientID)}/CurrentStats", ct);
+                response.EnsureSuccessStatusCode();
+                var json = await response.Content.ReadAsStringAsync(ct);
+                return JsonSerializer.Deserialize<ClientCurrentStats>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new ClientCurrentStats();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetClientStatsAsync.");
-                return fallback;
+                return new ClientCurrentStats();
             }
         }
         public async Task<List<ClientRollerSpecification>> GetClientRollerSpecificationsAsync(string clientID, CancellationToken ct = default)
         {
-            List<ClientRollerSpecification> fallback = new();
-
             try
             {
-                // Example endpoint call - Adjust to your actual API (e.g., /api/sales/{clientID})
                 var response = await _pulseApiClient.GetAsync($"/Customers/Details/{Uri.EscapeDataString(clientID)}/RollerSpecifications", ct);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync(ct);
-                    _logger.LogError("API request failed: Status {StatusCode}, Content: {ErrorContent}", response.StatusCode, errorContent);
-                    return fallback;
-                }
-
+                response.EnsureSuccessStatusCode();
                 var json = await response.Content.ReadAsStringAsync(ct);
-                var specs = JsonSerializer.Deserialize<List<ClientRollerSpecification>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                if (specs == null || !specs.Any())
-                {
-                    return fallback;
-                }
-                return specs;
+                return JsonSerializer.Deserialize<List<ClientRollerSpecification>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<ClientRollerSpecification>();
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in GetClientRollerSpecificationsAsync.");
-                return fallback;
+                return new List<ClientRollerSpecification>();
             }
         }
         public async Task<string> AskPulseAIAsync(string prompt, string sModel, CancellationToken ct = default)
         {
-            //var httpClient = _httpClientFactory.CreateClient("PulseApiClient");
+            var ollamaRequest = new { model = sModel, prompt, stream = false };
 
             try
             {
-                //var dataText = JsonSerializer.Serialize(sales, new JsonSerializerOptions { WriteIndented = true });
-
-                //var prompt = $"""
-                //You will be given the sales history for a customer. You are a financial analysist and will examine the data and provide
-                //meaninful responses to the user query provided.
-
-                //The query will include the customers name which is to be used when referencing the customer, not the client id.
-                //The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
-                //not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
-                //field you are using.
-            
-                //Unless it is specifically asked for in the query, do not include the period sales amounts, just the analysis.
-                //Note: All Sales Amounts are in ZAR (South African Rands)
-
-                //Data:
-                //{dataText}
-
-                //Query: {userQuery}
-                //""";
-
-                var model = sModel;
-                var ollamaRequest = new { model, prompt, stream = false };
-                var jsonContent = JsonSerializer.Serialize(ollamaRequest);
-                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
-                var ollamaResponse = await _ollamaClient.PostAsync("http://localhost:11434/api/generate", content, ct);
-                if (!ollamaResponse.IsSuccessStatusCode)
-                {
-                    var ollamaError = await ollamaResponse.Content.ReadAsStringAsync(ct);
-                    _logger.LogError("Ollama request failed: {Error}", ollamaError);
-                    return $"Error from Ollama: {ollamaError}";
-                }
-
-                var responseJson = await ollamaResponse.Content.ReadAsStringAsync(ct);
-                var ollamaResult = JsonSerializer.Deserialize<OllamaGenerateResponse>(responseJson, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
+                var ollamaResult = await _ollamaservice.PostAsync<OllamaGenerateResponse>("/api/generate", ollamaRequest, ct);
                 return ollamaResult?.Response?.Trim() ?? "No analysis from Ollama.";
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in GetClientSalesAnalysisAsync.");
+                _logger.LogError(ex, "Error in AskPulseAIAsync.");
                 return $"Error: {ex.Message}";
             }
         }
-
         private async Task<List<SchemaDto>> GetSchemaFromApiAsync(CancellationToken ct = default)
         {
-            //var apiClient = _httpClientFactory.CreateClient("PulseApiClient");
             try
             {
                 var response = await _pulseApiClient.GetAsync("/AI/schema", ct);
@@ -953,33 +680,12 @@ namespace Pulse.Web.Services
                 var json = await response.Content.ReadAsStringAsync(ct);
                 _logger.LogDebug("Fetched schema JSON: {Json}", json);
 
-                List<SchemaDto> schemas;
-                try
-                {
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNameCaseInsensitive = true,
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        AllowTrailingCommas = true // Extra safety for malformed JSON
-                    };
-                    schemas = JsonSerializer.Deserialize<List<SchemaDto>>(json, options) ?? new List<SchemaDto>();
-                }
-                catch (JsonException ex)
-                {
-                    _logger.LogWarning(ex, "Deserialization failed - Fallback parsing.");
-                    schemas = ParseSchemaFallback(json);
-                }
-
-                if (!schemas.Any())
-                {
-                    _logger.LogWarning("Deserialized schema is empty - Check API endpoint or JSON format.");
-                }
-
-                return schemas;
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, PropertyNamingPolicy = JsonNamingPolicy.CamelCase, AllowTrailingCommas = true };
+                return JsonSerializer.Deserialize<List<SchemaDto>>(json, options) ?? ParseSchemaFallback(json);
             }
-            catch (HttpRequestException hre)
+            catch (Exception ex)
             {
-                _logger.LogError(hre, "Schema API call failed.");
+                _logger.LogError(ex, "Schema API call failed.");
                 return new List<SchemaDto>();
             }
         }

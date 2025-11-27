@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
+using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
 
@@ -44,6 +45,23 @@ namespace Pulse.ApiService.Endpoints
                 await dbContext.SaveChangesAsync();
                 return Results.Ok($"Item with ID {id} has been deleted.");
             });
+
+            group.MapPut("/{UserId}/UpdateSettings", async (int UserId, UserSettings updatedUser, PulseDbContext db) =>
+            {
+                var item = await db.UserSettingsMaster
+                    .FirstOrDefaultAsync(p => p.UserId == UserId);
+                if (item == null)
+                {
+                    return Results.NotFound($"No Settings found for User ID {UserId}");
+                }
+
+                item.AIDefaultPref = updatedUser.AIDefaultPref;
+                item.AIHasVoice = updatedUser.AIHasVoice;
+                item.AIVoiceID = updatedUser.AIVoiceID;
+                await db.SaveChangesAsync();
+                return Results.Ok();
+            })
+                .WithName("UpdateUserSettings");
         }
     }
 }

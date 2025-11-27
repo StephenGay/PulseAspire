@@ -1,10 +1,10 @@
 ﻿@page "/EmployeeZone/Production/ProductionDashboard"
 @using Azure
-@using Microsoft.AspNetCore.Components.Authorization
-@using Microsoft.Identity.Abstractions
+
 @using Pulse.Models.Production
 @using static MappingExtensions
- @inject IDownstreamApi DownstreamApi
+ 
+@inject Pulse.Web.Services.DataTransferService dt
 @inject Pulse.Web.Services.PulseApiService pApiClient
  @rendermode InteractiveServer
 
@@ -49,7 +49,10 @@
     private bool start = true;
     private bool stop = false;
     private bool ti = true;
-
+    protected override async Task OnInitializedAsync()
+    {
+        await dt.SetgvContextArea(0);
+    }
     private async void btnStartWIP()
     {
         List<WorkInProgressDto> wp = await pApiClient.GetAsync<List<WorkInProgressDto>>("/Divisions/150/GetWIP");

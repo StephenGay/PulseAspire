@@ -1,0 +1,16 @@
+﻿@page "/login"
+@model LoginModel
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<h3>Login</h3>
+<FluentCard>
+    <form method="post">
+        <FluentTextField bind-Value ="Model.Email" Label="Email" />
+        <FluentTextField bind-Value ="Model.Password" Label="Password" Type="password" />
+        <FluentButton Type="submit" Appearance="Appearance.Accent">Login</FluentButton>
+    </form>
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <FluentMessageBar Severity="MessageSeverity.Error">@Model.ErrorMessage</FluentMessageBar>
+    }
+</FluentCard>

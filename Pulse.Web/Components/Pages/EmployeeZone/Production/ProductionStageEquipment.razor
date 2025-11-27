@@ -11,10 +11,20 @@
 
 <style>
     .form-element {
-        border: 1px solid green;
-        border-radius: .5em;
+        /* border: 1px solid green; */
+        /* border-radius: .5em;*/
         padding: 1rem;
-        height:100%;
+        height:100%; 
+    }
+
+    ::deep > .both-gradient {
+        --scroll-fade-next: var(--fill-color);
+        --scroll-fade-previous: var(--fill-color)
+    }
+
+    .fluent-card{
+        padding:5px !important;
+        height:100% !important;
     }
 </style>
 @* <FluentGrid Spacing="@Spacing" OnBreakpointEnter="@OnBreakpointEnterHandler" AdaptiveRendering="true" Justify="@Justification" Style="background-color: var(--neutral-layer-3); padding: 4px; ">
@@ -25,7 +35,9 @@
         <FluentDropZone StopPropagation="true" Data="@filteredEquip" TItem="EquipmentItem" Class="empty-zone"  Draggable="false" Droppable="true" >
         <ListView TItem="EquipmentCapability" Items="@_allPSEquip" style="align-items:center; width:100%" OnListViewItemClick="OnPSEClick">
         <HeaderTemplate>
-            <div style="color:white">EQUIPMENT USED IN THE PRODUCTION STAGE</div>
+            @if (PS != null){
+                <div style="color:white">EQUIPMENT USED IN THE @PS.ProductionStageName PRODUCTION STAGE</div>
+            }
         </HeaderTemplate>
         <BodyTemplate>
             <Card IsShadow="true">
@@ -33,16 +45,16 @@
                     <FluentLabel Typo="Typography.H6" style="color:white"><strong>EQUIPMENT ID @context.EquipmentItemID</strong></FluentLabel>
                 </HeaderTemplate>
                 <BodyTemplate>
-                    <FluentLabel Typo="Typography.Body" style="margin:5px">@context.EquipmentItem.EquipmentItemDescription</FluentLabel>
+                        <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" style="margin:5px">@context.EquipmentItem.EquipmentItemDescription</FluentLabel>
                 </BodyTemplate>
                 <FooterTemplate>
                     @if (context.EquipmentItem.EquipmentCategory != null)
                     {
-                        <FluentLabel Typo="Typography.Body">Category: @context.EquipmentItem.EquipmentCategory.EquipmentCategoryName</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Category: @context.EquipmentItem.EquipmentCategory.EquipmentCategoryName</FluentLabel>
                     }
                     else
                     {
-                        <FluentLabel Typo="Typography.Body">Category: Unassigned</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Category: Unassigned</FluentLabel>
                     }
                 </FooterTemplate>
             </Card>
@@ -64,7 +76,7 @@
     
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="-ms-flex-item-align:end; border: 1px solid #365b66; margin-bottom:5px ; background-color:white; border-radius:10px; padding: 10px; overflow: hidden;">
         <div style="margin-top:5px; width: 100%; font-weight:bold">AVAILABLE EQUIPMENT TO ADD</div>
-        <FluentHorizontalScroll class="both-gradient" Style="width:100%" Speed="600" Easing="ScrollEasing.EaseInOut">
+        <FluentHorizontalScroll class="both-gradient" Style="width:100%"  Speed="600" Easing="ScrollEasing.EaseInOut">
     @if(filteredEquip == null || filteredEquip.Count == 0)
     {
         <div>No Available Equipment to Add</div>
@@ -75,8 +87,27 @@
         
         foreach (var eqItem in filteredEquip)
         {
-            <FluentDropZone StopPropagation="true" Item="eqItem" Data="@filteredEquip" Class="form-element" Draggable="true" Droppable="true">
-                <FluentCard>@eqItem.EquipmentItemDescription</FluentCard>
+            <FluentDropZone StopPropagation="true" Item="eqItem" Data="@filteredEquip" Class="form-element" Draggable="true" Droppable="false">
+                <Card IsShadow="true">
+                    <HeaderTemplate>
+                        <FluentLabel Typo="Typography.Body" style="color:white; width:max-content; word-wrap:revert"><strong>EQUIPMENT ID @eqItem.EquipmentItemID</strong></FluentLabel>
+                    </HeaderTemplate>
+                    <BodyTemplate>
+                                <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@eqItem.EquipmentItemDescription</FluentLabel>
+                                @* <FluentTextArea Typo="Typography.Body" Rows="2" ReadOnly="true" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Placeholder=@eqItem.EquipmentItemDescription></FluentTextArea> *@
+                    </BodyTemplate>
+                    <FooterTemplate>
+                                @if (eqItem.EquipmentCategory != null)
+                        {
+                                    <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@eqItem.EquipmentCategory.EquipmentCategoryName</FluentLabel>
+                        }
+                        else
+                        {
+                                    <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Unassigned</FluentLabel>
+                        }
+                    </FooterTemplate>
+                </Card>
+                @* <FluentCard Style="margin:10px;height:100%;">@eqItem.EquipmentItemDescription</FluentCard> *@
             </FluentDropZone>
         }
         
@@ -91,6 +122,7 @@
 
 @code {
     [Parameter][SupplyParameterFromQuery(Name = "ProductionStageID")] public int? psID { get; set; }
+    ProductionStage? PS;
     List<EquipmentCapability>? _allPSEquip;
     List<EquipmentItem>? allDivEquip;
     List<EquipmentItem>? filteredEquip;
@@ -99,6 +131,8 @@
     protected override async Task OnInitializedAsync()
     {
         d = await dTrf.GetgvSelectedDivision();
+        await dTrf.SetgvContextArea(0);
+        PS = await pApiClient.GetAsync<ProductionStage>($"/Divisions/Production/GetProductionStageByID/{psID}");
         _allPSEquip = await pApiClient.GetAsync<List<EquipmentCapability>>($"/Divisions/GetProductionStageEquipment/{psID}");
         allDivEquip = await pApiClient.GetAsync<List<EquipmentItem>>($"/Divisions/{d.DivisionID}/GetDivisionEquipment");
         await FilterEquip();

@@ -1,20 +1,22 @@
 using BlazorAnimation;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Microsoft.Identity.Web;
 using Polly;
 using Polly.Extensions.Http;
 using Polly.Timeout;
-using Pulse.Models.CustomComponents;
+using Pulse.Models;
+using Pulse.Models.Misc;
+using Pulse.Models.Users;
 using Pulse.Web.Services;
 using Pulse.Web.Tools;
+using Toolbelt.Blazor.Extensions.DependencyInjection;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+#region Helpers to stop Ollama timing out - turned out to be Polly causing the problem so can look at removing.
 
 // Determine environment (Development, Production, etc.)
 bool isDevelopment = builder.Environment.IsDevelopment();
@@ -37,130 +39,119 @@ IAsyncPolicy<HttpResponseMessage> retryPolicy = isDevelopment
 IAsyncPolicy<HttpResponseMessage> timeoutPolicy = isDevelopment
     ? Policy.NoOpAsync<HttpResponseMessage>()
     : Policy.TimeoutAsync<HttpResponseMessage>(TimeSpan.FromSeconds(620), TimeoutStrategy.Pessimistic);
+#endregion
 
-// Add service defaults & Aspire client integrations.
+#region Add Aspire Scaffolding
 builder.AddServiceDefaults();
 builder.AddRedisOutputCache("cache");
+#endregion
 
-var initialScopes = builder.Configuration.GetValue<string>("DownstreamApi:Scopes")?.Split(' ') ?? [];  // Dynamically load scopes from config
-builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))
-    .EnableTokenAcquisitionToCallDownstreamApi(initialScopes)
-    .AddDownstreamApi("Pulse.Web", builder.Configuration.GetSection("DownstreamApi"))
-    .AddDistributedTokenCaches();  // Use Redis/SQL for production
+#region Register Pulse.Api, Pulse.AI & Ollama as Singleton services to stay alive throughout app lifetime
+var ollamaEndpoint = builder.Configuration["OllamaApi:EndpointHttp"]
+    ?? throw new InvalidOperationException("Missing configuration for Ollama:Endpoint");
 
-builder.Services.AddDistributedMemoryCache();  // For token cache in dev
+var pulseApiEndpoint = builder.Configuration["PulseApi:Endpoint"]
+    ?? throw new InvalidOperationException("Missing configuration for PulseApi:Endpoint");
+
+builder.Services.AddSingleton<Pulse_AI>();
+builder.Services.AddSingleton<PulseApiService>();
+builder.Services.AddHttpClient<PulseApiService>("PulseApiClient",client =>
+{
+    client.BaseAddress = new Uri(pulseApiEndpoint);
+    client.Timeout = isDevelopment ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(30);
+    client.DefaultRequestHeaders.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
+})
+    .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { UseCookies = true, UseDefaultCredentials = true })
+    .ClearResilienceHandlers(); // Remove Polly handlers as they were causing issues with long requests
+
+builder.Services.AddSingleton<OllamaService>();
+builder.Services.AddHttpClient<OllamaService>("OllamaClient",client =>
+{
+    client.BaseAddress = new Uri(ollamaEndpoint);
+    client.Timeout = isDevelopment ? Timeout.InfiniteTimeSpan : TimeSpan.FromMinutes(2);
+}).ClearResilienceHandlers();
+
+// Default HttpClient placed last to avoid interfering with custom ones above
+builder.Services.AddHttpClient();
+// DataTransferService used to store global vars until I understand passing params better
+builder.Services.AddSingleton<DataTransferService>();
+#endregion
+
+#region Tools & Frameworks for UI
 builder.Services.AddBootstrapBlazor(options =>
 {
     options.ToastDelay = 8000;
     options.ToastPlacement = BootstrapBlazor.Components.Placement.TopCenter;
 });
-
-var ollamaEndpoint = builder.Configuration["OllamaApi:EndpointHttp"]
-    ?? throw new InvalidOperationException("Missing configuration for Ollama:Endpoint");
-
-//builder.Services.AddHttpClient().ClearResilienceHandlers();
-builder.Services.AddHttpClient();
-builder.Services.AddHttpClient<Pulse_AI>("OllamaClient", client =>
-{
-    client.BaseAddress = new Uri(ollamaEndpoint);
-    client.Timeout = isDevelopment ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(600); // Infinite in dev to debug hangs
-}
-).ClearResilienceHandlers();
-
-//builder.Services.AddHttpClient<Pulse_AI>("OllamaClient", client =>
-//{
-//    client.BaseAddress = new Uri(ollamaEndpoint);
-//    client.Timeout = isDevelopment ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(600); // Infinite in dev to debug hangs
-//})
-//.AddPolicyHandler(retryPolicy)
-//.AddPolicyHandler(timeoutPolicy);
-
-var pulseApiEndpoint = builder.Configuration["PulseApi:Endpoint"] 
-    ?? throw new InvalidOperationException("Missing configuration for PulseApi:Endpoint");
-
-builder.Services.AddHttpClient<Pulse_AI>("PulseApiClient", client =>
-{
-    client.BaseAddress = new Uri(pulseApiEndpoint); // API base
-    client.Timeout = isDevelopment ? Timeout.InfiniteTimeSpan : TimeSpan.FromSeconds(30);
-})
-    .ClearResilienceHandlers();
-//.AddPolicyHandler(retryPolicy)
-//.AddPolicyHandler(timeoutPolicy);
-
-// Register Pulse_AI as Scoped (shares clients per Blazor circuit/request)
-builder.Services.AddScoped<Pulse_AI>();
-
-builder.Services.AddSingleton<PulseApiService>();
-builder.Services.AddHttpClient<PulseApiService>(client =>
-{
-    client.BaseAddress = new Uri(pulseApiEndpoint);
-    client.Timeout = TimeSpan.FromSeconds(300);
-})
-    .ClearResilienceHandlers();
-
-
-builder.Services.AddSingleton<OllamaService>();
-builder.Services.AddHttpClient<OllamaService>(client =>
-{
-    client.BaseAddress = new Uri(ollamaEndpoint);
-    client.Timeout = TimeSpan.FromMinutes(2);
-})
-    .ClearResilienceHandlers();
-
-builder.Services.AddSingleton<DataTransferService>();
-builder.Services.AddSingleton<Pulse_AI>();
+//builder.Services.AddBootstrapBlazorBaiduSpeech();
+builder.Services.AddSpeechSynthesis();
+builder.Services.AddSpeechRecognition();
 
 builder.Services.AddFluentUIComponents();
 builder.Services.AddDataGridEntityFrameworkAdapter();
-builder.Services.AddHttpForwarderWithServiceDiscovery();
 
+builder.Services.Configure<AnimationOptions>(Guid.NewGuid().ToString(), c => { });
+#endregion
 
+// Makes JSON Serializer safer & more robust
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.Converters.Add(new TypeConverter());
     });
-// Add services to the container.
+
+// More Aspire Scaffolding
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddHttpForwarderWithServiceDiscovery();
 
-builder.Services.Configure<AnimationOptions>(Guid.NewGuid().ToString(), c => { });
-//builder.Services.AddHttpClient<WeatherApiClient>(client =>
-//    {
-//        // This URL uses "https+http://" to indicate HTTPS is preferred over HTTP.
-//        // Learn more about service discovery scheme resolution at https://aka.ms/dotnet/sdschemes.
-//        client.BaseAddress = new("https+http://apiservice");
-//    });
+#region Add Security
+builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("PulseDbConn")));
+builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+{     options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequireUppercase = true;
+    options.Password.RequiredLength = 6;
+    options.Password.RequiredUniqueChars = 1;
+})
+    .AddEntityFrameworkStores<ApplicationDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Home";  // Redirect to login page
+        options.AccessDeniedPath = "/access-denied";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(60);  // Cookie lifetime
+    });
+
 builder.Services.AddAuthorization();
-
-builder.Services.AddCascadingAuthenticationState();
-
+#endregion
+// Build App
 var app = builder.Build();
 
+// Post Build Configuration
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
-
 app.UseStaticFiles();
-
 app.UseHttpsRedirection();
-
 app.UseAntiforgery();
-
-app.UseOutputCache();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseOutputCache();
 app.MapStaticAssets();
-
+// Seed Roles
+await DatabaseSeeder.SeedRolesAsync(app.Services);
 app.MapRazorComponents<Pulse.Web.Components.App>()
     .AddInteractiveServerRenderMode();
-
 app.MapDefaultEndpoints();
 
+// Let's Go!
 app.Run();
 
 

@@ -1,0 +1,113 @@
+﻿@page "/UserSettings/AISettings"
+@using System.Globalization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@using Toolbelt.Blazor.SpeechSynthesis
+@inject PulseApiService pApi
+@inject SpeechSynthesis SpeechSynthesis
+@inject DataTransferService dt
+
+@rendermode InteractiveServer
+
+<div style="width:95%; height:95%; padding: 20px; border: 2px solid black; margin:30px; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
+    <FluentStack Orientation="Orientation.Horizontal" Style="flex: 0">
+        <h3>AI Settings</h3><FluentSpacer /><FluentButton Appearance="Appearance.Accent" @onclick="onClickSave">Update</FluentButton>
+    </FluentStack>
+    @if(u != null)
+    {
+        
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="flex: 0">
+            <br />
+            <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="width: 50%">
+                <FluentCheckbox @bind-Value="@u.UserSettings.AIHasVoice" Label="Add A Voice To My AI" />
+                <br />
+                @* <FluentLabel Typo="Typography.Body">Select A Voice</FluentLabel> *@
+                <FluentSelect Label="Choose A Voice" TOption="SpeechSynthesisVoice" Items="Voices" OptionValue="@(v => v.VoiceIdentity.ToString())"
+                              Disabled="!u.UserSettings.AIHasVoice"
+                              Appearance="Appearance.Outline"
+                              OptionText="@(v => v.Name)"
+                              Placeholder="Make A Selection..."
+                              Height="500px"
+                              @bind-SelectedOption="@_voice"
+                              @bind-Value="@u.UserSettings.AIVoiceID"
+                              
+                              />
+
+
+                <FluentButton Appearance="Appearance.Accent" @onclick="onClickSpeak">Hear Voice</FluentButton>
+            </FluentStack>
+        
+            <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="width: 50%">
+            <br />
+            <FluentLabel Typo="Typography.Body">Select A Default Model</FluentLabel>
+            <br />
+            <div style="margin-bottom: 60px;">
+  
+                <FluentSlider Orientation="Orientation.Vertical" Min="0" Max="5" Step="1" @bind-Value=u.UserSettings.AIDefaultPref>
+                    <FluentSliderLabel Position="0">Automatic</FluentSliderLabel>
+                    <FluentSliderLabel Position="1">llama 3.1 (4.9GB)</FluentSliderLabel>
+                    <FluentSliderLabel Position="2">Chat GPT (13GB) Low Reasoning</FluentSliderLabel>
+                    <FluentSliderLabel Position="3">Chat GPT (13GB) Medium Reasoning</FluentSliderLabel>
+                    <FluentSliderLabel Position="4">Chat GPT (13GB) High Reasoning</FluentSliderLabel>
+                    <FluentSliderLabel Position="5">llama 3.3 (42GB)</FluentSliderLabel>
+                </FluentSlider>
+            </div>
+        </FluentStack>   
+        </FluentStack>
+    }
+  </div>      
+    
+
+@code 
+{
+    IEnumerable<SpeechSynthesisVoice> Voices;
+    private SpeechSynthesisVoice? _voice;
+    private string? selectedVoice;
+    private int? slVal;
+    private User? u;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await dt.SetgvContextArea(0);
+        // u = await dt.GetgvUser();
+        // if (u.UserSettings.AIHasVoice)
+        // {
+        //     _voice = await dt.GetgvUserAIVoice();
+        //     StateHasChanged();
+        // }
+
+    }
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this.Voices = await this.SpeechSynthesis.GetVoicesAsync();
+            u = await dt.GetgvUser();
+            if (u.UserSettings.AIHasVoice)
+            {
+                _voice = await dt.GetgvUserAIVoice();
+                // StateHasChanged();
+            }
+            this.StateHasChanged();
+        }
+    }
+    private async Task onClickSave()
+    {
+        bool saved = await pApi.PutAsync<UserSettings>($"/user/{u.UserID}/UpdateSettings", u.UserSettings);
+        await dt.SetgvUser(u);
+        if(u.UserSettings.AIHasVoice && _voice != null)
+        {
+            await dt.SetgvUserAIVoice(_voice);
+        }
+    }
+    async Task onClickSpeak()
+    {
+        var utterancet = new SpeechSynthesisUtterance
+            {
+                Text = "Hi there, it would be an honour, to be the voice behind your Pulse AI.",
+                Voice = _voice // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
+            };
+        await this.SpeechSynthesis.SpeakAsync(utterancet); // 👈 Speak with "Haruka"'s voice!
+    }
+}

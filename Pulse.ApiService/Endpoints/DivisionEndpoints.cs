@@ -52,6 +52,14 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetWorkTypeProdStagesByDiv")
                 .Produces<List<ProductionStage>>(StatusCodes.Status200OK);
 
+            group.MapGet(ByDivIdPath + "/GetAllProductionStagesByDiv", async (string divisionId, PulseDbContext db) =>
+                await db.ProductionStageMaster
+                .Where(w => w.IsActive && w.DivisionID == divisionId)
+                .Include(p => p.WorkType)
+                .ToListAsync())
+                .WithName("GetProdStagesByDiv")
+                .Produces<List<ProductionStage>>(StatusCodes.Status200OK);
+
             group.MapGet(ByDivIdPath + "/GetWorkCentres", async (string divisionId, PulseDbContext db) =>
                 await db.WorkCentreMaster.AsNoTracking()
                 .Where(w => w.DivisionID == divisionId)
@@ -74,6 +82,13 @@ namespace Pulse.ApiService.Endpoints
                 dbContext.EquipmentCapabilities.Add(equipCap);
                 await dbContext.SaveChangesAsync();
                 return Results.Created("Divisions/Equipment/Capabilities/Add/",equipCap);
+            });
+
+            group.MapPost("/WorkCentre/Functions/Add/", async (WorkCentreFunctions wcFunc, PulseDbContext dbContext) =>
+            {
+                dbContext.WorkCentreFunctionsMaster.Add(wcFunc);
+                await dbContext.SaveChangesAsync();
+                return Results.Created("Divisions/WorkCentre/Functions/Add/", wcFunc);
             });
 
             group.MapGet(ByDivIdPath + "/GetDivisionEquipment", async (string divisionId, PulseDbContext db) =>
@@ -130,8 +145,7 @@ namespace Pulse.ApiService.Endpoints
                                 return Results.Problem($"Error fetching WIP: {ex.Message}");
                             }
                         })
-            .WithName("GetWipByDivision")
-            .WithOpenApi();
+            .WithName("GetWipByDivision");
 
             group.MapGet("/Production/WorkOrder/{WorkOrderNo}/CreateProductionPlan", async (int WorkOrderNo, PulseDbContext db) =>
             {
@@ -164,8 +178,6 @@ namespace Pulse.ApiService.Endpoints
             })
                             .Produces<List<ProductionPlanItem>>(StatusCodes.Status200OK);
 
-        
-
             group.MapGet(ByDivIdPath + "/GetWIP/Planning", async (string divisionId, PulseDbContext db) =>
             {
                 const string sql = @"
@@ -187,8 +199,7 @@ namespace Pulse.ApiService.Endpoints
 
                             return Results.Ok(events);
                         })
-            .WithName("GetWipPlan")
-            .WithOpenApi();
+            .WithName("GetWipPlan");
 
             group.MapGet(ByDivIdPath + "/GetWIP/PlanItems", async (string divisionId, PulseDbContext db) =>
             {
@@ -205,34 +216,14 @@ namespace Pulse.ApiService.Endpoints
                         Title = p.WorkOrderNo.ToString(),
                         Start = p.PlannedStartTime,
                         End = p.PlannedEndTime,
-                        BackgroundColor = "#c3e6cb",
+                        BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
                         ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
                         Description = p.WorksOrder != null ? p.WorksOrder.Description : null
                     })
                     .ToListAsync();
-
-
-                //const string sql = @"
-                //    SELECT  ProductionPlanItemID      AS Id,
-                //            EquipmentItemID AS ResourceId,
-                //            WorkOrderNo AS Title,
-                //            PlannedStartTime       AS Start,
-                //            PlannedEndTime      AS [End],
-                //            '#c3e6cb' AS BackgroundColor
-                //    FROM    dbo.ProductionPlanItems
-                //    WHERE   DivisionID = @divisionId
-                //      AND   Status = 'Planned'";
-
-                //var param = new SqlParameter("@divisionId", divisionId);
-
-                //var events = await db.Database
-                //    .SqlQueryRaw<ProductionPlanEvent>(sql, param)
-                //    .ToListAsync();
-
                 return Results.Ok(items);
             })
-            .WithName("GetWipPlannedItems")
-            .WithOpenApi();
+            .WithName("GetWipPlannedItems");
 
             group.MapGet(ByDivIdPath + "/GetWIP/UnPlannedItems", async (string divisionId, PulseDbContext db) =>
             {
@@ -254,25 +245,44 @@ namespace Pulse.ApiService.Endpoints
                         Stage = p.ProductionStage.ProductionStageName
                     })
                     .ToListAsync();
+                return Results.Ok(items);
+            })
+            .WithName("GetWipUnPlannedItems");
 
-                //const string sql = @"
-                //    SELECT  ProductionPlanItemID      AS Id,
-                //            CONCAT('WO No: ', WorkOrderNo) AS Title,
-                //            '#c3e6cb' AS BackgroundColor
-                //    FROM    dbo.ProductionPlanItems
-                //    WHERE   DivisionID = @divisionId
-                //      AND   Status = 'Unplanned'";
+            group.MapGet("/GetWIP/UnPlannedItems/ByWorkCentre/{workCentreId}", async (int workCentreId, PulseDbContext db) =>
+            {
+                var supportedStageIds = await db.Set<WorkCentreFunctions>()
+                    .Where(wcf => wcf.WorkCentreID == workCentreId)
+                    .Select(wcf => wcf.ProductionStageID)
+                    .ToListAsync();
 
-                //var param = new SqlParameter("@divisionId", divisionId);
+                if (!supportedStageIds.Any())
+                {
+                    return Results.BadRequest($"Work centre {workCentreId} has no allocated production stages.");
+                }
 
-                //var events = await db.Database
-                //    .SqlQueryRaw<ProductionUnPlannedEvent>(sql, param)
-                //    .ToListAsync();
+                var items = await db.ProductionPlanItems
+                    .Where(p => p.Status == "UnPlanned" && supportedStageIds.Contains(p.ProductionStageID))
+                    .Include(wo => wo.WorksOrder)
+                        .ThenInclude(c => c.Customer)
+
+                    .Select(p => new ProductionUnPlannedEvent
+                    {
+                        Id = p.ProductionPlanItemID,
+                        //ResourceId = p.EquipmentItemID,
+                        Title = p.WorkOrderNo.ToString(),
+                        //Start = p.PlannedStartTime,
+                        //End = p.PlannedEndTime,
+                        BackgroundColor = "#c3e6cb",
+                        ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
+                        Description = p.WorksOrder != null ? p.WorksOrder.Description : null,
+                        Stage = p.ProductionStage.ProductionStageName
+                    })
+                    .ToListAsync();
 
                 return Results.Ok(items);
             })
-            .WithName("GetWipUnPlannedItems")
-            .WithOpenApi();
+            .WithName("GetWipUnPlannedItemsByWorkCentre");
 
             group.MapGet(ByDivIdPath + "/GetPlanningEquipment", async (string divisionId, PulseDbContext db) =>
             {
@@ -291,43 +301,7 @@ namespace Pulse.ApiService.Endpoints
 
                 return Results.Ok(resources);
             })
-            .WithName("GetWipPlanEquip")
-            .WithOpenApi();
-
-            //group.MapGet("/GetPlanningEquipment/ByWorkCentre/{workCentreId}", async (int workCentreId, PulseDbContext db) =>
-            //{
-            //    // Get supported production stages for the work centre
-            //    var supportedStageIds = await db.Set<WorkCentreFunctions>()
-            //        .Where(wcf => wcf.WorkCentreID == workCentreId)
-            //        .Select(wcf => wcf.ProductionStageID)
-            //        .ToListAsync();
-
-            //    if (!supportedStageIds.Any())
-            //    {
-            //        return Results.BadRequest($"Work centre {workCentreId} has no allocated production stages.");
-            //    }
-
-            //    // Get distinct equipment capable of any supported stage
-            //    var equipment = await db.Set<EquipmentCapability>()
-            //        .Include(ec => ec.EquipmentItem)
-            //        .Where(ec => supportedStageIds.Contains(ec.ProductionStageID))
-            //        .Select(ec => new ProductionPlanResource
-            //        {
-            //            id = ec.EquipmentItem.EquipmentItemID,
-            //            title = ec.EquipmentItem.EquipmentItemDescription,
-            //        })
-            //        /*.DistinctBy(e => e.EquipmentItemID)*/  // Distinct by Equipment ID (needs System.Linq)
-            //        .ToListAsync();
-
-            //    if (!equipment.Any())
-            //    {
-            //        return Results.NotFound($"No equipment capable for the allocated stages of work centre {workCentreId}.");
-            //    }
-
-            //    return Results.Ok(equipment);
-            //})
-            //.WithName("GetWipPlanEquipByWC")
-            //.WithOpenApi();
+            .WithName("GetWipPlanEquip");
 
             group.MapGet("/GetPlanningEquipment/ByWorkCentre/{workCentreId}", async (int workCentreId, PulseDbContext db) =>
             {
@@ -361,8 +335,7 @@ namespace Pulse.ApiService.Endpoints
                     .ToListAsync();
                 return Results.Ok(equipment);
             })
-            .WithName("GetWipPlanEquipByWC")
-            .WithOpenApi();
+            .WithName("GetWipPlanEquipByWC");
 
             group.MapGet("/GetWIP/PlanItems/ByWorkCentre/{workCentreId}", async (int workCentreId, PulseDbContext db) =>
             {
@@ -398,8 +371,7 @@ namespace Pulse.ApiService.Endpoints
 
                 return Results.Ok(items);
             })
-            .WithName("GetWipPlannedItemsByWorkCentre")
-            .WithOpenApi();
+            .WithName("GetWipPlannedItemsByWorkCentre");
 
             group.MapGet("/WIP/GetPlanCalEvent/{itemID}", async (int itemID, PulseDbContext db) =>
             {
@@ -426,8 +398,7 @@ namespace Pulse.ApiService.Endpoints
                 }
                 return Results.Ok(item);
             })
-            .WithName("GetWipPlanEventById")
-            .WithOpenApi();
+            .WithName("GetWipPlanEventById");
 
             group.MapGet("/WIP/GetPlanItem/{itemID}", async (int itemID, PulseDbContext db) =>
             {
@@ -446,8 +417,48 @@ namespace Pulse.ApiService.Endpoints
                     }
                     return Results.Ok(item);
                 })
-                .WithName("GetWipPlanItemById")
-                .WithOpenApi();
+                .WithName("GetWipPlanItemById");
+
+            group.MapGet("/Production/GetProductionStageByID/{itemID}", async (int itemID, PulseDbContext db) =>
+            {
+                var item = await db.ProductionStageMaster
+                    .Where(p => p.ProductionStageId == itemID)
+                    .FirstOrDefaultAsync();
+                if (item == null)
+                {
+                    return Results.NotFound($"No Production Stage found with ID {itemID}");
+                }
+                return Results.Ok(item);
+            })
+                .WithName("GetProductionStageById");
+
+            group.MapGet("/Production/GetWorkCentreByID/{itemID}", async (int itemID, PulseDbContext db) =>
+            {
+                var item = await db.WorkCentreMaster
+                    .Where(p => p.WorkCentreId == itemID)
+                    .FirstOrDefaultAsync();
+                if (item == null)
+                {
+                    return Results.NotFound($"No Work Centre found with ID {itemID}");
+                }
+                return Results.Ok(item);
+            })
+                .WithName("GetWorkCentreById");
+
+            group.MapGet("/Production/GetWorkCentreFunctionsByID/{itemID}", async (int itemID, PulseDbContext db) =>
+            {
+                var item = await db.WorkCentreFunctionsMaster
+                    .Where(p => p.WorkCentreID == itemID)
+                    .Include(p => p.ProductionStage)
+                        .ThenInclude(ps => ps.WorkType)
+                    .ToListAsync();
+                if (item == null)
+                {
+                    return Results.NotFound($"No Work Centre Functions found for Work Centre ID {itemID}");
+                }
+                return Results.Ok(item);
+            })
+                .WithName("GetWorkCentreFunctionsById");
 
             group.MapPut("/WIP/UpdateProductionPlanItem/{id}", async (int id, ProductionPlanItem updatedItem, PulseDbContext db) =>
             {
@@ -465,8 +476,7 @@ namespace Pulse.ApiService.Endpoints
                 await db.SaveChangesAsync();
                 return Results.Ok();
             })
-                .WithName("UpdateWIPPlanItem")
-                .WithOpenApi();
+                .WithName("UpdateWIPPlanItem");
         }
                 
     }

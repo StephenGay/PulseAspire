@@ -1,17 +1,27 @@
 ﻿@using BootstrapBlazor.Components
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
+@using Pulse.Models.Users
 @using Pulse.Web.Services
 @using System.Text.Json
+@using System.Runtime.InteropServices
+@using Toolbelt.Blazor.SpeechSynthesis
+@using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20
+@using Toolbelt.Blazor.SpeechRecognition
 
+@inject SpeechRecognition SpeechRecognition
 @inject BootstrapBlazor.Components.ToastService ToastService
 
-@inject Pulse.Web.Services.Pulse_AI pAI
+@inject Pulse_AI pAI
+@inject PulseApiService pApiClient
 @inject DataTransferService dataTrf
+@inject SpeechSynthesis SpeechSynthesis
 @inject IJSRuntime JSRuntime
 @inject IHttpClientFactory HttpClientFactory
+@implements IDisposable
 @rendermode InteractiveServer 
 
 <style>
@@ -25,12 +35,44 @@
         background-color: #bcd1d4 !important;
         border: 1px solid #365b66 !important;
     }
+    .toast{
+        --bs-toast-bg: white !important;
+        --bs-toast-header-color: #365b66 !important;
+        --bs-toast-header-bg: rgba(188, 209, 212, 0.5) !important;
+    }
+    .toast-progress{
+        --bs-bg-opacity: 0.2 !important;
+        height: 65% !important;
+    }
+    .toast-header{
+        height: 30% !important;
+    }
+
+    .toast-body {
+        height: 70% !important;
+    }
+    .drawer{
+        /* --bb-drawer-body-padding : 0 !important; */
+        top: 56px !important;
+    }
+    hr{
+        color: #365b66 !important;
+        background-color: #365b66 !important;
+    }
+
+    .custom-popover {
+        --bs-popover-border-color: var(--bs-info);
+        --bs-popover-header-bg: var(--bs-info);
+        --bs-popover-header-color: var(--bs-white);
+        --bs-popover-body-padding-x: 1rem;
+        --bs-popover-body-padding-y: 1rem;
+    }
 </style>
 
 <BootstrapBlazorRoot>
     
-    <FluentStack Orientation="Orientation.Vertical" Width="100%" Style=@(sState=="OPEN" ? "height: 100vh;" : "flex: 0;")>
-        
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style=@(sState == "OPEN" ? "height: 100vh;" : "flex: 0;")>
+       @*  <FluentStack Orientation="Orientation.Vertical"> *@
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
                 
             @if (sState == "LOAD")
@@ -45,8 +87,11 @@
             }
             @if (sState == "IDLE")
             {
-                <button type="button" style="background-color: transparent ; color: #365b66; height:80%" @onclick="btnOpenAIMenu"><h3 class="bi bi-robot" /></button>
-
+                <PulseButton Color="BootstrapBlazor.Components.Color.None">
+                    <FluentButton IconStart="@(new Icons.Filled.Size32.Bot().WithColor("#365b66"))" BackgroundColor="rgba(0,0,0,0)" @onclick="btnOpenAIMenu"></FluentButton>
+                   @*  <FluentIcon Value="@(new Icons.Regular.Size32.Bot())" Color="@(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight)" /> *@
+                </PulseButton>
+                
                 
             }
             @if (sState == "BUSY")
@@ -70,17 +115,119 @@
             
 
         </FluentStack>
+        
         <Drawer Placement="Placement.Right" @bind-IsOpen="@IsOpen" AllowResize="true">
-            <div class="d-flex ai-Mnu justify-content-end align-items-center flex-row" style="height: 5%;">
-                <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@(e => IsOpen = false)"><i class="bi bi-x-circle-fill"></i></button>
-                <label style="padding-top:3%;height:100%;width:50%; align-items:center; text-align:center"><strong>A.I. CONTEXT MENU</strong></label>
-                <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-volume-up-fill"></i></ToggleButton>
+            <div class="d-flex justify-content-end align-items-center flex-row" style="height: 5%; border-bottom: 1px solid #365b66">
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-bottom: 0px;">
+                    <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@(e => IsOpen = false)"><i class="bi bi-x-circle-fill"></i> Close </button>
+                    <FluentSpacer />
+                    <label style=";height:100%;"><strong>A.I. CONTEXT MENU</strong></label>
+                </FluentStack>
+                @* <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-volume-up-fill"></i></ToggleButton>
                 <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-mic-fill"></i></ToggleButton>
-                <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@TestSpeech"><i class="bi bi-x-circle-fill"></i></button>
+                <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@TestSpeech"><i class="bi bi-x-circle-fill"></i></button> *@
+                
             </div>
-            <div class="d-flex ai-Mnu justify-content-start align-items-stretch flex-column" style="height: 95%;">
-                <br />
+            @* <hr style="height:2px; width:95%; align-self:center;color: #365b66;background-color: #365b66"> *@
+            @* <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; background-color: #365b66;" />  *@
+            <div class="d-flex justify-content-start align-items-stretch flex-column" style="height: 95%;">
+                <label style="margin-bottom:10px;margin-top:10px"><strong>A.I. Model Setting</strong></label>
+                <FluentSlider Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Min="0" Max="3" Step="1" @bind-Value=useModelVal>
+                        <FluentSliderLabel Position="0.2">Auto</FluentSliderLabel>
+                        <FluentSliderLabel Position="1">Fast</FluentSliderLabel>
+                        <FluentSliderLabel Position="2">Balanced</FluentSliderLabel>
+                        <FluentSliderLabel Position="2.8">In-Depth</FluentSliderLabel>
+                    </FluentSlider>
+                    <br />
+                @* <hr style="height:2px; width:95%; align-self:left;color: #365b66;background-color: #365b66"> *@
+                <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; margin-top:5px; background-color: #365b66;" />
+                <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size32.TooltipQuote())" style="width:80%; align-self:center" OnClick="btnCommunityClick">Prompt Library</FluentButton>
+                <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; background-color: #365b66;" />
+                @* <hr style="height:2px; align-self:center;color: #365b66;background-color: #365b66"> *@
                 <StackItem class="flex-grow-1" >
+                @if (Saving)
+                {
+                        <FluentTextField @bind-Value=custTitle style="margin-bottom:5px;margin-left: 20px;margin-right: 20px;" Required="true" Placeholder="Enter A Prompt Title"></FluentTextField>
+                        <FluentTextField @bind-Value=custDesc Required="true" style="margin-bottom:5px;margin-left: 20px;margin-right: 20px;" Placeholder="Enter A Short Description"></FluentTextField>
+                }
+                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                    <HeaderTemplate>
+                        @custQryHdr
+                    </HeaderTemplate>
+                    <BodyTemplate>
+                        <Textarea rows="8" style="width:100%; height:100%" @bind-Value="txtQ" PlaceHolder="Ask a question...">
+                                 
+                            </Textarea> 
+                </BodyTemplate>
+                    <FooterTemplate>
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
+                            @if (!Saving)
+                            {
+                                <button type="button" class="btn btn-primary" style="align-self:center" @onclick="btnAskAIClick">SUBMIT</button>
+                                <FluentSpacer />
+                                @if (showSave)
+                                {
+                                    <button type="button" class="btn btn-success" style="align-self:center; margin-left:10px;" @onclick="btnOpenSaveDialog">SAVE PROMPT</button>
+                                        <FluentSpacer />
+                                }
+                                @if (this._isListening)
+                                {
+                                        <FluentButton BackgroundColor="#bcd1d4" IconStart="@(new Icons.Regular.Size32.MicOff())" OnClick="OnClickStop"> </FluentButton>
+                                }
+                                else
+                                {
+                                        <FluentButton BackgroundColor="#bcd1d4" IconStart="@(new Icons.Regular.Size32.Mic())" OnClick="StartRecClick"> </FluentButton>
+                                }
+                            }
+                            else
+                            {
+                                <FluentButton BackgroundColor="rgba(0,100,0,1)" Color="rgba(255,255,255,1)" Autofocus="true" @onclick="saveQry">Save Prompt</FluentButton>
+                                <FluentSpacer />
+                                <FluentButton BackgroundColor="rgba(255,0,0,1)" Color="rgba(255,255,255,1)" @onclick="() => Saving=false">Cancel</FluentButton>
+                            }
+                        </FluentStack>
+                    </FooterTemplate>
+                </Card>
+                    @if (_isListening)
+                    {
+                        <div>
+                            @foreach (var result in this._results)
+                            {
+                                @* if (result.IsFinal)
+                                { *@
+                                    txtQ = @result.Items![0].Transcript;
+                                @* }
+                                else
+                                {
+                                    <i style="color:#ddd;">@result.Items![0].Transcript</i>
+                                } *@
+                            }
+                        </div>
+                    }
+                    
+                    <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; margin-top:5px; background-color: #365b66;" />
+                    @* <div>
+                        <dl>
+                            <dt>Running on:</dt>
+                            <dd>@RuntimeInformation.ProcessArchitecture</dd>
+                            <dt>SpeechRecognition API:</dt>
+                            <dd>@(_available ? "Available" : "Not Available")</dd>
+                        </dl>
+                    </div>
+                    <div>
+                        @foreach (var result in this._results)
+                        {
+                            if (result.IsFinal)
+                            {
+                                <text>@result.Items![0].Transcript</text>
+                            }
+                            else
+                            {
+                                <i style="color:#ddd;">@result.Items![0].Transcript</i>
+                            }
+                        }
+                    </div> *@
+               @*  <hr style="height:2px; align-self:center;color: #365b66;background-color: #365b66"> *@
                     @if (AIMode == "RollerSpecification")
                     {
                         <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
@@ -94,7 +241,8 @@
                                 <Button Color="BootstrapBlazor.Components.Color.Dark" Icon="fa-solid fa-copy" style="width:90% ; align-self:center;" OnClick="btnRollAnalysisClick" Text="Start"></Button>
                             </FooterTemplate>
                         </Card>
-                    }else if (AIMode == "ClientSales")
+                    }
+                    else if (AIMode == "ClientSales")
                     {
                         <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
                             <HeaderTemplate>
@@ -120,88 +268,266 @@
                         </Card>
                     }
                 </StackItem>
-                <br />
-                <Textarea rows="8" style="border : 1px solid black ; width:90%; margin-left:5% ; margin-right:5%;" @bind-Value="txtQ" PlaceHolder="Ask a question..." />
-                <Stack IsRow="true" class="justify-content-evenly align-items-center">
-                    <button type="button" class="btn btn-success" style="color: black ; border : 1px solid black ; width:35%; margin-top:10px;margin-left:20px;" @onclick="btnAskAIClick">Ask</button>
-                    <Toggle Value="@isSales" ValueChanged="togProdSales" OnText="Sales" OffText="Production" Color="BootstrapBlazor.Components.Color.Primary" style="width:35%; margin-top:10px;margin-right:20px;" />
-                </Stack>
-                
             </div>
         </Drawer>
+        @* </FluentStack> *@
+        <Drawer Id="CommunityPanel" Placement="Placement.Bottom" @bind-IsOpen="@showCommunityPanel" Height="50%" AllowResize="true">
+            <div class="d-flex align-items-center flex-column" style="border: 1px solid black; border-radius:10px; height: 100%;overflow:hidden;">
+                @if (ContextPrompts != null)
+                {
+                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="width: 100%; background-color:#bcd1d4;padding:10px">
+                    <FluentLabel Typo="Typography.PaneHeader" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start">PROMPT LIBRARY</FluentLabel>
+                    <FluentSpacer />
+                    <FluentButton Appearance="Appearance.Accent" OnClick="CloseCommunity" >X</FluentButton>
+                    </FluentStack>
+                    <FluentGrid Justify="JustifyContent.Center" Style="overflow-y:auto; overflow-x:hidden; padding-left:10px">
+                    @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Style="overflow:auto; height: 100%;margin-left: 10px;margin-right: 0px"> *@
+                        @foreach (var prompt in ContextPrompts)
+                        {
+                            <FluentGridItem xs="12" sm="6" md="4" lg="2" xl="2">
+                                <Popover Placement="Placement.Top" Title="Prompt" ShowShadow="true" Content="@prompt.Prompt" IsHtml="true" CustomClass="custom-popover">
+                                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-right: 10px;margin-bottom:10px;" IsCenter="true">
+                                        <HeaderTemplate>
+                                            <FluentLabel Typo="Typography.Body" Style="white-space:nowrap; color: white"> @prompt.ContextualPromptTitle </FluentLabel>
+                                        </HeaderTemplate>
+                                        <BodyTemplate>
+                                    
+                                                <FluentTextArea rows="2" Cols="75" style="height:100%;" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea>
+                                                @* <Textarea rows="3" style="width:100%; height:100%;" readonly PlaceHolder="@prompt.ContextualPromptDescription"></Textarea> *@
+                                    
+                                        </BodyTemplate>
+                                        <FooterTemplate>
+                                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal">
+                                                <FluentButton Title="Copy Prompt" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size24.Copy())" OnClick="() => CopyCommunityPrompt(prompt.ContextualPromptId)">Copy</FluentButton>
+                                                <FluentSpacer />
+                                                <FluentButton Title="Run Prompt" Appearance="Appearance.Accent" BackgroundColor="green" IconEnd="@(new Icons.Regular.Size24.CaretRight())" OnClick="() => RunCommunityPrompt(prompt.ContextualPromptId)">Run</FluentButton>
+                                            </FluentStack>
+                                        </FooterTemplate>
+                                    </Card>
+                                </Popover>
+                            </FluentGridItem>
+                        }
+                    @* </FluentStack> *@
+                    </FluentGrid>
+                }
+                else
+                {
+                    <FluentProgressRing style="width: 102px; height: 102px;"></FluentProgressRing>
+                }
+            </div>
+        </Drawer>
+
+
         @if(sState=="OPEN")
         {
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="flex: 1; padding: 10px; overflow: auto; height: calc(100vh - 70px);">
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="flex: 1; padding: 10px; overflow: auto; height: calc(100vh - 70px);">
                 <div id="aiResult" style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: auto;">
                     @((MarkupString)_Analysis)
                 </div>
             </FluentStack>
         }
     </FluentStack>
-    
+   
+  
 </BootstrapBlazorRoot>
+
 
 
 @code {
 
     private Customer? customer;
-    [Inject]
-    private WebSpeechService? WebSpeechService { get; set; }
+
     [Inject]
     private DrawerService? DrawerService { get; set; }
 
+
+    private FluentDialog? _saveQryDialog;
     private bool IsOpen = false;
-
-
+    private bool showCommunityPanel = false;
+    public List<ContextualPrompt>? ContextPrompts;
+    public int? ContextAreaId;
     private string LoadHdr = string.Empty;
     private string Hdr = string.Empty;
     private string qry = string.Empty;
     private string _Analysis = string.Empty;
-    private string aiModel = "gpt-oss:latest";
+    private int useModelVal = 0;
+    private string aiModel = "llama3.3:latest"; // "gpt-oss:latest";
     private string txtQ = string.Empty;
     public bool isSales { get; set; }
+    public bool showSave = false;
+    public bool Saving = false;
     private bool isLoading = true;
     private string sState = "LOAD";
     string fileName = string.Empty;
+    private string custTitle = string.Empty;
+    private string custDesc = string.Empty;
     private string? AIMode; 
     private bool useSpeechOutput = true;
+    private SpeechSynthesisVoice? _voice;
+    private SpeechRecognitionResult[] _results = [];
+    private bool _available = true;
+    private bool _isListening = false;
+    private string? custQryHdr;
 
     private async Task SayIt(string text)
     {
-        if (WebSpeechService != null && useSpeechOutput)
+        if (useSpeechOutput)
         {
-            var synthesizer = await WebSpeechService.CreateSynthesizerAsync();
-            await synthesizer.SpeakAsync(text, "(Microsoft Ava)(en_US)");
+            var utterancet = new SpeechSynthesisUtterance
+            {
+            Text = text.Replace("<br />", ""),
+            Voice = _voice
+            };
+            await this.SpeechSynthesis.SpeakAsync(utterancet);
         }
         // Microsoft Ava Online(Natural) - English(United States)(en - US)
+    }
+    private async Task CloseCommunity()
+    {
+        showCommunityPanel = false;
+        IsOpen = true;
+    }
+    private async Task StartRecClick()
+    {
+        if (this._isListening) return;
+        this._isListening = true;
+        await this.SpeechRecognition.StartAsync();
+    }
+    private async Task RunCommunityPrompt(int promptId)
+    {
+        showCommunityPanel = false;
+        var prompt = await pApiClient.GetAsync<ContextualPrompt>($"/AI/GetContextualPromptById/{promptId}");
+        if (prompt != null)
+        {
+            LoadHdr = "Processing Community Prompt";
+            Hdr = prompt.ContextualPromptTitle;
+            qry = prompt.Prompt;
+
+            if (AIMode == "ClientSales")
+            {
+                await GenerateSalesPrompt();
+            }
+            else if (AIMode == "RollerSpecification")
+            {
+                await GenerateProductionPrompt();
+            }
+        }
+    }
+    private async Task CopyCommunityPrompt(int promptId)
+    {
+        showCommunityPanel = false;
+        var prompt = await pApiClient.GetAsync<ContextualPrompt>($"/AI/GetContextualPromptById/{promptId}");
+        if (prompt != null)
+        {
+            txtQ = prompt.Prompt;
+        }
+        IsOpen = true;
     }
     private async Task TestSpeech()
     {
         SayIt("This is a test to debug voices");
     }
+
+    public void Dispose()
+    {
+        this.SpeechRecognition.Result -= OnSpeechRecognized;
+        this.SpeechRecognition.End -= OnSpeechEnded;
+    }
+
     private async Task btnOpenAIMenu()
     {
         AIMode = await dataTrf.GetgvAIContextMode();
+        ContextPrompts = null;
+        ContextAreaId = await dataTrf.GetgvContextArea();
+        switch (ContextAreaId)
+        {
+            case 1:
+                custQryHdr = $"This is the sales history for customer {customer.ClientName}...";
+                break;
+            case 2:
+                custQryHdr = $"Here is a Roller Specification for customer {customer.ClientName}...";
+                break;
+            default:
+                SendToast("Warning", "Invalid Page", "This page does not have contextual AI yet.");
+                return;
+        }
         IsOpen = true;
+    }
+    private async Task btnOpenSaveDialog()
+    {
+        // IsOpen = false;
+        // //_saveQryDialog.Hidden = false;
+        // _saveQryDialog!.Show();
+        Saving = true;
+    }
+    private async Task btnCommunityClick()
+    {
+        IsOpen = false;
+
+        ContextPrompts = await pApiClient.GetAsync<List<ContextualPrompt>>($"/AI/GetContextualPromptsByAreaId/{ContextAreaId}");
+        showCommunityPanel = true;
+        //StateHasChanged();
     }
     private async Task OpenResults()
     {
         sState = "OPEN";
-        if(!useSpeechOutput){ return; }
-        string sp;
-        if (LoadHdr == "Analysing Sales")
-        {
-            if (_Analysis.IndexOf("Conclusion") > -1)
-            {
-                sp = _Analysis.Substring(_Analysis.IndexOf("Conclusion") + 10);
-                SayIt(sp);
-            }
-        }
+        // if(!useSpeechOutput){ return; }
+        // string sp;
+        // if (LoadHdr == "Analysing Sales")
+        // {
+        //     if (_Analysis.IndexOf("Conclusion") > -1)
+        //     {
+        //         sp = _Analysis.Substring(_Analysis.IndexOf("Conclusion") + 10);
+        //         SayIt(sp);
+        //     }
+        // }
     }
     protected override async Task OnInitializedAsync()
     {
         await GetClientInfo();
+        User su = await dataTrf.GetgvUser();
+        useSpeechOutput = su.UserSettings.AIHasVoice;
+        if (useSpeechOutput)
+        {
+            _voice = await dataTrf.GetgvUserAIVoice();
+        }
+        custQryHdr = $"Loading...";
         sState = "IDLE";
+    }
+    private async Task OnClickStop()
+    {
+        if (!this._isListening) return;
+        this._isListening = false;
+        await this.SpeechRecognition.StopAsync();
+    }
+    private void OnSpeechEnded(object? sender, EventArgs args)
+    {
+        if (this._isListening)
+        {
+            this._isListening = false;
+            this.StateHasChanged();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        this.SpeechRecognition.Lang = "en-US";
+        this.SpeechRecognition.InterimResults = true;
+        this.SpeechRecognition.Continuous = true;
+        this.SpeechRecognition.Result += OnSpeechRecognized;
+        this.SpeechRecognition.End += OnSpeechEnded;
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this._available = await this.SpeechRecognition.IsAvailableAsync();
+            this.StateHasChanged();
+        }
+    }
+    private void OnSpeechRecognized(object? sender, SpeechRecognitionEventArgs args)
+    {
+        this._results = args.Results?.Skip(args.ResultIndex).ToArray() ?? [];
+        this.StateHasChanged();
     }
     private void togProdSales(bool val)
     {
@@ -209,7 +535,7 @@
     }
     private async Task btnAskAIClick()
     {
-        if (isSales)
+        if (ContextAreaId == 1)
         {
             LoadHdr = "Processing Sales Qry";
             Hdr = "Custom Sales Qry";
@@ -223,8 +549,25 @@
             qry = txtQ;
             await GenerateProductionPrompt();
         }
+        showSave = true;
     }
-
+    private async Task saveQry()
+    {
+        User u = await dataTrf.GetgvUser();
+        ContextualPrompt newPrompt = new ContextualPrompt
+        {
+            ContextualAreaId = ContextAreaId ?? 0,
+            ContextualPromptTitle = custTitle,
+            ContextualPromptDescription = custDesc,
+            Prompt = txtQ,
+            UserId = u.UserID,
+            Likes = 0
+        };
+        await pApiClient.SaveCustomPromptAsync(newPrompt);
+        Saving = false;
+        txtQ = custTitle = custDesc = string.Empty;
+        showSave = false;
+    }
     private async Task btnRollAnalysisClick()
     {
         LoadHdr = "Analysing Roller";
@@ -348,7 +691,7 @@
             return;
         }
 
-        qry = $"This is the Roller Specification for customer . {qry}";
+        // qry = $"This is the Roller Specification for customer . {qry}";
 
         fileName = $"{customer.FullClientID}-{Hdr.Replace(" ", "_")}";
 
@@ -374,6 +717,8 @@
                 not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
                 field you are using.
 
+                Do not include your reasoning in the final response, just the answer.
+
                 The Roller Specification and it's subjects are here followed by the users query.
 
                 Data:
@@ -388,39 +733,49 @@
     private async Task ProcessRequest(string prompt)
     {
         IsOpen = false;
+
+        switch (useModelVal)
+        {
+            case 0:
+            case 2:
+                aiModel = "gpt-oss:latest";
+                break;
+            case 1:
+                aiModel = "llama3.1:latest";
+                break;
+            case 3:
+                aiModel = "llama3.3:latest";
+                break;
+        }
+
         try
         {
             sState="BUSY";
+            StateHasChanged();
 
             await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
-
-
-
-
-            
-
 
             _Analysis = await pAI.AskPulseAIAsync(prompt, aiModel);
 
             if (_Analysis.StartsWith("Error"))
             {
-                await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request./n Please try again, maybe with a different AI Model - I won't be offended!/n {_Analysis}");
+                await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request.\n Please try again, maybe with a different AI Model - I won't be offended!");
                 ResetState();
                 return;
             }
 
             if (string.IsNullOrEmpty(_Analysis))
             {
-                await SendToast("Warning", "Nothing Returned", "Either no data matched your query or there was an error processing your request./n If there should have been results, please try again, maybe with a different AI Model.");
+                await SendToast("Warning", "Nothing Returned", "Either no data matched your query or there was an error processing your request.\n If there should have been results, please try again, maybe with a different AI Model.");
                 ResetState();
                 return;
             }
 
             _Analysis = ParseToHtml(_Analysis);
-            sState = "WAIT";
+            
             // fileName = $"{customer.FullClientID}-{Hdr}";
             await SendToast("Success", "Processing Complete", "Your request has been completed and can be viewed when you are ready by clicking the button.");
-
+            sState = "WAIT";
 
         }
         catch (Exception ex)
@@ -438,6 +793,7 @@
 
     private async Task SendToast(string tType, string tTitle, string tContent)
     {
+        
         if (useSpeechOutput)
         {
             await SayIt(tContent);

@@ -1,4 +1,5 @@
 ﻿@page "/"
+@page "/home"
 @using System.Security.Cryptography
 @using System.Text
 @using System.Threading.Tasks
@@ -25,18 +26,19 @@
 			<br />
 		</Animation>
 		
-		<Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1)">
+		@* <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1)">
 			<button class="btn btn-light btn-lg" @onclick="ShowClientLogin">Customer Zone</button>
 			<br />
 			<br />
-		</Animation>
+		</Animation> *@
 		
 		<Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1.5)">
-			<button class="btn btn-light btn-lg" @onclick="ShowEmployeeLogin">Employee Zone</button>
+			<button class="btn btn-light btn-lg" @onclick="ShowEmployeeLogin">Login</button>
 		</Animation>
+		@* <Login /> *@
 	
 }
-else if (showCustLogin)
+@* else if (showCustLogin)
 {
 		
 		<Animation Effect="@Effect.LightSpeedInRight" Speed="@TimeSpan.FromSeconds(1)" Delay="@Delay.None">
@@ -62,12 +64,12 @@ else if (showCustLogin)
 	{
 		<div class="alert alert-danger">@validationMessage</div>
 	} *@
-	@* <CustomerLogin OnCancel="() => showCustLogin = false" /> *@
-}
+	@* <CustomerLogin OnCancel="() => showCustLogin = false" /> 
+} *@
 else if (showEmpLogin)
 {
 		<Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1.5)" Delay="@Delay.None">
-			<div class="col-12">
+			@* <div class="col-12">
 				<div class="card shadow-2-strong" style="border-radius: 1rem;">
 				  <div class="card-body p-5 text-center">
 
@@ -91,7 +93,8 @@ else if (showEmpLogin)
 				</div>
 				
 				
-			</div>
+			</div> *@
+			<Login />
 		</Animation>
 }
 </div>
@@ -174,19 +177,7 @@ else if (showEmpLogin)
 		}
 		validationMessage = string.Empty;
 		await _DataTransferService.SetgvClient(client);
-        // if (string.IsNullOrWhiteSpace(clientId) || clientId.Length != 8)
-		// {
-		// 	validationMessage = "Please enter a valid 8-character Client ID.";
-		// 	client_Id = null; // Prevent navigation/rendering
-		// }
-		// else
-		// {
-		// 	validationMessage = string.Empty;
-		// 	client_Id = clientId;
-		// 	// AppState.SetMessage(clientId);
-		// 	Navigation.NavigateTo("/CustomerZone/");
-		// }
-		// client_Id = clientId;
+        
 		Navigation.NavigateTo("/CustomerZone/");
 	}
 }

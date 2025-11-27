@@ -12,6 +12,7 @@
 @using Pulse.Web.Tools
 @using System.Threading.Tasks
 @using Markdig
+@using Toolbelt.Blazor.SpeechSynthesis
 
 @inject Pulse_AI pAI
 @inject PulseApiService pulseApiClient 
@@ -21,6 +22,7 @@
 @inject IMenuService ms
 @inject IJSRuntime JSRuntime
 @inject AccentBaseColor AccentBaseColor
+@inject SpeechSynthesis SpeechSynthesis
 
 @rendermode InteractiveServer
 
@@ -386,6 +388,8 @@
     private string strResponse = string.Empty;
     private string aiModel = "gpt-oss:latest";
     private ElementReference chatContainer;
+    private bool useSpeechOutput = false;
+    private SpeechSynthesisVoice? _voice;
     private User? user;
     PaginationState pagination = new PaginationState { ItemsPerPage = 19 };
 
@@ -399,6 +403,7 @@
     private List<AiQuery>? savedQueries = new();
     private AiQuery? selectedSavedQuery;
     private bool isLoadingSaved = false;
+    private string? uName;
 
     FluentTextArea? txtQ;
 
@@ -436,6 +441,7 @@
                 SavedQueryMode = false;
                 DataMode = false;
                 chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "**Hi there!** I am Pulse AI and am here to assist you anyway I can.<br>I can summarise or provide insights on data inside Pulse, search the web and compare.<br>My capabilities are growing all the time, so go ahead - ask me anything!" });
+                await SayIt($"What would you like to know {uName}?");
                 break;
 
             case "SavedQry":
@@ -513,15 +519,17 @@
         string message = string.Empty;
         MessageIntent type;
 
-        bool res = await pulseApiClient.RecordQueryVote(selectedSavedQuery.AiQueryID, "up");
+        bool res = await pulseApiClient.RecordQueryVoteAsync(selectedSavedQuery.AiQueryID, "up");
         if (res)
         {
             message = "Thank you for your feedback! The Query has been Up Voted.";
+            await SayIt(message);
             type = MessageIntent.Success;
         }
         else
         {
             message = "There was an issue saving your feedback. Please try again later.";
+            await SayIt(message);
             type = MessageIntent.Error;
         }
 
@@ -539,15 +547,17 @@
         string message = string.Empty;
         MessageIntent type;
 
-        bool res = await pulseApiClient.RecordQueryVote(selectedSavedQuery.AiQueryID, "down");
+        bool res = await pulseApiClient.RecordQueryVoteAsync(selectedSavedQuery.AiQueryID, "down");
         if (res)
         {
             message = "Thank you for your feedback! The Query has been Down Voted.";
+            await SayIt(message);
             type = MessageIntent.Success;
         }
         else
         {
             message = "There was an issue saving your feedback. Please try again later.";
+            await SayIt(message);
             type = MessageIntent.Error;
         }
 
@@ -646,14 +656,33 @@
         columns.Clear();
         StateHasChanged();
     }
-
+    private async Task SayIt(string text)
+    {
+        if (useSpeechOutput)
+        {
+            var utterancet = new SpeechSynthesisUtterance
+            {
+                Text = text.Replace("<br />", ""),
+                Voice = _voice
+            };
+            await this.SpeechSynthesis.SpeakAsync(utterancet);
+        }
+        // Microsoft Ava Online(Natural) - English(United States)(en - US)
+    }
     protected override async Task OnInitializedAsync()
     {
         ollamaModels = await pAI.GetOllamaModelsAsync();
         user = await dtrf.GetgvUser();
+        uName = await dtrf.GetgvUserFirstName();
+
         if(user.UserFavouriteQueries == null)
         {
             user.UserFavouriteQueries = await pulseApiClient.GetAsync<List<UserFavouriteQry>>($"/User/Favourites/SavedQueries/GetById/{user.UserID}");
+        }
+        useSpeechOutput = user.UserSettings.AIHasVoice;
+        if (useSpeechOutput)
+        {
+            _voice = await dtrf.GetgvUserAIVoice();
         }
         // aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
     }
@@ -745,7 +774,8 @@
 
                 if (aiSQL.StartsWith("Error:"))
                 {
-                    errorMessage = aiSQL;
+                    // errorMessage = aiSQL;
+                    chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "I'm sorry, there was a problem responding to your question. Try again, reword the question or try another AI model..." });
                 }
                 else
                 {
@@ -803,7 +833,7 @@
         {
 
             isLoading = false;
-            if (ChatMode) { await SetQuestionFocus(); }
+            // if (ChatMode) { await SetQuestionFocus(); }
         }
     }
 
@@ -849,11 +879,13 @@
         if(result != null && result.AiQueryID > 0)
         {
             message = "Thank you for your feedback! The Query has been saved for future reference.";
+            await SayIt(message);
             type = MessageIntent.Success;
         }
         else
         {
             message = "There was an issue saving your feedback. Please try again later.";
+            await SayIt(message);
             type = MessageIntent.Error;
         }
 

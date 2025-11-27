@@ -1,0 +1,67 @@
+﻿@page "/RET-login"
+@inject Pulse.Web.Services.PulseApiService pApi
+@using Microsoft.FluentUI.AspNetCore.Components
+@inject NavigationManager Navigation
+@inject DataTransferService dT
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@rendermode InteractiveServer
+
+@* 
+<FluentCard Style="min-width:500px">
+    <FluentHeader Style="background-color:#365b66">
+        Login
+    </FluentHeader>
+    <FluentBodyContent>
+    <br />
+    <FluentTextField @bind-Value="loginModel.Email" Label="Email" Style="width:100%" />
+        <FluentTextField @bind-Value="loginModel.Password" Label="Password" Style="width:100%" Type="password" />
+    <br />
+     @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <FluentText Typo="Typography.Body" Style="color:red">@errorMessage</FluentText>
+    }   
+</FluentBodyContent>
+    <FluentFooter>
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start">
+                <FluentButton Appearance="Appearance.Accent" Style="background-color:#365b66" @onclick="HandleLogin">Login</FluentButton>
+    </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End">
+                <FluentButton Appearance="Appearance.Accent" Style="background-color:#365b66" @onclick="btnRegisterClick">Register</FluentButton>
+                
+    </FluentStack>
+        </FluentStack>
+    </FluentFooter>
+</FluentCard> 
+*@
+    @code {
+    // private LoginModel loginModel = new();
+    // private string errorMessage = string.Empty;
+    // private async Task HandleLogin()
+    // {
+    //     // Use HttpClient to post to API /login endpoint with loginModel
+    //     var response = await pApi.UserLoginAsync(loginModel);
+    //     if (response != null)
+    //     {
+    //         User? user = await pApi.GetAsync<User>($"/Security/EmployeeLogin/email={loginModel.Email}");
+    //         if (user == null)
+    //         {
+    //             errorMessage = "Invalid E-Mail or Password. Please try again.";
+    //             return;
+    //         }
+    //         errorMessage = string.Empty;
+    //         await dT.SetgvUser(user);
+    //         Navigation.NavigateTo("/DivisionLogon?nextpage=/EmployeeZone/");
+    //     }
+    //     else
+    //     {
+    //         errorMessage = "Login failed. Please check your credentials.";
+    //     }
+
+    // }
+    // private void btnRegisterClick()
+    // {
+    //     Navigation.NavigateTo("/register");
+    // }
+} 

@@ -97,6 +97,7 @@ else
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(500);
         _client = await DataTransferService.GetgvSelectedClient();
+        await DataTransferService.SetgvContextArea(0);
 
     }
 }

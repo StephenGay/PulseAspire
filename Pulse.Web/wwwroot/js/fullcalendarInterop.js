@@ -1,37 +1,4 @@
-﻿//import dayGridPlugin from '@fullcalendar/daygrid'
-
-/*window.fullCalendarInterop = {
-    
-    initialize: function (calendarSelector, events) {
-        
-        var calendarEl = document.querySelector(calendarSelector);
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-
-            initialView: 'dayGridMonth',
-            selectable: true,
-            editable: true,
-           headerToolbar: {
-                left: 'prev,next',
-               center: 'title',
-                right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-            },
-            views: {
-                dayGridMonth: { buttonText: 'Month' },
-                timeGridWeek: { buttonText: 'Week' },
-                timeGridDay: { buttonText: 'Day' },
-                listWeek: { buttonText: 'Agenda' }
-            },
-            events: events
-        });
-        calendar.render();
-    }
-};
-function changeCalendarView(viewName) {
-    var calendarEl = document.getElementById('calendar');
-    var calendar = FullCalendar.getCalendar(calendarEl);
-    calendar.changeView(viewName);
-}*/
-
+﻿
 window.fullCalendarInterop = {
     
         initialize: function(calendarSelector, events, resources, dotNetRef) {
@@ -54,10 +21,10 @@ window.fullCalendarInterop = {
             var calendar = new FullCalendar.Calendar(calendarEl, {
                 schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
                 /* plugins: [ 'resourceTimeline', 'timeGrid', 'dayGrid', 'interaction' ],  */
-                height: 'auto',
+                height: 'parent',
                 selectable: true,
                 editable: true,
-                /*themeSystem: 'Superhero',*/
+                /*themeSystem: 'bootstrap4',*/
                 droppable: true,
                 nowIndicator: true,
                 /*   aspectRatio: 1.8,
@@ -75,10 +42,11 @@ window.fullCalendarInterop = {
                       buttonText: '3 days'
                     }
                   },
-                  resourceAreaWidth: '20%',
+                resourceAreaWidth: '20%',
+                  
                   resourceAreaColumns: [
                     {
-                      headerContent: 'Equipment',
+                          headerContent: 'Equipment',
                       field: 'title'
                     }
                   ],

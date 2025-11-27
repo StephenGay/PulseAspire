@@ -9,7 +9,7 @@
 
 @rendermode InteractiveServer
 
-<div class="div-center-screen" style="align-items:center">
+@* <div class="div-center-screen" style="align-items:center"> *@
     <ListView TItem="WorkType" Items="@_allWorkTypes" style="align-items:center; width:100%" OnListViewItemClick="OnWTClick" >
         <HeaderTemplate>
             <div style="color:white">WORK TYPES</div>
@@ -17,8 +17,8 @@
         <BodyTemplate>
             <Card IsShadow="true" HeaderText="@context.WorkTypeName">
                 <BodyTemplate>
-                    <FluentLabel Typo="Typography.Body" >Target : @context.TargetWorkingDays Days</FluentLabel>    
-                    <FluentLabel Typo="Typography.Body">Material : @context.WorkTypeMaterial</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Style="margin:5px" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Target : @context.TargetWorkingDays Days</FluentLabel>
+                <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Material : @context.WorkTypeMaterial</FluentLabel>
                 </BodyTemplate>
             </Card>
         </BodyTemplate>
@@ -26,7 +26,7 @@
             @* <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button OnClick="@ButtonClick" Color="Color.Info">Information</Button></div> *@
         </FooterTemplate>
     </ListView>
-</div>
+@* </div> *@
 
 
 @code {
@@ -35,6 +35,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await dTrf.SetgvContextArea(0);
         _allWorkTypes = await pApiClient.GetAsync<List<WorkType>>("/Divisions/GetWorkTypes");
     }
 

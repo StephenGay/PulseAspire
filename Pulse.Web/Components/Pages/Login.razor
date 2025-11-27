@@ -1,216 +1,83 @@
-﻿@page "/1"
-@using System.Security.Cryptography
-@using System.Text
-@using System.Threading.Tasks
-@using Pulse.Models.Customers
-@using Pulse.Models.Organizational
-@using Pulse.Models.Users
-@using Pulse.Web.Components.Layout
+﻿@page "/login"
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users  // For LoginModel, if in shared Models project
 @using Pulse.Web.Services
-@rendermode InteractiveServer
+@using Toolbelt.Blazor.SpeechSynthesis
+
+@inject IHttpClientFactory HttpFactory  // Configured in Program.cs for API calls with cookies
 @inject NavigationManager Navigation
-@inject DataTransferService _DataTransferService
+@inject AuthenticationStateProvider AuthStateProvider  // For notifying auth changes (if custom; optional with cookie auth)
 @inject PulseApiService _pulseApiClient
-@layout NoLayout
+@inject DataTransferService dT
 
-<PageTitle>Home</PageTitle>
+@inject SpeechSynthesis SpeechSynthesis
+@rendermode InteractiveServer
 
-<div class="div-center-screen">
-@if(!showCustLogin && !showEmpLogin)
-{
-	
-		<Animation name="logoAni" Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@Delay.None">
-			<img src="images/Logos/HMLogo.png" class="img-fluid" alt="HM Logo" />
-			<br />
-			<br />
-		</Animation>
-		
-		<Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1)">
-			<button class="btn btn-light btn-lg" @onclick="ShowClientLogin">Customer Zone</button>
-			<br />
-			<br />
-		</Animation>
-		
-		<Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1.5)">
-			<button class="btn btn-light btn-lg" @onclick="ShowEmployeeLogin">Employee Zone</button>
-		</Animation>
-	
-}
-else if (showCustLogin)
-{
-		
-		<Animation Effect="@Effect.LightSpeedInRight" Speed="@TimeSpan.FromSeconds(1)" Delay="@Delay.None">
-			@* <div>	
-			<input type="text" id="txtCust" @bind="clientId" @bind:event="oninput" placeholder="Enter Client ID" />
-			<br />
-			<br />
-			<button class="btn btn-light btn-lg" @onclick="NavigateToCustomerZone">Login</button>
-			<button class="btn btn-light btn-lg" @onclick="CancelLogin">Cancel</button>
-			</div> *@<section class="vh-100" style="background-color: #508bfc;">
-				<div class="container py-5 h-100">
-					<div class="row d-flex justify-content-center align-items-center h-100">
-						<div class="col-12 col-md-8 col-lg-6 col-xl-5">
-							<div class="card shadow-2-strong" style="border-radius: 1rem;">
-								<div class="card-body p-5 text-center">
-
-									<h3 class="mb-5">Sign in</h3>
-
-									<div data-mdb-input-init class="form-outline mb-4">
-										<input type="email" id="typeEmailX-2" class="form-control form-control-lg" />
-										<label class="form-label" for="typeEmailX-2">Email</label>
-									</div>
-
-									<div data-mdb-input-init class="form-outline mb-4">
-										<input type="password" id="typePasswordX-2" class="form-control form-control-lg" />
-										<label class="form-label" for="typePasswordX-2">Password</label>
-									</div>
-
-									<!-- Checkbox -->
-									<div class="form-check d-flex justify-content-start mb-4">
-										<input class="form-check-input" type="checkbox" value="" id="form1Example3" />
-										<label class="form-check-label" for="form1Example3"> Remember password </label>
-									</div>
-
-									<button data-mdb-button-init data-mdb-ripple-init class="btn btn-primary btn-lg btn-block" type="submit">Login</button>
-
-									<hr class="my-4">
-
-									<button data-mdb-button-init data-mdb-ripple-init class="btn btn-lg btn-block btn-primary" style="background-color: #dd4b39;"
-											type="submit">
-										<i class="fab fa-google me-2"></i> Sign in with google
-									</button>
-									<button data-mdb-button-init data-mdb-ripple-init class="btn btn-lg btn-block btn-primary mb-2" style="background-color: #3b5998;"
-											type="submit">
-										<i class="fab fa-facebook-f me-2"></i>Sign in with facebook
-									</button>
-
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
-		</Animation>
-	
-
-	@* @if (!string.IsNullOrEmpty(client_Id))
-	{
-		<CascadingValue Value="client_Id" Name="_customer_Id">
-			<WebApp.Components.Pages.CustomerZone.CustomerZoneHome />
-		</CascadingValue>
-	}
-	@if (!string.IsNullOrEmpty(validationMessage))
-	{
-		<div class="alert alert-danger">@validationMessage</div>
-	} *@
-	@* <CustomerLogin OnCancel="() => showCustLogin = false" /> *@
-}
-else if (showEmpLogin)
-{
-		<Animation Effect="@Effect.LightSpeedInRight" Speed="@TimeSpan.FromSeconds(1)" Delay="@Delay.None">
-			<div>
-				<input type="text" id="txtEmp" @bind="empEM" @bind:event="oninput" placeholder="Enter Your E-Mail Address" />
-				<input type="password" id="txtPwd" @bind="empPwd" @bind:event="oninput" placeholder="Enter Your Password" />
-				<br />
-				<br />
-				<button class="btn btn-light btn-lg" @onclick="NavigateToEmployeeZone">Login</button>
-				<button class="btn btn-light btn-lg" @onclick="CancelLogin">Cancel</button>
-			</div>
-		</Animation>
-}
-</div>
-
-
-@code 
-{
-
-	private bool showCustLogin = false;
-	private bool showEmpLogin = false;
-	private string clientId = string.Empty;
-	private string? client_Id;
-	private string validationMessage = string.Empty;
-	private string empEM = string.Empty;
-	private string empPwd = string.Empty;
-	private AnimationEffect logoSelectedEffect = new AnimationEffect("FadeIn");
-	private AnimationEffect logoBtnSelectedEffect = new AnimationEffect("FadeInUp");
-
-	private void ShowClientLogin()
-	{
-		// logoSelectedEffect = new AnimationEffect("LightSpeedOutLeft");
-		// // logoBtnSelectedEffect = new AnimationEffect("LightSpeedOutLeft");
-		//  StateHasChanged();
-		// await Task.Delay(2000); // Wait for the animation to complete
-		showCustLogin = true;
-	}
-
-	private void ShowEmployeeLogin()
-	{
-		showEmpLogin = true;
-	}
-
-	private void CancelLogin()
-	{
-		showCustLogin = false;
-		showEmpLogin = false;
-	}
-
-	private async void NavigateToEmployeeZone()
-	{
-		if (string.IsNullOrWhiteSpace(empEM) || string.IsNullOrWhiteSpace(empPwd))
-		{
-			validationMessage = "Please enter both E-Mail and Password.";
-			return;
-		}
-		string hashedPwd = HashPassword(empPwd);
-		User? user = await _pulseApiClient.GetAsync<User>($"/Security/EmployeeLogin/email={empEM}pwd={hashedPwd}");
-		if (user == null)
-		{
-			validationMessage = "Invalid E-Mail or Password. Please try again.";
-			return;
-		}
-		validationMessage = string.Empty;
-		await _DataTransferService.SetgvUser(user);
-
-		Navigation.NavigateTo("/DivisionLogin/{nextpage:/EmployeeZone/}");
-    }
-	
-	public static string HashPassword(string password)
-	{
-		using (SHA256 sha256 = SHA256.Create())
-		{
-			byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-			StringBuilder builder = new StringBuilder();
-			foreach (byte b in bytes)
-			{
-				builder.Append(b.ToString("x2"));
-			}
-			return builder.ToString();
-		}
-	}
-
-	private async void NavigateToCustomerZone() 
+<FluentCard>
+    <h3>Login</h3>
+    <FluentTextField @bind-Value="loginModel.Email" Label="Email" /> 
+    <FluentTextField @bind-Value="loginModel.Password" Label="Password" Type="password" /> 
+    <FluentButton @onclick="HandleLogin" Appearance="Appearance.Accent">Login</FluentButton>
+    @if (!string.IsNullOrEmpty(errorMessage))
     {
-		Customer? client = await _pulseApiClient.GetAsync<Customer>($"/Customers/Details/{clientId}");
-		if (client == null)
-		{
-			validationMessage = "Client ID not found. Please enter a valid Client ID.";
-			return;
-		}
-		validationMessage = string.Empty;
-		await _DataTransferService.SetgvClient(client);
-        // if (string.IsNullOrWhiteSpace(clientId) || clientId.Length != 8)
-		// {
-		// 	validationMessage = "Please enter a valid 8-character Client ID.";
-		// 	client_Id = null; // Prevent navigation/rendering
-		// }
-		// else
-		// {
-		// 	validationMessage = string.Empty;
-		// 	client_Id = clientId;
-		// 	// AppState.SetMessage(clientId);
-		// 	Navigation.NavigateTo("/CustomerZone/");
-		// }
-		// client_Id = clientId;
-		Navigation.NavigateTo("/CustomerZone/");
-	}
+        <FluentMessageBar Severity="MessageSeverity.Error">@errorMessage</FluentMessageBar>
+    }
+</FluentCard>
+
+    @code {
+    private LoginModel loginModel = new();
+    private string errorMessage;
+    IEnumerable<SpeechSynthesisVoice> Voices;
+    private SpeechSynthesisVoice? _voice;
+    private string? firstName;
+    private async Task HandleLogin()
+    {
+        errorMessage = null;
+        try
+        {
+            var client = HttpFactory.CreateClient("PulseApiClient");  // Named client with UseDefaultCredentials for cookies
+            var response = await client.PostAsJsonAsync("/Security/login", loginModel);
+            //var response = await _pulseApiClient.PostAsync("/Security/login", loginModel);
+            if (response.IsSuccessStatusCode)
+            {
+                // Optional: Notify auth state if using custom provider
+                // ((CustomAuthenticationStateProvider)AuthStateProvider).MarkUserAsAuthenticated(/* token or cookie handled server-side */);
+                User? user = await _pulseApiClient.GetAsync<User>($"/Security/EmployeeLogin/email={loginModel.Email}");
+                if (user == null)
+                {
+                    errorMessage = "Invalid E-Mail or Password. Please try again.";
+                    return;
+                }
+                errorMessage = string.Empty;
+                await dT.SetgvUser(user);
+                firstName = await dT.GetgvUserFirstName();
+                if(user.UserSettings.AIHasVoice)
+                {
+                    Voices = await SpeechSynthesis.GetVoicesAsync();
+                    _voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == user.UserSettings.AIVoiceID);
+                    if (_voice != null)
+                    {
+                        var utterancet = new SpeechSynthesisUtterance
+                        {
+                            Text = $"Hey {firstName}, Welcome back!",
+                            Voice = _voice // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
+                        };
+                        await this.SpeechSynthesis.SpeakAsync(utterancet);
+                        await dT.SetgvUserAIVoice(_voice);
+                        // await SpeechSynthesis.SpeakAsync("Login successful. Welcome back!", _voice);
+                    }
+                };
+                Navigation.NavigateTo("/DivisionLogon?nextpage=/EmployeeZone/");  // Redirect to home or dashboard
+            }
+            else
+            {
+                errorMessage = await response.Content.ReadAsStringAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Login failed: {ex.Message}";
+        }
+    }
 }

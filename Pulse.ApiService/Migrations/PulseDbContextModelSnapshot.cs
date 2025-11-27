@@ -17,10 +17,66 @@ namespace Pulse.ApiService.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.10")
+                .HasAnnotation("ProductVersion", "10.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("Pulse.Models.AI.ContextualArea", b =>
+                {
+                    b.Property<int>("ContextAreaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("AreaDescription")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("ContextAreaId");
+
+                    b.ToTable("ContextualAreaMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.AI.ContextualPrompt", b =>
+                {
+                    b.Property<int>("ContextualPromptId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ContextualPromptId"));
+
+                    b.Property<int>("ContextualAreaId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ContextualPromptDescription")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("ContextualPromptTitle")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Likes")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Prompt")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("ContextualPromptId");
+
+                    b.HasIndex("ContextualAreaId");
+
+                    b.ToTable("ContextualPromptMaster", (string)null);
+                });
 
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
                 {
@@ -1585,6 +1641,41 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("UserFavouriteQuery", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Users.UserSettings", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AIDefaultPref")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("AIHasVoice")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("AIVoiceID")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserSettingsMaster", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.AI.ContextualPrompt", b =>
+                {
+                    b.HasOne("Pulse.Models.AI.ContextualArea", "ContextualArea")
+                        .WithMany("ContextualPrompts")
+                        .HasForeignKey("ContextualAreaId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ContextualArea");
+                });
+
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
                 {
                     b.HasOne("Pulse.Models.Compounds.CompoundRange", "CompoundRange")
@@ -2028,6 +2119,22 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Users.UserSettings", b =>
+                {
+                    b.HasOne("Pulse.Models.Users.User", "User")
+                        .WithOne("UserSettings")
+                        .HasForeignKey("Pulse.Models.Users.UserSettings", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Pulse.Models.AI.ContextualArea", b =>
+                {
+                    b.Navigation("ContextualPrompts");
+                });
+
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
                 {
                     b.Navigation("ClientRollerSpecifications");
@@ -2175,6 +2282,9 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Users.User", b =>
                 {
                     b.Navigation("UserFavouriteQueries");
+
+                    b.Navigation("UserSettings")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

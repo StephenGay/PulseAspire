@@ -1,0 +1,108 @@
+﻿@page "/AdminZone/AdminDashboard"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users
+@inject Pulse.Web.Services.PulseApiService pApiClient
+
+@rendermode InteractiveServer
+
+<style>
+
+fluent-select::part(listbox) {
+    z-index: 1000;  /* Increase to layer above grid */
+    max-height: 300px;  /* Optional: Allow scrolling for long lists */
+    overflow-y: auto;
+}
+
+/*     .popup {
+        display: none;
+        position: absolute;
+        left: 0;
+        top: 40px;
+        width: 100%;
+        height: 60px;
+        margin-top: 17px; 
+        color: #fff;
+        background: #f00;
+        z-index: 9999999;
+        overflow: visible !important;
+    }
+
+    .item:hover .popup {
+        display: block;
+    }
+
+    fluent-card {
+        contain: none;
+        content-visibility: visible;
+    } */
+</style>
+        <FluentCard>
+            <h3>Role Management</h3>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <FluentMessageBar Severity="MessageSeverity.Error">@errorMessage</FluentMessageBar>
+            }
+
+            <FluentDataGrid Items="@(roles.AsQueryable())" TItem="string">
+                <PropertyColumn Property="@(r => r)" Title="Role Name" />
+            </FluentDataGrid>
+
+            <FluentTextField @bind-Value="newRoleName" Label="New Role" /> 
+            <FluentButton @onclick="CreateRole" Appearance="Appearance.Accent">Create Role</FluentButton>
+
+            <FluentDataGrid Items="@(users.AsQueryable())" TItem="UserDto">
+                <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+                <TemplateColumn Title="Roles" Context="user">
+                    @string.Join(", ", user.Roles)
+                </TemplateColumn>
+                <TemplateColumn Title="Assign Role" Context="user">
+            <FluentSelect @bind-Value="selectedRole" Items="@roles" Position="SelectPosition.Below" />
+            <FluentButton @onclick="() => AssignRole(user.Id, selectedRole)" Disabled="@string.IsNullOrEmpty(selectedRole)">Assign</FluentButton>
+                </TemplateColumn>
+            </FluentDataGrid>
+        </FluentCard>
+
+@code {
+    private List<string> roles = new();
+    private List<UserDto> users = new();  // Define UserDto { string Id, string Email, List<string> Roles }
+    private string newRoleName;
+    private string selectedRole;
+    private string errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch roles
+        roles = await pApiClient.GetAsync<List<string>>("/Security/roles");
+
+        // Fetch users (add a GET /users endpoint in API if needed)
+         users = await pApiClient.GetAsync<List<UserDto>>("/Security/users");  // Implement /users in API
+    }
+
+    private async Task CreateRole()
+    {
+        await pApiClient.AddNewRoleAsync(newRoleName);
+        roles = await pApiClient.GetAsync<List<string>>("/Security/roles");  // Refresh
+    }
+
+    private async Task AssignRole(string userId, string roleName)
+    {
+        errorMessage = null;
+        if (string.IsNullOrEmpty(roleName))
+        {
+            errorMessage = "Please select a role.";
+            return;
+        }
+        try
+        {
+            await pApiClient.AssignRoleToUserAsync(userId, roleName);
+            // Refresh users/roles list
+            users = await pApiClient.GetAsync<List<UserDto>>("/Security/users");
+        }
+        catch (HttpRequestException ex)
+        {
+            errorMessage = ex.Message;  // Or parse for user-friendly msg
+        }
+    }
+}
