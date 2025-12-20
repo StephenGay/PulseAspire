@@ -1,0 +1,483 @@
+﻿@* @page "/AiZone/FlapperPg" *@
+
+
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
+@using Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Pulse.Models.AI.AIds
+@using Pulse.Models.CustomComponents
+@using Pulse.Models.Misc
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@using System.Data
+@using Pulse.Web.Tools
+@using System.Threading.Tasks
+@using Markdig
+@using Toolbelt.Blazor.SpeechRecognition
+@using Toolbelt.Blazor.SpeechSynthesis
+
+@inject Pulse_AI pAI
+@inject PulseApiService pulseApiClient 
+@inject IMessageService MessageService
+@inject IDialogService DialogService
+@inject DataTransferService dtrf
+@inject IMenuService ms
+@inject IJSRuntime JSRuntime
+@inject AccentBaseColor AccentBaseColor
+@inject SpeechSynthesis SpeechSynthesis
+@inject SpeechRecognition SpeechRecognition
+@inject IHttpClientFactory HttpClientFactory
+@rendermode InteractiveServer
+
+
+<style>
+    :root {
+        --datagrid-hover-color: lightyellow;
+    }
+
+    .fluent-data-grid {
+        --fluent-data-grid-resize-handle-color: var(--neutral-stroke-rest) !important;
+        
+    }
+    .dparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: calc(100vh - 56px); /* Or whatever height your parent should be, like 100% */
+        background-color: rgba(188,209,212,0.8);
+    }
+
+    .dheader, .dfooter {
+        /* Fixed sizes; flexbox will respect these */
+        min-height: 50px; /* Or min-height if you want flexibility */
+        /* background: lightgray; */
+    }
+
+    .dcontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.3);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        /* overflow: auto; */
+    }
+</style>
+@* <div style="display: flex;flex-direction: column;overflow:hidden;height:100%;padding:5px;background-color:rgba(188,209,212,0.8)"> *@
+    <div class="dparent">
+        <div class="dheader">
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding-bottom: 0px;">
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-bottom: 0px;">
+                        @if (flapper != null)
+                        {
+                            @(flapper.emoji.ToMarkup("64px"))
+                        }
+
+                        @* <FluentLabel Style="border:1px solid black; margin-right:10px; border-radius:10px; padding:5px; background-color:lightyellow;">Let me know what you would like by entering a description below, else run or modify a community prompt on the right.</FluentLabel> *@
+                        <FluentLabel Typo="Typography.H5">CHAT WITH FLAPPER</FluentLabel>
+                        <FluentSpacer />
+            
+                        <FluentSpacer />
+                    <FluentButton Appearance="Appearance.Accent" OnClick="@ClearChatHistory">Clear History</FluentButton>
+                    <Button Icon="bi bi-file-pdf-fill" Color="BootstrapBlazor.Components.Color.Danger" IsOutline="true" IsAsync="true" OnClick="ExportToPdf"><strong> Save Chat To PDF</strong></Button>
+                </FluentStack>
+            
+            @if (isLoading)
+            {
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Width="75%" Style="height:100%; margin-right:20px;">
+                    <FluentLabel Typo="Typography.Body" Style="color:black;">Thinking...</FluentLabel>
+                    <FluentProgress Indeterminate="true" Width="100%" Style="margin:10px" />
+                    @* <FluentLabel Typo="Typography.Body" Style="color:white;">Question : @query</FluentLabel> *@
+                </FluentStack>
+                <FluentButton BackgroundColor="red" Style="margin-top: 10px; margin-bottom: 10px;" OnClick="@CancelQuery">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.RecordStop())" Slot="start" Style="fill:white;" />
+
+                </FluentButton>
+            }
+            else
+            {
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding-bottom: 0px;">
+                <FluentGrid Style="width:100%" Justify="JustifyContent.Center">
+                    <FluentGridItem sm="12" md="4" lg="2" Justify="JustifyContent.FlexEnd">
+                    @if (this._isListening)
+                    {
+                        <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" class="btnShadow" IconStart="@(new Icons.Regular.Size32.MicOff().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" style="height:100%" OnClick="OnClickStop">Stop Listening</FluentButton>
+                    }
+                    else
+                    {
+                        <FluentButton BackgroundColor="rgba(0,102,0,1)" Color="rgba(255,255,255,1)" class="btnShadow" IconStart="@(new Icons.Regular.Size32.Mic().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" style="height:100%" OnClick="StartRecClick">Start Listening</FluentButton>
+                    }
+                    </FluentGridItem>
+                    <FluentGridItem sm="12" md="8" lg="6">
+                        <Textarea rows="2"   @bind-Value="@query" style="border: 1px solid black" class="divShadow" PlaceHolder="Ask a question..." />
+                    
+                    </FluentGridItem>
+                    <FluentGridItem sm="12" md="4" lg="2"><FluentButton Appearance="Appearance.Accent" Style="height:100%" class="btnShadow" OnClick="@SubmitQuery">SUBMIT</FluentButton></FluentGridItem>
+                
+                </FluentGrid>
+            </FluentStack>
+                @if (_isListening)
+                {
+                    <div>
+                        @foreach (var result in this._results)
+                        {
+                            txtQ = @result.Items![0].Transcript;
+                        }
+                    </div>
+                }
+            }
+    </FluentStack>
+    </div>
+
+        
+
+    @* <FluentMessageBarProvider Section="MESSAGES_TOP" />
+    
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="flex: 1; padding: 10px; overflow: auto;">
+
+        @if (!string.IsNullOrEmpty(strReasoning))
+        {
+            <FluentMessageBar Intent="MessageIntent.Info">@strReasoning</FluentMessageBar>
+        } *@
+    
+    <div class="dcontent">
+        @* <FluentGrid Style="height:100%"> *@
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Top" style="padding: 10px;">
+            @*   <FluentGridItem Style="max-height:100%" xs="12" sm="12" md="6" lg="4" xl="3" xxl="2"> 
+            <div class="d-flex justify-content-start align-items-stretch flex-column divShadow" style="height: 95%; margin:10px; border: 1px solid black; border-radius:10px; background-color:rgba(255,255,255,1); overflow-x:hidden"> *@
+                @* <div class="divShadow" style=" border: 1px solid black; border-radius:10px; background-color:rgba(255,255,255,1); overflow-x:hidden">
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
+                        
+                </FluentStack>
+                
+                <StackItem >
+                    
+                        
+                    
+                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
+                        <HeaderTemplate>
+                            Enter Chat
+                        </HeaderTemplate>
+                        <BodyTemplate>
+                            
+                        </BodyTemplate>
+                        <FooterTemplate>
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
+                                
+                            </FluentStack>
+                        </FooterTemplate>
+                    </Card>
+                    
+                    
+                </StackItem>
+            </div> *@
+        @* </FluentGridItem>
+            <FluentGridItem Style="max-height:100%" xs="12" sm="12" md="6" lg="8" xl="9" xxl="11"> *@
+                @* <div class="divShadow" style="width:90%; padding:20px; border: 1px solid black;border-radius:10px; background-color:rgba(255,255,255,1); overflow:auto"> *@
+            <div @ref="chatContainer" style=" padding: 10px; overflow:auto">
+
+                
+                @foreach (var message in Enumerable.Reverse(chatHistory))
+                {
+                    @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 10px;">
+                        <FluentLabel Typo="Typography.Body"><strong>@(message.Role.ToUpper()): </strong></FluentLabel>
+                        <FluentLabel Typo="Typography.Body">@message.Content</FluentLabel>
+                    </FluentStack> *@
+
+                    @if (message.Role.ToUpper() == "USER")
+                    {
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+                            <FluentLabel Typo="Typography.Body" Style=" background-color:lightblue; padding:10px; border-radius:15px;">@message.Content</FluentLabel>
+                        </FluentStack>
+                    }
+                    else
+                    {
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
+                            <FluentLabel Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                <div style="color: black;">@((MarkupString)ParseToHtml(message.Content)) </div>
+                            </FluentLabel>
+                        </FluentStack>
+                    }
+
+                }
+            </div>
+            @* </div>  *@
+            </FluentStack>
+       @*  </FluentGridItem>
+        
+    </FluentGrid> *@
+    </div>
+    <div class="dfooter"></div>
+  </div> 
+
+        
+
+       
+
+  
+    
+@* </FluentLayout> *@
+@* <FluentMenuProvider /> *@
+
+@code {
+    private string query = string.Empty;
+    
+    private bool isLoading = false;
+    private bool togChat = false;
+    private string txtQ = string.Empty;
+    private bool togWebSearch = true;
+    private bool showResults = false;
+    private bool ChatMode = true;
+    private bool startingChat = false;
+    private string errorMessage = string.Empty;
+    private string aiSQL = string.Empty;
+    private string aiSQLv = string.Empty;
+    private string strReasoning = string.Empty;
+    private string strResponse = string.Empty;
+    private string aiModel = "gpt-oss:latest";
+    private ElementReference chatContainer;
+    private bool useSpeechOutput = false;
+    private SpeechSynthesisVoice? _voice;
+    private User? user;
+    private Flapper? flapper;
+    // Dynamic models for select
+    // private List<string>? ollamaModels = new();
+    // Multi-turn chat history
+    private List<OllamaMessage> chatHistory = new();
+    private SpeechRecognitionResult[] _results = [];
+    private bool _available = true;
+    private bool _isListening = false;
+
+    // Saved Queries state
+    private bool isLoadingSaved = false;
+    private string? uName;
+
+    // FluentTextArea? txtQ;
+
+    private async Task StartRecClick()
+    {
+        if (this._isListening) return;
+        this._isListening = true;
+        this._results = [];
+        txtQ = string.Empty;
+        await this.SpeechRecognition.StartAsync();
+    }
+   
+    private async Task ExportToPdf()
+    {
+        if (chatHistory==null)
+        {
+            return;
+        }
+
+        try
+        {
+            string cnt = string.Empty;
+            foreach (var message in chatHistory)
+            {
+                cnt += "<br />" + message.Role.ToUpper() + ":<br />" + @message.Content;
+            }
+            var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
+            var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".pdf";
+            var request = new PdfRequest
+            {
+                Html = ParseToHtml(cnt),
+                FileName = fileName,
+            };
+
+            var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
+            response.EnsureSuccessStatusCode();
+
+            var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(pdfBytes);
+            // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
+
+            await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
+            // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+    }
+    
+
+    // private async Task SetQuestionFocus()
+    // {
+    //     try
+    //     {
+    //         txtQ!.FocusAsync();
+    //     }
+    //     catch(Exception ex)
+    //     {
+    //         return;
+    //     }
+
+    // }
+
+    
+    
+    private async Task CancelQuery()
+    {
+        await pAI.CancelQueryAsync();
+        isLoading = false;
+    }
+
+    
+    private async Task ClearChatHistory()
+    {
+        chatHistory.Clear();
+        strResponse = string.Empty;
+        
+        StateHasChanged();
+    }
+    private async Task SayIt(string text,string V = "User")
+    {
+        SpeechSynthesisVoice? vc;
+        vc = _voice;
+        if (V == "Flapper")
+        {
+            vc = flapper._Voice;
+        }
+
+        if (useSpeechOutput)
+        {
+            var utterancet = new SpeechSynthesisUtterance
+            {
+                Text = text.Replace("<br />", ""),
+                Voice = vc
+            };
+            await this.SpeechSynthesis.SpeakAsync(utterancet);
+        }
+        // Microsoft Ava Online(Natural) - English(United States)(en - US)
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        // ollamaModels = await pAI.GetOllamaModelsAsync();
+        user = await dtrf.GetgvUser();
+        uName = await dtrf.GetgvUserFirstName();
+        
+        useSpeechOutput = user.UserSettings.AIHasVoice;
+        if (useSpeechOutput)
+        {
+            _voice = await dtrf.GetgvUserAIVoice();
+        }
+        // aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            flapper = await dtrf.GetgvFlapper();
+            this._available = await this.SpeechRecognition.IsAvailableAsync();
+            StateHasChanged();
+        }
+    }
+    private void OnSpeechRecognized(object? sender, SpeechRecognitionEventArgs args)
+    {
+        this._results = args.Results?.Skip(args.ResultIndex).ToArray() ?? [];
+        this.StateHasChanged();
+    }
+    private async Task OnClickStop()
+    {
+        if (!this._isListening) return;
+        this._isListening = false;
+        await this.SpeechRecognition.StopAsync();
+    }
+    private void OnSpeechEnded(object? sender, EventArgs args)
+    {
+        if (this._isListening)
+        {
+            this._isListening = false;
+            this.StateHasChanged();
+        }
+    }
+
+    private async Task SubmitQuery()
+    {
+        if (string.IsNullOrWhiteSpace(query)) return;
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        strResponse = string.Empty;
+        strReasoning = string.Empty;
+        aiSQL = string.Empty;
+
+        try
+        {
+            // Call Ollama to process the natural language query
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+            
+                startingChat = false;
+                // Add user message to history
+            
+                chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
+
+                // StateHasChanged();
+                // await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
+                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, aiModel, togWebSearch, cts.Token);
+
+                if (aiSQL.StartsWith("Error:"))
+                {
+                    // errorMessage = aiSQL;
+                    chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "I'm sorry, there was a problem responding to your question. Try again, reword the question or try another AI model..." });
+                    await SayIt("I'm sorry, there was a problem responding to your question.", "Flapper");
+                }
+                else
+                {
+                    // Add assistant response to history
+                    chatHistory.Add(new OllamaMessage { Role = "assistant", Content = aiSQL });
+                    // StateHasChanged();
+                    // await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
+                }
+                query = string.Empty;
+                isLoading = false;
+                StateHasChanged();
+                await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
+                return; 
+            
+
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message.Contains("timeout") ? "Ollama is taking too long—try simpler query or check local service." : $"Error: {ex.Message}";
+        }
+        finally
+        {
+
+            isLoading = false;
+            // if (ChatMode) { await SetQuestionFocus(); }
+        }
+    }
+
+
+    private string FormatMessageToHtml(string content) //, string role, string toolName)
+    {
+        if (string.IsNullOrEmpty(content)) return "";
+
+        // Basic Markdown-like to HTML (customize for your needs)
+        var html = content
+            .Replace("\n", "<br>")
+            .Replace("**", "<strong>")
+            .Replace("`", "<code>")
+            .Replace("```sql", "<pre><code>")
+            .Replace("```", "</code></pre>")
+            .Replace("* ", "<li>"); // Simple list support
+
+        // Style based on role or tool
+        // string style = role switch
+        // {
+        //     "user" => "color: navy;",
+        //     "assistant" => "color: darkgreen;",
+        //     "tool" => $"color: purple; font-style: italic;{(toolName == "web_search" ? " background-color: #f0f8ff;" : "")}",
+        //     _ => ""
+        // };
+
+        // return $"<div style='{style}'>{html}</div>";
+        return html;
+    }
+
+    private string ParseToHtml(string markdownContent)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
+        return Markdig.Markdown.ToHtml(markdownContent, pipeline);
+    }
+}

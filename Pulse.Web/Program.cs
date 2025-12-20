@@ -90,6 +90,10 @@ builder.Services.AddSpeechRecognition();
 builder.Services.AddFluentUIComponents();
 builder.Services.AddDataGridEntityFrameworkAdapter();
 
+// Used to tell the master AI Nav menu when a page has loaded
+// that has AI functions so it shows icons
+builder.Services.AddScoped<AppState>();
+
 builder.Services.Configure<AnimationOptions>(Guid.NewGuid().ToString(), c => { });
 #endregion
 

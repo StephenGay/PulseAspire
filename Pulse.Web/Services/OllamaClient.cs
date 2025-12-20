@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
-
+using System.Threading.Channels;
 
 namespace Pulse.Web.Services
 {
@@ -87,6 +87,81 @@ namespace Pulse.Web.Services
             }
         }
 
+        public async IAsyncEnumerable<string> PostStreamAsync(string requestUri, object payload, CancellationToken ct = default)
+        {
+            var response = await _httpOllama.PostAsJsonAsync(requestUri, payload, ct);
+            response.EnsureSuccessStatusCode();
+            var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var reader = new StreamReader(stream);
+            var fullResponse = new System.Text.StringBuilder(); // Optional: Build full for logging/final use
+            string? line;
+            while ((line = await reader.ReadLineAsync(ct)) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                OllamaGenerateResponse? chunk = null;
+                try
+                {
+                    chunk = JsonSerializer.Deserialize<OllamaGenerateResponse>(line);
+                }
+                catch (JsonException ex)
+                {
+                    _logger?.LogError(ex, "Failed to deserialize Ollama chunk: {Line}", line);
+                    throw; // Halts the stream; alternatively, yield return $"Error: {ex.Message}"; to continue with feedback
+                }
+
+                if (chunk != null)
+                {
+                    fullResponse.Append(chunk.Response); // Optional
+                    yield return chunk.Response; // Now outside try-catch
+
+                    if (chunk.Done)
+                    {
+                        _logger?.LogInformation("Ollama generation complete: {EvalCount} tokens evaluated in {TotalDuration}ms", chunk.EvalCount, chunk.TotalDuration);
+                        break;
+                    }
+                }
+            }
+            // Optional: Yield fullResponse.ToString().Trim() if needed for a final aggregate
+        }
+        public async Task<string> PostStreamAsyncBU(string requestUri, object payload, CancellationToken ct = default)
+        {
+            var response = await _httpOllama.PostAsJsonAsync(requestUri, payload, ct);
+            response.EnsureSuccessStatusCode();
+
+            var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var reader = new StreamReader(stream);
+            var fullResponse = new System.Text.StringBuilder();
+
+            string? line;
+            while ((line = await reader.ReadLineAsync(ct)) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+
+                try
+                {
+                    var chunk = JsonSerializer.Deserialize<OllamaGenerateResponse>(line);
+                    if (chunk != null)
+                    {
+                        fullResponse.Append(chunk.Response);  // Append the text chunk
+
+                        if (chunk.Done)
+                        {
+                            // Optional: Log or store metrics like TotalDuration for monitoring in Aspire
+                            _logger?.LogInformation("Ollama generation complete: {EvalCount} tokens evaluated in {TotalDuration}ms", chunk.EvalCount, chunk.TotalDuration);
+                            break;  // Stop once done
+                        }
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger?.LogError(ex, "Failed to deserialize Ollama chunk: {Line}", line);
+                    throw;  // Or handle gracefully
+                }
+            }
+
+            return fullResponse.ToString().Trim();  // Return the complete SQL or text
+        }
         private void ConfigureClientForEndpoint(string endpoint)
         {
             if (endpoint.StartsWith("https://ollama.com", StringComparison.OrdinalIgnoreCase))

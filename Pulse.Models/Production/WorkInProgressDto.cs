@@ -10,6 +10,7 @@ namespace Pulse.Models.Production
     {
         public int WorksOrderNo { get; init; }
         public string DivisionID { get; init; }
+        public int WorkTypeID { get; init; }
         public string WorkTypeName { get; init; }
         public int? TargetWorkingDays { get; init; }
         public string ClientName { get; init; }

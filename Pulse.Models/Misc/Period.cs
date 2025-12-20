@@ -26,7 +26,7 @@ namespace Pulse.Models.Misc
         public required string FinancialYear { get; set; }
         [Required]
         public required DateTime StartDate { get; set; }
-        public ICollection<ClientSales>? ClientSales { get; set; }
+        public ICollection<ClientSale>? ClientSales { get; set; }
 
     }
 }

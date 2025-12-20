@@ -1,0 +1,85 @@
+﻿@page "/EmployeeZone/Customers/ClientBudgetPg"
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Web.Services
+@inject PulseApiService pApi
+@inject DataTransferService DTrf
+@inject AppState AppState
+@rendermode InteractiveServer
+
+<style>
+.cparent {
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  height: 100%; /* Or whatever height your parent should be, like 100% */
+}
+
+.cheader, .cfooter {
+  /* Fixed sizes; flexbox will respect these */
+  height: 50px; /* Or min-height if you want flexibility */
+  background: lightgray;
+}
+
+.ccontent {
+  flex: 1; /* This magic makes it grow to fill the space */
+    background: rgba(255,255,255,0.3);
+  margin:10px;
+  border-radius:10px;
+        overflow: hidden;
+}
+</style>
+
+<div class="cparent">
+    @* <div class="cheader">Fixed Header (e.g., 50px)</div> *@
+    <div class="ccontent">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 10px;margin:10px;overflow:hidden">
+        <h5 style="color:white">Financial Year : @(curPer == null ? "Loading" : curPer.FinancialYear)</h5>
+        @if(_client != null)
+        {
+            
+        
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+                <FluentDataGrid TGridItem="ClientBudgets" Items="@_client.clientBudgets.AsQueryable()"
+                        RowSize="DataGridRowSize.Medium"
+                        Style="background-color: white"
+                        AutoFit="false"
+                        GenerateHeader="GenerateHeaderOption.Sticky">
+
+            @* <PropertyColumn Property="@(context => context.ProductionPlanItemID)" Title="ID" Align="Align.Center" Sortable="false" /> *@
+            <PropertyColumn Property="@(context => context.PeriodID)" Title="Period ID" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.period.Month)" Title="Month" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.period.CalendarYear)" Title="Cal Year" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.BudgetedSales)" Title="Budget" Format="#,##0.00" Align="Align.Center" Sortable="false" />
+        </FluentDataGrid>
+    </Animation>
+        }
+        </FluentStack>
+    </div>
+   @*  <div class="cfooter">Fixed Footer (e.g., 30px)</div> *@
+</div>
+
+@code {
+    public Period? curPer;
+    Customer? _client;
+    
+    protected override async Task OnInitializedAsync()
+    {
+        // Simulate asynchronous loading to demonstrate streaming rendering
+        // await Task.Delay(3000);
+        await DTrf.SetgvContextArea(0);
+        ShowAiIcon showAi = new ShowAiIcon();
+        await DTrf.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
+    
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            curPer = await DTrf.GetgvCurrentPeriod();
+            _client = await DTrf.GetgvSelectedClient();
+            StateHasChanged();
+        }
+    }
+}

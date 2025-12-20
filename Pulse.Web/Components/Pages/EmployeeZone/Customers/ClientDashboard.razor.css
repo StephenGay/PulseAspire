@@ -8,7 +8,9 @@
 .text-overide {
     color: white !important;
 }
-
+.border-dashed {
+    --bs-border-style: dashed;
+}
 .header-logo {
     display: block;
     margin: 0 auto;

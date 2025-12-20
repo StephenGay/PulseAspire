@@ -1,5 +1,8 @@
 ﻿
+using Microsoft.FluentUI.AspNetCore.Components;
+using Pulse.Models.AI.AIds;
 using Pulse.Models.Customers;
+using Pulse.Models.Misc;
 using Pulse.Models.Organizational;
 using Pulse.Models.Production;
 using Pulse.Models.Users;
@@ -14,6 +17,10 @@ namespace Pulse.Web.Services
         //public string gv_clientId { get; set; } = string.Empty;
         public Customer gv_client { get; set; }
         public User gv_user { get; set; }
+        public Period gv_Current_Period {  get; set; }
+        public Tables gv_Tables { get; set; }
+        public Flapper gv_Flapper { get; set; }
+        public Ali gv_Ali {  get; set; }
         public Customer gv_Selected_Client { get; set; }
         public ClientCurrentStats gv_Selected_ClientStats { get; set; }
         public Division gv_Selected_Division { get; set; }
@@ -21,8 +28,18 @@ namespace Pulse.Web.Services
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
         public string gv_AIContext_Mode { get; set; }
         public    int gv_Context_Area { get; set; }
+        public ShowAiIcon gvShowAI {  get; set; }
         public SpeechSynthesisVoice gv_User_AI_Voice { get; set; }
         public string gvUserFirstName { get; set; }
+        public async Task SetgvShowAI(ShowAiIcon showAiIcon)
+        {
+            gvShowAI = showAiIcon;
+            await Task.CompletedTask;
+        }
+        public async Task<ShowAiIcon> GetgvShowAI()
+        {
+            return gvShowAI;
+        }
         public async Task SetgvUser(User user)
         {
             gv_user = user;
@@ -33,10 +50,45 @@ namespace Pulse.Web.Services
         {
             return await Task.FromResult(gv_user);
         }
-
+        public async Task<Tables> GetgvTables()
+        {
+            return await Task.FromResult(gv_Tables);
+        }
+        public async Task<Ali> GetgvAli()
+        {
+            return await Task.FromResult(gv_Ali);
+        }
+        public async Task<Flapper> GetgvFlapper()
+        {
+            return await Task.FromResult(gv_Flapper);
+        }
+        public async Task SetgvCurrentPeriod(Period period)
+        {
+            gv_Current_Period = period;
+            await Task.CompletedTask;
+        }
+        public async Task<Period> GetgvCurrentPeriod()
+        {
+            return gv_Current_Period; 
+        }
         public async Task SetgvUserFirstName(string firstName)
         {
             gvUserFirstName = firstName;
+            await Task.CompletedTask;
+        }
+        public async Task SetgvTables(Tables tables)
+        {
+            gv_Tables = tables;
+            await Task.CompletedTask;
+        }
+        public async Task SetgvAli(Ali ali)
+        {
+            gv_Ali = ali;
+            await Task.CompletedTask;
+        }
+        public async Task SetgvFlapper(Flapper flapper)
+        {
+            gv_Flapper = flapper;
             await Task.CompletedTask;
         }
         public async Task<string> GetgvUserFirstName()
@@ -156,6 +208,10 @@ namespace Pulse.Web.Services
         public Task<ClientCurrentStats> GetgvSelectedClientStats();
         public Task SetgvSelectedDivision(Division div);
         public Task<Division> GetgvSelectedDivision();
+        public Task<ShowAiIcon> GetgvShowAI();
+        public Task SetgvShowAI(ShowAiIcon showAiIcon);
+        public Task<Period> GetgvCurrentPeriod();
+        public Task SetgvCurrentPeriod(Period period);
         public Task SetgvSelectedDivisionWIP(List<WorkInProgressDto> wip);
         public Task<List<WorkInProgressDto>> GetgvSelectedDivisionWIP();
         public Task<string> GetgvAIContextMode();
@@ -163,6 +219,12 @@ namespace Pulse.Web.Services
         public Task SetgvContextArea(int areaID);
         public Task<int> GetgvContextArea();
 
+        public Task SetgvTables(Tables tables);
+        public Task<Tables> GetgvTables();
+        public Task SetgvAli(Ali ali);
+        public Task<Ali> GetgvAli();
+        public Task SetgvFlapper(Flapper flapper);
+        public Task<Flapper> GetgvFlapper();
         public Task SetgvUserAIVoice(SpeechSynthesisVoice aiVoice);
         public Task<SpeechSynthesisVoice> GetgvUserAIVoice();
 

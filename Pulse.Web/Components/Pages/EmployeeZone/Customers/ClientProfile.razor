@@ -1,14 +1,40 @@
 ﻿@page "/EmployeeZone/Customers/ClientProfile"
 @using Pulse.Models.Customers
+@using Pulse.Models.Misc
 @using Services
 @using System.ComponentModel.DataAnnotations;
 @inject PulseApiService pulseApi
-@inject DataTransferService DataTransferService
+@inject DataTransferService DTrf
+@inject AppState AppState
 @* @attribute [StreamRendering(true)] *@
 @rendermode InteractiveServer
 
-<PageTitle>Client Profile</PageTitle>
+<PageTitle> </PageTitle>
+<style>
+    .cparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: 100%; /* Or whatever height your parent should be, like 100% */
+    }
 
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    }
+
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.3);
+        margin: 10px;
+        padding:10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style>
+
+<div class="cparent">
+    <div class="ccontent">
 
 @if (_client is null)
 {
@@ -16,9 +42,11 @@
 }
 else
 {
+    <h3 class="h3Overide"> </h3>
+    @* <FluentSpacer /> *@
     <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-    <h3 class="h3Overide">Customer Profile</h3>
-    <EditForm Model="_client" FormName="ClientProfile">
+    
+    <EditForm Model="_client" style="margin-top:20px" FormName="ClientProfile">
         <DataAnnotationsValidator />
         <ValidationSummary />
         <div class="container">
@@ -86,6 +114,9 @@ else
     </EditForm>
 	</Animation>
 }
+</div>
+</div>
+
 @code {
     // [CascadingParameter]
 	private string _customer_Id = string.Empty;
@@ -96,8 +127,11 @@ else
     {
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(500);
-        _client = await DataTransferService.GetgvSelectedClient();
-        await DataTransferService.SetgvContextArea(0);
+        _client = await DTrf.GetgvSelectedClient();
+        await DTrf.SetgvContextArea(0);
+        ShowAiIcon showAi = new ShowAiIcon();
+        await DTrf.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
 
     }
 }

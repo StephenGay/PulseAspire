@@ -107,7 +107,8 @@ namespace Pulse.ApiService.Endpoints
                     const string sql = @"
                         SELECT 
                             wo.WorksOrderNo, 
-                            wo.DivisionID, 
+                            wo.DivisionID,
+                            wo.WorkTypeID,
                             wtm.WorkTypeName, 
                             wtm.TargetWorkingDays, 
                             cm.ClientName, 
@@ -203,9 +204,10 @@ namespace Pulse.ApiService.Endpoints
 
             group.MapGet(ByDivIdPath + "/GetWIP/PlanItems", async (string divisionId, PulseDbContext db) =>
             {
-
+                TimeSpan d = new TimeSpan(0, 30, 0);
+                
                 var items = await db.ProductionPlanItems
-                    .Where(p => p.DivisionID == divisionId && p.Status == "Planned")
+                    .Where(p => p.DivisionID == divisionId && (p.Status == "Planned" || p.Status=="Started"))
                     .Include(wo => wo.WorksOrder)
                         .ThenInclude(c => c.Customer)
 
@@ -214,8 +216,8 @@ namespace Pulse.ApiService.Endpoints
                         Id = p.ProductionPlanItemID,
                         ResourceId = p.EquipmentItemID,
                         Title = p.WorkOrderNo.ToString(),
-                        Start = p.PlannedStartTime,
-                        End = p.PlannedEndTime,
+                        Start = p.Status == "Started" ? p.ActualStartTime : p.PlannedStartTime,
+                        End = p.Status == "Started" ? p.ActualStartTime + d : p.PlannedEndTime,
                         BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
                         ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
                         Description = p.WorksOrder != null ? p.WorksOrder.Description : null
@@ -333,6 +335,14 @@ namespace Pulse.ApiService.Endpoints
                         workCentreId
                     )
                     .ToListAsync();
+                var noequip = await db.Database
+                    .SqlQueryRaw<ProductionPlanResource>(
+                        @"SELECT EquipmentItemID AS ID , 
+                            EquipmentItemDescription AS Title
+                            FROM EquipmentItems WHERE 
+                            EquipmentItemID=0")
+                    .FirstOrDefaultAsync();
+                equipment.Add(noequip);
                 return Results.Ok(equipment);
             })
             .WithName("GetWipPlanEquipByWC");
@@ -472,11 +482,28 @@ namespace Pulse.ApiService.Endpoints
                 item.EquipmentItemID = updatedItem.EquipmentItemID;
                 item.PlannedStartTime = updatedItem.PlannedStartTime;
                 item.PlannedEndTime = updatedItem.PlannedEndTime;
-                item.Status = "Planned";
+                item.ActualStartTime = updatedItem.ActualStartTime;
+                item.ActualEndTime = updatedItem.ActualEndTime;
+                item.StepNo = updatedItem.StepNo;
+                item.Status = updatedItem.Status;
                 await db.SaveChangesAsync();
                 return Results.Ok();
             })
                 .WithName("UpdateWIPPlanItem");
+
+            group.MapGet("/Production/WorkOrder/{WorkOrderNo}/GetProductionPlan", async (int WorkOrderNo, PulseDbContext db) =>
+            {
+                var pp = await db.ProductionPlanItems
+                        .Where(p => p.WorkOrderNo == WorkOrderNo)
+                        .Include(ps => ps.ProductionStage)
+                        .ToListAsync();
+                if (pp == null)
+                {
+                    return Results.NotFound(null);
+                }
+                return Results.Ok(pp);
+            })
+                .WithName("GetPlanByWO");
         }
                 
     }

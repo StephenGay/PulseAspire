@@ -1,6 +1,9 @@
 ﻿@page "/EmployeeZone/"
+@using Pulse.Models.Misc
 @inject Pulse.Web.Services.DataTransferService dts
-
+@inject AppState AppState
+@layout EmployeeZoneMainLayout
+@rendermode InteractiveServer
 <h3>EmployeeZoneHome</h3>
 
 <div>
@@ -11,6 +14,9 @@
     protected override async Task OnInitializedAsync()
     {
         await dts.SetgvContextArea(0);
+        ShowAiIcon showAi = new ShowAiIcon();
+        await dts.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
     }
 
 }

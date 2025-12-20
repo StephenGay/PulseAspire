@@ -28,3 +28,12 @@ window.downloadPdfFile = function (fileName, base64Data) {
     link.click();
     document.body.removeChild(link);
 };
+function downloadExcel(filename, byteBase64) {
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${byteBase64}`;
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};

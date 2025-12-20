@@ -49,6 +49,7 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(c => c.Phone).HasMaxLength(15);
             builder.Property(c => c.EMail).HasMaxLength(255);
             builder.Property(c => c.VATNo).HasMaxLength(16);
+            builder.Property(c => c.AiSummary).HasMaxLength(450);
 
             builder.Property(c => c.TaxCodeID)
                 .HasMaxLength(2)
@@ -135,7 +136,10 @@ namespace Pulse.Models.PulseContext.Maps
                 .WithOne(wo => wo.Customer)
                 .HasForeignKey(wo => wo.FullClientID);
             //.OnDelete(DeleteBehavior.Cascade);
-
+            builder.HasMany(e => e.clientBudgets)
+                .WithOne(cb => cb.customer)
+                .HasForeignKey(cb => cb.FullClientId)
+                .OnDelete(DeleteBehavior.Cascade);
             // Indexes for performance
             builder.HasIndex(c => c.ClientName) // For name searches
                 .HasDatabaseName("IX_ClientMaster_ClientName");

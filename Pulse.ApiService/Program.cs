@@ -89,6 +89,7 @@ app.MapUserEndpoints();
 app.MapUtilitiesEndpoints();
 app.MapDivisionEndpoints();
 app.MapTechnicalEndpoints();
+app.MapCompanyEndpoints();
 
 // Let's Go!
 await app.RunAsync();

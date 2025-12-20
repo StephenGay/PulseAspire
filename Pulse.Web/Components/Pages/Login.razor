@@ -1,6 +1,8 @@
 ﻿@page "/login"
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI.AIds
+@using Pulse.Models.Misc
 @using Pulse.Models.Users  // For LoginModel, if in shared Models project
 @using Pulse.Web.Services
 @using Toolbelt.Blazor.SpeechSynthesis
@@ -14,23 +16,50 @@
 @inject SpeechSynthesis SpeechSynthesis
 @rendermode InteractiveServer
 
-<FluentCard>
-    <h3>Login</h3>
-    <FluentTextField @bind-Value="loginModel.Email" Label="Email" /> 
-    <FluentTextField @bind-Value="loginModel.Password" Label="Password" Type="password" /> 
-    <FluentButton @onclick="HandleLogin" Appearance="Appearance.Accent">Login</FluentButton>
-    @if (!string.IsNullOrEmpty(errorMessage))
+<FluentCard Style="min-width:500px">
+    <FluentHeader Style="background-color:#365b66">
+        Login
+    </FluentHeader>
+    <FluentBodyContent>
+    <br />
+        <FluentTextField @bind-Value="loginModel.Email" Label="Email" Style="width:100%" />
+        <FluentTextField @bind-Value="loginModel.Password" Label="Password" Style="width:100%" Type="password" />
+    <br />
+     @if (!string.IsNullOrEmpty(errorMessage))
     {
-        <FluentMessageBar Severity="MessageSeverity.Error">@errorMessage</FluentMessageBar>
-    }
+            <FluentMessageBar Severity="MessageSeverity.Error">@errorMessage</FluentMessageBar>
+    }   
+    </FluentBodyContent>
+    <FluentFooter>
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start">
+                <FluentButton Appearance="Appearance.Neutral" @onclick="btnRegisterClick">Register</FluentButton>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End">
+                <FluentButton @onclick="HandleLogin" BackgroundColor="#365b66" Appearance="Appearance.Accent">Login</FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentFooter>
 </FluentCard>
 
-    @code {
+@code {
     private LoginModel loginModel = new();
     private string errorMessage;
     IEnumerable<SpeechSynthesisVoice> Voices;
     private SpeechSynthesisVoice? _voice;
     private string? firstName;
+
+    private void btnRegisterClick()
+    {
+        Navigation.NavigateTo("/register");
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Voices = await SpeechSynthesis.GetVoicesAsync();
+        }
+    }
     private async Task HandleLogin()
     {
         errorMessage = null;
@@ -52,22 +81,39 @@
                 errorMessage = string.Empty;
                 await dT.SetgvUser(user);
                 firstName = await dT.GetgvUserFirstName();
-                if(user.UserSettings.AIHasVoice)
+                if (user.UserSettings.AIHasVoice)
                 {
-                    Voices = await SpeechSynthesis.GetVoicesAsync();
                     _voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == user.UserSettings.AIVoiceID);
+
                     if (_voice != null)
                     {
-                        var utterancet = new SpeechSynthesisUtterance
-                        {
-                            Text = $"Hey {firstName}, Welcome back!",
-                            Voice = _voice // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
-                        };
-                        await this.SpeechSynthesis.SpeakAsync(utterancet);
                         await dT.SetgvUserAIVoice(_voice);
+                        await aiSpeak($"Hey {firstName}, Welcome back!", _voice);
+                        // await aiSpeak($"Just waiting for the team to check in then we will get going.", _voice);
+
                         // await SpeechSynthesis.SpeakAsync("Login successful. Welcome back!", _voice);
                     }
-                };
+                }
+                ;
+                Tables tables = new Tables();
+                tables._Voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == tables._VoiceId);
+                await dT.SetgvTables(tables);
+                // await aiSpeak($"Tables here, ready to go!", tables._Voice);
+
+                Ali ali = new Ali();
+                ali._Voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == ali._VoiceId);
+                await dT.SetgvAli(ali);
+                // await aiSpeak($"Yep, me too!", ali._Voice);
+
+                // await aiSpeak($"Oh it's Ali by the way!", ali._Voice);
+
+                Flapper flapper = new Flapper();
+                flapper._Voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == flapper._VoiceId);
+                await dT.SetgvFlapper(flapper);
+                // await aiSpeak($"Flapper ready to chat!", flapper._Voice);
+                ShowAiIcon showAiIcon = new ShowAiIcon();
+                await dT.SetgvShowAI(showAiIcon);
+
                 Navigation.NavigateTo("/DivisionLogon?nextpage=/EmployeeZone/");  // Redirect to home or dashboard
             }
             else
@@ -79,5 +125,16 @@
         {
             errorMessage = $"Login failed: {ex.Message}";
         }
+    }
+
+    public async Task aiSpeak(string txt, SpeechSynthesisVoice vc)
+    {
+        var utterancet = new SpeechSynthesisUtterance
+        {
+            Text = txt,
+            Voice = vc // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
+        };
+        await this.SpeechSynthesis.SpeakAsync(utterancet);
+        return ;
     }
 }

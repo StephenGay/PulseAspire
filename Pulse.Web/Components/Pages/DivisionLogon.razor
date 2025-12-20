@@ -1,4 +1,5 @@
 ﻿@page "/DivisionLogon"
+@using Pulse.Models.Misc
 @using Pulse.Models.Organizational
 @using Pulse.Web.Components.Layout
 @using Pulse.Web.Services
@@ -33,7 +34,7 @@
 </Animation>
 
 @code {
-    [Parameter] [SupplyParameterFromQuery(Name = "nextpage")] public string? NextPage { get; set; }
+    [Parameter][SupplyParameterFromQuery(Name = "nextpage")] public string? NextPage { get; set; } = "/EmployeeZone";
     List<Division>? _allDivisions;
 
     protected override async Task OnInitializedAsync()
@@ -44,6 +45,10 @@
     private async Task OnDivisionClick(Division div)
     {
         await dTrf.SetgvSelectedDivision(div);
-        Navigation.NavigateTo(NextPage);
+        string m = DateTime.Now.ToString("MMMM");
+        string y = DateTime.Now.Year.ToString();
+        Period cur = await pApiClient.GetAsync<Period>($"/Companies/{div.CompanyID}/CurrentPeriod/{m}/{y}");
+        await dTrf.SetgvCurrentPeriod(cur);
+        Navigation.NavigateTo("/EmployeeZone");
     }
 }

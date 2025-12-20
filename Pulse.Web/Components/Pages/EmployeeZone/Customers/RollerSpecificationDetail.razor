@@ -9,7 +9,8 @@
 @using Pulse.Models.Rollers
 @using Pulse.Web.Services
 
-@inject DataTransferService dtf
+@inject DataTransferService DTrf
+@inject AppState AppState
 @inject PulseApiService pApiClient
 @inject HttpClient Http
 @rendermode InteractiveServer
@@ -27,29 +28,57 @@
     .accordion-item{
         background-color: #bcd1d4 !important;
     }
+    .cparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: 100%; /* Or whatever height your parent should be, like 100% */
+    }
 
-    :global(fluent-select::part(label)) {
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 5px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    }
+
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: white;
+        margin: 10px;
+        border-radius: 10px;
+        padding: 10px;
+        overflow: hidden;
+    }
+
+    fluent-number-field::part(control) {
+        border: 1px solid black !important;
+    }
+    fluent-text-field::part(control) {
+        border: 1px solid black !important;
+    }
+    /* :global(fluent-select::part(label)) {
         display: block !important;
         margin-bottom: 0.25rem !important;
     }
-
+    
     
     fluent-select {
         display: inline-block !important; /* prevent Bootstrap flex rules */
-        vertical-align: top;
-    }
+        /* vertical-align: top;
+    } */
 
         /* Optional: make sure the select itself fills width if desired */
-        fluent-select::part(control) {
+       /*  fluent-select::part(control) {
             width: 100%;
-        }
+        } */ 
     
 </style>
-<FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+@* <FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;"> *@
     
-    
+    <div class="cparent">
+        @* <div class="cheader" /> *@
+    <div class="ccontent">
 
-    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="flex: 1; padding: 10px; background-color:white; border-radius: 10px;overflow: auto;">
+    @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px;height:100%; background-color:white; border-radius: 10px;overflow: auto;"> *@
         @if (cSpec == null)
         {
             <div class="div-center-screen">@*  style="height:100%; border: 2px solid black; border-radius: 10px; background-color:white;width:100%;"> *@
@@ -59,16 +88,15 @@
         }
         else
         {
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%" Style="padding: 10px; flex: 0">
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%" Style="padding: 10px">
             <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:start;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
                 <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:end;">@cSpec.Description</FluentLabel>
             </FluentStack>
             @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; flex: 1; overflow-y: auto; height:100%;">
-              
-               <Collapse IsAccordion="false" style="width:100%; height:100%; border-radius:10px;">
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; height:100%; overflow: auto;">
+                       <Collapse IsAccordion="false" style="width:100%;  border-radius:10px;height:100%; overflow: auto">
                     <CollapseItems>
-                        <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="false" >
+                        <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="true" >
                             <FluentStack Orientation="Orientation.Vertical"
                                          HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
                                          VerticalAlignment="VerticalAlignment.Center"
@@ -87,7 +115,7 @@
                                     <FluentTextField @bind-Value=cSpec.DrawingNumber Style="min-width:20%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Drawing Number</FluentTextField>
                                 </FluentStack>
                                 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;">
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Shell Details</FluentLabel>
                                     <FluentStack Orientation="Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
@@ -106,7 +134,7 @@
                                     </FluentStack>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;">
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Cover Details</FluentLabel>
                                     <FluentStack Orientation="Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
@@ -117,7 +145,7 @@
                                         <FluentSpacer />
                                         <FluentNumberField @bind-Value=cSpec.HardnessRequired Appearance="FluentInputAppearance.Filled" ReadOnly="true">Hardness Required</FluentNumberField>
                                         <FluentSpacer />
-                                        <FluentNumberField @bind-Value=cSpec.HardnessToleranceAllowed Appearance="FluentInputAppearance.Filled">Tolerance Allowed</FluentNumberField>
+                                        <FluentNumberField @bind-Value=cSpec.HardnessToleranceAllowed Appearance="FluentInputAppearance.Filled" ReadOnly="true">Tolerance Allowed</FluentNumberField>
                                         <FluentSpacer />
                                         <FluentTextField @bind-Value=cSpec.HardnessTypeRequired Appearance="FluentInputAppearance.Filled" ReadOnly="true">Hardness Type</FluentTextField>
                                     </FluentStack>
@@ -136,7 +164,7 @@
                                     </FluentStack>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;">
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Operating Environment</FluentLabel>
                                     <FluentStack Orientation="Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
@@ -226,8 +254,11 @@
                 
             </FluentStack> *@
         }
-    </FluentStack>
-</FluentLayout>
+    @* </FluentStack> *@
+    </div>
+    @* <div class="cfooter" /> *@
+</div>
+@* </FluentLayout> *@
 
 @code {
     private ClientRollerSpecification? cSpec;
@@ -244,16 +275,20 @@
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
         await GetSpecInfo();
+        ShowAiIcon showAi = new ShowAiIcon();
+        showAi.showAli = true;
+        await DTrf.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
         rollerTypes = await pApiClient.GetAsync<List<RollerType>>("/Technical/RollerTypes/GetAll");
         isLoading = false;
     }
 
     private async Task GetSpecInfo()
     {
-        await dtf.SetgvAIContextMode("RollerSpecification");
-        await dtf.SetgvContextArea(2);
-        ClientRollerSpecification tmpSpec = await dtf.GetgvSelectedRollSpec();
-        customer = await dtf.GetgvSelectedClient();
+        await DTrf.SetgvAIContextMode("RollerSpecification");
+        await DTrf.SetgvContextArea(2);
+        ClientRollerSpecification tmpSpec = await DTrf.GetgvSelectedRollSpec();
+        customer = await DTrf.GetgvSelectedClient();
         if (customer.IndustryID == null)
         {
             industryProcesses = new List<IndustryProcess>();
@@ -273,7 +308,7 @@
                 roller.WorksOrders = await Http.GetFromJsonAsync<ICollection<WorksOrder>>($"http://localhost:7466/Customers/RollerSpecifications/GetWOByRollerID/{roller.ClientRollerID}") ?? new List<WorksOrder>();
             }
             tmpSpec.WorksOrders = await Http.GetFromJsonAsync<ICollection<WorksOrder>>($"http://localhost:7466/Customers/RollerSpecifications/GetWOBySpecID/{tmpSpec.ClientRollerSpecificationID}") ?? new List<WorksOrder>();
-            await dtf.SetgvSelectedRollSpec(tmpSpec);
+            await DTrf.SetgvSelectedRollSpec(tmpSpec);
         }
         cSpec = tmpSpec;
     }

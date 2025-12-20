@@ -4,6 +4,8 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Pulse.Web.Components.Layout
+@using Pulse.Models.AI.AIds
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
 @using Pulse.Models.Users
@@ -23,13 +25,13 @@
 @inject IJSRuntime JSRuntime
 @inject AccentBaseColor AccentBaseColor
 @inject SpeechSynthesis SpeechSynthesis
-
+@inject IHttpClientFactory HttpClientFactory
 @rendermode InteractiveServer
-
+@layout MasterLayout
 
 <style>
     :root {
-        --datagrid-hover-color: lightyellow;
+        --datagrid-hover-color: #bcd1d4;
     }
 
     .fluent-data-grid {
@@ -38,23 +40,38 @@
     }
 </style>
 
-<FluentLayout Style="display: flex; flex-direction: column; height: 100vh; width: 100%; overflow: hidden;">
+@* <FluentLayout Style="display: flex; flex-direction: column; height: calc(100vh - 80px); width: 100%; overflow: hidden;"> *@
     
-    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
-        <FluentLabel Typo="Typography.Body" Style="color:white">AI Model : </FluentLabel>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow">
+        @* <FluentLabel Typo="Typography.Body" Style="color:white">AI Model : </FluentLabel>
         
         @if(ollamaModels == null)
         {
             <FluentButton Appearance="Appearance.Accent" Loading="true" />
         }else{
-            @* <Select TItem="string" bind-value="aiModel"  Items="ollamaModels" ValueChanged="OnSelectionChanged" Placeholder="Select AI Model" /> *@
+            
             <select @bind="aiModel" class="form-select" style="width: auto;">
                 @foreach (var model in ollamaModels)
                 {
                     <option value="@model">@model</option>
                 }
             </select>
-        }
+        } *@
+    @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
+    <FluentButton BackgroundColor=@(DataMode ? "#1D722A" : "#EFC3CA") Color=@(DataMode ? "white" : "black") Loading="@(tables == null ? true : false)" Style="border: 1px solid black;height:36px" OnClick="ToggleDataMode">
+            @if (tables != null)
+            {
+                @(tables.emoji.ToMarkup("32px"))
+            } Tables 
+        </FluentButton>
+        @* <FluentButton BackgroundColor=@(SavedQueryMode ? "green" : "#EFC3CA") Color=@(SavedQueryMode ? "white" : "black") Style="border: 1px solid black;" OnClick="ToggleSavedQryMode">Saved Queries</FluentButton> *@
+        <FluentButton BackgroundColor=@(ChatMode ? "green" : "#EFC3CA") Color=@(ChatMode ? "white" : "black") Loading="@(flapper==null ? true : false)"  Style="border: 1px solid black;height:36px" OnClick="ToggleChat">
+            @if (flapper != null)
+            {
+                @(flapper.emoji.ToMarkup("32px"))
+            } Flapper 
+            </FluentButton>
+    @* </Animation> *@
 
         <FluentSpacer />
 
@@ -76,9 +93,10 @@
         {
             <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(0.5)">
                 <FluentButton Appearance="Appearance.Accent" OnClick="@ClearChatHistory">Clear History</FluentButton>
-                <FluentButton BackgroundColor=@(togWebSearch ? "green" : "#EFC3CA") Color=@(togWebSearch ? "white" : "black") Style="border: 1px solid black;" OnClick="ToggleWebSearch">
-                    Search The Web
-                </FluentButton>
+                @* <FluentButton BackgroundColor=@(togWebSearch ? "green" : "#EFC3CA") Color=@(togWebSearch ? "white" : "black") Style="border: 1px solid black;" OnClick="ToggleWebSearch"> *@
+            <Button Icon="bi bi-file-pdf-fill" Color="BootstrapBlazor.Components.Color.Danger" IsOutline="true" IsAsync="true" OnClick="ExportToPdf"><strong> Save Chat To PDF</strong></Button>
+                    
+                @* </FluentButton> *@
             </Animation>
         }
 
@@ -144,8 +162,14 @@
         @if (ChatMode) 
         { 
             <!-- Chat History Display -->
-            <div @ref="chatContainer" style="max-height: 100%; width: 100%; overflow-y: auto; padding: 10px; border: 1px solid #ccc;">
-                @foreach (var message in chatHistory)
+            <div @ref="chatContainer" style="max-height: 100%; width: 100%; overflow-y: auto; padding: 10px; border-radius:10px; border: 1px solid #ccc; background-color: rgba(255,255,255,0.5)">
+                @if(startingChat)
+            {
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
+                    @(flapper.emoji.ToMarkup("256px"));
+                </FluentStack>
+            }
+            @foreach (var message in chatHistory)
                 {
                     @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 10px;">
                         <FluentLabel Typo="Typography.Body"><strong>@(message.Role.ToUpper()): </strong></FluentLabel>
@@ -155,7 +179,7 @@
                     @if (message.Role.ToUpper() == "USER")
                     {
                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                            <FluentLabel Typo="Typography.Body" Style="max-width:80%; background-color:lightblue; padding:10px; border-radius:15px;">@message.Content</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Style=" background-color:lightblue; padding:10px; border-radius:15px;">@message.Content</FluentLabel>
                         </FluentStack>
                     }
                     else
@@ -168,7 +192,7 @@
                                 <p>@((MarkupString)FormatMessageToHtml(message.Content))</p></FluentCard> *@
                             @* <FluentLabel Typo="Typography.Body" Style="max-width:50%; background-color:khaki; padding:10px;">@((MarkupString)FormatMessageToHtml(message.Content))</FluentLabel> *@
 
-                            <FluentLabel Typo="Typography.Body" Style="max-width:80%; background-color:lemonchiffon; padding:10px; border-radius:15px;">
+                            <FluentLabel Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px;">
                                @*  @((MarkupString)FormatMessageToHtml(message.Content)) *@
                                 <div style="color: black;">@((MarkupString)ParseToHtml(message.Content)) </div>
                             </FluentLabel>
@@ -273,18 +297,19 @@
                                     ResizableColumns="true" 
                                     GenerateHeader="GenerateHeaderOption.Sticky" 
                                     AutoFit="true" 
+                                    AutoItemsPerPage="true"
                                     Pagination="@pagination">
 
                         @foreach (var column in columns)
                         {
                             var localColumn = column;
-                            <PropertyColumn Property="@(r => r[localColumn])" Title="@localColumn" Style="background-color: #bcd1d4; color: rgb(54,91,102);" Sortable="true" />
+                            <PropertyColumn Property="@(r => r[localColumn])" Title="@localColumn" Style="background-color: white; color: black;" Sortable="@SavedQueryMode" />
                         }
                     </FluentDataGrid>
                     
                 </div>
                 
-                <FluentPaginator State="@pagination" Style="color: white; width:100%;" />
+            <FluentPaginator State="@pagination" Style="background-color: #365b66 ; color: white;padding:10px; width:100%;" />
                 
             }
             else
@@ -326,11 +351,21 @@
                 </FluentButton>
             
             </FluentStack>
-            
-            
-        }
-        else if (isLoading)            
+        if (ChatMode)
         {
+            if (!startingChat)
+            {
+                @(flapper.emoji.ToMarkup("128px"));
+            }
+        }
+
+    }
+    else if (isLoading)            
+    {
+        if (ChatMode)
+        {
+            @(flapper.emoji.ToMarkup("128px"));
+        }
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Width="50%" Style="height:100%; margin-right:20px;">
                 <FluentLabel Typo="Typography.Body" Style="color:white;">Thinking...</FluentLabel>
                 <FluentProgress Indeterminate="true" Width="100%" Style="margin:10px" />
@@ -364,7 +399,7 @@
         }
     </FluentStack>
     
-</FluentLayout>
+@* </FluentLayout> *@
 <FluentMenuProvider />
 
 @code {
@@ -376,11 +411,12 @@
     private bool togChat = false;
     private bool myFave = false;
     private bool isFavourite = false;
-    private bool togWebSearch = false;
+    private bool togWebSearch = true;
     private bool showResults = false;
     private bool SavedQueryMode = false;
     private bool ChatMode = false;
     private bool DataMode = true;
+    private bool startingChat = false;
     private string errorMessage = string.Empty;
     private string aiSQL = string.Empty;
     private string aiSQLv = string.Empty;
@@ -392,9 +428,10 @@
     private SpeechSynthesisVoice? _voice;
     private User? user;
     PaginationState pagination = new PaginationState { ItemsPerPage = 19 };
-
+    private Tables? tables;
+    private Flapper? flapper;
     // Dynamic models for select
-    private List<string>? ollamaModels = new();
+    // private List<string>? ollamaModels = new();
     // Multi-turn chat history
     private List<OllamaMessage> chatHistory = new();
 
@@ -422,7 +459,7 @@
         isLoading = false;
         showResults = false;
         showSavedQueries = false;
-
+        string hellomsg=string.Empty;
         columns.Clear();
         rows.Clear();
         chatHistory.Clear();
@@ -439,9 +476,11 @@
             case "Chat":
                 ChatMode = true;
                 SavedQueryMode = false;
+                startingChat = true;
                 DataMode = false;
-                chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "**Hi there!** I am Pulse AI and am here to assist you anyway I can.<br>I can summarise or provide insights on data inside Pulse, search the web and compare.<br>My capabilities are growing all the time, so go ahead - ask me anything!" });
-                await SayIt($"What would you like to know {uName}?");
+                hellomsg = "Hi there, I'm Flapper! What would you like to chat about, ask me anything!";
+                chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "**Hi there!** I'm Flapper! What would you like to chat about? Ask me anything!" });
+                await SayIt(hellomsg,"Flapper");
                 break;
 
             case "SavedQry":
@@ -457,6 +496,52 @@
         }    
     }
 
+    private async Task ExportToPdf()
+    {
+        if (chatHistory==null)
+        {
+            return;
+        }
+
+        try
+        {
+            string cnt = string.Empty;
+            foreach (var message in chatHistory)
+            {
+                @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom: 10px;">
+                        <FluentLabel Typo="Typography.Body"><strong>@(message.Role.ToUpper()): </strong></FluentLabel>
+                        <FluentLabel Typo="Typography.Body">@message.Content</FluentLabel>
+                    </FluentStack> *@
+
+                cnt += "<br />" + message.Role.ToUpper() + ":<br />" + @message.Content;
+
+
+
+
+            }
+            var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
+            var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".pdf";
+            var request = new PdfRequest
+            {
+                Html = ParseToHtml(cnt),
+                FileName = fileName,
+            };
+
+            var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
+            response.EnsureSuccessStatusCode();
+
+            var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(pdfBytes);
+            // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
+
+            await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
+            // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+    }
     private async Task btnFaveClick()
     {
         if (!isFavourite)
@@ -504,7 +589,7 @@
 
     private void ToggleWebSearch()
     {
-        togWebSearch = !togWebSearch;
+        ExportToPdf();
     }
 
     private async void ToggleFavourites()
@@ -656,14 +741,21 @@
         columns.Clear();
         StateHasChanged();
     }
-    private async Task SayIt(string text)
+    private async Task SayIt(string text,string V = "User")
     {
+        SpeechSynthesisVoice? vc;
+        vc = _voice;
+        if (V == "Flapper")
+        {
+            vc = flapper._Voice;
+        }
+
         if (useSpeechOutput)
         {
             var utterancet = new SpeechSynthesisUtterance
             {
                 Text = text.Replace("<br />", ""),
-                Voice = _voice
+                Voice = vc
             };
             await this.SpeechSynthesis.SpeakAsync(utterancet);
         }
@@ -671,9 +763,10 @@
     }
     protected override async Task OnInitializedAsync()
     {
-        ollamaModels = await pAI.GetOllamaModelsAsync();
+        // ollamaModels = await pAI.GetOllamaModelsAsync();
         user = await dtrf.GetgvUser();
         uName = await dtrf.GetgvUserFirstName();
+        
 
         if(user.UserFavouriteQueries == null)
         {
@@ -686,7 +779,15 @@
         }
         // aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
     }
-
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            flapper = await dtrf.GetgvFlapper();
+            tables = await dtrf.GetgvTables();
+            StateHasChanged();
+        }
+    }
     private async Task ToggleSavedQueries()
     {
         selectedSavedQuery = null;
@@ -760,6 +861,7 @@
             using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
             if(ChatMode)
             {
+                startingChat = false;
                 // Add user message to history
                 if (!isCorrect)
                 {
@@ -776,6 +878,7 @@
                 {
                     // errorMessage = aiSQL;
                     chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "I'm sorry, there was a problem responding to your question. Try again, reword the question or try another AI model..." });
+                    await SayIt("I'm sorry, there was a problem responding to your question.", "Flapper");
                 }
                 else
                 {

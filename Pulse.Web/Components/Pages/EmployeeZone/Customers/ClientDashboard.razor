@@ -1,10 +1,12 @@
 ﻿@page "/EmployeeZone/Customers/ClientDashboard"
 @using Pulse.Models.Customers
+@using Pulse.Models.Misc
 @using Pulse.Web.Services
 @inject PulseApiService pulseApi
 @inject Pulse.Web.Services.Pulse_AI pAI
 @inject NavigationManager Navigation
-@inject DataTransferService DataTransferService
+@inject DataTransferService DTrf
+@inject AppState AppState
 @* @attribute [StreamRendering(true)] *@
 @rendermode InteractiveServer
 
@@ -16,44 +18,100 @@
 }
 else
 {
-    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Width="100%" Style="height: 100%; overflow-y : scroll;">
-
-        @if(stats.countWipWOs>0)
+    
+      
+    @* <div class="p-4" style="width:100%; background-color:#EBEBEB ">
+        <div class="p-4 text-center bg-body-tertiary rounded-3" style="background-color:rgb(43, 48, 53) ;box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3); ">
+            <h2 class="text-body-emphasis">@_client.ClientName</h2>
+            @* <p class="lead"> *@
+    @*<FluentLabel Typo="Typography.Subject">@_client.AiSummary</FluentLabel>
+                
+            @* </p> 
+        </div>
+    </div> *@
+    <FluentGrid Spacing="3" Style="width:100%; padding: 20px;" Justify="JustifyContent.Center">
+    @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Width="100%" Style="height: 100%; overflow-y : scroll;"> *@
+        @if(stats != null)
         {
-            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
-                    <HeaderTemplate>
-                        Work Orders In Progress
-                    </HeaderTemplate>
-                    <BodyTemplate>
-                        <h1><span class="badge text-bg-primary">@stats.countWipWOs</span></h1>
-                    </BodyTemplate>
-                    <FooterTemplate>
-                        <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToWIP">View Status</button>
-                    </FooterTemplate>
-                </Card>
-		    </Animation>
+            @if(stats.countWipWOs>0)
+            {
+                
+                    <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> 
+                        <div class="card text-center" style="height:100%">
+                            <header class="card-header">Work Orders In Progress</header>
+                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h1><span class="badge text-bg-primary">@stats.countWipWOs</span></h1>
+                            </div>
+                        </div>
+                        </Animation>
+                    </FluentGridItem>
+		        
+            }
+            @if (stats.countOpenQuotes > 0)
+            {
+                
+                    <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> 
+                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
+                        <HeaderTemplate>
+                            Open Quotations
+                        </HeaderTemplate>
+                        <BodyTemplate>
+                            <h1><span class="badge text-bg-primary">@stats.countOpenQuotes</span></h1>
+                        </BodyTemplate>
+                    </Card>
+                    </Animation>
+                </FluentGridItem>
+                
+            }
         }
-        @if (stats.countOpenQuotes > 0)
+        @if (cmSales != null)
         {
-            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
-                    <HeaderTemplate>
-                        Open Quotations
-                    </HeaderTemplate>
-                    <BodyTemplate>
-                        <h1><span class="badge text-bg-primary">@stats.countOpenQuotes</span></h1>
-                    </BodyTemplate>
-                    <FooterTemplate>
-                        <button class="btn btn-primary btnOveride mt-4" @onclick="NavigateToQuotes">View Quotes</button>
-                    </FooterTemplate>
-                </Card>
-            </Animation>
+            
+                <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                    <div class="card text-center" style="height:100%">
+                        <header class="card-header">Current Month Sales</header>
+                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h1>@cmSales.Amount</h1>
+                        </div>
+                    </div>
+                </Animation>
+                </FluentGridItem>
+            
         }
-    @if (accWarning)
+        @if (cYtdSales != null && cYtdSales != 0)
+        {
+            
+                <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                    <div class="card text-center" style="height:100%">
+                        <header class="card-header">YTD Sales</header>
+                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h1>@String.Format("{0:#,###;(#,###)}",(cYtdSales/1000)) K</h1>
+                        </div>
+                    </div>
+                </Animation>
+                </FluentGridItem>
+            
+        }
+        @if (accWarning)
     {
-            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+           
+                <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> 
+                    <div class="card text-center" style="height:100%">
+                        <header class="card-header">Account Status</header>
+                    <div class="card-body myWarning" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h1>Overdue</h1>
+                        </div>
+                    </div>
+                </Animation>
+                </FluentGridItem>
+                
+                @* <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
                     <HeaderTemplate>
                         Account Status Warning
                     </HeaderTemplate>
@@ -116,13 +174,57 @@ else
                     </BodyTemplate>
                     <FooterTemplate>
                         <button class="btn btn-primary btnOveride">Follow Up</button>
-                        @* <a href="payment.html" class="btn btn-primary btnOveride mt-4" id="payButton">Follow Up</a> *@
                     </FooterTemplate>
                 </Card>
-            </Animation>
+                </FluentGridItem> *@
+            @* </Animation> *@
     }
+        @* style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" *@
+        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
+            <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2">
+            <div class="card text-center" style="height:100%">
+                    <header class="card-header">Industry</header>
+                    <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                        <h4>@_client.Industry?.IndustryName</h4>
+                    </div>
+                </div>
+            </FluentGridItem>
+        @* </Animation> *@
+
+        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
+        <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+            <div class="card text-center" style="height:100%">
+                <header class="card-header">Sales Region</header>
+                <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                <h4>@_client.Region?.RegionName</h4>
+                @_client.Region?.Province?.ProvinceName
+                </div>
+            </div>
             
-    </FluentStack>
+               @*  <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
+                    <HeaderTemplate>
+                        Sales Region
+                    </HeaderTemplate>
+                    <BodyTemplate>
+                        <h4>@_client.Region?.RegionName</h4>
+                        <p>@_client.Region?.Province?.ProvinceName</p>
+                    </BodyTemplate>
+                    
+                </Card> *@
+            </FluentGridItem>
+        @* </Animation> *@
+        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
+            <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                <div class="card text-center" style="height:100%">
+                    <header class="card-header">Sales Representative</header>
+                <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                    <h4>@_client.SalesRepresentative?.RepresentativeName</h4>
+                    </div>
+                </div>
+            </FluentGridItem>
+        @* </Animation> *@
+        @* </FluentStack> *@
+    </FluentGrid>
 }
 
 @code {
@@ -137,6 +239,9 @@ else
     private string? dCur = string.Empty;
     private bool isLoading = true;
     private bool accWarning = false;
+    private ClientSale? cmSales;
+    private decimal? cYtdSales;
+    private Period? curPer;
     private ClientCurrentStats? stats;
     private int WOCount = 0;
     private int QuoteCount = 0;
@@ -146,55 +251,47 @@ else
     {
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
-        await GetClientInfo();
-        await DataTransferService.SetgvContextArea(0);
+        await DTrf.SetgvContextArea(0);
+        ShowAiIcon showAi = new ShowAiIcon();
+        await DTrf.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
         isLoading = false;
     }
 
-    private async Task GetClientInfo()
-    {
-        Customer _cust = await DataTransferService.GetgvSelectedClient();
-        // await Task.Delay(3000);
-        // _client = await pulseApi.GetAsync<Customer>($"Customers/Details/{_customer_Id}");
-        //.GetClientByIdAsync(_customer_Id);
-        if (_cust is null)
-        {
 
-        }
-        else
-        {
-            if (_cust.ClientSales == null)
-            {
-                _cust.ClientSales = await pAI.GetClientSalesAsync(_cust.FullClientID);
-                await DataTransferService.SetgvSelectedClient(_cust);
-            }
-            stats = await DataTransferService.GetgvSelectedClientStats();
-            if (stats == null || stats.FullClientID != _cust.FullClientID){
-                stats = await pAI.GetClientStatsAsync(_cust.FullClientID);
-                await DataTransferService.SetgvSelectedClientStats(stats);
-            }
-            
-            if (_cust.Ageing01 > 0) { d120 = "myWarning"; accWarning = true; } else { d120 = "mySuccess"; }
-            if (_cust.Ageing02 > 0 && _cust.TermDays < 90) { d90 = "myWarning"; accWarning = true; } else { d90 = "mySuccess"; }
-            if (_cust.Ageing03 > 0 && _cust.TermDays < 60) { d60 = "myWarning"; accWarning = true; } else { d60 = "mySuccess"; }
-            if (_cust.Ageing04 > 0 && _cust.TermDays < 30) { d30 = "myWarning"; accWarning = true; } else { d30 = "mySuccess"; }
-            if (_cust.Ageing05 > 0 && _cust.TermDays < 1) { dCur = "myWarning"; accWarning = true; } else { dCur = "mySuccess"; }
-            
-            _client = _cust;
 
-        }
-    }
-    
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (!startAni && _client is not null)
+        if (firstRender)
         {
-            startAni = true;
-            // if (!firstRender)
-            // {
-                StateHasChanged();
-            // }
-            
+            curPer = await DTrf.GetgvCurrentPeriod();
+            _client = await DTrf.GetgvSelectedClient();
+            StateHasChanged();
+            stats = await DTrf.GetgvSelectedClientStats();
+            if (stats == null || stats.FullClientID != _client.FullClientID)
+            {
+                stats = await pAI.GetClientStatsAsync(_client.FullClientID);
+                await DTrf.SetgvSelectedClientStats(stats);
+            }
+            StateHasChanged();
+            if (_client.Ageing01 > 0) { d120 = "myWarning"; accWarning = true; } else { d120 = "mySuccess"; }
+            if (_client.Ageing02 > 0 && _client.TermDays < 90) { d90 = "myWarning"; accWarning = true; } else { d90 = "mySuccess"; }
+            if (_client.Ageing03 > 0 && _client.TermDays < 60) { d60 = "myWarning"; accWarning = true; } else { d60 = "mySuccess"; }
+            if (_client.Ageing04 > 0 && _client.TermDays < 30) { d30 = "myWarning"; accWarning = true; } else { d30 = "mySuccess"; }
+            if (_client.Ageing05 > 0 && _client.TermDays < 1) { dCur = "myWarning"; accWarning = true; } else { dCur = "mySuccess"; }
+            StateHasChanged();
+            if (_client.ClientSales == null)
+            {
+                _client.ClientSales = await pAI.GetClientSalesAsync(_client.FullClientID);
+                await DTrf.SetgvSelectedClient(_client);
+                
+            }
+            if (_client.ClientSales != null)
+            {
+                cmSales = _client.ClientSales.FirstOrDefault(s => s.PeriodID == curPer.PeriodID);
+                cYtdSales = _client.ClientSales.Where(sa => sa.PeriodID < curPer.PeriodID && sa.Period.FinancialYear == curPer.FinancialYear).Sum(sa => sa.Amount);
+            }
+            StateHasChanged();
         }
         
     }

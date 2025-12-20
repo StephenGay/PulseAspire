@@ -32,7 +32,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<User> UserMaster { get; set; }
         public DbSet<AiQuery> AiSavedQueries { get; set; }
         public DbSet<SalesRepresentative> RepresentativeMaster { get; set; }
-        public DbSet<ClientSales> ClientSales {  get; set; }
+        public DbSet<ClientSale> ClientSales {  get; set; }
         public DbSet<Period> PeriodMaster { get; set; }
         public DbSet<IndustryProcess> IndustryProcessMaster { get; set; }
         public DbSet<RollerType> RollerTypeMaster { get; set; }
@@ -62,6 +62,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<ContextualArea> ContextualAreaMaster { get; set; }
         public DbSet<ContextualPrompt> ContextualPromptMaster { get; set; }
         public DbSet<UserSettings> UserSettingsMaster { get; set; }
+        public DbSet<ClientBudgets> ClientBudgetMaster { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -107,6 +108,7 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new ContextualAreaMasterMap());
             modelBuilder.ApplyConfiguration(new ContextualPromptMasterMap());
             modelBuilder.ApplyConfiguration(new UserSettingsMasterMap());
+            modelBuilder.ApplyConfiguration(new ClientBudgetMasterMap());
 
             base.OnModelCreating(modelBuilder);
         }

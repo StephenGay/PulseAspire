@@ -1,107 +1,594 @@
-﻿@using Pulse.Models.Users
+﻿@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Models.Users
 @using Pulse.Web.Services
-@inject DataTransferService dtrf
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using System.Text
+@using System.Threading.Tasks
+@using Toolbelt.Blazor.SpeechSynthesis
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" style="align-items:baseline" href="/EmployeeZone/">
-        <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-fill" viewBox="0 0 16 16">
-  <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293z"/>
-  <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293z"/>
-</svg></span>@user.UserName</a>
-       @*  <UserMenu /> *@
+@inject SpeechSynthesis SpeechSynthesis
+@inject DataTransferService dataTrf
+@inject IDialogService DialogService
+@inject BootstrapBlazor.Components.ToastService ToastService
+@inject Pulse_AI pAI
+@inject PulseApiService pApi
+@inject NavigationManager Navigation
+@rendermode InteractiveServer
+
+<style>
+    #fab2 > svg[part="icon-rest"] {
+        fill: #365b66 !important;
+    }
+</style>
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow">
+                
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
+        <FluentAppBar id="fab2" Style="height: 90%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:center" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+            <FluentAppBarItem Href="/EmployeeZone/Customers/ClientDashboard"
+                                        Match="NavLinkMatch.All"
+                                        IconRest="DashboardIcon()"
+                                        IconActive="DashboardIcon(active: true)"
+                                        Text="Dashboard" />
+            <FluentAppBarItem Href="/EmployeeZone/Customers/ClientProfile"
+                                        IconRest="ProfileIcon()"
+                                        IconActive="ProfileIcon(active: true)"
+                                        Text="Profile" />
+            <FluentAppBarItem Href="/EmployeeZone/Customers/ClientRollerSpecs"
+                                        IconRest="RollersIcon()"
+                                        IconActive="RollersIcon(active: true)"
+                                        Text="Rollers" />
+            <FluentAppBarItem Href="/EmployeeZone/Customers/ClientContacts"
+                              IconRest="ContactsIcon()"
+                              IconActive="ContactsIcon(active: true)"
+                              Text="Contacts" />
+            <FluentAppBarItem Href="/EmployeeZone/Customers/ClientBudgetPg"
+                              IconRest="BudgetsIcon()"
+                              IconActive="BudgetsIcon(active: true)"
+                              Text="Budgets" />
+            <FluentAppBarItem Href="/EmployeeZone/Customers/ClientSales"
+                                        IconRest="SalesIcon()"
+                                        IconActive="SalesIcon(active: true)"
+                                        Text="Sales" />
+@* 
+            <FluentAppBarItem Href="/EmployeeZone/Customers/Template"
+                              IconRest="SalesIcon()"
+                              IconActive="SalesIcon(active: true)"
+                              Text="Template" /> *@
+        </FluentAppBar>
+
+    </FluentStack>
+    <FluentSpacer />
+    @if(isLoading)
+    {
+        <FluentLabel Typo="Typography.H5" style="color:white">Loading...</FluentLabel>
+    }
+    else
+    {
+        if (sState == "BUSY")
+        {
+            @* <FluentButton IconStart="@(new Icons.Regular.Size24.ArrowClockwise())" Appearance="Appearance.Accent" Loading="true"></FluentButton> *@
+            <Button Color="BootstrapBlazor.Components.Color.Info" class="btnShadow" style="border: 1px solid white" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="Working..." />
+        }
+        else if (sState == "VIEW")
+        {
+            <FluentButton IconStart="@(new Icons.Regular.Size24.CheckmarkCircle().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" class="btnShadow" style="border: 1px solid white" OnClick="ViewAssist">View</FluentButton>
+        }
+        else
+        {
+            @* Style = "width: 300px;" *@
+            @if (HasAssists)
+            {
+                <FluentIcon Id="botClientAssist" Value="@(new Icons.Filled.Size32.BotSparkle().WithColor("#365b66"))" OnClick="() => mnuAssists = !mnuAssists" />
+                <FluentPopover style="color: white" VerticalThreshold="170" AnchorId="botClientAssist" @bind-Open="mnuAssists">
+                    <Header >AI Assists</Header>
+                    <Body>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            @if (!customer.clientBudgets.Any())
+                            {
+                            <FluentButton IconStart="@(new Icons.Filled.Size24.SparkleAction().WithColor("#365b66"))" class="btnShadow" style="border: 1px solid white" OnClick="CreateCYBudget">Budgets</FluentButton>
+                            }
+                            @if (customer.AiSummary == null || customer.AiSummary == "")
+                            {
+                            <FluentButton IconStart="@(new Icons.Filled.Size24.SparkleAction().WithColor("#365b66"))" class="btnShadow" style="border: 1px solid white" OnClick="AddAiSummary">Summary</FluentButton>
+                            }
+                        </FluentStack>
+                    </Body>
+                    <Footer>Callout Footer</Footer>
+                </FluentPopover>
+                
+            }
+        }
+        
+    }
+</FluentStack>
+@if (customer == null)
+{
+    <div>Loading...</div>
+}
+else
+{
+     @* background-color:#EBEBEB *@
+    <div class="p-4" style="width:100%; background-image: linear-gradient(180deg, rgb(54,91,102) 20%, #bcd1d4 120%); ">
+    <div class="p-4 text-center bg-body-tertiary rounded-3" style="background-color:rgb(43, 48, 53) ;border:1px solid black;box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8); ">
+        <h2 class="text-body-emphasis">@customer.ClientName</h2>
+        @* <p class="lead"> *@
+        <FluentLabel Typo="Typography.Subject">@customer.AiSummary</FluentLabel>
+
+        @* </p> *@
     </div>
 </div>
-
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Customers/ClientDashboard" Match="NavLinkMatch.All">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-grid-fill" viewBox="0 0 16 16">
-                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z" />
-                    </svg>
-                </span> Client Dashboard
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Customers/ClientProfile">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-person" viewBox="0 0 16 16">
-                        <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4m-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.289 10 8 10s-3.516.68-4.168 1.332c-.678.678-.83 1.418-.832 1.664z" />
-                    </svg>
-                </span> Client Profile
-                @* <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Profile *@
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Customers/ClientRollerSpecs">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-vinyl" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                        <path d="M8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4M4 8a4 4 0 1 1 8 0 4 4 0 0 1-8 0" />
-                        <path d="M9 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
-                    </svg>
-                </span> Roll Specifications
-                @* <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Rollers *@
-            </NavLink>
-        </div>
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link"> @* href="customer"> *@
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-cart2" viewBox="0 0 16 16">
-                        <path d="M0 2.5A.5.5 0 0 1 .5 2H2a.5.5 0 0 1 .485.379L2.89 4H14.5a.5.5 0 0 1 .485.621l-1.5 6A.5.5 0 0 1 13 11H4a.5.5 0 0 1-.485-.379L1.61 3H.5a.5.5 0 0 1-.5-.5M3.14 5l1.25 5h8.22l1.25-5zM5 13a1 1 0 1 0 0 2 1 1 0 0 0 0-2m-2 1a2 2 0 1 1 4 0 2 2 0 0 1-4 0m9-1a1 1 0 1 0 0 2 1 1 0 0 0 0-2m-2 1a2 2 0 1 1 4 0 2 2 0 0 1-4 0" />
-                    </svg>
-                </span><span style="margin-right: 5px">Open Quotations </span>
-                
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link"> @* href="/CustomerZone/ClientWIP"> *@
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wrench-adjustable-circle" viewBox="0 0 16 16">
-                        <path d="M12.496 8a4.5 4.5 0 0 1-1.703 3.526L9.497 8.5l2.959-1.11q.04.3.04.61" />
-                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-1 0a7 7 0 1 0-13.202 3.249l1.988-1.657a4.5 4.5 0 0 1 7.537-4.623L7.497 6.5l1 2.5 1.333 3.11c-.56.251-1.18.39-1.833.39a4.5 4.5 0 0 1-1.592-.29L4.747 14.2A7 7 0 0 0 15 8m-8.295.139a.25.25 0 0 0-.288-.376l-1.5.5.159.474.808-.27-.595.894a.25.25 0 0 0 .287.376l.808-.27-.595.894a.25.25 0 0 0 .287.376l1.5-.5-.159-.474-.808.27.596-.894a.25.25 0 0 0-.288-.376l-.808.27z" />
-                    </svg>
-                </span><span style="margin-right: 5px">Work In Progress </span>
-                
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Customers/ClientSales">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-wrench-adjustable-circle" viewBox="0 0 16 16">
-                        <path d="M12.496 8a4.5 4.5 0 0 1-1.703 3.526L9.497 8.5l2.959-1.11q.04.3.04.61" />
-                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-1 0a7 7 0 1 0-13.202 3.249l1.988-1.657a4.5 4.5 0 0 1 7.537-4.623L7.497 6.5l1 2.5 1.333 3.11c-.56.251-1.18.39-1.833.39a4.5 4.5 0 0 1-1.592-.29L4.747 14.2A7 7 0 0 0 15 8m-8.295.139a.25.25 0 0 0-.288-.376l-1.5.5.159.474.808-.27-.595.894a.25.25 0 0 0 .287.376l.808-.27-.595.894a.25.25 0 0 0 .287.376l1.5-.5-.159-.474-.808.27.596-.894a.25.25 0 0 0-.288-.376l-.808.27z" />
-                    </svg>
-                </span><span style="margin-right: 5px">Sales</span>
-            </NavLink>
-        </div>
-    </nav>
-
-   
-
-</div>
+}
+<FluentDialogProvider />
 
 @code
 {
-    private User? user;
-    #region Properties
+    private Customer? customer;
+    private bool isLoading = true;
+    private string _AnalysisResp = string.Empty;
+    private bool showAnalysis = false;
+    private bool HasAssists = false;
+    private bool mnuAssists = false;
+    private List<BlankClientBudget>? upBud;
+    private bool showingBody = true;
+    private bool startAni = false;
+    private bool useSpeechOutput = true;
+    private SpeechSynthesisVoice? _voice;
+    private string sState = "LOAD";
+    private string _Analysis = string.Empty;
+    private string _AssistWith = string.Empty;
+    private IDialogReference? _dialog;
+    Period? period;
+    private User? u;
+    bool? canceled;
+
+    #region AppBar Icons
+
+    private static Icon DashboardIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.BoardSplit().WithColor("#365b66")
+               : new Icons.Regular.Size24.BoardSplit().WithColor("#365b66");
+
+    private static Icon ProfileIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.ContentView().WithColor("#365b66")
+               : new Icons.Regular.Size24.ContentView().WithColor("#365b66");
+
+    private static Icon RollersIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.CompassNorthwest().WithColor("#365b66")
+               : new Icons.Regular.Size24.CompassNorthwest().WithColor("#365b66");
+
+    private static Icon ContactsIcon(bool active = false) =>
+    active ? new Icons.Filled.Size24.ContactCard().WithColor("#365b66")
+    : new Icons.Regular.Size24.ContactCard().WithColor("#365b66");
+
+    private static Icon BudgetsIcon(bool active = false) =>
+    active ? new Icons.Filled.Size24.Money().WithColor("#365b66")
+    : new Icons.Regular.Size24.Money().WithColor("#365b66");
+
+    private static Icon SalesIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.ChartMultiple().WithColor("#365b66")
+               : new Icons.Regular.Size24.ChartMultiple().WithColor("#365b66");
 
     #endregion
 
     protected override async Task OnInitializedAsync()
     {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        
-        user = await dtrf.GetgvUser();
+        u = await dataTrf.GetgvUser();
+        period = await dataTrf.GetgvCurrentPeriod();
+        useSpeechOutput = u.UserSettings.AIHasVoice;
+        if (useSpeechOutput)
+        {
+            _voice = await dataTrf.GetgvUserAIVoice();
+        }
+        await GetClientInfo();
+
+        isLoading = false;
+
 
     }
 
+    private async Task AiSpeak(string text)
+    {
+        if (useSpeechOutput)
+        {
+            var utterancet = new SpeechSynthesisUtterance
+            {
+                Text = text.Replace("<br />", ""),
+                Voice = _voice
+            };
+            await this.SpeechSynthesis.SpeakAsync(utterancet);
+        }
+    }
+
+    private async Task GetClientInfo()
+    {
+
+        Customer check = await dataTrf.GetgvSelectedClient();
+        if (check.ClientSales == null)
+        {
+            check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
+            await dataTrf.SetgvSelectedClient(check);
+        }
+        if(check.clientBudgets == null)
+        {
+            check.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>($"/Customers/Details/{check.FullClientID}/Budgets/{period.FinancialYear}");
+            // if (check.clientBudgets.Any())
+            // {
+                await dataTrf.SetgvSelectedClient(check);
+            // }
+        }
+        if (!check.clientBudgets.Any())
+        {
+            HasAssists = true;
+        }
+        if (check.AiSummary == null || check.AiSummary == "")
+        {
+            HasAssists = true;
+        }
+        customer = check;
+    }
+    private void CheckForAssists()
+    {
+        HasAssists = false;
+        if (!customer.clientBudgets.Any())
+        {
+            HasAssists = true;
+        }
+        if (customer.AiSummary == null || customer.AiSummary == "")
+        {
+            HasAssists = true;
+        }
+    }
+    private async Task ViewAssist()
+    {
+        string? sTitle;
+        switch (_AssistWith)
+        {
+            case "Summary":
+                await SummaryAssist();
+                break;
+            case "Budget":
+                if (upBud == null)
+                {
+                    _Analysis = _Analysis.Substring(0, _Analysis.Length - 4);
+                    _Analysis = _Analysis.Substring(_Analysis.IndexOf("["));
+                }
+
+                await BudgetAssist();
+                break;
+            default:
+                return;
+        }
+    }
+    private async Task BudgetAssist()
+    {
+
+        //productionPlanItems = await pApiClient.GetWOProductionPlan(selectedWO.WorksOrderNo);
+        upBud = JsonSerializer.Deserialize<List<BlankClientBudget>>(_Analysis, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        _dialog = await DialogService.ShowDialogAsync<AiBudgetCreator>(upBud, new DialogParameters<List<BlankClientBudget>>()
+        {
+            Content = upBud,
+            Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left, // Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right,
+            Title = "Generated Client Budget",
+            PrimaryAction = "Save As Budget",
+            SecondaryAction = "Cancel",
+            Height="70%",
+            Width = "50%",
+        });
+        Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
+        HandlePanel(result);
+
+    }
+    private  async Task HandlePanel(Microsoft.FluentUI.AspNetCore.Components.DialogResult result)
+    {
+        if (result.Cancelled)
+        {
+
+            return;
+        }
+
+        if (result.Data is not null)
+        {
+            List<BlankClientBudget> up = result.Data as List<BlankClientBudget>;
+            foreach (var bud in up)
+            {
+                ClientBudgets clientBudgets = new ClientBudgets
+                {
+                    FullClientId = bud.FullClientId,
+                    PeriodID = bud.PeriodID,
+                    FinancialYear = bud.FinancialYear,
+                    BudgetedSales = bud.BudgetedSales
+                };
+                var response = await pApi.PostAsync<ClientBudgets, ClientBudgets>("/Customers/Budgets/Add/", clientBudgets);
+            }
+            customer.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>($"/Customers/Details/{customer.FullClientID}/Budgets/{period.FinancialYear}");
+            if (customer.clientBudgets.Any())
+            {
+                await dataTrf.SetgvSelectedClient(customer);
+                upBud = null;
+                ResetState();
+                CheckForAssists();
+                StateHasChanged();
+            }
+            return;
+        }
+    }
+    
+    private async Task SummaryAssist()
+    {
+        var dialog = await DialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
+        {
+
+            Content = new()
+            {
+                Title = "I came up with the following summary:",
+                MarkupMessage = new MarkupString(_Analysis),
+                Icon = new Icons.Filled.Size48.BotSparkle(),
+                IconColor = Microsoft.FluentUI.AspNetCore.Components.Color.Success,
+            },
+            PrimaryAction = "Save To Client",
+            SecondaryAction = "Cancel",
+        });
+        var result = await dialog.Result;
+        canceled = result.Cancelled;
+
+        if (canceled == true) 
+        {
+            ResetState();
+            return; 
+        }
+        switch (_AssistWith)
+        {
+            case "Summary":
+                customer!.AiSummary = _Analysis;
+                customer!.AiUpdated = DateTime.Now;
+                break;
+            default:
+                return;
+        }
+
+        var updateDto = new CustomerUpdateDto
+        {
+            AiSummary = _Analysis
+        };
+        var resp = await pApi.UpdateClientMasterAsync(customer, updateDto);
+        if (resp)
+        {
+            await dataTrf.SetgvSelectedClient(customer);
+            await SendToast("Success", "Saved", "The AI generated information has been saved to the client profile.");
+            ResetState();
+            StateHasChanged();
+            @* Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard"); *@
+        }
+        else
+        {
+            await SendToast("Error", "Not Saved", "Apologies, there was an error saving the AI generated information to the client profile. Please try again.");
+        }
+
+    }
+    private async Task AddAiSummary()
+    {
+        mnuAssists = !mnuAssists;
+        var dialog = await DialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
+        {
+            Content = new()
+            {
+                Title = "Create A Summary",
+                MarkupMessage = new MarkupString("I can Analise this account and provide a summary with relevant information that can be saved to the client.<br /><br /><p>Would you like me to do this for you?</p>"),
+                Icon = new Icons.Filled.Size48.BotSparkle(),
+                IconColor = Microsoft.FluentUI.AspNetCore.Components.Color.Success,
+            },
+            PrimaryAction = "OK",
+            SecondaryAction = "Cancel",
+            @* Width = "300px", *@
+    });
+        var result = await dialog.Result;
+        canceled = result.Cancelled;
+
+        if(canceled == true){ return; }
+        _AssistWith = "Summary";
+
+        var dataText = JsonSerializer.Serialize(customer.ClientSales.ToList(), new JsonSerializerOptions { WriteIndented = true });
+
+        var prompt = $@"""
+                You are a financial analysist and will be given the sales history for {customer.ClientName}. 
+                Their account was created {customer.CreatedDate}
+
+                Examine the sales and provide a summary of no more than 450 characters.
+
+                Example Information to include in your summary:
+                1) Do we have a long standing relationship with the client or is it a new client?
+                2) Is the account active? i.e. Are Sales Consistent, Dropping Off, or InActive for a long period. No Sales for the last 3 years means the client is InActive.
+                3) How valuable in terms of contribution to Sales is the client?
+                4) Which months are typically high sales months and which are low sales months?
+                5) Any other relevant information you can find from the sales history.
+
+                Do not include the any sales amounts in your summary, just the analysis.
+
+                Sales History:
+                {dataText}
+                """;
+        await ProcessRequest(prompt);
+    }
+
+    private async Task ProcessRequest(string prompt)
+    {
+        try
+        {
+            sState = "BUSY";
+            StateHasChanged();
+
+            await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
+            
+            _Analysis = await pAI.AskPulseAIAsync(prompt, "gpt-oss:latest");
+
+            if (_Analysis.StartsWith("Error"))
+            {
+                await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request.\n Please try again, maybe with a different AI Model \n Don't worry, I won't take it personally!");
+                ResetState();
+                return;
+            }
+
+            if (_Analysis.StartsWith("NoSales"))
+            {
+                await SendToast("Warning", "Customer In-Active", $"This customer has no sales for the last three years.\nIt would be inaccurate to forecast any sales for this financial year.");
+                ResetState();
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_Analysis))
+            {
+                await SendToast("Warning", "Nothing Returned", "Either no data matched your query or there was an error processing your request.\n If there should have been results, please try again, maybe with a different AI Model.");
+                ResetState();
+                return;
+            }
+
+            @* _Analysis = ParseToHtml(_Analysis); *@
+
+            // fileName = $"{customer.FullClientID}-{Hdr}";
+            await SendToast("Success", "Processing Complete", "Your request has been completed.<br />Click the 'VIEW' button to see the result.");
+            sState = "VIEW";
+
+        }
+        catch (Exception ex)
+        {
+            await SendToast("Error", "Exception", ex.Message);
+            ResetState();
+        }
+    }
+    private async Task CreateCYBudget()
+    {
+        mnuAssists = !mnuAssists;
+        var dialog = await DialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
+        {
+            Content = new()
+            {
+                Title = "Create A Budget",
+                MarkupMessage = new MarkupString("This customer does not have a budget for the current financial year.<br /><br />I can analise the historical sales data and create one for you if you like.<br /><br /><p>Would you like me to do this for you?</p>"),
+                Icon = new Icons.Filled.Size48.BotSparkle(),
+                IconColor = Microsoft.FluentUI.AspNetCore.Components.Color.Success,
+            },
+            PrimaryAction = "OK",
+            SecondaryAction = "Cancel",
+            @* Width = "300px", *@
+    });
+        var result = await dialog.Result;
+        canceled = result.Cancelled;
+
+        if (canceled == true) { return; }
+        _AssistWith = "Budget";
+        // sState = "BUSY";
+        // StateHasChanged();
+
+        // await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
+
+        List<BlankClientBudget> bCb = await pApi.GetAsync<List<BlankClientBudget>>($"/Customers/Details/{customer.FullClientID}/Budgets/{period.FinancialYear}/CreateBlank");
+        var blankBud = JsonSerializer.Serialize(bCb.ToList(), new JsonSerializerOptions { WriteIndented = true });
+        var dataText = JsonSerializer.Serialize(customer.ClientSales.ToList(), new JsonSerializerOptions { WriteIndented = true });
+
+        // var itemSchema = new JsonObject
+        // {
+        //     ["type"] = "object",
+        //     ["properties"] = new JsonObject
+        //     {
+        //         ["FullClientId"] = new JsonObject { ["type"] = "string" },
+        //         ["PeriodID"] = new JsonObject { ["type"] = "integer" },
+        //         ["Month"] = new JsonObject { ["type"] = "string" },
+        //         ["CalenderYear"] = new JsonObject { ["type"] = "string" },
+        //         ["FinancialYear"] = new JsonObject { ["type"] = "string" },
+        //         ["BudgetedSales"] = new JsonObject { ["type"] = "number" } // This will be forecasted/updated
+        //     },
+        //     ["required"] = new JsonArray { "FullClientId", "PeriodID", "Month", "CalenderYear", "FinancialYear", "BudgetedSales" }
+        // };
+
+        // var arraySchema = new JsonObject
+        // {
+        //     ["type"] = "array",
+        //     ["items"] = itemSchema
+        // };
+
+        var prompt = $@"""
+                You are a financial analysist. This is the sales history for {customer.ClientName}.
+                Sales History:
+                {dataText}
+                Examine this data and forecast a Budgeted Sales figure based on historical patterns for each period in the following Budget Sales list:
+                
+                Budget Sales List:
+                {blankBud}
+
+                Update the BudgetedSales figure for each item then return the list in exactly the same format. 
+                If the Customer has no sales for the previous three years, and {customer.CreatedDate} is older than three years then 
+                return only the string 'NoSales'
+                
+                """;
+            await ProcessRequest(prompt);
+        // Ollama API payload
+        // var ollamaPayload = new JsonObject
+        // {
+        //     ["model"] = "llama3.1:latest", // Use a pulled model supporting structured outputs
+        //     ["prompt"] = prompt,
+        //     //["format"] = arraySchema, // Enforces array of updated objects
+        //     ["stream"] = false
+        // };
+
+        // using var httpClient = new HttpClient();
+        // var ollamaresponse = await httpClient.PostAsync("http://localhost:11434/api/generate",
+        //     new StringContent(JsonSerializer.Serialize(ollamaPayload), Encoding.UTF8, "application/json"));
+
+        // if (!ollamaresponse.IsSuccessStatusCode)
+        // {
+        //     await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request.\n Please try again, maybe with a different AI Model \n Don't worry, I won't take it personally!");
+        //     ResetState();
+        //     return;
+        // }
+
+        // // Parse response
+        // var ollamaJson = await JsonSerializer.DeserializeAsync<JsonObject>(await ollamaresponse.Content.ReadAsStreamAsync());
+        // var generatedJson = ollamaJson["response"]?.ToString();
+
+        // // Deserialize to List<ClientBudgets> (ignore nav props)
+        // upBud = JsonSerializer.Deserialize<List<BlankClientBudget>>(generatedJson,
+        //     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        // await SendToast("Success", "Processing Complete", "Your request has been completed.<br />Click the 'VIEW' button to see the result.");
+        // sState = "VIEW";
+        
+    }
+    private void ResetState()
+    {
+        sState = "IDLE";
+    }
+
+    private async Task SendToast(string tType, string tTitle, string tContent)
+    {
+
+        if (useSpeechOutput)
+        {
+            await AiSpeak(tContent);
+
+        }
+        var cat = tType switch
+        {
+            "Success" => ToastCategory.Success,
+            "Information" => ToastCategory.Information,
+            "Error" => ToastCategory.Error,
+            "Warning" => ToastCategory.Warning,
+            _ => ToastCategory.Warning
+        };
+
+        await ToastService.Show(new ToastOption
+        {
+            Category = cat,
+            Title = tTitle,
+            Content = tContent
+        });
+    }
+
+    private string ParseToHtml(string markdown)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        return Markdig.Markdown.ToHtml(markdown, pipeline);
+    }
 }

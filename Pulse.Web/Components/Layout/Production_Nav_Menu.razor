@@ -1,19 +1,36 @@
-﻿@using Pulse.Models.Users
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users
 @using Pulse.Web.Services
 @inject DataTransferService dtrf
 
-<div class="top-row ps-3 navbar navbar-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" style="align-items:baseline" href="/EmployeeZone/">
-        <span><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-house-fill" viewBox="0 0 16 16">
-  <path d="M8.707 1.5a1 1 0 0 0-1.414 0L.646 8.146a.5.5 0 0 0 .708.708L8 2.207l6.646 6.647a.5.5 0 0 0 .708-.708L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293z"/>
-  <path d="m8 3.293 6 6V13.5a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 2 13.5V9.293z"/>
-</svg></span>@user.UserName</a>
-       @*  <UserMenu /> *@
-    </div>
-</div>
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow">
+                
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
+        <FluentAppBar Style="height: 90%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:center" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+            <FluentAppBarItem Href="/EmployeeZone/Production/ProductionDashboard"
+                                        Match="NavLinkMatch.All"
+                                        IconRest="DashboardIcon()"
+                                        IconActive="DashboardIcon(active: true)"
+                                        Text="Dashboard" />
+            <FluentAppBarItem Href="/EmployeeZone/Production/WorkInProgress"
+                                        IconRest="WIPIcon()"
+                                        IconActive="WIPIcon(active: true)"
+                                        Text="W.I.P." />
+            <FluentAppBarItem Href="/EmployeeZone/Production/ProductionCalendar"
+                                        IconRest="PlanIcon()"
+                                        IconActive="PlanIcon(active: true)"
+                                        Text="Plan" />
+            <FluentAppBarItem Href="/EmployeeZone/Production/Setup/ProductionSetupHome"
+                                        IconRest="SetupIcon()"
+                                        IconActive="SetupIcon(active: true)"
+                                        Text="Setup" />
+        </FluentAppBar>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
+    </FluentStack>
+    <FluentSpacer />
+</FluentStack>
+
+@* <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
 
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="nav flex-column">
@@ -71,21 +88,40 @@
 
    
 
-</div>
+</div> *@
 
 @code
 {
-    private User? user;
-    #region Properties
+    #region AppBar Icons
+
+    private static Icon DashboardIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.BoardSplit().WithColor("#365b66")
+               : new Icons.Regular.Size24.BoardSplit().WithColor("#365b66");
+
+    private static Icon WIPIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.WrenchScrewdriver().WithColor("#365b66")
+               : new Icons.Regular.Size24.WrenchScrewdriver().WithColor("#365b66");
+
+    private static Icon PlanIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.CalendarEdit().WithColor("#365b66")
+               : new Icons.Regular.Size24.CalendarEdit().WithColor("#365b66");
+   
+    private static Icon SetupIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.Settings().WithColor("#365b66")
+               : new Icons.Regular.Size24.Settings().WithColor("#365b66");
 
     #endregion
+    // private User? user;
+    // #region Properties
 
-    protected override async Task OnInitializedAsync()
-    {
-        // Simulate asynchronous loading to demonstrate streaming rendering
+    // #endregion
+
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     // Simulate asynchronous loading to demonstrate streaming rendering
         
-        user = await dtrf.GetgvUser();
+    //     user = await dtrf.GetgvUser();
 
-    }
+    // }
 
 }

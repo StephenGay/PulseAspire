@@ -250,6 +250,43 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("PolymerMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Customers.ClientBudgets", b =>
+                {
+                    b.Property<int>("ClientBudgetId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientBudgetId"));
+
+                    b.Property<decimal>("BudgetedSales")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("FinancialYear")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("FullClientId")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("PeriodID")
+                        .HasColumnType("int");
+
+                    b.HasKey("ClientBudgetId");
+
+                    b.HasIndex("FullClientId")
+                        .HasDatabaseName("IX_ClientBudgets_FullClientId");
+
+                    b.HasIndex("PeriodID");
+
+                    b.ToTable("ClientBudgetMaster", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.ClientCalendarEvent", b =>
                 {
                     b.Property<int>("EventId")
@@ -606,6 +643,13 @@ namespace Pulse.ApiService.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
+
+                    b.Property<string>("AiSummary")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("AiUpdated")
+                        .HasColumnType("datetime2");
 
                     b.Property<bool>("Blocked")
                         .ValueGeneratedOnAdd()
@@ -1696,6 +1740,25 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("CompoundRange");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Customers.ClientBudgets", b =>
+                {
+                    b.HasOne("Pulse.Models.Customers.Customer", "customer")
+                        .WithMany("clientBudgets")
+                        .HasForeignKey("FullClientId")
+                        .OnDelete(DeleteBehavior.ClientCascade)
+                        .IsRequired();
+
+                    b.HasOne("Pulse.Models.Misc.Period", "period")
+                        .WithMany()
+                        .HasForeignKey("PeriodID")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("customer");
+
+                    b.Navigation("period");
+                });
+
             modelBuilder.Entity("Pulse.Models.Customers.ClientCalendarEvent", b =>
                 {
                     b.HasOne("Pulse.Models.Customers.Customer", "Customer")
@@ -2174,6 +2237,8 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("ClientSales");
 
                     b.Navigation("WorksOrders");
+
+                    b.Navigation("clientBudgets");
                 });
 
             modelBuilder.Entity("Pulse.Models.Geographic.Continent", b =>

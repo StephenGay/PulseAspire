@@ -103,15 +103,20 @@ namespace Pulse.Models.Customers
         public decimal? Ageing05 { get; set; }
 
         public DateTime? LastVisitDate { get; set; }
+        [MaxLength(450)]
+        public string? AiSummary { get; set; }
+        public DateTime? AiUpdated { get; set; }
+
         public Region? Region { get; set; }
         public Industry? Industry { get; set; }
         public Company? Company { get; set; }
         public SalesRepresentative? SalesRepresentative { get; set; }
-        public ICollection<ClientSales>? ClientSales { get; set; } //= new HashSet<ClientSales>();
+        public ICollection<ClientSale>? ClientSales { get; set; } //= new HashSet<ClientSales>();
         public ICollection<ClientContact>? ClientContacts { get; set; } //= new HashSet<ClientContact>();
         public ICollection<ClientRollerSpecification>? ClientRollerSpecifications { get; set; } //= new HashSet<ClientRollerSpecification>();
         public ICollection<WorksOrder>? WorksOrders { get; set; } //= new HashSet<WorksOrder>();
         public ICollection<ClientCalendarEvent>? ClientCalendarEvents { get; set; }
+        public ICollection<ClientBudgets>? clientBudgets { get; set; }
 
     }
 }

@@ -1,0 +1,161 @@
+﻿@using Pulse.Models.Production
+@inject Pulse.Web.Services.PulseApiService pApi
+@implements IDialogContentComponent<WorkInProgressDto>
+
+
+<FluentDialogBody>
+    @if(productionPlanItems != null)
+    {
+        <Animation Effect="@Effect.FadeInLeftBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+        <FluentDataGrid TGridItem="ProductionPlanItem" Items="@productionPlanItems.AsQueryable()" 
+                        GenerateHeader="GenerateHeaderOption.Sticky"
+                        SelectionMode="SelectionMode.Single"
+                        SelectedItem="@selectedItem"
+                        OnRowClick="OnPlanRowClick"
+                        RowClass="@(context => context == selectedItem ? "fdgrselected" : "fdgrunselected")">
+
+            @* <PropertyColumn Property="@(context => context.ProductionPlanItemID)" Title="ID" Align="Align.Center" Sortable="false" /> *@
+            <PropertyColumn Property="@(context => context.StepNo)" Title="Step No" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.ProductionStage.ProductionStageName)" Title="Stage" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.PlannedStartTime)" Title="Planned" Format="dd/MM/yy" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.ActualStartTime)" Title="Started" Format="dd/MM/yy HH:MM" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.ActualEndTime)" Title="Completed" Format="dd/MM/yy HH:MM" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.Status)" Title="Status" Align="Align.Center" Sortable="false" />
+        </FluentDataGrid>
+        </Animation>
+        <br />
+        <Animation Effect="@Effect.FadeInUpBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+            <FluentStack Orientation="Orientation.Horizontal" Style="padding:10px">
+                <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowCircleUp().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="togPlan"></FluentButton>
+                <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowCircleDown().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="startStage"></FluentButton>
+                <FluentSpacer />
+                <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="height:56px" OnClick="togOpt">Add Stage</FluentButton>
+                <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="height:56px" OnClick="togOpt">Remove Stage</FluentButton>
+                <FluentSpacer />
+                <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="height:56px" OnClick="togPlan">Toggle Plan</FluentButton>
+                <FluentSpacer />
+                <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.PauseCircle().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" style="height:56px" class="btnShadow" OnClick="completeStage"></FluentButton>
+                <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.PlayCircle().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="startStage"></FluentButton>
+            </FluentStack>
+        </Animation>
+        <br />
+        @if (showOpt)
+        {
+            
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+        <FluentDataGrid TGridItem="ProductionStage" Items="@optionalStages.AsQueryable()" 
+                        GenerateHeader="GenerateHeaderOption.Sticky"
+                        SelectionMode="SelectionMode.Single"
+                        SelectedItem="@selectedStage"
+                        OnRowClick="OnStageRowClick"
+                        RowClass="@(context => context == selectedStage ? "fdgrselected" : "fdgrunselected")">
+            @* <PropertyColumn Property="@(context => context.ProductionStageId)" Title="ID" Align="Align.Center" Sortable="false" /> *@
+            <PropertyColumn Property="@(context => context.ProductionStageName)" Title="Optional Stage" Align="Align.Center" Sortable="false" />
+        </FluentDataGrid>
+        </Animation>
+        }
+    }
+</FluentDialogBody>
+
+
+    @code {
+    [Parameter]
+    public WorkInProgressDto Content { get; set; } = default!;
+    List<ProductionPlanItem>? productionPlanItems;
+    List<ProductionStage>? optionalStages;
+    ProductionPlanItem? selectedItem;
+    ProductionStage? selectedStage;
+    private bool showOpt = false;
+
+    private void OnPlanRowClick(FluentDataGridRow<ProductionPlanItem> args)
+    {
+        try
+        {
+            selectedItem = args.Item;
+            if (selectedItem == null) { return; }
+            StateHasChanged();  // Ensure UI updates if needed
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+    }
+    private void OnStageRowClick(FluentDataGridRow<ProductionStage> args)
+    {
+        try
+        {
+            selectedStage = args.Item;
+            if (selectedStage == null) { return; }
+            StateHasChanged();  // Ensure UI updates if needed
+        }
+        catch (Exception ex)
+        {
+            return;
+        }
+    }
+    private async Task togPlan()
+    {
+        if(selectedItem.PlannedStartTime != null)
+        {
+            selectedItem.PlannedStartTime = null;
+        }
+        else
+        {
+            selectedItem.PlannedStartTime = DateTime.Today;
+        }
+        if (selectedItem.EquipmentItemID == null)
+        {
+            selectedItem.EquipmentItemID = "0";
+        }
+        await pApi.UpdatePlanItemAsync(selectedItem);
+        StateHasChanged();
+    }
+    private async Task togOpt()
+    {
+        showOpt = !showOpt;
+    }
+    private async Task startStage()
+    {
+        if (selectedItem.PlannedStartTime == null)
+        {
+            selectedItem.PlannedStartTime = DateTime.Now;
+        }
+        selectedItem.ActualStartTime = DateTime.Now;
+        selectedItem.Status = "Started";
+
+        if (selectedItem.EquipmentItemID == null)
+        {
+            selectedItem.EquipmentItemID = "0";
+        }
+        await pApi.UpdatePlanItemAsync(selectedItem);
+        StateHasChanged();
+    }
+    private async Task completeStage()
+    {
+        if (selectedItem.PlannedEndTime == null)
+        {
+            selectedItem.PlannedEndTime = DateTime.Now;
+        }
+        selectedItem.ActualEndTime = DateTime.Now;
+        selectedItem.Status = "Completed";
+
+        if (selectedItem.EquipmentItemID == null)
+        {
+            selectedItem.EquipmentItemID = "0";
+        }
+        await pApi.UpdatePlanItemAsync(selectedItem);
+        StateHasChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            productionPlanItems = await pApi.GetWOProductionPlan(Content.WorksOrderNo);
+            var ProdStages = await pApi.GetAsync<List<ProductionStage>>($"/Divisions/{Content.DivisionID}/GetProductionStagesByWorkType/{Content.WorkTypeID}");
+            optionalStages = ProdStages.Where(ps => ps.IsOptional).ToList();
+
+            StateHasChanged();
+        }
+    }
+     
+}

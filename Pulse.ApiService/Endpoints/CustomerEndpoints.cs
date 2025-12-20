@@ -3,6 +3,8 @@ using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using static System.Net.WebRequestMethods;
 
 namespace Pulse.ApiService.Endpoints
 {
@@ -15,21 +17,74 @@ namespace Pulse.ApiService.Endpoints
         public static void MapCustomerEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup(BasePath).WithTags("Customers");
-            
+
+            #region GET Functions
             group.MapGet("/GetAll", async (PulseDbContext db) =>
                 await db.ClientMaster.ToListAsync())
                 .WithName("GetAllCustomers")
                 .Produces<List<Customer>> (StatusCodes.Status200OK);
 
             group.MapGet(ByIdPath, async (string fullclientid, PulseDbContext db) =>
-            await db.ClientMaster.AsNoTracking()
-                .FirstOrDefaultAsync(c => c.FullClientID == fullclientid)
-                is { } c
-                    ? Results.Ok(c)
-                    : Results.NotFound())
-                .WithName("GetCustomerById")
-                .Produces<Customer>(StatusCodes.Status200OK)
-                .Produces(StatusCodes.Status404NotFound);
+            {
+                var cust = await db.ClientMaster
+                    .AsNoTracking()
+                    .Where(x => x.FullClientID == fullclientid)
+                    .Include(x => x.Industry!)
+                    .Include(x => x.Region!)
+                    .ThenInclude(r => r.Province!)
+                    .Include(x => x.SalesRepresentative!)
+                    .FirstOrDefaultAsync();
+                return Results.Ok(cust);
+            })
+                .WithName("GetClientByID")
+                .Produces<Customer> (StatusCodes.Status200OK);
+
+            group.MapGet(ByIdPath + "/Contacts/GetAll", async (string fullclientid, PulseDbContext db) =>
+            {
+                var contacts = await db.ClientContactMaster
+                    .AsNoTracking()
+                    .Where(c => c.FullClientID == fullclientid)
+                    .ToListAsync();
+                if (contacts == null) { contacts = new List<ClientContact>(); }
+                return Results.Ok(contacts);
+            })
+                .WithName("GetContactsByClientId")
+                .Produces<List<ClientContact>>(StatusCodes.Status200OK);
+
+            group.MapGet("/Details/{fullclientid}/Budgets/{FinancialYear}", async (string fullclientid, string FinancialYear, PulseDbContext db) =>
+            {
+                var budgets = await db.ClientBudgetMaster
+                    .AsNoTracking()
+                    .Where(b => b.FullClientId == fullclientid && b.FinancialYear == FinancialYear)
+                    .Include(b => b.period)
+                    .ToListAsync();
+                if (!budgets.Any()) { budgets = new List<ClientBudgets>(); }
+
+                return Results.Ok(budgets);
+            })
+                .WithName("GetClientBudget")
+                .Produces<List<ClientBudgets>> (StatusCodes.Status200OK);
+
+            group.MapGet("/Details/{fullclientid}/Budgets/{FinancialYear}/CreateBlank", async (string fullclientid, string FinancialYear, PulseDbContext db) =>
+            {
+                var per = await db.PeriodMaster
+                    .AsNoTracking()
+                    .Where(p => p.FinancialYear == FinancialYear)
+                    .Select(p => new BlankClientBudget
+                    {
+                        FullClientId = fullclientid,
+                        PeriodID = p.PeriodID,
+                        Month = p.Month,
+                        CalenderYear = p.CalendarYear,
+                        FinancialYear = p.FinancialYear,
+                        BudgetedSales = 0
+                    })
+                    .ToListAsync();
+
+                return Results.Ok(per);
+            })
+                .WithName("GetBlankClientBudget")
+                .Produces<List<BlankClientBudget>>(StatusCodes.Status200OK);
 
             group.MapGet(SalesByIdPath, async (string fullclientid, PulseDbContext dbContext) =>
             {
@@ -207,6 +262,83 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(stats);
             })
                 .WithName("GetClientStats");
+
+            #endregion
+
+            group.MapPost("/Budgets/Add/", async (ClientBudgets clBud, PulseDbContext dbContext) =>
+            {
+                dbContext.ClientBudgetMaster.Add(clBud);
+                await dbContext.SaveChangesAsync();
+                return Results.Created("/Customers/Budgets/Add/", clBud);
+            });
+
+            #region PATCH Functions
+
+            group.MapPatch(ByIdPath + "/Update/MasterFile", async (string fullclientid, CustomerUpdateDto updates,
+                PulseDbContext db) =>
+            {
+                if (updates == null)
+                    return Results.BadRequest("No update data provided.");
+
+                var client = await db.ClientMaster
+                    .FirstOrDefaultAsync(c => c.FullClientID == fullclientid);
+
+                if (client == null)
+                    return Results.NotFound($"Client {fullclientid} not found.");
+
+                // Apply only non-null values from the DTO
+                if (updates.ClientName != null) client.ClientName = updates.ClientName.Trim();
+                if (updates.Address1 != null) client.Address1 = updates.Address1.Trim();
+                if (updates.Address2 != null) client.Address2 = updates.Address2.Trim();
+                if (updates.Address3 != null) client.Address3 = updates.Address3.Trim();
+                if (updates.Address4 != null) client.Address4 = updates.Address4.Trim();
+                if (updates.Address5 != null) client.Address5 = updates.Address5.Trim();
+                if (updates.PostalAddress1 != null) client.PostalAddress1 = updates.PostalAddress1.Trim();
+                if (updates.PostalAddress2 != null) client.PostalAddress2 = updates.PostalAddress2.Trim();
+                if (updates.PostalAddress3 != null) client.PostalAddress3 = updates.PostalAddress3.Trim();
+                if (updates.PostalAddress4 != null) client.PostalAddress4 = updates.PostalAddress4.Trim();
+                if (updates.PostalAddress5 != null) client.PostalAddress5 = updates.PostalAddress5.Trim();
+                if (updates.Phone != null) client.Phone = updates.Phone.Trim();
+                if (updates.EMail != null) client.EMail = updates.EMail.Trim();
+                if (updates.VATNo != null) client.VATNo = updates.VATNo.Trim();
+                if (updates.TaxCodeID != null) client.TaxCodeID = updates.TaxCodeID;
+                if (updates.RequireOrderNo.HasValue) client.RequireOrderNo = updates.RequireOrderNo.Value;
+                if (updates.SalesRepID != null) client.SalesRepID = updates.SalesRepID.Trim();
+                if (updates.RegionID.HasValue) client.RegionID = updates.RegionID;
+                if (updates.IndustryID.HasValue) client.IndustryID = updates.IndustryID;
+                if (updates.SisterCompany.HasValue) client.SisterCompany = updates.SisterCompany.Value;
+                if (updates.Blocked.HasValue) client.Blocked = updates.Blocked.Value;
+                if (updates.TermDays.HasValue) client.TermDays = updates.TermDays;
+                if (updates.CreditLimit.HasValue) client.CreditLimit = updates.CreditLimit;
+                if (updates.AiSummary != null)
+                {
+                    client.AiSummary = updates.AiSummary.Trim();
+                    client.AiUpdated = DateTime.UtcNow;
+                }
+
+                // Mark as modified so EF knows something changed (optional but safe)
+                db.Entry(client).State = EntityState.Modified;
+
+                try
+                {
+                    var rowsAffected = await db.SaveChangesAsync();
+                    return rowsAffected > 0
+                        ? Results.Ok(client)
+                        : Results.Problem("No changes were saved.");
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    return Results.Conflict("The record was modified by another user.");
+                }
+            })
+    .WithName("PatchClientPartial")
+    .Produces<Customer>(StatusCodes.Status200OK)
+    .Produces(StatusCodes.Status400BadRequest)
+    .Produces(StatusCodes.Status404NotFound)
+    .Produces(StatusCodes.Status409Conflict)
+    .Accepts<CustomerUpdateDto>("application/json");
+
+            #endregion
         }
     }
 }

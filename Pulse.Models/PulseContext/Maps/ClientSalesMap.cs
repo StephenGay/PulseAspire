@@ -10,9 +10,9 @@ using System.Threading.Tasks;
 
 namespace Pulse.Models.PulseContext.Maps
 {
-    public class ClientSalesMap : IEntityTypeConfiguration<ClientSales>
+    public class ClientSalesMap : IEntityTypeConfiguration<ClientSale>
     {
-        public void Configure(EntityTypeBuilder<ClientSales> builder)
+        public void Configure(EntityTypeBuilder<ClientSale> builder)
         {
             builder.ToTable("ClientSales");
 

@@ -1,0 +1,221 @@
+﻿@page "/EmployeeZone/SearchPages/CustomerSearch"
+
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI.AIds
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Web.Services
+@using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis
+@inject PulseApiService pApiClient
+@inject NavigationManager Navigation
+@inject DataTransferService dts
+@inject AppState AppState
+@attribute [StreamRendering(true)]
+@rendermode InteractiveServer
+
+<style>
+    
+    [data-bs-theme=dark] .table, .table-dark {
+    --bs-table-bg: #365b66 !important;
+        --bs-body-bg: #bcd1d4 !important;
+        --bs-emphasis-color: #fff !important;
+        --bs-table-accent-bg: #bcd1d4 !important;
+        --bs-table-bg: #365b66 !important;
+        --bs-table-striped-bg: #bcd1d4 !important;
+        --bs-table-striped-color: #365b66 !important;
+        --bs-table-hover-bg: #365b66 !important;
+        --bs-table-active-bg: blue !important;
+        --bs-table-active-color: #fff !important;
+        --bs-table-hover-color: #fff !important;
+        
+        
+    }
+    
+    .cparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: 100%; /* Or whatever height your parent should be, like 100% */
+    }
+
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        min-height: 50px; /* Or min-height if you want flexibility */
+        background: rgba(255,255,255,0);
+        
+    }
+
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.3);
+        margin: 10px;
+        padding:10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style>
+
+
+@* <FluentSpacer /> *@
+ <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="margin:20px; justify-content:center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center"> 
+@* <FluentGrid Spacing="4" Style="justify-content:center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+    <FluentGridItem xs="1" sm="3" md="6" lg="9" xl="12" Style="justify-content:center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center"> *@
+        @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal"  VerticalAlignment="VerticalAlignment.Center""> *@
+
+            @if (tb != null)
+            {
+                @* <FluentButton Id="tablesCustSearch" Appearance="Appearance.Outline" Style="border-color:transparent; height:80px;width:80px" OnClick="() => useTables = !useTables">
+                @(tb.emoji.ToMarkup("64px"))
+                </FluentButton> *@
+                <FluentTooltip Anchor="mnuTablesBtn" HideTooltipOnCursorLeave="true" Delay=100>
+                    If you want to search for customers using different columns, I can help!
+                    Just tell me what data columns you would like to see and I will assist,
+                    you can also save your custom view as the default for future searches.
+                </FluentTooltip>
+            }
+           @*  @if(useTables){
+                <FluentTextArea Placeholder="Enter the columns you would like to see..." />
+                 <FluentButton Appearance="Appearance.Accent" OnClick="btnSelectClick">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
+                </FluentButton> 
+            } *@
+        @* </FluentStack> *@
+        <div class="cparent">
+    <div class="cheader">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Style="justify-content:center; border-radius:10px" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
+               
+                
+                <FluentSearch @bind-value="srchName" Immediate="true" style="justify-content:center; width:100%;" Placeholder="Search For Customer"></FluentSearch>
+                <FluentButton Appearance="Appearance.Accent" Disabled="@(selClient != null ? false : true)" OnClick="btnSelectClick">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
+                    Select
+                </FluentButton>
+            </FluentStack>
+            </div>
+            <div class="ccontent">
+            @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin-top:20px; overflow : hidden; " > *@
+
+                <FluentDataGrid Items="@FilteredCustomers" TGridItem="Customer"
+                            RowClass="@(context => context == selClient ? "fdgrselected" : "fdgrunselected")"
+                                                    SelectionMode="SelectionMode.Single"
+                                                    SelectedItem="@selClient"
+                                                    OnRowClick="ClickRow"
+                                                    ResizableColumns="true"
+                                                    Pagination="@pagination"
+                                                        ShowHover="true"
+                                                    AutoFit="true"
+                                                    
+                                                    GenerateHeader="GenerateHeaderOption.Sticky">
+                            <PropertyColumn Property="@(context => context.FullClientID)" Title="Client ID" Align="Align.Center" Sortable="true" />
+                            <PropertyColumn Property="@(context => context.ClientName)" Title="Client Name" Sortable="true" />
+                            <PropertyColumn Property="@(context => context.Address1)" Title="Address 1" Sortable="true" />
+                            <PropertyColumn Property="@(context => context.Address2)" Title="Address 2" Sortable="true" />
+                    <PropertyColumn Property="@(context => context.Address3)" Title="Address 3" Sortable="true" />
+                    <PropertyColumn Property="@(context => context.Address4)" Title="Address 4" Sortable="true" />
+                    <PropertyColumn Property="@(context => context.Address5)" Title="Address 5" Sortable="true" />
+                                
+                </FluentDataGrid>
+                <FluentSpacer />
+                <FluentPaginator State="@pagination" Style="margin-top:20px;background-color: #365b66 ; padding:10px ; color: white; width:100%;" />
+            @* </FluentStack> *@
+        @* </FluentGridItem> 
+    </FluentGrid> *@
+        </div>
+    </div>
+</FluentStack> 
+ 
+
+
+       @*  <Table TItem="Customer" class="table-virtualize-demo"
+            HeaderStyle="TableHeaderStyle.Dark"
+           IsBordered="true" IsStriped="false" IsFixedFooter="true"
+           Items="FilteredCustomers" ScrollMode="ScrollMode.Virtual"
+           ClickToSelect="true" OnClickRowCallback="@ClickRow"
+           
+           ShowFooter="false">
+        <TableColumns>
+            <TableColumn @bind-Field="@context.FullClientID" Text="Client ID" Sortable="true" />
+            <TableColumn @bind-Field="@context.ClientName" Text="Client Name" Sortable="true" />
+            <TableColumn @bind-Field="@context.Address1" Text="Address 1" Sortable="true" />
+            <TableColumn @bind-Field="@context.Address2" Text="Address 2" Sortable="true" />
+            
+        </TableColumns>
+        <TableFooter>
+            <TableFooterCell colspan="4" Text="Count：" Align="Alignment.Left" />
+
+        </TableFooter>
+ @*    </Table> 
+    </FluentStack> *@
+  @*   <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Style="flex: 0 0 auto; padding: 10px;" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
+
+    </FluentStack> *@
+@* </FluentLayout> *@
+
+
+@code {
+    FluentDataGrid<Customer>? grid;
+    string? srchName;
+    List<Customer>? _allCustomers;
+    Customer? selectedCustomer;
+    private Customer? selClient { get; set; }
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
+    Tables? tb;
+    Emoji? emoji;
+    bool useTables = false;
+
+    IQueryable<Customer>? qryCust = Enumerable.Empty<Customer>().AsQueryable();
+
+    private IQueryable<Customer>? FilteredCustomers
+    {
+        get
+        {
+            // grid?.SetLoadingState(true);
+            IQueryable<Customer>? customers = qryCust;
+            if (!string.IsNullOrEmpty(srchName))
+                customers = qryCust?.Where(c => c.ClientName.Contains(srchName, StringComparison.CurrentCultureIgnoreCase));
+            // grid?.SetLoadingState(false);
+
+            if (customers != null)
+                return customers.AsQueryable();
+
+            return null;
+
+        }    
+    }
+
+    private void  ClickRow(FluentDataGridRow<Customer> item)
+    {
+        selClient = item.Item;
+        StateHasChanged();
+
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        tb = await dts.GetgvTables();
+        ShowAiIcon showAi = new ShowAiIcon();
+        showAi.showTables = true;
+        await dts.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await dts.SetgvContextArea(0);
+
+            _allCustomers = await pApiClient.GetAsync<List<Customer>>("/Customers/GetAll");
+            if (_allCustomers == null)
+            {
+                _allCustomers = new();
+            }
+            qryCust = _allCustomers.AsQueryable();
+            StateHasChanged();
+        }
+    }
+    private async Task btnSelectClick()
+    {
+        selectedCustomer = await pApiClient.GetAsync<Customer>($"/Customers/Details/{selClient.FullClientID}");
+        await dts.SetgvSelectedClient(selectedCustomer);
+        Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard");
+    }
+    
+}

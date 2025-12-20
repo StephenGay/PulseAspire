@@ -1,9 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authentication;
 using Pulse.Models.AI;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Models.Production;
 using Pulse.Models.Users;
+using System.ComponentModel;
 using System.Data;
 using System.Text;
 using System.Text.Json;
@@ -225,7 +227,7 @@ namespace Pulse.Web.Services
 
         public async Task<ContextualPrompt?> SaveCustomPromptAsync(ContextualPrompt prompt, CancellationToken ct = default)
         {
-            return await PostAsync<ContextualPrompt, ContextualPrompt>("/AI/ContextualPrompt", prompt,ct);
+            return await PostAsync<ContextualPrompt, ContextualPrompt>("/AI/ContextualPrompt", prompt, ct);
         }
         public async Task<AuthenticationToken?> UserLoginAsync(LoginModel model, CancellationToken ct = default)
         {
@@ -262,6 +264,24 @@ namespace Pulse.Web.Services
         public async Task<bool> RecordQueryVoteAsync(int qID, string vote, CancellationToken ct = default)
         {
             return await PutAsync($"/AI/savedqueries/vote/{qID}/{Uri.EscapeDataString(vote)}", vote, ct);
+        }
+        public async Task<bool> UpdateClientMasterAsync(Customer client, CustomerUpdateDto custUpdate, CancellationToken ct = default)
+        {
+            var response = await _httpClient.PatchAsJsonAsync($"/Customers/Details/{client.FullClientID}/Update/MasterFile", custUpdate, ct);
+            if (response.IsSuccessStatusCode)
+            {
+                return true;
+            }
+            return false;
+        }
+        public async Task<List<ProductionPlanItem>> GetWOProductionPlan(int WONo, CancellationToken ct = default)
+        {
+            List<ProductionPlanItem>? pp = await GetAsync<List<ProductionPlanItem>>($"/Divisions/Production/WorkOrder/{WONo}/GetProductionPlan", ct);
+            if(pp == null)
+            {
+                pp = await GetAsync<List<ProductionPlanItem>>($"/Divisions/Production/WorkOrder/{WONo}/CreateProductionPlan", ct);
+            }
+            return pp;
         }
     }
 }

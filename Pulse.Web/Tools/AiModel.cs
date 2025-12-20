@@ -244,13 +244,13 @@ namespace Pulse.Web.Tools
     public class OllamaGenerateResponse
     {
         [JsonPropertyName("model")]
-        public string Model { get; set; }
+        public string Model { get; set; } = string.Empty;
 
         [JsonPropertyName("created_at")]
         public DateTime CreatedAt { get; set; }
 
         [JsonPropertyName("response")]
-        public string Response { get; set; }  // The generated text (e.g., SQL from prompt)
+        public string Response { get; set; } = string.Empty; // The generated text (e.g., SQL from prompt)
 
         [JsonPropertyName("done")]
         public bool Done { get; set; }  // True if generation complete
@@ -291,26 +291,58 @@ namespace Pulse.Web.Tools
         public List<OllamaWebSearchResult> Results { get; set; }
     }
 
+    //public class OllamaWebFetchResponse
+    //{
+    //    public string Title { get; set; }
+    //    public string Content { get; set; }
+    //    public List<OllamaWebLink> Links { get; set; }
+    //}
+
+    //public class OllamaWebSearchResult
+    //{
+    //    public string Title { get; set; }
+    //    public string Url { get; set; }
+    //    public string Snippet { get; set; }
+    //}
+
+    //public class OllamaWebLink
+    //{
+    //    public string Url { get; set; }
+    //    public string Text { get; set; }
+    //}
+
     public class OllamaWebFetchResponse
     {
-        public string Title { get; set; }
-        public string Content { get; set; }
-        public List<OllamaWebLink> Links { get; set; }
+        [JsonPropertyName("title")] // Assumes camelCase in JSON
+        public string? Title { get; set; } // Nullable to handle omissions
+
+        [JsonPropertyName("content")]
+        public string? Content { get; set; }
+
+        [JsonPropertyName("links")]
+        public List<OllamaWebLink>? Links { get; set; } // Nullable list
     }
 
     public class OllamaWebSearchResult
     {
-        public string Title { get; set; }
-        public string Url { get; set; }
-        public string Snippet { get; set; }
+        [JsonPropertyName("title")]
+        public string? Title { get; set; }
+
+        [JsonPropertyName("url")]
+        public string? Url { get; set; }
+
+        [JsonPropertyName("snippet")]
+        public string? Snippet { get; set; }
     }
 
     public class OllamaWebLink
     {
-        public string Url { get; set; }
-        public string Text { get; set; }
-    }
+        [JsonPropertyName("url")] // Or "href" if that's in your JSON—check logs
+        public string? Url { get; set; }
 
+        [JsonPropertyName("description")] // Or "title"/"description" if mismatched
+        public string? Text { get; set; }
+    }
     // Tool call class for tool_calls array
     public class OllamaToolCall
     {

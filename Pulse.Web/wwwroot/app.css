@@ -21,6 +21,40 @@ html, body {
     background: var(--neutral-fill-layer-rest);
 }*/
 
+
+.divShadow {
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+.myContentDiv {
+    border: 1px solid black;
+    border-radius: 10px;
+    background-color: rgba(255,255,255,0.5);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+.btnShadow {
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+
+    .btnShadow:hover {
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    }
+
+.myModeBtnOn {
+    border-color: #1D722A;
+    color: #1D722A;
+    background-color:white;
+}
+
+.myModeBtnOff {
+    border-color: #9900FF;
+    color: #9900FF;
+    background-color: white;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+    .myModeBtnOff:hover {
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    }
+
 .div-center-screen {
     display: flex;
     flex-direction: column;
@@ -30,8 +64,16 @@ html, body {
     min-height: 100vh;
 }
 .ai-toprow {
-    background-color: #f7f7f7;
-    background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);
+    /*background-color: #f7f7f7;*/
+    background-color: #365b66;
+    /*background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);*/
+    /*border-bottom: 1px solid rgb(54,91,102);*/
+    min-height: 3.5rem;
+}
+.zone-toprow {
+    /*background-color: #f7f7f7;*/
+    background-color: #bcd1d4;
+    /*background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);*/
     border-bottom: 1px solid rgb(54,91,102);
     min-height: 3.5rem;
 }
@@ -68,8 +110,8 @@ a, .btn-link {
 }
 
 .fdgrselected {
-    background-color: blue !important; /* rgb(54,91,102) !important;*/
-    color: white !important; /*#bcd1d4 !important;*/
+    background-color: rgb(54,91,102) !important; /* blue !important;*/
+    color: #bcd1d4 !important; /* white  !important;*/
 }
 
 .bb-dg-row-highlight {
@@ -84,7 +126,7 @@ a, .btn-link {
     padding: 1px !important;
 }
 .fdgrunselected {
-    background-color: #bcd1d4;
+    background-color: white;
     color: rgb(54,91,102) !important;
    /* border-top: 1px solid rgb(54,91,102) !important;*/
 }
@@ -115,10 +157,10 @@ h1:focus {
 tr[row-type='sticky-header'] > th {
     position: sticky;
     top: 0;
-    background-color: #365b66 !important;
-    color: white !important;
-    align-content:center;
-    border-color: #bcd1d4 !important;
+    background-color: #bcd1d4 !important;
+    color: #365b66 !important;
+    align-content: center;
+    border-color: #365b66 !important;
     z-index: 2;
 }
 

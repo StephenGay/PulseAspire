@@ -1,0 +1,30 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+
+
+@inherits LayoutComponentBase
+
+<style>
+    .stack-vertical {
+        row-gap: 0px !important;
+    }
+</style>
+
+@* <BootstrapBlazorRoot> *@
+@* <FluentLayout Style="height:100vh; display: flex;flex-direction:column; flex: 1 1; overflow: hidden;"> *@
+<FluentLayout Style="height:100vh; overflow: hidden"> @*  ; display: flex;flex-direction:column; overflow: auto;"> *@
+    @* <FluentStack Orientation="Orientation.Vertical" Width="100%" > *@
+        <MasterAIMenu />
+        <CascadingValue Value="this">
+            @Body
+        </CascadingValue>
+    @* </FluentStack> *@
+</FluentLayout>
+@* </BootstrapBlazorRoot> *@
+
+
+@code {
+    
+
+    
+}
+   

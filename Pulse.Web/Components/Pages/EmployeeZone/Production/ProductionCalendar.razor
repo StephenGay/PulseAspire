@@ -41,7 +41,8 @@
 @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%;"> *@
 @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%; padding: 10px;"> *@
     @* <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: scroll;"> *@
-    <div style="width:100%; height:95%; padding: 20px; border: 2px solid black; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
+        
+    <div style="width:100%; height:95%; padding: 10px; margin:5px; border: 2px solid black; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
         <FluentStack Orientation="Orientation.Horizontal" Style="flex: 0">
         <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Bottom">
                 <h6>PRODUCTION PLAN</h6>
@@ -89,8 +90,8 @@
             <div id='calendar' style="width:90%; height: 100%; overflow-y: auto;"></div>
         </FluentStack>
     </div>
-@* </FluentStack> *@
-<div>
+@*  </FluentStack> *@
+ <div>
     <FluentDialog @ref="_myFluentDialog" Hidden="true" >
         <FluentDialogHeader Visible="false" />
         
@@ -103,7 +104,7 @@
             <div>@selectedItem.ProductionStage.ProductionStageName</div> 
             <div>Planned Start: @selectedItem.PlannedStartTime</div>
             <div>Planned End: @selectedItem.PlannedEndTime</div>
-            <div>Equipment: @selectedItem.EquipmentItem!.EquipmentItemDescription</div>
+            <div>Equipment: @(selectedItem.EquipmentItem == null ? "Unassigned" : selectedItem.EquipmentItem.EquipmentItemDescription)</div>
         }
         <FluentButton Appearance="Appearance.Accent" Autofocus="true" @onclick="OnCloseDialog">Close dialog</FluentButton>
         <FluentButton>Another button</FluentButton>

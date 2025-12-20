@@ -4,25 +4,12 @@
 @using Pulse.Web.Services
 
 @inherits LayoutComponentBase
+@layout MasterLayout
 
-<div class="page">
-    <div class="sidebar">
-        <EmployeeZoneNavMenu />
-    </div>
 
-    <main>
-		
-        @* <article class="content px-4"> *@
         
-            @Body
-        
-            @* </article> *@
-    </main>
-</div>
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
-<FluentMenuProvider />
+@* <FluentStack Orientation="Orientation.Vertical" Width="100%"> *@
+    <EmployeeZoneNavMenu />
+    @Body
+@* </FluentStack> *@

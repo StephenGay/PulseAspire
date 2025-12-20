@@ -87,10 +87,10 @@
             }
             @if (sState == "IDLE")
             {
-                <PulseButton Color="BootstrapBlazor.Components.Color.None">
+                @* <PulseButton Color="BootstrapBlazor.Components.Color.None"> *@
                     <FluentButton IconStart="@(new Icons.Filled.Size32.Bot().WithColor("#365b66"))" BackgroundColor="rgba(0,0,0,0)" @onclick="btnOpenAIMenu"></FluentButton>
                    @*  <FluentIcon Value="@(new Icons.Regular.Size32.Bot())" Color="@(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight)" /> *@
-                </PulseButton>
+                @* </PulseButton> *@
                 
                 
             }
@@ -123,111 +123,72 @@
                     <FluentSpacer />
                     <label style=";height:100%;"><strong>A.I. CONTEXT MENU</strong></label>
                 </FluentStack>
-                @* <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-volume-up-fill"></i></ToggleButton>
-                <ToggleButton style="margin:3px;" Color="BootstrapBlazor.Components.Color.Primary"><i class="bi bi-mic-fill"></i></ToggleButton>
-                <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@TestSpeech"><i class="bi bi-x-circle-fill"></i></button> *@
-                
             </div>
-            @* <hr style="height:2px; width:95%; align-self:center;color: #365b66;background-color: #365b66"> *@
-            @* <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; background-color: #365b66;" />  *@
             <div class="d-flex justify-content-start align-items-stretch flex-column" style="height: 95%;">
                 <label style="margin-bottom:10px;margin-top:10px"><strong>A.I. Model Setting</strong></label>
                 <FluentSlider Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Min="0" Max="3" Step="1" @bind-Value=useModelVal>
-                        <FluentSliderLabel Position="0.2">Auto</FluentSliderLabel>
-                        <FluentSliderLabel Position="1">Fast</FluentSliderLabel>
-                        <FluentSliderLabel Position="2">Balanced</FluentSliderLabel>
-                        <FluentSliderLabel Position="2.8">In-Depth</FluentSliderLabel>
-                    </FluentSlider>
-                    <br />
-                @* <hr style="height:2px; width:95%; align-self:left;color: #365b66;background-color: #365b66"> *@
+                    <FluentSliderLabel Position="0.2">Auto</FluentSliderLabel>
+                    <FluentSliderLabel Position="1">Fast</FluentSliderLabel>
+                    <FluentSliderLabel Position="2">Balanced</FluentSliderLabel>
+                    <FluentSliderLabel Position="2.8">In-Depth</FluentSliderLabel>
+                </FluentSlider>
+                <br />
                 <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; margin-top:5px; background-color: #365b66;" />
                 <FluentButton Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size32.TooltipQuote())" style="width:80%; align-self:center" OnClick="btnCommunityClick">Prompt Library</FluentButton>
                 <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; background-color: #365b66;" />
-                @* <hr style="height:2px; align-self:center;color: #365b66;background-color: #365b66"> *@
                 <StackItem class="flex-grow-1" >
-                @if (Saving)
-                {
+                    @if (Saving)
+                    {
                         <FluentTextField @bind-Value=custTitle style="margin-bottom:5px;margin-left: 20px;margin-right: 20px;" Required="true" Placeholder="Enter A Prompt Title"></FluentTextField>
                         <FluentTextField @bind-Value=custDesc Required="true" style="margin-bottom:5px;margin-left: 20px;margin-right: 20px;" Placeholder="Enter A Short Description"></FluentTextField>
-                }
-                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
-                    <HeaderTemplate>
-                        @custQryHdr
-                    </HeaderTemplate>
-                    <BodyTemplate>
-                        <Textarea rows="8" style="width:100%; height:100%" @bind-Value="txtQ" PlaceHolder="Ask a question...">
-                                 
-                            </Textarea> 
-                </BodyTemplate>
-                    <FooterTemplate>
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
-                            @if (!Saving)
-                            {
-                                <button type="button" class="btn btn-primary" style="align-self:center" @onclick="btnAskAIClick">SUBMIT</button>
-                                <FluentSpacer />
-                                @if (showSave)
+                    }
+                    <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
+                        <HeaderTemplate>
+                            @custQryHdr
+                        </HeaderTemplate>
+                        <BodyTemplate>
+                            <Textarea rows="8" style="width:100%; height:100%" @bind-Value="txtQ" PlaceHolder="Ask a question..." />
+                        </BodyTemplate>
+                        <FooterTemplate>
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
+                                @if (!Saving)
                                 {
-                                    <button type="button" class="btn btn-success" style="align-self:center; margin-left:10px;" @onclick="btnOpenSaveDialog">SAVE PROMPT</button>
+                                    <button type="button" class="btn btn-primary" style="align-self:center" @onclick="btnAskAIClick">SUBMIT</button>
+                                    <FluentSpacer />
+                                    @if (showSave)
+                                    {
+                                        <button type="button" class="btn btn-success" style="align-self:center; margin-left:10px;" @onclick="btnOpenSaveDialog">SAVE PROMPT</button>
                                         <FluentSpacer />
-                                }
-                                @if (this._isListening)
-                                {
+                                    }
+                                    @if (this._isListening)
+                                    {
                                         <FluentButton BackgroundColor="#bcd1d4" IconStart="@(new Icons.Regular.Size32.MicOff())" OnClick="OnClickStop"> </FluentButton>
+                                    }
+                                    else
+                                    {
+                                        <FluentButton BackgroundColor="#bcd1d4" IconStart="@(new Icons.Regular.Size32.Mic())" OnClick="StartRecClick"> </FluentButton>
+                                    }
                                 }
                                 else
                                 {
-                                        <FluentButton BackgroundColor="#bcd1d4" IconStart="@(new Icons.Regular.Size32.Mic())" OnClick="StartRecClick"> </FluentButton>
+                                    <FluentButton BackgroundColor="rgba(0,100,0,1)" Color="rgba(255,255,255,1)" Autofocus="true" @onclick="saveQry">Save Prompt</FluentButton>
+                                    <FluentSpacer />
+                                    <FluentButton BackgroundColor="rgba(255,0,0,1)" Color="rgba(255,255,255,1)" @onclick="() => Saving=false">Cancel</FluentButton>
                                 }
-                            }
-                            else
-                            {
-                                <FluentButton BackgroundColor="rgba(0,100,0,1)" Color="rgba(255,255,255,1)" Autofocus="true" @onclick="saveQry">Save Prompt</FluentButton>
-                                <FluentSpacer />
-                                <FluentButton BackgroundColor="rgba(255,0,0,1)" Color="rgba(255,255,255,1)" @onclick="() => Saving=false">Cancel</FluentButton>
-                            }
-                        </FluentStack>
-                    </FooterTemplate>
-                </Card>
+                            </FluentStack>
+                        </FooterTemplate>
+                    </Card>
                     @if (_isListening)
                     {
                         <div>
                             @foreach (var result in this._results)
                             {
-                                @* if (result.IsFinal)
-                                { *@
-                                    txtQ = @result.Items![0].Transcript;
-                                @* }
-                                else
-                                {
-                                    <i style="color:#ddd;">@result.Items![0].Transcript</i>
-                                } *@
+                                txtQ = @result.Items![0].Transcript;
                             }
                         </div>
                     }
                     
                     <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; margin-top:5px; background-color: #365b66;" />
-                    @* <div>
-                        <dl>
-                            <dt>Running on:</dt>
-                            <dd>@RuntimeInformation.ProcessArchitecture</dd>
-                            <dt>SpeechRecognition API:</dt>
-                            <dd>@(_available ? "Available" : "Not Available")</dd>
-                        </dl>
-                    </div>
-                    <div>
-                        @foreach (var result in this._results)
-                        {
-                            if (result.IsFinal)
-                            {
-                                <text>@result.Items![0].Transcript</text>
-                            }
-                            else
-                            {
-                                <i style="color:#ddd;">@result.Items![0].Transcript</i>
-                            }
-                        }
-                    </div> *@
-               @*  <hr style="height:2px; align-self:center;color: #365b66;background-color: #365b66"> *@
                     @if (AIMode == "RollerSpecification")
                     {
                         <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" IsCenter="true">
@@ -281,7 +242,6 @@
                     <FluentButton Appearance="Appearance.Accent" OnClick="CloseCommunity" >X</FluentButton>
                     </FluentStack>
                     <FluentGrid Justify="JustifyContent.Center" Style="overflow-y:auto; overflow-x:hidden; padding-left:10px">
-                    @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Style="overflow:auto; height: 100%;margin-left: 10px;margin-right: 0px"> *@
                         @foreach (var prompt in ContextPrompts)
                         {
                             <FluentGridItem xs="12" sm="6" md="4" lg="2" xl="2">
@@ -291,10 +251,7 @@
                                             <FluentLabel Typo="Typography.Body" Style="white-space:nowrap; color: white"> @prompt.ContextualPromptTitle </FluentLabel>
                                         </HeaderTemplate>
                                         <BodyTemplate>
-                                    
-                                                <FluentTextArea rows="2" Cols="75" style="height:100%;" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea>
-                                                @* <Textarea rows="3" style="width:100%; height:100%;" readonly PlaceHolder="@prompt.ContextualPromptDescription"></Textarea> *@
-                                    
+                                            <FluentTextArea rows="2" Cols="75" style="height:100%;" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea>
                                         </BodyTemplate>
                                         <FooterTemplate>
                                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal">
@@ -307,7 +264,6 @@
                                 </Popover>
                             </FluentGridItem>
                         }
-                    @* </FluentStack> *@
                     </FluentGrid>
                 }
                 else
@@ -340,8 +296,6 @@
     [Inject]
     private DrawerService? DrawerService { get; set; }
 
-
-    private FluentDialog? _saveQryDialog;
     private bool IsOpen = false;
     private bool showCommunityPanel = false;
     public List<ContextualPrompt>? ContextPrompts;
@@ -353,7 +307,7 @@
     private int useModelVal = 0;
     private string aiModel = "llama3.3:latest"; // "gpt-oss:latest";
     private string txtQ = string.Empty;
-    public bool isSales { get; set; }
+    //public bool isSales { get; set; }
     public bool showSave = false;
     public bool Saving = false;
     private bool isLoading = true;
@@ -380,7 +334,6 @@
             };
             await this.SpeechSynthesis.SpeakAsync(utterancet);
         }
-        // Microsoft Ava Online(Natural) - English(United States)(en - US)
     }
     private async Task CloseCommunity()
     {
@@ -423,11 +376,6 @@
         }
         IsOpen = true;
     }
-    private async Task TestSpeech()
-    {
-        SayIt("This is a test to debug voices");
-    }
-
     public void Dispose()
     {
         this.SpeechRecognition.Result -= OnSpeechRecognized;
@@ -455,9 +403,6 @@
     }
     private async Task btnOpenSaveDialog()
     {
-        // IsOpen = false;
-        // //_saveQryDialog.Hidden = false;
-        // _saveQryDialog!.Show();
         Saving = true;
     }
     private async Task btnCommunityClick()
@@ -528,10 +473,6 @@
     {
         this._results = args.Results?.Skip(args.ResultIndex).ToArray() ?? [];
         this.StateHasChanged();
-    }
-    private void togProdSales(bool val)
-    {
-        isSales = val;
     }
     private async Task btnAskAIClick()
     {
@@ -754,12 +695,19 @@
             StateHasChanged();
 
             await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
-
+            var request = new OllamaRequest
+            {
+                Prompt = prompt,
+                Model = aiModel,
+                Options = { NumCtx = 32000, NumPredict = 8000 }
+                //Options = { NumCtx = Convert.ToInt32(prompt.Length / 4 * 1.3), NumPredict = 8000 }
+            };
+            // _Analysis = await pAI.AskPulseAIAsync(request);
             _Analysis = await pAI.AskPulseAIAsync(prompt, aiModel);
 
             if (_Analysis.StartsWith("Error"))
             {
-                await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request.\n Please try again, maybe with a different AI Model - I won't be offended!");
+                await SendToast("Error", "An Error Occured", $"Apologies, an error occurred while processing your request.\n Please try again, maybe with a different AI Model \n Don't worry, I won't take it personally!");
                 ResetState();
                 return;
             }

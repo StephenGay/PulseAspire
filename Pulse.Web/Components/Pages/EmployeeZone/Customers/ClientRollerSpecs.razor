@@ -1,12 +1,15 @@
 ﻿@page "/EmployeeZone/Customers/ClientRollerSpecs"
 @using Pulse.Models.Customers
 @using System.Text.Json
+@using Pulse.Models.Misc
 @using Pulse.Web.Services
+@using Microsoft.FluentUI.AspNetCore.Components
 
-
-@inject DataTransferService DataTransferService
+@inject DataTransferService DTrf
 @inject Pulse.Web.Services.Pulse_AI pAI
 @inject NavigationManager Navigation
+@inject AppState AppState
+@attribute [StreamRendering(true)]
 @rendermode InteractiveServer
 
 <style>
@@ -31,18 +34,71 @@
     .table tbody tr.active:not(.is-edit) {
         --bs-table-active-bg-type: blue !important;
     }
+
+    .cparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: 100%; /* Or whatever height your parent should be, like 100% */
+    }
+
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    }
+
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.3);
+        margin: 10px;
+        border-radius: 10px;
+        padding:10px;
+        overflow: auto;
+    }
 </style>
-@if (isLoading)
+
+<div class="cparent">
+
+    <div class="ccontent">
+<Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+@if (_client == null)
 {
-    <FluentLabel Typo="Typography.Body" Style="color:black;">Loading...</FluentLabel>
+    <div class="div-center-screen">
+        <FluentProgressRing />
+    </div>
 }
 else
 {
-    <FluentStack Orientation="Orientation.Horizontal" Width="100%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left">
-        <FluentButton Appearance="Appearance.Accent" OnClick="btnSpecDetailClick">View Specification</FluentButton>
-    </FluentStack>
-    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="flex: 1 0 none; overflow-y : scroll; ">
-        <Table TItem="ClientRollerSpecification" Items="Items"
+
+            
+     <FluentStack Orientation="Orientation.Horizontal" Width="100%" Style="margin-bottom:10px" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left"> 
+                    <FluentButton Appearance="Appearance.Accent" class="btnShadow" OnClick="btnSpecDetailClick">View Specification</FluentButton>
+            <FluentSearch  @bind-Value="descFilter" Immediate="true" Placeholder="Roll Description..." />
+     </FluentStack> 
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%">
+            <FluentDataGrid TGridItem="ClientRollerSpecification" Items="_client.ClientRollerSpecifications.AsQueryable()"
+                            RowClass="@(context => context == selSpec ? "fdgrselected" : "fdgrunselected")"
+                            SelectionMode="SelectionMode.Single"
+                            SelectedItem="@selSpec"
+                            OnRowClick="tblClick"
+                            ResizableColumns="true"
+                            Pagination="@pagination"
+                            AutoItemsPerPage="true"
+                            ShowHover="true"
+                            AutoFit="true"
+                            GenerateHeader="GenerateHeaderOption.Sticky">
+                <PropertyColumn Property="@(context => context.ClientRollerSpecificationID)" Title="Spec ID" Align="Align.Center" Sortable="true" />
+                <PropertyColumn Property="@(context => context.Description)" Title="Roll Description" Align="Align.Start" Sortable="true" />
+                    
+                <PropertyColumn Property="@(context => context.ArticleNumber)" Title="Article No" Align="Align.Start" Sortable="true" />
+                <PropertyColumn Property="@(context => context.ShellTypeName)" Title="Shell Type" Align="Align.Start" Sortable="true" />
+                <PropertyColumn Property="@(context => context.ShellLength)" Title="Shell Length" Align="Align.Center" Sortable="true" />
+                <PropertyColumn Property="@(context => context.ShellDiameter)" Title="Shell Diameter" Align="Align.Center" Sortable="true" />
+                <PropertyColumn Property="@(context => context.CompoundCode)" Title="Cover Compound" Align="Align.Center" Sortable="true" />
+        </FluentDataGrid>
+            </FluentStack>
+                <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%;" />
+        @* <Table TItem="ClientRollerSpecification" Items="Items"
         HeaderStyle="TableHeaderStyle.Dark"
         IsBordered="true" IsStriped="false" IsFixedFooter="true"
         @bind-SelectedRow="selSpec" IsMultipleSelect="false"
@@ -51,7 +107,7 @@ else
         ScrollMode="ScrollMode.Virtual"
         ShowFilterHeader="false"
         ClickToSelect="true"
-        OnClickRowCallback="tblClick"
+        OnClickRowCallback="tblClick()"
         ShowFooter="true">
             <TableColumns>
                 <TableColumn @bind-Field="@context.ClientRollerSpecificationID" Text="Spec ID" Align="Alignment.Center" Sortable="true" Filterable="true" />
@@ -65,24 +121,49 @@ else
             <TableFooter>
                 <TableFooterCell colspan="7" Text="Count：" Align="Alignment.Left" />
             </TableFooter>
-        </Table>
-    </FluentStack>
-}
-
+        </Table> *@
+        
+         
+    }
+</Animation>
+</div>
+    </div>
 @code {
     Customer? _client;
     private bool isLoading = true;
+    string? descFilter;
     private string errorMessage = string.Empty;
-    private List<ClientRollerSpecification>? Items { get; set; }
+    // private List<ClientRollerSpecification>? Items { get; set; }
     private ClientRollerSpecification? selSpec;
-    PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
+    PaginationState pagination = new PaginationState { ItemsPerPage = 17 };
+    // IQueryable<ClientRollerSpecification>? qrySpec = Enumerable.Empty<ClientRollerSpecification>().AsQueryable();
+    private List<ClientRollerSpecification>? FilteredSpecs
+    {
 
+        get
+        {
+            var qrySpecs = _client.ClientRollerSpecifications.AsQueryable();
+            var specs = qrySpecs;
+            // IQueryable<ClientRollerSpecification>? specs = qrySpec; 
+            if (!string.IsNullOrEmpty(descFilter))
+                specs = qrySpecs?.Where(s => s.Description.Contains(descFilter));
+
+            // if (specs != null)
+            // return specs.AsQueryable();
+
+            return null;
+
+        }
+    }
     protected override async Task OnInitializedAsync()
     {
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
-        await GetClientInfo();
-        await DataTransferService.SetgvContextArea(0);
+
+        await DTrf.SetgvContextArea(0);
+        ShowAiIcon showAi = new ShowAiIcon();
+        await DTrf.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
         isLoading = false;
     }
 
@@ -91,67 +172,76 @@ else
         if(selSpec != null)
         {
 
-            await DataTransferService.SetgvSelectedRollSpec(selSpec);
+            await DTrf.SetgvSelectedRollSpec(selSpec);
             Navigation.NavigateTo("/EmployeeZone/Customers/RollerSpecificationDetail");
         }
     }
-    private async Task<QueryData<ClientRollerSpecification>> FixItems(QueryPageOptions options)
+    // private async Task<QueryData<ClientRollerSpecification>> FixItems(QueryPageOptions options)
+    // {
+    //     var filters = options.ToFilter();
+    //     var tmpItems = _client.ClientRollerSpecifications.AsQueryable();
+    //     var items = tmpItems.Where(filters.GetFilterFunc<ClientRollerSpecification>());
+    //     //return await Task.FromResult(items.ToList());
+
+    //     var isSorted = false;
+    //     if (options.AdvancedSortList.Count != 0)
+    //     {
+    //         items = items.Sort(options.AdvancedSortList);
+    //         isSorted = true;
+    //     }
+
+    //     if (!string.IsNullOrEmpty(options.SortName))
+    //     {
+    //         items = items.Sort(options.SortName, options.SortOrder);
+    //         isSorted = true;
+    //     }
+
+    //     var enumerable = items.ToList();
+    //     var total = enumerable.Count;
+
+    //     items = enumerable.Skip((options.PageIndex - 1) * options.PageItems).Take(options.PageItems).ToList();
+
+    //     return await Task.FromResult(new QueryData<ClientRollerSpecification>()
+    //     {
+    //         Items = items,
+
+    //         TotalCount = total,
+    //         IsSorted = isSorted,
+    //         IsFiltered = filters.HasFilters()
+    //     });
+    // }
+    private Task tblClick(FluentDataGridRow<ClientRollerSpecification> item)
     {
-        var filters = options.ToFilter();
-        var tmpItems = _client.ClientRollerSpecifications.AsQueryable();
-        var items = tmpItems.Where(filters.GetFilterFunc<ClientRollerSpecification>());
-        //return await Task.FromResult(items.ToList());
-
-        var isSorted = false;
-        if (options.AdvancedSortList.Count != 0)
-        {
-            items = items.Sort(options.AdvancedSortList);
-            isSorted = true;
-        }
-
-        if (!string.IsNullOrEmpty(options.SortName))
-        {
-            items = items.Sort(options.SortName, options.SortOrder);
-            isSorted = true;
-        }
-
-        var enumerable = items.ToList();
-        var total = enumerable.Count;
-
-        items = enumerable.Skip((options.PageIndex - 1) * options.PageItems).Take(options.PageItems).ToList();
-
-        return await Task.FromResult(new QueryData<ClientRollerSpecification>()
-        {
-            Items = items,
-
-            TotalCount = total,
-            IsSorted = isSorted,
-            IsFiltered = filters.HasFilters()
-        });
-    }
-    private Task tblClick(ClientRollerSpecification item)
-    {
-        selSpec = item;
+        selSpec = item.Item;
         StateHasChanged();
         return Task.CompletedTask;
     }
     private async Task GetClientInfo()
     {
-        _client = await DataTransferService.GetgvSelectedClient();
+        Customer cl = await DTrf.GetgvSelectedClient();
 
-        if (_client is null)
+        if (cl is null)
         {
 
         }
         else
         {
-            if (_client.ClientRollerSpecifications == null)
+            if (cl.ClientRollerSpecifications == null)
             {
-                _client.ClientRollerSpecifications = await pAI.GetClientRollerSpecificationsAsync(_client.FullClientID);
-                await DataTransferService.SetgvSelectedClient(_client);
-                
+                cl.ClientRollerSpecifications = await pAI.GetClientRollerSpecificationsAsync(cl.FullClientID);
+                await DTrf.SetgvSelectedClient(cl);
+
             }
+            // qrySpec = _client.ClientRollerSpecifications.AsQueryable();
+            _client = cl;
         }
     }
-
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetClientInfo();
+            StateHasChanged();
+        }
+    }
 }

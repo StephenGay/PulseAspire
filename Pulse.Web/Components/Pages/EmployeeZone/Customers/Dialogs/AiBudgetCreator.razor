@@ -1,0 +1,42 @@
+﻿@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Web.Services
+@inject Pulse.Web.Services.PulseApiService pApi
+@inject DataTransferService dataTrf
+@implements IDialogContentComponent<List<BlankClientBudget>>
+
+    <FluentDialogHeader>
+<h5>Financial Year : @curPer.FinancialYear</h5>
+</FluentDialogHeader>
+<FluentDialogBody>
+    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+        <FluentDataGrid TGridItem="BlankClientBudget" Items="@Content.AsQueryable()"
+                        RowSize="DataGridRowSize.Smaller"
+                        GenerateHeader="GenerateHeaderOption.Sticky">
+
+            @* <PropertyColumn Property="@(context => context.ProductionPlanItemID)" Title="ID" Align="Align.Center" Sortable="false" /> *@
+            <PropertyColumn Property="@(context => context.PeriodID)" Title="Period ID" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.Month)" Title="Month" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.CalenderYear)" Title="Cal Year" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.BudgetedSales)" Title="Budget" Format="#,##0.00" Align="Align.Center" Sortable="false" />
+        </FluentDataGrid>
+    </Animation>
+@*     <br />
+    <Animation Effect="@Effect.FadeInUpBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+        <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right">
+            @* <FluentButton Appearance="Appearance.Accent" OnClick="clearBud">Clear</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="saveBud">Save As Budget</FluentButton> 
+        </FluentStack>
+    </Animation> *@
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public List<BlankClientBudget> Content { get; set; } = default!;
+    public Period? curPer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        curPer = await dataTrf.GetgvCurrentPeriod();
+    }
+}
