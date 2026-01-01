@@ -1,5 +1,5 @@
 ﻿@page "/login"
-@using Microsoft.AspNetCore.Components.Authorization
+@* @using Microsoft.AspNetCore.Components.Authorization *@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI.AIds
 @using Pulse.Models.Misc
@@ -9,12 +9,13 @@
 
 @inject IHttpClientFactory HttpFactory  // Configured in Program.cs for API calls with cookies
 @inject NavigationManager Navigation
-@inject AuthenticationStateProvider AuthStateProvider  // For notifying auth changes (if custom; optional with cookie auth)
+@* @inject AuthenticationStateProvider AuthStateProvider  // For notifying auth changes (if custom; optional with cookie auth) *@
 @inject PulseApiService _pulseApiClient
 @inject DataTransferService dT
-
+@inject IJSRuntime JS
 @inject SpeechSynthesis SpeechSynthesis
-@rendermode InteractiveServer
+@inject IAuthService AuthService
+@* @rendermode InteractiveServer *@
 
 <FluentCard Style="min-width:500px">
     <FluentHeader Style="background-color:#365b66">
@@ -22,8 +23,8 @@
     </FluentHeader>
     <FluentBodyContent>
     <br />
-        <FluentTextField @bind-Value="loginModel.Email" Label="Email" Style="width:100%" />
-        <FluentTextField @bind-Value="loginModel.Password" Label="Password" Style="width:100%" Type="password" />
+        <FluentTextField @bind-Value="Model.Email" Label="Email" Style="width:100%" />
+        <FluentTextField @bind-Value="Model.Password" Label="Password" Style="width:100%" Type="password" />
     <br />
      @if (!string.IsNullOrEmpty(errorMessage))
     {
@@ -43,11 +44,13 @@
 </FluentCard>
 
 @code {
-    private LoginModel loginModel = new();
+    // private LoginModel loginModel = new();
     private string errorMessage;
     IEnumerable<SpeechSynthesisVoice> Voices;
     private SpeechSynthesisVoice? _voice;
     private string? firstName;
+    private string? pTheme;
+    private LoginModel Model = new();
 
     private void btnRegisterClick()
     {
@@ -65,14 +68,17 @@
         errorMessage = null;
         try
         {
-            var client = HttpFactory.CreateClient("PulseApiClient");  // Named client with UseDefaultCredentials for cookies
-            var response = await client.PostAsJsonAsync("/Security/login", loginModel);
+            // var client = HttpFactory.CreateClient("PulseApiClient");  // Named client with UseDefaultCredentials for cookies
+            // var response = await client.PostAsJsonAsync("/Security/login", loginModel);
             //var response = await _pulseApiClient.PostAsync("/Security/login", loginModel);
-            if (response.IsSuccessStatusCode)
+
+            // if (response.IsSuccessStatusCode)
+            var result = await AuthService.Login(Model);
+            if (result == "Success")
             {
                 // Optional: Notify auth state if using custom provider
                 // ((CustomAuthenticationStateProvider)AuthStateProvider).MarkUserAsAuthenticated(/* token or cookie handled server-side */);
-                User? user = await _pulseApiClient.GetAsync<User>($"/Security/EmployeeLogin/email={loginModel.Email}");
+                User? user = await _pulseApiClient.GetAsync<User>($"/Security/EmployeeLogin/email={Model.Email}");
                 if (user == null)
                 {
                     errorMessage = "Invalid E-Mail or Password. Please try again.";
@@ -80,6 +86,8 @@
                 }
                 errorMessage = string.Empty;
                 await dT.SetgvUser(user);
+                pTheme = user.UserSettings!.UserTheme ?? "pulse";
+                await JS.InvokeVoidAsync("applyPulseTheme", pTheme);
                 firstName = await dT.GetgvUserFirstName();
                 if (user.UserSettings.AIHasVoice)
                 {
@@ -118,7 +126,7 @@
             }
             else
             {
-                errorMessage = await response.Content.ReadAsStringAsync();
+                errorMessage = result.ToString();
             }
         }
         catch (Exception ex)

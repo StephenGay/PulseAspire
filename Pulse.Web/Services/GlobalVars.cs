@@ -27,10 +27,23 @@ namespace Pulse.Web.Services
         public List<WorkInProgressDto> gv_Selected_Division_WIP { get; set; }
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
         public string gv_AIContext_Mode { get; set; }
+
+        public string gv_AIModel { get; set; } = "gpt-oss:latest";
+        public string gv_User_Theme { get; set; } = "pulse";
         public    int gv_Context_Area { get; set; }
         public ShowAiIcon gvShowAI {  get; set; }
         public SpeechSynthesisVoice gv_User_AI_Voice { get; set; }
         public string gvUserFirstName { get; set; }
+
+        public async Task SetgvAIModel(string aimodel)
+        {
+            gv_AIModel = aimodel;
+            await Task.CompletedTask;
+        }
+        public async Task<string> GetgvAIModel()
+        {
+            return gv_AIModel;
+        }
         public async Task SetgvShowAI(ShowAiIcon showAiIcon)
         {
             gvShowAI = showAiIcon;
@@ -94,6 +107,15 @@ namespace Pulse.Web.Services
         public async Task<string> GetgvUserFirstName()
         {
             return await Task.FromResult(gvUserFirstName);
+        }
+        public async Task<string> GetgvUserTheme()
+        {
+            return await Task.FromResult(gv_User_Theme);
+        }
+        public async Task SetgvUserTheme(string uTheme)
+        {
+            gv_User_Theme = uTheme;
+            await Task.CompletedTask;
         }
         public async Task SetgvUserAIVoice(SpeechSynthesisVoice aiVoice)
         {
@@ -216,6 +238,10 @@ namespace Pulse.Web.Services
         public Task<List<WorkInProgressDto>> GetgvSelectedDivisionWIP();
         public Task<string> GetgvAIContextMode();
         public Task SetgvAIContextMode(string mode);
+        public Task<string> GetgvAIModel();
+        public Task SetgvAIModel(string aimodel);
+        public Task<string> GetgvUserTheme();
+        public Task SetgvUserTheme(string uTheme);
         public Task SetgvContextArea(int areaID);
         public Task<int> GetgvContextArea();
 

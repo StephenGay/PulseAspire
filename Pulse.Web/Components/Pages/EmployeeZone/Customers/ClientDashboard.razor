@@ -24,12 +24,20 @@ else
         <div class="p-4 text-center bg-body-tertiary rounded-3" style="background-color:rgb(43, 48, 53) ;box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.3); ">
             <h2 class="text-body-emphasis">@_client.ClientName</h2>
             @* <p class="lead"> *@
-    @*<FluentLabel Typo="Typography.Subject">@_client.AiSummary</FluentLabel>
+    
                 
             @* </p> 
         </div>
     </div> *@
     <FluentGrid Spacing="3" Style="width:100%; padding: 20px;" Justify="JustifyContent.Center">
+        @if (_client.AiSummary != null && _client.AiSummary != "")
+        {
+            <FluentGridItem xs="11">
+                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                <FluentLabel Typo="Typography.Subject" class="divShadow" Style="background-color:var(--pulse-light-colour);color:var(--pulse-dark-colour);border-radius:10px;border:1px solid var(--pulse-dark-colour);padding:10px;">@_client.AiSummary</FluentLabel>
+                </Animation>
+            </FluentGridItem>
+        }
     @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Width="100%" Style="height: 100%; overflow-y : scroll;"> *@
         @if(stats != null)
         {
@@ -37,8 +45,8 @@ else
             {
                 
                     <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> 
-                        <div class="card text-center" style="height:100%">
+                    <Animation Effect="@Effect.FlipInX" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
+                        <div class="card text-center btnShadow" style="height:100%">
                             <header class="card-header">Work Orders In Progress</header>
                         <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
                             <h1><span class="badge text-bg-primary">@stats.countWipWOs</span></h1>
@@ -52,7 +60,7 @@ else
             {
                 
                     <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> 
+                    <Animation Effect="@Effect.FlipInX" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
                     <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
                         <HeaderTemplate>
                             Open Quotations
@@ -70,8 +78,8 @@ else
         {
             
                 <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                    <div class="card text-center" style="height:100%">
+                    <Animation Effect="@Effect.FlipInX" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
+                    <div class="card text-center btnShadow" style="height:100%">
                         <header class="card-header">Current Month Sales</header>
                         <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
                             <h1>@cmSales.Amount</h1>
@@ -84,24 +92,24 @@ else
         @if (cYtdSales != null && cYtdSales != 0)
         {
             
-                <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                    <div class="card text-center" style="height:100%">
-                        <header class="card-header">YTD Sales</header>
-                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
-                            <h1>@String.Format("{0:#,###;(#,###)}",(cYtdSales/1000)) K</h1>
-                        </div>
+            <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                <Animation Effect="@Effect.FlipInX" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
+                    <div class="card text-center btnShadow" style="height:100%">
+                    <header class="card-header">YTD Sales</header>
+                    <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                        <h1>@String.Format("{0:#,###;(#,###)}",(cYtdSales/1000)) K</h1>
                     </div>
-                </Animation>
-                </FluentGridItem>
+                </div>
+            </Animation>
+            </FluentGridItem>
             
         }
         @if (accWarning)
-    {
+        {
            
                 <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> 
-                    <div class="card text-center" style="height:100%">
+                <Animation Effect="@Effect.FlipInX" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
+                    <div class="card text-center btnShadow" style="height:100%">
                         <header class="card-header">Account Status</header>
                     <div class="card-body myWarning" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
                             <h1>Overdue</h1>
@@ -179,51 +187,7 @@ else
                 </FluentGridItem> *@
             @* </Animation> *@
     }
-        @* style="margin-top: 50px;margin-left: 20px;margin-right: 20px;margin-bottom:0px;" *@
-        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
-            <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2">
-            <div class="card text-center" style="height:100%">
-                    <header class="card-header">Industry</header>
-                    <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
-                        <h4>@_client.Industry?.IndustryName</h4>
-                    </div>
-                </div>
-            </FluentGridItem>
-        @* </Animation> *@
-
-        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
-        <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-            <div class="card text-center" style="height:100%">
-                <header class="card-header">Sales Region</header>
-                <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
-                <h4>@_client.Region?.RegionName</h4>
-                @_client.Region?.Province?.ProvinceName
-                </div>
-            </div>
-            
-               @*  <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
-                    <HeaderTemplate>
-                        Sales Region
-                    </HeaderTemplate>
-                    <BodyTemplate>
-                        <h4>@_client.Region?.RegionName</h4>
-                        <p>@_client.Region?.Province?.ProvinceName</p>
-                    </BodyTemplate>
-                    
-                </Card> *@
-            </FluentGridItem>
-        @* </Animation> *@
-        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
-            <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
-                <div class="card text-center" style="height:100%">
-                    <header class="card-header">Sales Representative</header>
-                <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
-                    <h4>@_client.SalesRepresentative?.RepresentativeName</h4>
-                    </div>
-                </div>
-            </FluentGridItem>
-        @* </Animation> *@
-        @* </FluentStack> *@
+        
     </FluentGrid>
 }
 

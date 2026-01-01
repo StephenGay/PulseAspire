@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Models.PulseContext.Maps;
 using Pulse.Models.Customers;
@@ -18,7 +20,7 @@ using Pulse.Models.AI;
 
 namespace Pulse.Models.PulseContext
 {
-    public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options) : DbContext(options)
+    public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options) : IdentityDbContext<IdentityUser>(options)
     {
         public DbSet<Customer> ClientMaster { get; set; }
         public DbSet<Company> CompanyMaster { get; set; }

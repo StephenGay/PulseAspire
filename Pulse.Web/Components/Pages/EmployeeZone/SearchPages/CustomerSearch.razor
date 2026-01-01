@@ -46,7 +46,7 @@
 
     .ccontent {
         flex: 1; /* This magic makes it grow to fill the space */
-        background: rgba(255,255,255,0.3);
+        background: rgba(255,255,255,0.5);
         margin: 10px;
         padding:10px;
         border-radius: 10px;
@@ -81,10 +81,10 @@
         @* </FluentStack> *@
         <div class="cparent">
     <div class="cheader">
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Style="justify-content:center; border-radius:10px" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Style="justify-content:center; border-radius:10px; background-color:rgba(255,255,255,0.5)" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" class="px-4">
                
                 
-                <FluentSearch @bind-value="srchName" Immediate="true" style="justify-content:center; width:100%;" Placeholder="Search For Customer"></FluentSearch>
+                <FluentSearch @bind-value="srchName" Autofocus="true" Immediate="true" style="justify-content:center; width:100%; margin-top:10px; margin-bottom:10px; border: 1px solid var(--pulse-dark-colour)" Placeholder="Search For Customer"></FluentSearch>
                 <FluentButton Appearance="Appearance.Accent" Disabled="@(selClient != null ? false : true)" OnClick="btnSelectClick">
                     <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
                     Select

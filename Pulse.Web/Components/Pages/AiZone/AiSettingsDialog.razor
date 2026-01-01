@@ -1,0 +1,48 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Web.Services
+
+@inject Pulse_AI pAI
+@inject DataTransferService dtrf
+
+
+@* <FluentDialogBody> *@
+<h3>AiSettingsDialog</h3>
+
+<FluentLabel Typo="Typography.Body" Style="color:white">AI Model : </FluentLabel>
+        
+        @if(ollamaModels == null)
+        {
+            <FluentButton Appearance="Appearance.Accent" Loading="true" />
+        }else{
+            
+            <select @bind="aiModel" class="form-select" style="width: auto;">
+                @foreach (var model in ollamaModels)
+                {
+                    <option value="@model">@model</option>
+                }
+            </select>
+        }
+        <FluentLabel>@aiModel</FluentLabel>
+<FluentLabel>@aiModel2</FluentLabel>
+<FluentButton OnClick="UpdateModel">Update</FluentButton>
+@* </FluentDialogBody> *@
+@code {
+    private List<string>? ollamaModels = new();
+    private string? aiModel;
+    private string? aiModel2;
+
+    protected override async Task OnInitializedAsync()
+    {
+        aiModel = await dtrf.GetgvAIModel();
+        ollamaModels = await pAI.GetOllamaModelsAsync();
+    }
+    private async void UpdateModel()
+    {
+        
+        if (aiModel != null)
+        {
+            await dtrf.SetgvAIModel(aiModel);
+            aiModel2 = await dtrf.GetgvAIModel();
+        }
+    }
+}

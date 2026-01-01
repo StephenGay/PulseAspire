@@ -20,20 +20,14 @@
   background: lightgray;
 }
 
-.ccontent {
-  flex: 1; /* This magic makes it grow to fill the space */
-    background: rgba(255,255,255,0.3);
-  margin:10px;
-  border-radius:10px;
-        overflow: hidden;
-}
+
 </style>
 
 <div class="cparent">
     @* <div class="cheader">Fixed Header (e.g., 50px)</div> *@
     <div class="ccontent">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 10px;margin:10px;overflow:hidden">
-        <h5 style="color:white">Financial Year : @(curPer == null ? "Loading" : curPer.FinancialYear)</h5>
+            <h5 style="color:var(--pulse-dark-colour)">Financial Year : @(curPer == null ? "Loading" : curPer.FinancialYear)</h5>
         @if(_client != null)
         {
             

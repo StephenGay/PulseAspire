@@ -1,0 +1,66 @@
+﻿@page "/loginex"
+@* @using Microsoft.AspNetCore.Components.Authorization *@
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users  // For LoginModel, if in shared Models project
+
+
+
+@inject NavigationManager Navigation
+@inject IAuthService AuthService
+@rendermode InteractiveServer
+
+<FluentCard Style="min-width:500px">
+    <FluentHeader Style="background-color:#365b66">
+        Login
+    </FluentHeader>
+    <FluentBodyContent>
+    <br />
+        <FluentTextField @bind-Value="Model.Email" Label="Email" Style="width:100%" />
+        <FluentTextField @bind-Value="Model.Password" Label="Password" Style="width:100%" Type="password" />
+    <br />
+     
+    </FluentBodyContent>
+    <FluentFooter>
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start">
+                <FluentButton Appearance="Appearance.Neutral" @onclick="btnRegisterClick">Register</FluentButton>
+            </FluentStack>
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End">
+                <FluentButton @onclick="HandleLogin" BackgroundColor="#365b66" Appearance="Appearance.Accent">Login</FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentFooter>
+</FluentCard>
+
+@code {
+
+    private LoginModel Model = new();
+
+    private void btnRegisterClick()
+    {
+        Navigation.NavigateTo("/register");
+    }
+
+    private async Task HandleLogin()
+    {
+
+        try
+        {
+
+            var result = await AuthService.Login(Model);
+            if (result == "Success")
+            {
+
+
+                Navigation.NavigateTo("/DivisionLogon?nextpage=/EmployeeZone/");  // Redirect to home or dashboard
+            }
+
+        }
+        catch (Exception ex)
+        {
+            throw;
+        }
+    }
+
+   
+}

@@ -257,7 +257,7 @@
     }
     private async Task onClickSave()
     {
-        bool saved = await pApi.PutAsync<UserSettings>($"/user/{u.UserID}/UpdateSettings", u.UserSettings);
+        bool saved = await pApi.PutAsync<User>($"/user/{u.UserID}/UpdateSettings", u);
         await dt.SetgvUser(u);
         if(u.UserSettings.AIHasVoice && _voice != null)
         {

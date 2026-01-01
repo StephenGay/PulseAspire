@@ -11,19 +11,38 @@ namespace Pulse.ApiService.Security
     public class TokenService
     {
         private readonly IConfiguration _configuration;
-        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public TokenService(IConfiguration configuration, UserManager<ApplicationUser> userManager)
+        public TokenService(IConfiguration configuration, UserManager<IdentityUser> userManager)
         {
             _configuration = configuration;
             _userManager = userManager;
         }
 
-        public async Task<string> GenerateJwtToken(ApplicationUser user)
+        //public string GenerateJwtToken(IdentityUser user, byte[] jwtKey, IConfiguration config)
+        //{
+        //    var claims = new[] { new Claim(ClaimTypes.Name, user.UserName) };
+        //    var key = new SymmetricSecurityKey(jwtKey);
+        //    var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        //    var expires = DateTime.Now.AddDays(7);
+
+        //    var token = new JwtSecurityToken(
+        //        issuer: config["Jwt:Issuer"],
+        //        audience: config["Jwt:Audience"],
+        //        claims: claims,
+        //        expires: expires,
+        //        signingCredentials: creds
+        //    );
+
+        //    return new JwtSecurityTokenHandler().WriteToken(token);
+        //}
+
+        public async Task<string> GenerateJwtToken(IdentityUser user)
         {
             var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+            new Claim(ClaimTypes.Name, user.UserName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(ClaimTypes.NameIdentifier, user.Id)
         };

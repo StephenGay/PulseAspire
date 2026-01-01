@@ -1,12 +1,16 @@
-﻿using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Pulse.Models.AI.AIds;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Web.Tools;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -154,11 +158,18 @@ namespace Pulse.Web.Services
                 dResult["SQL"] = sql;
                 return dResult;
             }
-            catch (Exception ex) when (ex is TimeoutException || ex is TaskCanceledException)
+            catch (Exception ex) when (ex is TaskCanceledException)
             {
-                _logger.LogError(ex, "Ollama request timed out or canceled.");
+                _logger.LogError(ex, "Ollama request cancelled.");
+                dResult["Status"] = "Cancelled";
+                dResult["Comments"] = "Request was cancelled by user.";
+                return dResult;
+            }
+            catch (Exception ex) when (ex is TimeoutException)
+            {
+                _logger.LogError(ex, "Ollama request timed out.");
                 dResult["Status"] = "Error";
-                dResult["Comments"] = "Ollama timed out or canceled—try a simpler query.";
+                dResult["Comments"] = "Ollama timed out — try a simpler query.";
                 return dResult;
             }
             catch (Exception ex)
@@ -169,7 +180,7 @@ namespace Pulse.Web.Services
                 return dResult;
             }
         }
-        private async Task<string> GetDetailedSchemaAsync(CancellationToken ct = default)
+        public async Task<string> GetDetailedSchemaAsync(CancellationToken ct = default)
         {
             lock (_cacheLock)
             {
@@ -236,7 +247,7 @@ namespace Pulse.Web.Services
                 var content = await response.Content.ReadAsStringAsync(ct);
                 var aiQueries = JsonSerializer.Deserialize<List<AiQuery>>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new List<AiQuery>();
 
-                var examples = aiQueries.Any() ? "\nExamples of correct queries:\n" + string.Join("\n", aiQueries.Select(ex => $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n")) : "";
+                var examples = aiQueries.Any() ? "\nHere are some examples of queries and their correct SQL Statements to guide you:\n" + string.Join("\n", aiQueries.Select(ex => $"Question: {ex.Question}\nSQL: {ex.SqlQuery}\n")) : "";
 
                 lock (_cacheLock)
                 {
@@ -329,8 +340,16 @@ namespace Pulse.Web.Services
                     To enable you to do this effectively, you will rely on your general knowledge, access to web search tools, and querying our internal SQL Server 2022 database. You will decide when 
                     to use each resource to best answer the user's questions. Sometimes, you may need to use multiple resources in sequence to gather the necessary information. 
 
-                    -If you need to look up recent information, trends or other information not contained in the database, you can use the 'web_search' tool
-                        to perform web searches and the 'web_fetch' tool to retrieve full content from specific URLs
+                    If you need information from the database, create a SQL Statement based on the provided Database Schema using these guidelines:
+                    - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
+                    - Ensure that you use the exact table and column names from the schema.
+                    - Respect relationships for joins
+                    - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
+                    - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
+                    
+                    - Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
+                    - If no results are returned from the database, use the 'web_search' and 'web_fetch' tools to find relevant information on the web
+                    
 
                     The user question is:
                     {historyMessages.Last(m => m.Role == "user")?.Content}
@@ -341,19 +360,14 @@ namespace Pulse.Web.Services
 
                     {examples}
 
-                    If you need information from the database, create a SQL Statement based on the Schema using these guidelines:
-                    - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
-                    - Ensure that you use the exact table and column names from the schema.
-                    - Respect relationships for joins
-                    - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-                    - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
-
-                    - Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
+                    
                     - If you require more information to answer a question, you can ask clarifying questions to the user.
                     - Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
-
+                    
+                        **Rules**:
+                    - One tool call per type; stop after results.
                     - If tool results (e.g., web_search) are provided in the conversation, use them to refine your answer.
-                    - **CRITICAL: After tool results, provide the final answer without further tool calls. Do not re-search or re-query the same info.**
+                    - After tool results, if result starts with 'Invalid Tool Name', provide the final answer without further tool calls. Do not re-search or re-query the same info.
                     - Always aim to provide clear, concise, and accurate information in your responses.
                     - Remember to cite sources when using web search results to support your answers.
                     - If you do not know the answer to a question, then say you do not know. Do not make up an answer.
@@ -375,14 +389,14 @@ namespace Pulse.Web.Services
             // Commented: execute_action_sql for safety (enable with user auth)
             // tools.Add(new { type = "function", function = new { name = "execute_action_sql", ... } });
 
-            var canThink = sModel is "gpt-oss:latest" or "qwen3:32b" or "deepseek-r1:14b";
+            //var canThink = sModel is "gpt-oss:latest" or "qwen3:32b" or "deepseek-r1:14b";
 
             var ollamaRequest = new
             {
                 model = sModel,
                 messages = messages.ToArray(),
                 tools = tools.ToArray(),
-                think = canThink,
+                think = true,
                 keep_alive = "10m",
                 stream = false,
                 options = new { temperature = 0.0, num_ctx = 32000 }
@@ -392,6 +406,10 @@ namespace Pulse.Web.Services
             {
                 _logger.LogInformation("Starting Ollama chat for query: {Query}", historyMessages.LastOrDefault()?.Content);
                 var ollamaResponse = await _ollamaservice.PostAsync<OllamaChatResponse>("/api/chat", ollamaRequest, ct);
+                //if (string.IsNullOrEmpty(ollamaResponse?.Message?.Content) && ollamaResponse?.Message?.ToolCalls?.Any() == false)
+                //{
+                //    return historyMessages.Last(m => m.Role != "user")?.Content.Trim() ?? "No response from Ollama.";
+                //}
                 if (ollamaResponse?.Message?.ToolCalls?.Any() == true)
                 {
                     await HandleToolCalls(ollamaResponse.Message.ToolCalls, messages, sModel, ct);
@@ -409,10 +427,10 @@ namespace Pulse.Web.Services
                 //throw new Exception($"Ollama chat failed: {ex.Message}");
             }
         }
-        private async Task HandleToolCalls(List<OllamaToolCall> toolCalls, List<OllamaMessage> messages, string model, CancellationToken ct)
+        public async Task HandleToolCalls(List<OllamaToolCall> toolCalls, List<OllamaMessage> messages, string model, CancellationToken ct)
         {
-            var knownTools = new HashSet<string> { "execute_sql", "web_search", "web_fetch" /*, "execute_action_sql" if enabled */ };
-
+            var knownTools = new HashSet<string> { "execute_sql", "web_search", "web_fetch" , "execute_action_sql" };
+            
             foreach (var toolCall in toolCalls)
             {
                 var args = toolCall.Function.Arguments; // JsonElement
@@ -422,10 +440,17 @@ namespace Pulse.Web.Services
 
                 if (_toolAttemptName == toolName && _toolAttempts >= MAX_TOOL_ATTEMPTS)
                 {
-                    toolResult = $"Error: Max attempts ({MAX_TOOL_ATTEMPTS}) reached for tool '{toolName}'. Skipping.";
-                    _logger.LogWarning(toolResult);
+                    //toolResult = $"Error: Max attempts ({MAX_TOOL_ATTEMPTS}) reached for tool '{toolName}'. Skipping.";
+                    _logger.LogWarning($"Error: Max attempts ({MAX_TOOL_ATTEMPTS}) reached for tool '{toolName}'.");
                 }
-                else if (!knownTools.Contains(toolName))
+                foreach(var tn in knownTools)
+                {
+                    if (toolName.IndexOf(tn) > -1)
+                    {
+                        toolName = tn;
+                    }
+                }
+                if (!knownTools.Contains(toolName))
                 {
                     if(toolName == "assistant<|channel|>commentary") 
                     {
@@ -469,10 +494,20 @@ namespace Pulse.Web.Services
                                     break;
                                 }
                                 var url = urlProp.GetString() ?? "";
+                                _logger.LogInformation("Fetching from: {url}",url);
                                 toolResult = await WebFetchAsync(url, ct);
+                                _logger.LogInformation("Result: {res}",toolResult);
                                 break;
 
-                            // Add case for "execute_action_sql" if enabling it
+                            case "execute_action_sql":
+                                if (!args.TryGetProperty("sql", out var sqlActProp))
+                                {
+                                    toolResult = "Error: Missing 'sql' argument for execute_sql.";
+                                    break;
+                                }
+                                var sqlAct = sqlActProp.GetString() ?? "";
+                                toolResult = await ExecuteActionSqlToolAsync(args, ct);
+                                break;
 
                             default:
                                 toolResult = $"Unexpected tool: {toolName}"; // Shouldn't hit if checked above
@@ -520,9 +555,17 @@ namespace Pulse.Web.Services
             {
                 _logger.LogInformation("Executing SQL tool: {Sql}", sql);
                 sql = sql.Replace("\n", " "); // Fixed
-                var response = await _pulseApiClient.GetAsync($"/AI/execute:{Uri.EscapeDataString(sql)}", ct);
-                response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStringAsync(ct);
+                if(sql.StartsWith("SELECT"))
+                {
+                    var response = await _pulseApiClient.GetAsync($"/AI/execute:{Uri.EscapeDataString(sql)}", ct);
+                    response.EnsureSuccessStatusCode();
+                    return await response.Content.ReadAsStringAsync(ct);
+                }
+                else
+                {
+                    return "Error: Statement is not a SELECT statement";
+                }
+                
             }
             catch (Exception ex)
             {
@@ -604,7 +647,7 @@ namespace Pulse.Web.Services
             {
                 var fetchResponse = await _ollamaservice.PostAsync<OllamaWebFetchResponse>("https://ollama.com/api/web_fetch", fetchRequest, ct);
                 var contentText = fetchResponse?.Content ?? "";
-                return contentText.Length > 8000 ? contentText[..8000] + "..." : contentText;
+                return contentText.Length > 12000 ? contentText[..12000] + "..." : contentText;
             }
             catch (Exception ex)
             {
@@ -742,151 +785,309 @@ namespace Pulse.Web.Services
             }
         }
 
-        //public async Task<string> ChatWithStreamingOllamaAsync(List<OllamaMessage> historyMessages, string sModel, bool enableSearch = true, CancellationToken ct = default, int qryLoop = 0)
-        //{
-        //    if (_CancelQuery)
-        //    {
-        //        _CancelQuery = false;
-        //        _toolAttempts = 0;
-        //        _toolAttemptName = "";
-        //        return "Ok, I cancelled the query.";
-        //    }
-        //    if (qryLoop >= MAX_TOTAL_QRY_ATTEMPTS)
-        //    {
-        //        _toolAttempts = 0;
-        //        _toolAttemptName = "";
-        //        return "My apologies, I seem to be caught in a loop. Maybe try and rephrase the question.";
-        //    }
+        public async IAsyncEnumerable<string> StreamChatWithOllamaAsync(List<OllamaMessage> historyMessages, string sModel, bool enableSearch = true, [EnumeratorCancellation] CancellationToken ct = default, int qryLoop = 0, bool inThinking = false)
+        {
+            if (_CancelQuery)
+            {
+                _CancelQuery = false;
+                _toolAttempts = 0;
+                _toolAttemptName = "";
+                yield return "Ok, I cancelled the query.";
+                yield break;
+            }
+            if (qryLoop >= MAX_TOTAL_QRY_ATTEMPTS)
+            {
+                _toolAttempts = 0;
+                _toolAttemptName = "";
+                yield return "My apologies, I seem to be caught in a loop. Maybe try and rephrase the question.";
+                yield break;
+            }
 
-        //    var schemaText = await GetDetailedSchemaAsync(ct);
-        //    if (string.IsNullOrEmpty(schemaText))
-        //    {
-        //        return "Error: Unable to retrieve database schema information.";
-        //    }
+            string schemaText = string.Empty;
+            string examples = string.Empty;
+            string yMsg = string.Empty;
+            try
+            {
+                schemaText = await GetDetailedSchemaAsync(ct);
+                if (string.IsNullOrEmpty(schemaText))
+                {
+                    yMsg = "Error: Unable to retrieve database schema information.";
+                }
+                else
+                {
+                    examples = await GetAiExamplesAsync(ct);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error during setup in ChatWithOllamaAsync.");
+                _toolAttempts = 0;
+                _toolAttemptName = "";
+                yMsg = $"Error during setup: {ex.Message}";
+                
+            }
+            if (!string.IsNullOrEmpty(yMsg))
+            {
+                yield return yMsg;
+                yield break;
+            }
+            var systemMessage = new OllamaMessage
+            {
+                Role = "system",
+                Content = $"""
+            You are PulseAI, a helpful AI performing services for H&M Rollers.
+            
+            H&M Rollers primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials for
+            various industries including paper, steel, food processing, and more.
+            
+            You are conversing with a colleague, and they have asked if you could provide meaningful information regarding
+            the following:
 
-        //    var examples = await GetAiExamplesAsync(ct);
+            {historyMessages.Last(m => m.Role == "user")?.Content}
 
-        //    var systemMessage = new OllamaMessage
-        //    {
-        //        Role = "system",
-        //        //Content = $"""
-        //        //    You are PulseAI, a helpful AI for H&M Rollers[](https://www.hmrollers.com/), covering rollers with Rubber, Polyurethane, etc., for paper, steel, food processing industries. Answer queries on operations, products, services, or general topics using:
-        //        //    - Database schema for internal data (e.g., customer counts, roller materials).
-        //        //    - 'web_search' for trends/external info; 'web_fetch' for URL content.
-        //        //    - 'execute_sql' to run SQL queries (SELECT only).
-        //        //    Schema:
-        //        //    {schemaText}
-        //        //    Examples:
-        //        //    {examples}
-        //        //    User Question: {historyMessages.LastOrDefault(m => m.Role == "user")?.Content ?? ""}
-        //        //    **Steps**:
-        //        //    1. Check schema for relevant tables (e.g., ClientMaster for customers).
-        //        //    2. If DB needed, generate concise SELECT query (use exact table/column names, WHERE for filters, JOIN only if required).
-        //        //    3. Run query via 'execute_sql'.
-        //        //    4. If external info needed, use 'web_search' once, then 'web_fetch' if specific URL required.
-        //        //    5. After one tool call per type, deliver final answer — no further calls.
+            You have been provided with the entire conversation so far in a list of messages. Go through them as they may provide context
+            for the current query.
 
-        //        //    (Do not include the SQL Query in your response)
-        //        //    **Output Format** (always use this structure):
-        //        //    **Web Search Results**(if used):
-        //        //    1. [Title](URL): Snippet...
-        //        //    2. ...
-        //        //    **SQL Results**(if used): Summary of data, e.g., "42 customers start with A."
-        //        //    Answer: Concise response with citations [1], [2].
-        //        //    End with offer to help further.
-        //        //    **Rules**:
-        //        //    - Use schema for SQL; respect joins, nullability, data types (e.g., LIKE for strings).
-        //        //    - Cite web sources. If no answer, say "I don't know."
-        //        //    - One tool call per type; stop after results.
-        //        //    """
-        //        Content = $"""
-        //            You are PulseAI, a helpful AI performing services for H&M Rollers, a company that primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials.
-        //            Website: https://www.hmrollers.com/ . We cover rollers for various industries including paper, steel, food processing, and more. You will be assisting your colleagues by answering 
-        //            questions related to our business operations, products, and services as well as general topics.
+            Along with your vast General Knowledge, you will have the following tools to help you provide the best response for your fellow
+            worker. Select whichever tool you think will help you the most.
 
-        //            To enable you to do this effectively, you will rely on your general knowledge, access to web search tools, and querying our internal SQL Server 2022 database. You will decide when 
-        //            to use each resource to best answer the user's questions. Sometimes, you may need to use multiple resources in sequence to gather the necessary information. 
+            **Tools**
+            1. The SQL Server 2022 database schema for the company database. You can examine this to see if the database contains any information
+               that may help you. If it does have relevant data, you can write a SQL Statement and run it with the 'execute_sql' tool to get what
+               need. The schema and guidelines for creating these statements can be found later in this message.
+            2. You can search the web by using the 'web_search' tool. This will enable you to retrieve links and short snippets of the websites
+               contents from websites that may help you. Examine the results returned by this tool to see if any of them can help you. Only
+               use the web_search tool once per query.
+            3. You can use the 'web_fetch' tool to retrieve more information from any sites of interest returned by web_search.
 
-        //            -If you need to look up recent information, trends or other information not contained in the database, you can use the 'web_search' tool
-        //                to perform web searches and the 'web_fetch' tool to retrieve full content from specific URLs
+            If results are returned from the tool call, incorporate these results in your response and use them to determine either what the next step
+            should be or if you now have enough information to provide a final response.
 
-        //            The user question is:
-        //            {historyMessages.Last(m => m.Role == "user")?.Content}
+            You can use the tools as many times as you need to provide the best response. However, be careful to not re-use a tool to requery 
+            information that has already been searched for. Also take care to not get caught in a loop repeating the same action. If this happens
+            for more than 4 loops, exit and provide a response on the data you have. 
 
-        //            - Check the following schema to see if you need information from the database:
-        //            Schema:
-        //            {schemaText}
+            If a tool call comes back with no results, first check if the tool name is a valid tool name. If it isn't do not incorporate the
+            empty result in your reasoning.
 
-        //            {examples}
+            If you are unsure of anything, or require more information, ask clarifying questions to the user.
 
-        //            If you need information from the database, create a SQL Statement based on the Schema using these guidelines:
-        //            - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
-        //            - Ensure that you use the exact table and column names from the schema.
-        //            - Respect relationships for joins
-        //            - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-        //            - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
+            Check the messages list for any messages that come after the users query, these are actions that have already been taken to respond
+            to this query. Continue from the last message, do not start from the user query again, for e.g. if you previously received three
+            links from the 'web_search' tool, but have only run the 'web_fetch' tool on the first one, move on to the second - don't start a
+            new action.
 
-        //            - Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
-        //            - If you require more information to answer a question, you can ask clarifying questions to the user.
-        //            - Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
+            Here is the company database schema, detailing the tables, entities and how they relate to each other:
+            
+            {schemaText}
 
-        //            - If tool results (e.g., web_search) are provided in the conversation, use them to refine your answer.
-        //            - **CRITICAL: After tool results, provide the final answer without further tool calls. Do not re-search or re-query the same info.**
-        //            - Always aim to provide clear, concise, and accurate information in your responses.
-        //            - Remember to cite sources when using web search results to support your answers.
-        //            - If you do not know the answer to a question, then say you do not know. Do not make up an answer.
-        //            - All amounts are South African Rands (ZAR)
-        //            - End your answers with a friendly remark or offer further assistance.
-        //            """
-        //    };
+            If you need information from the database, create SQL Statements based on this Schema, just follow the guidelines listed below:
+                
+            **SQL Statement Creation Guidelines**
+            - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
+            - Ensure that you use the exact table and column names from the schema.
+            - Respect relationships for joins
+            - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
+            - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
 
-        //    var messages = new List<OllamaMessage> { systemMessage };
-        //    messages.AddRange(historyMessages);
+            {examples}
 
-        //    var tools = new List<object>();
-        //    if (enableSearch)
-        //    {
-        //        tools.Add(new { type = "function", function = new { name = "web_search", description = "Search the web for current information.", parameters = new { type = "object", properties = new { query = new { type = "string", description = "Search query" } }, required = new[] { "query" } } } });
-        //        tools.Add(new { type = "function", function = new { name = "web_fetch", description = "Fetch full content from a URL.", parameters = new { type = "object", properties = new { url = new { type = "string", description = "URL to fetch" } }, required = new[] { "url" } } } });
-        //    }
-        //    tools.Add(new { type = "function", function = new { name = "execute_sql", description = "Execute a SELECT SQL query against the dbPulse database and return results.", parameters = new { type = "object", properties = new { sql = new { type = "string", description = "The SQL query to execute" } }, required = new[] { "sql" } } } });
-        //    // Commented: execute_action_sql for safety (enable with user auth)
-        //    // tools.Add(new { type = "function", function = new { name = "execute_action_sql", ... } });
+            Once you have created the SQL Statement, pass it as a parameter to the 'execute_sql' tool to run it and retrieve the result.
+            If the database does not return any results then you can try again with a different statement, but only up to 3 attempts,
+            then move on to a different tool or provide your response.
 
-        //    var canThink = sModel is "gpt-oss:latest" or "qwen3:32b" or "deepseek-r1:14b";
+            **Thinking Process**:
+            - Always think step-by-step before responding or calling tools.
+            - Stream your thoughts progressively if possible, let the user know what is happening as often as possible.
+            - Only provide the reasoning since the last message, do not duplicate.
+            - After thinking, either call a tool or provide the final answer.
+            - If calling a tool, double-check toolname is execute_sql, web_search or web_fetch. No other toolname is permitted.
 
-        //    var ollamaRequest = new
-        //    {
-        //        model = sModel,
-        //        messages = messages.ToArray(),
-        //        tools = tools.ToArray(),
-        //        think = canThink,
-        //        keep_alive = "10m",
-        //        stream = true,
-        //        options = new { temperature = 0.0, num_ctx = 32000 }
-        //    };
+            **Formatting Rules For Your Final Response**:
+            - Always aim to provide clear, concise, and accurate information in your responses.
+            - Remember to cite sources when using web_search results to support your answers.
+            - If using results from the database in your answer, state this in your answer.
+            - Do not return a SQL Query as the answer.
+            - If you do not know the answer to a question, then say you do not know. Do not make up an answer.
+            - All amounts are South African Rands (ZAR)
+            - End your answers with a friendly remark or offer further assistance. A suggestion of what may be of interest to look at next would be helpful.
+            """
+            };
+            //var systemMessage = new OllamaMessage
+            //{
+            //    Role = "system",
+            //    Content = $"""
+            //You are PulseAI, a helpful AI performing services for H&M Rollers, a company that primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials.
+            //We cover rollers for various industries including paper, steel, food processing, and more. You will be assisting your colleagues by answering
+            //questions related to our business operations, products, and services as well as general topics.
+            //To enable you to do this effectively, you will rely on your general knowledge, access to web search tools, and querying our internal SQL Server 2022 database. You will decide when
+            //to use each resource to best answer the user's questions. Sometimes, you may need to use multiple resources in sequence to gather the necessary information.
 
-        //    try
-        //    {
-        //        _logger.LogInformation("Starting Ollama Streaming chat for query: {Query}", historyMessages.LastOrDefault()?.Content);
-        //        var ollamaStreamResponse = new HttpContext.StreamingOllamaResponse();
-        //        await _ollamaservice.PostAsync<OllamaChatResponse>("/api/chat", ollamaRequest, ct);
-        //        if (ollamaResponse?.Message?.ToolCalls?.Any() == true)
-        //        {
-        //            await HandleToolCalls(ollamaResponse.Message.ToolCalls, messages, sModel, ct);
-        //            return await ChatWithOllamaAsync(messages, sModel, enableSearch, ct, qryLoop + 1);
-        //        }
-        //        _logger.LogInformation("Ollama chat completed.");
-        //        return ollamaResponse?.Message?.Content?.Trim() ?? "No response from Ollama.";
-        //    }
-        //    catch (Exception ex)
-        //    {
-        //        _logger.LogError(ex, "Error in ChatWithOllamaAsync.");
-        //        _toolAttempts = 0;
-        //        _toolAttemptName = "";
-        //        return $"Error: {ex.Message}";
-        //        //throw new Exception($"Ollama chat failed: {ex.Message}");
-        //    }
-        //}
+            //**Thinking Process**:
+            //- Always think step-by-step before responding or calling tools.
+            //- Output your reasoning in <thinking> tags, e.g., <thinking>Step 1: Analyze query. Step 2: Check schema relevance.</thinking>
+            //- Stream your thoughts progressively if possible.
+            //- After thinking, either call tools or provide the final answer.
+
+            //If you need information from the database, create a SQL Statement based on the provided Database Schema using these guidelines:
+            //- Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
+            //- Ensure that you use the exact table and column names from the schema.
+            //- Respect relationships for joins
+            //- Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
+            //- Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
+
+            //- Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
+            //- If no results are returned from the database, use the 'web_search' and 'web_fetch' tools to find relevant information on the web
+
+            //The user question is:
+            //{historyMessages.Last(m => m.Role == "user")?.Content}
+            //- Check the following schema to see if you need information from the database:
+            //Schema:
+            //{schemaText}
+            //{examples}
+
+            //- If you require more information to answer a question, you can ask clarifying questions to the user.
+            //- Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
+
+            //    **Rules**:
+            //- Only one tool call allowed for the 'web_search' and 'web_fetch' tools. Do not re-search or re-query the same info.
+            //- If tool results (e.g., web_search) are provided in the conversation, use them to refine your answer.
+            //- After tool results, if result starts with 'Invalid Tool Name', provide the final answer without further tool calls. Do not re-search or re-query the same info.
+            //- Always aim to provide clear, concise, and accurate information in your responses.
+            //- Remember to cite sources when using web search results to support your answers.
+            //- If using results from the database in your answer, state this in your answer.
+            //- If you do not know the answer to a question, then say you do not know. Do not make up an answer.
+            //- All amounts are South African Rands (ZAR)
+            //- End your answers with a friendly remark or offer further assistance.
+            //"""
+            //};
+            var messages = new List<OllamaMessage> { systemMessage };
+            messages.AddRange(historyMessages);
+            var tools = new List<object>();
+            if (enableSearch)
+            {
+                tools.Add(new { type = "function", function = new { name = "web_search", description = "Search the web for current information.", parameters = new { type = "object", properties = new { query = new { type = "string", description = "Search query" } }, required = new[] { "query" } } } });
+                tools.Add(new { type = "function", function = new { name = "web_fetch", description = "Fetch full content from a URL.", parameters = new { type = "object", properties = new { url = new { type = "string", description = "URL to fetch" } }, required = new[] { "url" } } } });
+            }
+            tools.Add(new { type = "function", function = new { name = "execute_sql", description = "Execute a SELECT SQL query against the dbPulse database and return results.", parameters = new { type = "object", properties = new { sql = new { type = "string", description = "The SQL query to execute" } }, required = new[] { "sql" } } } });
+            // Commented: execute_action_sql for safety (enable with user auth)
+            // tools.Add(new { type = "function", function = new { name = "execute_action_sql", ... } });
+
+
+
+            var ollamaRequest = new
+            {
+                model = sModel,
+                messages = messages.ToArray(),
+                tools = tools.ToArray(),
+                think = "high",
+                keep_alive = "30m",
+                stream = true,  // Enable streaming
+                options = new { temperature = 0.0, num_ctx = 32000, repeat_penalty = 1.2, frequency_penalty = 2, presence_penalty = 2 }
+            };
+            //var ollamaRequest = new
+            //{
+            //    model = flapper.Model,
+            //    messages = messages.ToArray(),
+            //    tools = tools.ToArray(),
+            //    think = flapper.Think,
+            //    keep_alive = "10m",
+            //    stream = true,  // Enable streaming
+            //    options = new { temperature = flapper.Options.Temperature, num_ctx = flapper.Options.NumCtx, num_predict = flapper.Options.NumPredict, repeat_penalty = flapper.Options.RepeatPenalty, frequency_penalty = flapper.Options.FrequencyPenalty, presence_penalty = flapper.Options.PresencePenalty }
+            //};
+            _logger.LogInformation("Starting Ollama chat stream for query: {Query}", historyMessages.LastOrDefault()?.Content);
+
+                // Accumulate full message for tool call check
+                var accumulatedMessage = new OllamaMessage { Role = "assistant" };
+                
+                bool hasYieldedContent = false;
+                
+
+                await foreach (var chunk in _ollamaservice.ChatStreamAsync("/api/chat", ollamaRequest, ct))
+                {
+                    if (!string.IsNullOrEmpty(chunk.Message.Thinking) && !inThinking)
+                    {
+                        inThinking = true;
+                        yield return "Thinking:\n";
+                    }
+                // Append deltas
+                    if (!string.IsNullOrEmpty(chunk.Message.Thinking)){
+                        hasYieldedContent = true;
+                        //accumulatedMessage.Content += chunk.Message.Thinking;
+                        //_logger.LogInformation("Ollama chat stream thinking chunk: {ch}", chunk.Message.Thinking);
+                        yield return chunk.Message.Thinking;
+                    }
+                //else if (!string.IsNullOrEmpty(chunk.Message.Content))
+                
+                // TESTING !!!
+                    if (!string.IsNullOrEmpty(chunk.Message.Content))
+                    {
+                        if (inThinking)
+                        {
+                            inThinking = false;
+                            yield return "Answer:\n";
+                        }
+
+                        //_logger.LogInformation("Ollama chat stream answer chunk: {ch}", chunk.Message.Content);
+                        //accumulatedMessage.Content += chunk.Message.Content;
+                        yield return chunk.Message.Content;  // Stream to UI
+                        hasYieldedContent = true;
+                    }
+
+                    if (chunk.Message.ToolCalls != null)
+                    {
+                        accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
+                        accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
+                    }
+
+                    if (chunk.Done)
+                    {
+                        if (accumulatedMessage.ToolCalls?.Any() == true)
+                        {
+                            // Yield progress before handling
+                            if (!hasYieldedContent)
+                            {
+                                yield return "<thinking>Analyzing query and preparing tools...</thinking>\n";
+                            }
+                            else
+                            {
+                                yield return "\n<thinking>Tool calls detected. Processing...</thinking>\n";
+                            }
+
+                            // Handle each tool with specific progress yields
+                            foreach (var toolCall in accumulatedMessage.ToolCalls)
+                            {
+                                var toolName = toolCall.Function.Name;
+                                yield return $"<thinking>Invoking tool: {toolName}...</thinking>\n";
+
+                                // Existing HandleToolCalls logic, but yield results summary if visible
+                                await HandleToolCalls(new List<OllamaToolCall> { toolCall }, messages, sModel, ct);
+                                yield return $"<thinking>Tool {toolName} complete. Incorporating results...</thinking>\n";
+                            }
+
+                            // TESTING TAKING OUT
+                            //await HandleToolCalls(accumulatedMessage.ToolCalls, messages, sModel, ct);
+
+                            // Recurse and yield from next iteration
+                            await foreach (var recursiveChunk in StreamChatWithOllamaAsync(messages, sModel, enableSearch, ct, qryLoop + 1, inThinking))
+                            {
+                                //_logger.LogInformation("Ollama chat stream recursivechunk: {ch}", recursiveChunk);
+                                yield return recursiveChunk;
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Ollama chat stream completed.");
+                        }
+                        yield break;
+                    }
+                }
+
+                if (!hasYieldedContent)
+                {
+                    yield return "No response from Ollama.";
+                }
+        }
+    
     }
 }

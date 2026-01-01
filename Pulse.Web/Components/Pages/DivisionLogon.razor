@@ -12,7 +12,7 @@
 
 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
 <div class="div-center-screen" style="align-items:center">
-<ListView TItem="Division" Items="@_allDivisions" style="align-items:center; max-width:60%"  OnListViewItemClick="OnDivisionClick" Height="100%">
+        <ListView TItem="Division" Items="@_allDivisions" style="align-items:center; max-width:60%; background-color:var(--pulse-dark-colour)" OnListViewItemClick="OnDivisionClick" Height="100%">
     <HeaderTemplate>
         <div style="color:white">SELECT A DIVISION</div>
     </HeaderTemplate>

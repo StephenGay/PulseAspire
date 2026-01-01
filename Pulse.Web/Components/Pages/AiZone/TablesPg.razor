@@ -38,7 +38,7 @@
         display: flex;
         flex-direction: column; /* Stack children vertically */
         height: calc(100vh - 56px); /* Or whatever height your parent should be, like 100% */
-        background-color: rgba(188,209,212,0.8);
+        background-color: var(--pulse-light-colour);
     }
 
     .dheader, .dfooter {
@@ -60,7 +60,7 @@
     .divTablesContent tr[row-type='sticky-header'] > th {
         position: sticky;
         top: 0;
-        background-color: #365b66 !important;
+            background-color: var(--pulse-dark-colour) !important;
         color: white !important;
         align-content: center;
         border-color: white !important;
@@ -76,13 +76,16 @@
     .fluent-data-grid[b-ppmhrkw1mj] {
         --fluent-data-grid-resize-handle-color: white;
     }
+    .tblsOn {
+        border-color: #1D722A;
+    }
 </style>
 <div class="dparent">
     <div class="dheader" Style="border-bottom: 1px solid black">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
             @if (!showResults)
             {
-                <FluentButton class=@(!viewBox ? "myModeBtnOff" : "myModeBtnOn")
+                <FluentButton class=@(!viewBox ? "myModeBtnOff" : "tblsOn")
                                   BackgroundColor="white"
                               Style="border: 2px solid ;height:40px;margin-left:10px" 
                                   OnClick="() => viewBox = !viewBox" >
@@ -91,9 +94,11 @@
                         @(tables.emoji.ToMarkup("32px"))
                     }
                 </FluentButton>
-                <FluentSpacer />
-                <FluentButton class=@(!SavedQueryMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="white" IconStart="@(new Icons.Filled.Size32.DatabaseSearch().WithColor((SavedQueryMode ? "#1D722A" : "#9900FF")))"
-                              Style="border: 2px solid;height:40px;margin-right:20px" OnClick="ToggleSavedQryMode">
+                @* <FluentSpacer /> *@
+                <FluentButton class=@(!SavedQueryMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size32.DatabaseSearch().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                              Style="height:40px;margin-right:20px" OnClick="ToggleSavedQryMode">
+                @* <FluentButton class=@(!SavedQueryMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor=@(!SavedQueryMode ? "white" : "#1D722A") IconStart="@(new Icons.Filled.Size32.DatabaseSearch().WithColor((SavedQueryMode ? "white" : "#9900FF")))"
+                              Style="border: 2px solid;height:40px;margin-right:20px" OnClick="ToggleSavedQryMode"> *@
                     @* Saved Queries *@
                 </FluentButton>
                 @*<FluentButton class=@(!SavedQueryMode ? "btnShadow" : null) BackgroundColor="white" IconStart="@(new Icons.Filled.Size32.DatabaseSearch().WithColor((SavedQueryMode ? "#1D722A" : "#9900FF")))"
@@ -105,9 +110,9 @@
             {
                 @* <FluentButton Appearance="Appearance.Accent" class="btnShadow" Style="border: 1px solid white;height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="ResultsGoBack">Back</FluentButton> *@
                 <FluentButton Appearance="Appearance.Accent" class="btnShadow" Style="border: 1px solid white;height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="ResultsGoBack">Back</FluentButton>
-                @* if (showResBtns)
+                if (rows.Any())
                 { 
-                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">*@
+                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
                 
                         @if (SavedQueryMode)
                         {
@@ -125,7 +130,7 @@
                         }
                         else
                         {
-                            <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" class="btnShadow" style="border: 1px solid white;height:36px" IconStart="@(new Icons.Regular.Size24.ArrowRepeatAll().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="@RetryBtn">Retry</FluentButton>
+                            @* <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" class="btnShadow" style="border: 1px solid white;height:36px" IconStart="@(new Icons.Regular.Size24.ArrowRepeatAll().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="@RetryBtn">Retry</FluentButton> *@
                             <FluentButton BackgroundColor="green" class="btnShadow" Style="border: 1px solid white;height:36px" Color="white" OnClick="SaveQry">
                                 <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Save())" Slot="start" Style="fill:white" />
                                 Save
@@ -133,7 +138,10 @@
                     
                         }
 
-                        <FluentSpacer />
+                       
+                        </Animation>
+                    <FluentSpacer />
+                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
                         <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentTable().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
                                       class="btnShadow"
                                       BackgroundColor="rgba(0,104,0,1)"
@@ -159,8 +167,8 @@
                             @* OnClick="ExportHtmlFile"> *@
                             <strong>HTML</strong>
                         </FluentButton>
-    @*    </Animation>
-                 } *@
+                    </Animation>
+                 } 
             }
         </FluentStack>
     </div>
@@ -204,20 +212,24 @@
                                             @if (this._isListening)
                                             {
                                                 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                                        <FluentButton BackgroundColor="rgba(255,255,255,1)" class="myModeBtnOn" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("#1D722A"))" style="border: 2px solid;height:36px" OnClick="OnClickStop"></FluentButton>
+                                                        <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:36px" OnClick="OnClickStop"></FluentButton>
                                                 </Animation>
                                             }
                                             else
                                             {
                                                 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                                        <FluentButton BackgroundColor="rgba(255,255,255,1)" class="myModeBtnOff" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("#9900FF"))" style="border: 2px solid;height:36px" OnClick="StartRecClick"></FluentButton>
+                                                        <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:36px" OnClick="StartRecClick"></FluentButton>
                                                 </Animation>
                                             }
                                         }
                                         <FluentSpacer />
                                         @if(txtQ != null && txtQ !="")
                                         {
-                                            <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="border: 1px solid white;height:36px" IconEnd="@(new Icons.Regular.Size24.Send().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="@btnAction">@(SavedQueryMode ? "Run" : "Submit")</FluentButton>
+                                                @if (SavedQueryMode)
+                                                {
+                                                    <FluentButton Appearance="Appearance.Neutral" class="btnShadow" style="border: 1px solid white;height:36px" IconEnd="@(new Icons.Regular.Size24.Send().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="() => SavedQueryMode = false">Edit</FluentButton>
+                                                }
+                                                <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="border: 1px solid white;height:36px" IconEnd="@(new Icons.Regular.Size24.Send().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="@btnAction">@(SavedQueryMode ? "Run" : "Submit")</FluentButton>
                                         }
                                     </FluentStack> 
                                 </FooterTemplate>
@@ -250,9 +262,9 @@
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Width="75%" Style=" margin-right:20px;">
                                 <FluentLabel Typo="Typography.Body" Style="color:black;">Generating SQL Statement...</FluentLabel>
                                 <FluentProgress Indeterminate="true" Width="100%" Style="margin:10px" />
-                                @* <FluentLabel Typo="Typography.Body" Style="color:black;">Question : @query</FluentLabel> *@
+                                        <FluentLabel Typo="Typography.Body" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@strReasoning</FluentLabel>
                             </FluentStack>
-                            <FluentButton BackgroundColor="red" IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.RecordStop().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" Style="height:32px;margin-top: 10px; margin-bottom: 10px;" OnClick="@CancelQuery"> </FluentButton>
+                            <FluentButton Class="btnShadow" BackgroundColor="red" IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.RecordStop().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" Style="height:32px;margin-top: 10px; margin-bottom: 10px;" OnClick="@CancelQuery"> </FluentButton>
                         </FluentStack>
                         <br />
                     }
@@ -323,7 +335,7 @@
                                             @GetTruncatedSql(gridContext.SqlQuery)
                                         </TemplateColumn> *@
                                         </FluentDataGrid>
-                                        <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%" />
+                                                    <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; padding:10px ; color: white; width:100%" />
                                     </FluentGridItem> 
                         
                                 </FluentGrid>
@@ -350,7 +362,8 @@
                 {
                     if (rows.Any())
                         {
-                            <div style="overflow-x: auto; width: 100%; align-content:center; background-color: white;">
+                                    <div style="overflow-x: auto; width: 100%; align-content:center; background-color: var(--pulse-light-colour);">
+
 
                     
                             <FluentDataGrid Items="@rows.AsQueryable()" 
@@ -367,7 +380,7 @@
                                 }
                             </FluentDataGrid>
                                 
-                                       <FluentPaginator State="@pagination" Style="background-color: #365b66 ; color: white;padding:10px; border-bottom-left-radius:10px;border-bottom-right-radius:10px; width:100%" />
+                                        <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; color: white;padding:10px; border-bottom-left-radius:10px;border-bottom-right-radius:10px; width:100%" />
 
                             </div>
                     }
@@ -428,7 +441,7 @@
     private string strReasoning = string.Empty;
     private bool showSQL = false;
     private string strResponse = string.Empty;
-    private string aiModel = "gpt-oss:latest";
+    private string aiModel = "llama3.1:latest";
     private ElementReference chatContainer;
     private bool useSpeechOutput = false;
     private SpeechSynthesisVoice? _voice;
@@ -439,6 +452,7 @@
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
     private bool _isListening = false;
+    private CancellationTokenSource? cts;
     // Dynamic models for select
     // private List<string>? ollamaModels = new();
     // Multi-turn chat history
@@ -702,7 +716,10 @@
 
     private async Task CancelQuery()
     {
-        await pAI.CancelQueryAsync();
+        // await pAI.CancelQueryAsync();
+        viewBox = true;
+        showResults = false;
+        cts?.Cancel();
         isLoading = false;
     }
     protected override void OnInitialized()
@@ -908,7 +925,7 @@
         try
         {
             // Call Ollama to process the natural language query
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+            cts = new CancellationTokenSource();
             query = txtQ;
 
             showResults = true;
@@ -926,11 +943,17 @@
                 errorMessage = aiSQLv["Comments"];
                 return;
             }
-
+            if (aiSQLv["Status"] == "Cancelled")
+            {
+                
+                errorMessage = aiSQLv["Comments"];
+                return;
+            }
             strResponse = aiSQLv["SQL"];
-            strReasoning = aiSQLv["Comments"];
+            strReasoning = $"SQL:\n {aiSQLv["SQL"]}\n\nExecuting...";
+            StateHasChanged();
 
-            var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{strResponse}");
+            var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{strResponse}",cts.Token);
             if (aiResponse == null)
             {
                 errorMessage = "No response from AI execution.";
@@ -944,6 +967,11 @@
 
             // StateHasChanged();
 
+        }
+        catch (TaskCanceledException)
+        {
+            errorMessage = "Operation canceled.";
+            showResults = false;
         }
         catch (Exception ex)
         {

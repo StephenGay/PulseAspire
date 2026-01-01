@@ -1,5 +1,6 @@
 ﻿@page "/EmployeeZone/"
 @using Pulse.Models.Misc
+@using Pulse.Web.Components.Pages.Notifications
 @inject Pulse.Web.Services.DataTransferService dts
 @inject AppState AppState
 @layout EmployeeZoneMainLayout
@@ -7,7 +8,7 @@
 <h3>EmployeeZoneHome</h3>
 
 <div>
-
+    <SignalR />
 </div>
 
 @code {

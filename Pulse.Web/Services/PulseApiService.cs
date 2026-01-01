@@ -37,7 +37,8 @@ namespace Pulse.Web.Services
             catch (HttpRequestException ex)
             {
                 _logger.LogError(ex, "HTTP request error while accessing {RequestUri}", requestUri);
-                throw;
+                throw new Exception($"Failed to fetch data from {requestUri}", ex);
+                //throw;
             }
             catch (JsonException ex)
             {
@@ -206,13 +207,13 @@ namespace Pulse.Web.Services
 
         public async Task<string?> AddNewRoleAsync(string newRoleName, CancellationToken ct = default)
         {
-            return await PostAsync<object, string>("/Security/roles", new { Name = newRoleName }, ct);
+            return await PostAsync<string, string>("/Security/create-role", newRoleName , ct);
         }
 
         public async Task AssignRoleToUserAsync(string userId, string roleName, CancellationToken ct = default)
         {
-            var payload = new { RoleName = roleName };
-            await PostAsync<object, object>($"/Security/users/{userId}/roles", payload, ct);
+            var payload = new { UserId = userId, RoleName = roleName };
+            await PostAsync<object, object>($"/Security/assign-role", payload, ct);
         }
 
         public async Task<UserFavouriteQry?> SaveFavouriteQueryAsync(UserFavouriteQry query, CancellationToken ct = default)

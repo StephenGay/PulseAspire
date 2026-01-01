@@ -5,16 +5,16 @@ using System.Text;
 
 namespace Pulse.Models.Users
 {
-    public class LoginModel
-    {
-        [Required]
-        [EmailAddress]
-        public string Email { get; set; }
+    //public class LoginModel
+    //{
+    //    [Required]
+    //    [EmailAddress]
+    //    public string Email { get; set; }
 
-        [Required]
-        [MinLength(6)]
-        public string Password { get; set; }
-    }
+    //    [Required]
+    //    [MinLength(6)]
+    //    public string Password { get; set; }
+    //}
     public class RegisterModel
     {
         [Required]
@@ -39,9 +39,15 @@ namespace Pulse.Models.Users
         public string Name { get; set; }
     }
 
+    //public class AssignRoleModel
+    //{
+    //    [Required(ErrorMessage = "The RoleName field is required.")]
+    //    public string RoleName { get; set; }
+    //}
+
     public class AssignRoleModel
     {
-        [Required(ErrorMessage = "The RoleName field is required.")]
+        public string UserId { get; set; }
         public string RoleName { get; set; }
     }
 }

@@ -24,18 +24,12 @@
         background: lightgray;
     }
 
-    .ccontent {
-        flex: 1; /* This magic makes it grow to fill the space */
-        background: rgba(255,255,255,0.3);
-        margin: 10px;
-        padding:10px;
-        border-radius: 10px;
-        overflow: auto;
-    }
+    
 </style>
 
 <div class="cparent">
     <div class="ccontent">
+        
         @if (isLoading)
         {
             <FluentLabel Typo="Typography.Body" Style="color:black;">Loading...</FluentLabel>
@@ -44,14 +38,16 @@
         {
             @if (salesGrid.Any())
             {
+                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
                 
                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="padding: 10px;">
                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin: 10px;">
-                        <FluentButton OnClick="() => isTableView = !isTableView" class=@(!isTableView ? "btnShadow" : null) style=@(isTableView ? "border: 1px solid white" : null) IconStart="@(new Icons.Filled.Size24.Table())" Appearance=@(!isTableView ? Appearance.Lightweight : Appearance.Accent)>Table</FluentButton>
-                        <FluentButton OnClick="() => isTableView = !isTableView" class=@(isTableView ? "btnShadow" : null) style=@(!isTableView ? "border: 1px solid white" : null) IconStart="@(new Icons.Filled.Size24.ChartMultiple())" Appearance=@(isTableView? Appearance.Neutral: Appearance.Accent)>Graph</FluentButton>
+                        <FluentButton OnClick="() => isTableView = true" class=@(!isTableView ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)" IconStart="@(new Icons.Filled.Size24.Table().WithColor("var(--pulse-mode-btn-item-colour)"))">Table</FluentButton>
+                        <FluentButton OnClick="() => isTableView = false" class=@(isTableView ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)" IconStart="@(new Icons.Filled.Size24.ChartMultiple().WithColor("var(--pulse-mode-btn-item-colour)"))">Graph</FluentButton>
                         </FluentStack>
-                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Class="divShadow" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin: 5px">
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Class="divShadow" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin: 5px">
                             <FluentDataGrid Items="@salesGrid.AsQueryable()"
+                                        
                                             RowSize="DataGridRowSize.Small"
                                             hidden="@(!isTableView)"
                                             Virtualize="true"
@@ -62,32 +58,32 @@
                                 {
                                     var localColumn = column;
                                     <PropertyColumn Property="@(r => r[localColumn])" Align=@(column == "Financial Year" ? Align.Center : Align.End)
-                                                Style=@(column == "Financial Year" || column == "Total" ? "background-color:#bcd1d4;color:#365b66;border-bottom: 1px solid #365b66;font-weight:bold" : "background-color:#ffffff;color:#000000;border-bottom: 1px solid #365b66") Sortable="false">
+                                                Style=@(column == "Financial Year" || column == "Total" ? "background-color:var(--pulse-light-colour);color:var(--pulse-dark-colour);border-bottom: 1px solid var(--pulse-dark-colour);font-weight:bold" : "background-color:#ffffff;color:#000000;border-bottom: 1px solid #365b66") Sortable="false">
                                         <HeaderCellItemTemplate>
-                                        <FluentLabel Typo="Typography.H6" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="color:#365b66">@column</FluentLabel>
+                                        <FluentLabel Typo="Typography.H6" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgb(255,255,255)" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@column</FluentLabel>
                                         </HeaderCellItemTemplate>
                                     </PropertyColumn>
-
                                 }
                             </FluentDataGrid>
                         </FluentStack>
                     </FluentStack>
+                </Animation>
 
-                    @if(!isTableView)
-                    {
+                @if(!isTableView)
+                {
                             
-                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Class="divShadow" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="98%" Style="height:80%;padding: 10px; border: 1px solid #365b66; margin:5px; border-radius:10px;background-color:ghostwhite">
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%">
-                                <FluentButton Appearance="Appearance.Accent" OnClick="btnMinusYr">-</FluentButton>
-                                <FluentLabel Typo="Typography.Subject">Years</FluentLabel>
-                                <FluentButton Appearance="Appearance.Accent" OnClick="btnAddYr">+</FluentButton>
-                                <FluentSpacer />
-                                <FluentButton Loading=@(!IsByYear ? @loading : false) OnClick="@toggleGraphAsync" Appearance=@(IsByYear? Appearance.Outline: Appearance.Accent)>Month</FluentButton>
-                                <FluentButton Loading=@(IsByYear? @loading : false) OnClick="@toggleGraphAsync" Appearance=@(!IsByYear ? Appearance.Outline : Appearance.Accent)>Financial Year</FluentButton>
-                            </FluentStack>
-                            <Chart OnInitAsync="OnInitAsync" Height="100%" Width="100%" @ref="chart" />
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Class="divShadow" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="98%" Style="height:80%;padding: 10px; border: 1px solid #365b66; margin:5px; border-radius:10px;background-color:ghostwhite">
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%">
+                            <FluentButton Appearance="Appearance.Accent" OnClick="btnMinusYr">-</FluentButton>
+                            <FluentLabel Color="Microsoft.FluentUI.AspNetCore.Components.Color.Accent" Typo="Typography.Subject">Years</FluentLabel>
+                            <FluentButton Appearance="Appearance.Accent" OnClick="btnAddYr">+</FluentButton>
+                            <FluentSpacer />
+                        <FluentButton Loading=@(!IsByYear ? @loading : false) class=@(IsByYear ? "myModeBtnOff" : "myModeBtnOn") OnClick="() => { IsByYear = false; toggleGraphAsync(); }" BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)" >Month</FluentButton>
+                        <FluentButton Loading=@(IsByYear? @loading : false) class=@(!IsByYear ? "myModeBtnOff" : "myModeBtnOn") OnClick="() => { IsByYear = true; toggleGraphAsync(); }" BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)">Financial Year</FluentButton>
                         </FluentStack>
-                    }
+                        <Chart OnInitAsync="OnInitAsync" Height="100%" Width="100%" @ref="chart" />
+                    </FluentStack>
+                }
             }
         }
         
@@ -166,7 +162,7 @@
     }
     private async Task toggleGraphAsync()
     {
-        IsByYear = !IsByYear;
+        // IsByYear = !IsByYear;
         loading = true;
         await RefreshData();
         chart.Reload();

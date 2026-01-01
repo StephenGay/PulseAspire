@@ -2,6 +2,7 @@
 using Pulse.Models.Misc;
 using Pulse.Web.Tools;
 using System.Net.Http;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -250,5 +251,53 @@ namespace Pulse.Web.Services
 
             throw new InvalidOperationException($"No valid SQL found in Ollama response: {fullResponse}");
         }
+
+        /// <summary>
+        /// Streams responses from Ollama's /api/chat endpoint.
+        /// Yields chunks as they arrive; use in NL-to-SQL workflows for real-time UI updates.
+        /// </summary>
+        /// <param name="requestUri">Endpoint, e.g., "/api/chat"</param>
+        /// <param name="payload">The request object with model, messages, etc.</param>
+        /// <param name="ct">Cancellation token</param>
+        /// <returns>IAsyncEnumerable of chat chunks</returns>
+        public async IAsyncEnumerable<OllamaChatChunk> ChatStreamAsync(string requestUri, object payload, [EnumeratorCancellation] CancellationToken ct = default)
+        {
+            var response = await _httpOllama.PostAsJsonAsync(requestUri, payload, ct);
+            //var response = await PostAsync<HttpResponseMessage>(requestUri, payload, ct);
+
+            response.EnsureSuccessStatusCode();
+
+            var stream = await response.Content.ReadAsStreamAsync(ct);
+            using var reader = new StreamReader(stream);
+
+            string? line;
+            while ((line = await reader.ReadLineAsync(ct)) != null)
+            {
+                if (string.IsNullOrWhiteSpace(line)) continue;
+                OllamaChatChunk? chunk = null;
+                try
+                {
+                    chunk = JsonSerializer.Deserialize<OllamaChatChunk>(line, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                    
+                }
+                catch (JsonException ex)
+                {
+                    _logger?.LogError(ex, "Failed to deserialize Ollama chat chunk: {Line}", line);
+                    throw;
+                }
+                if (chunk != null)
+                {
+                    yield return chunk;
+
+                    if (chunk.Done)
+                    {
+                        _logger?.LogInformation("Ollama chat stream complete: {TotalDuration}ms", chunk.TotalDuration);
+                        yield break;
+                    }
+                }
+            }
+        }
+
+        
     }
 }

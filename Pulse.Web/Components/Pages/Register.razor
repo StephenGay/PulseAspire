@@ -1,12 +1,13 @@
 ﻿@page "/register"
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Users  // If RegisterModel is shared
+@using Pulse.Web.Components.Layout
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject Pulse.Web.Services.PulseApiService pApi
 @inject IJSRuntime JS  // For optional token storage
 @rendermode InteractiveServer
-
+@layout NoLayout
 <FluentCard>
     <h3>Register</h3>
     <FluentTextField @bind-Value="registerModel.Email" Label="Email" />

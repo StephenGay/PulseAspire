@@ -1,0 +1,101 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI.AIds
+@using Pulse.Web.Services
+
+@inject Pulse_AI pAI
+@inject DataTransferService dtrf
+
+
+@* <FluentDialogBody> *@
+<h3>Flapper Settings</h3>
+
+
+        
+@if(ollamaModels == null)
+{
+    <FluentButton Appearance="Appearance.Accent" Loading="true" />
+}
+else
+{
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="margin-top: 20px;margin-bottom: 50px;margin-left: 0px;margin-right: 10px;">
+
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="padding: 10px">
+            <FluentLabel Typo="Typography.Body" Style="color:var(--pulse-dark-colour)">AI Model : </FluentLabel>
+    <select @bind="flapper.Model" class="form-select" style="width: auto;">
+        @foreach (var model in ollamaModels)
+        {
+            <option value="@model">@model</option>
+        }
+    </select>
+    </FluentStack>
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+    <FluentSlider Min="0" Max="1.0" Step="0.1" @bind-Value=flapper.Options.Temperature Label="Temperature">
+        <FluentSliderLabel Position="0.2">Factual</FluentSliderLabel>
+        <FluentSliderLabel Position="0.8">Creative</FluentSliderLabel>
+    </FluentSlider>
+    </FluentStack>
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+            <FluentSlider Min="0" Max="128000" Step="1000" @bind-Value=flapper.Options.NumCtx Label="Context Window Size">
+                <FluentSliderLabel Position="0">0</FluentSliderLabel>
+                @* <FluentSliderLabel Position="16000">16K</FluentSliderLabel> *@
+                <FluentSliderLabel Position="32000">32000</FluentSliderLabel>
+                @* <FluentSliderLabel Position="48000">48K</FluentSliderLabel> *@
+                <FluentSliderLabel Position="64000">64000</FluentSliderLabel>
+                @* <FluentSliderLabel Position="80000">80K</FluentSliderLabel> *@
+                <FluentSliderLabel Position="96000">96000</FluentSliderLabel>
+                @* <FluentSliderLabel Position="112000">112K</FluentSliderLabel> *@
+                <FluentSliderLabel Position="128000">128000</FluentSliderLabel>
+            </FluentSlider>
+        </FluentStack>
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+    <FluentSlider Min="-1" Max="300" Step="10" @bind-Value=flapper.Options.NumPredict Label="Num Predict (Max Tokens)">
+        <FluentSliderLabel Position="-1">Max</FluentSliderLabel>
+        <FluentSliderLabel Position="50">50</FluentSliderLabel>
+        <FluentSliderLabel Position="300">300</FluentSliderLabel>
+    </FluentSlider>
+    </FluentStack>
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+    <FluentSlider Min="0" Max="2" Step="0.1" @bind-Value=flapper.Options.RepeatPenalty Label="Repeat Penalty">
+        <FluentSliderLabel Position="0">None</FluentSliderLabel>
+        <FluentSliderLabel Position="1">Normal</FluentSliderLabel>
+        <FluentSliderLabel Position="2">Harsh</FluentSliderLabel>
+    </FluentSlider>
+    </FluentStack>
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+    <FluentSlider Min="0" Max="3" Step="0.2" @bind-Value=flapper.Options.PresencePenalty Label="Presence Penalty">
+        <FluentSliderLabel Position="0">Consistant</FluentSliderLabel>
+        <FluentSliderLabel Position="3">New Ideas</FluentSliderLabel>
+    </FluentSlider>
+    </FluentStack>
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+    @if(flapper.Model == "gpt-oss:latest")
+    {
+        <FluentLabel Typo="Typography.Body" Style="color:var(--pulse-dark-colour)">Thinking Level</FluentLabel>
+        <select @bind="flapper.Think" class="form-select" style="width: auto;">
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+        </select>
+    }
+    </FluentStack>
+    </FluentStack>
+}
+        
+<FluentButton OnClick="UpdateModel">Update</FluentButton>
+
+ @* </FluentDialogBody>  *@
+@code {
+    private List<string>? ollamaModels = new();
+    Flapper? flapper;
+
+    protected override async Task OnInitializedAsync()
+    {
+        flapper = await dtrf.GetgvFlapper();
+        ollamaModels = await pAI.GetOllamaModelsAsync();
+    }
+    private async void UpdateModel()
+    {
+        await dtrf.SetgvFlapper(flapper);
+    }
+    }
+}

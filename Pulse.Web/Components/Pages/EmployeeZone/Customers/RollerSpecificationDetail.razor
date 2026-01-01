@@ -18,15 +18,15 @@
 <style>
     .accordion{
     --bs-accordion-active-color: white !important;
-    --bs-accordion-active-bg: #365b66 !important;
+        --bs-accordion-active-bg: var(--pulse-dark-colour) !important;
     --bs-accordion-color: white !important;
-    --bs-accordion-bg: #365b66 !important;
+        --bs-accordion-bg: var(--pulse-dark-colour) !important;
     }
     .accordion-button{
         color: white !important;
     }
     .accordion-item{
-        background-color: #bcd1d4 !important;
+        background-color: var(--pulse-light-colour) !important;
     }
     .cparent {
         display: flex;
@@ -40,14 +40,7 @@
         background: lightgray;
     }
 
-    .ccontent {
-        flex: 1; /* This magic makes it grow to fill the space */
-        background: white;
-        margin: 10px;
-        border-radius: 10px;
-        padding: 10px;
-        overflow: hidden;
-    }
+    
 
     fluent-number-field::part(control) {
         border: 1px solid black !important;
@@ -93,8 +86,8 @@
                 <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:end;">@cSpec.Description</FluentLabel>
             </FluentStack>
             @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; height:100%; overflow: auto;">
-                       <Collapse IsAccordion="false" style="width:100%;  border-radius:10px;height:100%; overflow: auto">
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; ">
+                       <Collapse IsAccordion="false" style="width:100%;  border-radius:10px; ">
                     <CollapseItems>
                         <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="true" >
                             <FluentStack Orientation="Orientation.Vertical"
@@ -116,7 +109,7 @@
                                 </FluentStack>
                                 
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
-                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Shell Details</FluentLabel>
+                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Shell Details</FluentLabel>
                                     <FluentStack Orientation="Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
                                                  VerticalAlignment="VerticalAlignment.Center"
@@ -135,7 +128,7 @@
                                 </FluentStack>
 
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
-                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Cover Details</FluentLabel>
+                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Cover Details</FluentLabel>
                                     <FluentStack Orientation="Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
                                                  VerticalAlignment="VerticalAlignment.Center"
@@ -165,7 +158,7 @@
                                 </FluentStack>
 
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
-                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color: #365b66; color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Operating Environment</FluentLabel>
+                                    <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Operating Environment</FluentLabel>
                                     <FluentStack Orientation="Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
                                                  VerticalAlignment="VerticalAlignment.Center"

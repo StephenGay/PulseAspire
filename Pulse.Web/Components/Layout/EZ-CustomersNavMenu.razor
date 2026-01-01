@@ -21,11 +21,16 @@
 @rendermode InteractiveServer
 
 <style>
-    #fab2 > svg[part="icon-rest"] {
-        fill: #365b66 !important;
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
     }
-</style>
-<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow">
+</style> 
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow" Style="padding-top:5px;padding-bottom:5px;">
                 
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
         <FluentAppBar id="fab2" Style="height: 90%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:center" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
@@ -81,10 +86,10 @@
         else
         {
             @* Style = "width: 300px;" *@
-            @if (HasAssists)
-            {
-                <FluentIcon Id="botClientAssist" Value="@(new Icons.Filled.Size32.BotSparkle().WithColor("#365b66"))" OnClick="() => mnuAssists = !mnuAssists" />
-                <FluentPopover style="color: white" VerticalThreshold="170" AnchorId="botClientAssist" @bind-Open="mnuAssists">
+            @* @if (HasAssists)
+            { *@
+                <FluentIcon Id="botClientAssist" Value="@(new Icons.Filled.Size32.BotSparkle().WithColor("var(--pulse-dark-colour)"))" OnClick="() => openAssists = true" />
+                @* <FluentPopover style="color: white" VerticalThreshold="170" AnchorId="botClientAssist" @bind-Open="mnuAssists">
                     <Header >AI Assists</Header>
                     <Body>
                         <FluentStack Orientation="Orientation.Vertical">
@@ -99,9 +104,9 @@
                         </FluentStack>
                     </Body>
                     <Footer>Callout Footer</Footer>
-                </FluentPopover>
+                </FluentPopover> *@
                 
-            }
+            @* } *@
         }
         
     }
@@ -113,22 +118,169 @@
 else
 {
      @* background-color:#EBEBEB *@
-    <div class="p-4" style="width:100%; background-image: linear-gradient(180deg, rgb(54,91,102) 20%, #bcd1d4 120%); ">
+    <div class="p-4" style="width:100%; background-image: linear-gradient(180deg, var(--pulse-dark-colour) 20%, var(--pulse-light-colour) 120%); ">
     <div class="p-4 text-center bg-body-tertiary rounded-3" style="background-color:rgb(43, 48, 53) ;border:1px solid black;box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8); ">
-        <h2 class="text-body-emphasis">@customer.ClientName</h2>
+        @* <h2 class="text-body-emphasis">@customer.ClientName</h2> *@
         @* <p class="lead"> *@
-        <FluentLabel Typo="Typography.Subject">@customer.AiSummary</FluentLabel>
+            <FluentLabel Typo="Typography.H2" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">@customer.ClientName</FluentLabel>
+        @* <FluentLabel Typo="Typography.Subject">@customer.AiSummary</FluentLabel> *@
 
         @* </p> *@
     </div>
 </div>
 }
+
+<Drawer Placement="Placement.Right" @bind-IsOpen="@openAssists" AllowResize="true" width="100%" style="overflow-x:hidden">
+    <div style="display: flex;flex-direction: column;overflow:hidden;height:100%;padding:5px;background-color:rgba(188,209,212,0.8)">
+        @* <div class="d-flex justify-content-end align-items-center flex-row" style=" border-bottom: 1px solid #365b66;padding:10px; overflow-x:hidden"> *@
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-bottom: 0px;">
+            @* <label style=";height:100%;"><strong>ANALYSIS BY ALI</strong></label> *@
+            <FluentSpacer />
+            <FluentButton Appearance="Appearance.Neutral" Style="border: 1px solid red;height:36px;margin-right:10px;margin-top:10px" class="btnShadow"
+                                  IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))"
+                                  OnClick="@(e => openAssists = false)"  ></FluentButton>
+            @* <button type="button" style="margin:3px;" class="btn btn-danger" @onclick="@(e => IsOpen = false)"><i class="bi bi-x-circle-fill"></i> Close </button> *@
+        </FluentStack>
+
+
+
+        <FluentGrid Style="flex: 1">
+            <FluentGridItem xs="12" sm="12" md="6" lg="4" xl="3" xxl="2" Style="height:100%">
+                <div class="d-flex justify-content-start align-items-stretch flex-column myContentDiv" style="height: 95%; margin:10px;overflow-x:hidden">
+                    @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;"> *@
+                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
+                        @* @(mAli.emoji.ToMarkup("64px")) *@
+                        <FluentSpacer />
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
+                            <FluentLabel Typo="Typography.H4">DATA ANALYSIS</FluentLabel>
+                            <FluentLabel Typo="Typography.Body">by Ali</FluentLabel>
+                        </FluentStack>
+                    </FluentStack>
+                    @* <br />
+                        <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; background-color: #365b66;" /> *@
+                    <StackItem class="flex-grow-1">
+                        @* @if (Saving)
+                        {
+                            <FluentTextField @bind-Value=custTitle style="margin-bottom:5px;margin-left: 20px;margin-right: 20px;" Required="true" Placeholder="Enter A Prompt Title"></FluentTextField>
+                            <FluentTextField @bind-Value=custDesc Required="true" style="margin-bottom:5px;margin-left: 20px;margin-right: 20px;" Placeholder="Enter A Short Description"></FluentTextField>
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentButton Class="btnShadow" IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" BackgroundColor="rgba(255,0,0,1)" Color="rgba(255,255,255,1)" Style="border: 1px solid white;margin:10px" @onclick="() => Saving = false">Cancel</FluentButton>
+                                
+                                <FluentButton Class="btnShadow" IconStart="@(new Icons.Filled.Size24.Save().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" BackgroundColor="rgba(0,100,0,1)" Color="rgba(255,255,255,1)" Style="border: 1px solid white;margin:10px" Autofocus="true" @onclick="saveQry">Save Prompt</FluentButton>
+                            </FluentStack>
+                        } *@
+                        <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
+                            <HeaderTemplate>
+                                @* @custQryHdr *@
+                            </HeaderTemplate>
+                            <BodyTemplate>
+                                @* <Textarea rows="10" style="width:100%; height:100%" @bind-Value="txtQ" PlaceHolder="Ask a question..." /> *@
+                            </BodyTemplate>
+                            <FooterTemplate>
+                                @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
+                                    @if (!Saving)
+                                    {
+                                        @if (this._isListening)
+                                        {
+                                            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                                <FluentButton BackgroundColor="#1D722A" class="myModeBtnOn" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("white"))" style="border: 2px solid;height:36px" OnClick="OnClickStop"></FluentButton>
+                                            </Animation>
+                                        }
+                                        else
+                                        {
+                                            <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                                <FluentButton BackgroundColor="rgba(255,255,255,1)" class="myModeBtnOff" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("#9900FF"))" style="border: 2px solid;height:36px" OnClick="StartRecClick"></FluentButton>
+                                            </Animation>
+                                        }
+
+                                        <FluentSpacer />
+
+
+                                        @if (showSave)
+                                        {
+                                            <button type="button" class="btn btn-success" style="align-self:center; margin-left:10px;" @onclick="btnOpenSaveDialog">SAVE PROMPT</button>
+                                            <FluentSpacer />
+                                        }
+                                        <FluentButton Appearance="Appearance.Accent" class="btnShadow" OnClick="btnAskAIClick">SUBMIT</FluentButton>
+                                        
+                                    }
+                                    else
+                                    {
+                                       
+                                    } *@
+                                @* </FluentStack> *@
+                            </FooterTemplate>
+                        </Card>
+                        @* @if (_isListening)
+                        {
+                            <div>
+                                @foreach (var result in this._results)
+                                {
+                                    txtQ = @result.Items![0].Transcript;
+                                }
+                            </div>
+                        } *@
+                        @* <Divider IsVertical="false" Alignment="Alignment.Center" style="width:90%; margin-left:5%; margin-right:5%; margin-top:5px; background-color: #365b66;" /> *@
+                    </StackItem>
+                </div>
+            </FluentGridItem>
+            <FluentGridItem>
+                <div class="d-flex justify-content-start align-items-stretch flex-column myContentDiv" style="padding:20px; height: 95%; margin:10px; overflow-x:hidden">
+                    <FluentGrid>
+                        <FluentStack Orientation="Orientation.Vertical">
+                            @if (customer != null)
+                            {
+                                @if (!customer.clientBudgets.Any())
+                                {
+                                    <FluentButton IconStart="@(new Icons.Filled.Size24.SparkleAction().WithColor("#365b66"))" class="btnShadow" style="border: 1px solid white" OnClick="CreateCYBudget">Budgets</FluentButton>
+                                }
+                                @* @if (customer.AiSummary == null || customer.AiSummary == "")
+                                { *@
+                                    <FluentButton IconStart="@(new Icons.Filled.Size24.SparkleAction().WithColor("#365b66"))" class="btnShadow" style="border: 1px solid white" OnClick="AddAiSummary">Summary</FluentButton>
+                                @* } *@
+                            }
+                        </FluentStack>
+                        @* @if (ContextPrompts != null)
+                        {
+                            @foreach (var prompt in ContextPrompts)
+                            {
+                                <FluentGridItem xs="12" sm="12" md="12" lg="4" xl="3">
+                                    <Popover Placement="Placement.Top" Title="Prompt" ShowShadow="true" Content="@prompt.Prompt" IsHtml="true" CustomClass="custom-popover">
+                                        <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" class="divShadow" style="margin-top: 10px;margin-right: 10px;margin-bottom:10px;" IsCenter="true">
+                                            <HeaderTemplate>
+                                                <FluentLabel Typo="Typography.Body" Style="white-space:nowrap; color: white"> @prompt.ContextualPromptTitle </FluentLabel>
+                                            </HeaderTemplate>
+                                            <BodyTemplate>
+
+                                                <FluentTextArea rows="2" Cols="75" style="height:100%;" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea>
+                                            </BodyTemplate>
+                                            <FooterTemplate>
+                                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal">
+                                                    <FluentButton Title="Copy Prompt" Appearance="Appearance.Accent" IconStart="@(new Icons.Regular.Size24.Copy())" OnClick="() => CopyCommunityPrompt(prompt.ContextualPromptId)">Copy</FluentButton>
+                                                    <FluentSpacer />
+                                                    <FluentButton Title="Run Prompt" Appearance="Appearance.Accent" BackgroundColor="green" IconEnd="@(new Icons.Regular.Size24.CaretRight())" OnClick="() => RunCommunityPrompt(prompt.ContextualPromptId)">Run</FluentButton>
+                                                </FluentStack>
+                                            </FooterTemplate>
+                                        </Card>
+                                    </Popover>
+                                </FluentGridItem>
+                            }
+                        } *@
+                    </FluentGrid>
+                </div>
+            </FluentGridItem>
+
+        </FluentGrid>
+    </div>
+</Drawer>
+
 <FluentDialogProvider />
 
 @code
 {
     private Customer? customer;
     private bool isLoading = true;
+    private bool openAssists = false;
     private string _AnalysisResp = string.Empty;
     private bool showAnalysis = false;
     private bool HasAssists = false;
@@ -286,7 +438,7 @@ else
     {
         if (result.Cancelled)
         {
-
+            ResetState();
             return;
         }
 
@@ -358,7 +510,7 @@ else
         if (resp)
         {
             await dataTrf.SetgvSelectedClient(customer);
-            await SendToast("Success", "Saved", "The AI generated information has been saved to the client profile.");
+            await SendToast("Success", "Saved", "The client summary has been saved to the profile.");
             ResetState();
             StateHasChanged();
             @* Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard"); *@
@@ -371,7 +523,8 @@ else
     }
     private async Task AddAiSummary()
     {
-        mnuAssists = !mnuAssists;
+        openAssists = false;
+        StateHasChanged();
         var dialog = await DialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
         {
             Content = new()
@@ -434,7 +587,7 @@ else
 
             if (_Analysis.StartsWith("NoSales"))
             {
-                await SendToast("Warning", "Customer In-Active", $"This customer has no sales for the last three years.\nIt would be inaccurate to forecast any sales for this financial year.");
+                await SendToast("Warning", "Customer In-Active", $"This customer has been inactive for the last three years.<br />We should not budget any sales for this financial year.");
                 ResetState();
                 return;
             }
@@ -461,7 +614,9 @@ else
     }
     private async Task CreateCYBudget()
     {
-        mnuAssists = !mnuAssists;
+        openAssists = false;
+        StateHasChanged();
+
         var dialog = await DialogService.ShowMessageBoxAsync(new DialogParameters<MessageBoxContent>()
         {
             Content = new()

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Routing;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Models.AI;
 using Pulse.Models.CustomComponents;
@@ -69,7 +70,7 @@ namespace Pulse.ApiService.Endpoints
                 var qRes = await f.ExecuteAiUpdateInsertQry(sdb, sqlS2);
                 return Results.Ok(qRes);
             })
-                .RequireAuthorization("AdminOnly")
+                //.RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
                 .Produces<int>(200)
                 ;
 

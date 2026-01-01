@@ -40,12 +40,17 @@ fluent-select::part(listbox) {
 </style>
         <FluentCard>
             <h3>Role Management</h3>
-            @if (!string.IsNullOrEmpty(errorMessage))
+            <AuthorizeView Roles="Admin">
+        <Authorized>
+            @* @if (!string.IsNullOrEmpty(errorMessage))
             {
                 <FluentMessageBar Severity="MessageSeverity.Error">@errorMessage</FluentMessageBar>
-            }
-
-            <FluentDataGrid Items="@(roles.AsQueryable())" TItem="string">
+            } *@
+            @if(roles != null)
+            {
+                
+            
+            <FluentDataGrid Items="roles.AsQueryable()" TItem="string">
                 <PropertyColumn Property="@(r => r)" Title="Role Name" />
             </FluentDataGrid>
 
@@ -62,14 +67,17 @@ fluent-select::part(listbox) {
             <FluentButton @onclick="() => AssignRole(user.Id, selectedRole)" Disabled="@string.IsNullOrEmpty(selectedRole)">Assign</FluentButton>
                 </TemplateColumn>
             </FluentDataGrid>
+            }
+            </Authorized>
+            </AuthorizeView>
         </FluentCard>
 
 @code {
     private List<string> roles = new();
     private List<UserDto> users = new();  // Define UserDto { string Id, string Email, List<string> Roles }
-    private string newRoleName;
-    private string selectedRole;
-    private string errorMessage;
+    private string newRoleName = string.Empty;
+    private string selectedRole = string.Empty;
+    private string errorMessage = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -77,7 +85,8 @@ fluent-select::part(listbox) {
         roles = await pApiClient.GetAsync<List<string>>("/Security/roles");
 
         // Fetch users (add a GET /users endpoint in API if needed)
-         users = await pApiClient.GetAsync<List<UserDto>>("/Security/users");  // Implement /users in API
+        users = await pApiClient.GetAsync<List<UserDto>>("/Security/users");  // Implement /users in API
+        StateHasChanged();
     }
 
     private async Task CreateRole()

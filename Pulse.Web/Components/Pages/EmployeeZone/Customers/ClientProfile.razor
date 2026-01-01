@@ -23,14 +23,7 @@
         background: lightgray;
     }
 
-    .ccontent {
-        flex: 1; /* This magic makes it grow to fill the space */
-        background: rgba(255,255,255,0.3);
-        margin: 10px;
-        padding:10px;
-        border-radius: 10px;
-        overflow: auto;
-    }
+    
 </style>
 
 <div class="cparent">
@@ -108,7 +101,32 @@ else
                     <InputText id="email" class="form-control controlOveride" @bind-Value="_client.EMail" />
                 </div>
             </div>
-            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <div class="row">
+                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%">
+                    <div class="card text-center" style="width:20%;height:100%">
+                        <header class="card-header">Industry</header>
+                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h5>@_client.Industry?.IndustryName</h5>
+                        </div>
+                    </div>
+                    <FluentSpacer />
+                                <div class="card text-center" style="width:20%;height:100%">
+                        <header class="card-header">Sales Region</header>
+                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h5>@_client.Region?.RegionName</h5>
+                            @_client.Region?.Province?.ProvinceName
+                        </div>
+                    </div>
+                    <FluentSpacer />
+                                <div class="card text-center" style="width:20%;height:100%">
+                        <header class="card-header">Sales Representative</header>
+                        <div class="card-body" style="display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100%;">
+                            <h5>@_client.SalesRepresentative?.RepresentativeName</h5>
+                        </div>
+                    </div>
+                </FluentStack>
+            </div>
+            @* <button type="submit" class="btn btn-primary">Save Changes</button> *@
         </div>
 
     </EditForm>

@@ -46,18 +46,30 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok($"Item with ID {id} has been deleted.");
             });
 
-            group.MapPut("/{UserId}/UpdateSettings", async (int UserId, UserSettings updatedUser, PulseDbContext db) =>
+            group.MapPut("/{UserId}/UpdateSettings", async (int UserId, User updatedUser, PulseDbContext db) =>
             {
                 var item = await db.UserSettingsMaster
                     .FirstOrDefaultAsync(p => p.UserId == UserId);
                 if (item == null)
                 {
-                    return Results.NotFound($"No Settings found for User ID {UserId}");
+                    item = new UserSettings
+                    {
+                        UserId = UserId,
+                        AIDefaultPref = updatedUser.UserSettings.AIDefaultPref,
+                        AIHasVoice = updatedUser.UserSettings.AIHasVoice,
+                        AIVoiceID = updatedUser.UserSettings.AIVoiceID,
+                        UserTheme = updatedUser.UserSettings.UserTheme
+                    };
+                    db.UserSettingsMaster.Add(item);
+                    //return Results.NotFound($"No Settings found for User ID {UserId}");
                 }
-
-                item.AIDefaultPref = updatedUser.AIDefaultPref;
-                item.AIHasVoice = updatedUser.AIHasVoice;
-                item.AIVoiceID = updatedUser.AIVoiceID;
+                else 
+                { 
+                    item.AIDefaultPref = updatedUser.UserSettings.AIDefaultPref;
+                    item.AIHasVoice = updatedUser.UserSettings.AIHasVoice;
+                    item.AIVoiceID = updatedUser.UserSettings.AIVoiceID;
+                    item.UserTheme = updatedUser.UserSettings.UserTheme;
+                }
                 await db.SaveChangesAsync();
                 return Results.Ok();
             })

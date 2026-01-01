@@ -37,3 +37,35 @@ function downloadExcel(filename, byteBase64) {
     link.click();
     document.body.removeChild(link);
 };
+function applyPulseTheme(themeN) {
+    const sheet = new CSSStyleSheet();
+    var darkC;
+    var lightC;
+    var bgPic;
+
+    switch (themeN) {
+        case 'pulse':
+            darkC = "#660000";
+            lightC = "#d9d9d9";
+            bgPic = "PulseAspireBG.png";
+            break;
+        case 'HM':
+            darkC = "#365b66";
+            lightC = "#bcd1d4";
+            bgPic = "HMBG.png";
+            break;
+        case 'ocean':
+            darkC = "hsl(240, 100%, 15%)";
+            lightC = "hsl(209, 100%, 90%)";
+            bgPic = "Ocean.png";
+            break;
+        case 'space':
+            darkC = "hsl(0, 0%, 0%)";
+            lightC = "hsl(0, 0%, 86%)";
+            bgPic = "Space.png";
+            break;
+    }
+    sheet.replaceSync(':root { --pulse-dark-colour: ' + darkC + '; --pulse-light-colour:' + lightC + '; --pulse-theme-bg: url(../images/backgrounds/' + bgPic + '); --accent-fill-rest: ' + darkC + '; }');
+    /*document.adoptedStyleSheets = [sheet];*/
+    document.adoptedStyleSheets = document.adoptedStyleSheets.concat(sheet);
+}

@@ -19,6 +19,8 @@ namespace Pulse.Models.Users
         [DefaultValue(0)]
         [Required]
         public int AIDefaultPref { get; set; } = 0;
+        [MaxLength(50)]
+        public string UserTheme { get; set; }
         public User? User { get; set; } = null!;
     }
 }

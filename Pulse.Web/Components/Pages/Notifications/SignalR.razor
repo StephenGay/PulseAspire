@@ -1,0 +1,75 @@
+﻿@inject MessageHubService MsgHubService
+@using Microsoft.FluentUI.AspNetCore.Components
+@inject IToastService ToastService
+@implements IDisposable
+@rendermode InteractiveServer
+
+<FluentCard>
+    <FluentStack Orientation="Orientation.Vertical" VerticalGap="10">
+        <FluentTextField @bind-Value="_user" Label="Your name" />
+        <FluentTextField @bind-Value="_message" Label="Message" />
+        <FluentButton Appearance="Appearance.Accent" OnClick="Send">Send</FluentButton>
+
+        <FluentDivider />
+
+        <h3>Received Messages</h3>
+        <FluentDataGrid Items="_messages.AsQueryable()" TGridItem="MessageItem" GridTemplateColumns="1fr 3fr">
+            <PropertyColumn Property="@(m => m.User)" Title="User" />
+            <PropertyColumn Property="@(m => m.Message)" Title="Message" />
+        </FluentDataGrid>
+    </FluentStack>
+</FluentCard>
+<FluentButton OnClick="@StartSvc">Start</FluentButton>
+
+
+@code {
+    private string _user = "Stephen";
+    private string _message = "";
+    private List<MessageItem> _messages = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        MsgHubService.MessageReceived += OnMessageReceived;
+        MsgHubService.ConnectionStatusChanged += OnConnectionStatusChanged;
+
+        
+    }
+    private void OnMessageReceived(object? sender, MessageEventArgs e)
+    {
+        _messages.Add(new MessageItem(e.User, e.Message));
+        InvokeAsync(StateHasChanged);  // Refresh UI async-safe
+    }
+
+    private void OnConnectionStatusChanged(object? sender, ConnectionEventArgs e)
+    {
+        if (e.IsConnected)
+        {
+            ToastService?.ShowSuccess($"Connected! ID: {e.ConnectionId}");
+        }
+        else
+        {
+            ToastService?.ShowError("Disconnected");
+        }
+        InvokeAsync(StateHasChanged);
+    }
+    private async Task StartSvc()
+    {
+        // This replaces connection.invoke(...)
+        await MsgHubService.StartAsync();
+    }
+    private async Task Send()
+    {
+        if (!string.IsNullOrWhiteSpace(_message))
+        {
+            await MsgHubService.SendMessageAsync(_user, _message);
+            _message = "";
+        }
+    }
+    public void Dispose()
+    {
+        MsgHubService.MessageReceived -= OnMessageReceived;
+        MsgHubService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+    }
+
+    public record MessageItem(string User, string Message);
+}

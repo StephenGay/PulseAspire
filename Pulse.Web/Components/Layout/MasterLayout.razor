@@ -1,11 +1,23 @@
 ﻿@using Microsoft.FluentUI.AspNetCore.Components
-
-
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@inject IJSRuntime JS
+@inject AppState AppState
+@inject DataTransferService dataTrf
 @inherits LayoutComponentBase
+@rendermode InteractiveServer
 
 <style>
     .stack-vertical {
         row-gap: 0px !important;
+    }
+
+    :root {
+        --datagrid-hover-color: var(--pulse-dark-colour);
+    }
+
+    .fluent-data-grid {
+        --fluent-data-grid-resize-handle-color: var(--neutral-stroke-rest) !important;
     }
 </style>
 
@@ -23,8 +35,29 @@
 
 
 @code {
-    
 
-    
+    User user;
+    string? pTheme;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // user = await dataTrf.GetgvUser();
+            // pTheme = user.UserSettings!.UserTheme ?? "pulse";
+            // await JS.InvokeVoidAsync("applyPulseTheme", pTheme);
+            // this.StateHasChanged();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        // Subscribe to state changes
+        
+        // AppState.OnThemeChange += async () =>
+        // {
+        //     await InvokeAsync(StateHasChanged);
+        // };
+    }
+
 }
    

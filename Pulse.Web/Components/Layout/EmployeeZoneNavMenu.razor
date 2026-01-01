@@ -7,7 +7,7 @@
 @inject PulseApiService CustomerService
 
 
-<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow">
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow" Style="padding-top:5px;padding-bottom:5px;">
                 
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
         <FluentAppBar Style="height: 90%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:center" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
@@ -19,15 +19,15 @@
             <FluentAppBarItem Href="/DivisionLogon"
                               IconRest="DivisionIcon()"
                               IconActive="DivisionIcon(active: true)"
-                              Text="Change Division" />
-            <FluentAppBarItem Href="/UserSettings/AISettings"
+                              Text="Division" />
+            <FluentAppBarItem Href="/UserSettings/UserSettingsPg"
                                         IconRest="SetupIcon()"
                                         IconActive="SetupIcon(active: true)"
-                                        Text="AI Settings" />
-            <FluentAppBarItem Href="/UserSettings/ThemesPg"
+                                        Text="My Setup" />
+            @* <FluentAppBarItem Href="/UserSettings/ThemesPg"
                               IconRest="SetupIcon()"
                               IconActive="SetupIcon(active: true)"
-                              Text="Theme" />
+                              Text="Theme" /> *@
         </FluentAppBar>
 
     </FluentStack>

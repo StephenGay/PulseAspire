@@ -1,0 +1,232 @@
+﻿@page "/UserSettings/UserSettingsPg"
+@using System.Globalization
+@using DocumentFormat.OpenXml.InkML
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Polly
+@using Pulse.Models.AI.AIds
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@using Toolbelt.Blazor.SpeechSynthesis
+
+@inject PulseApiService pApi
+@inject SpeechSynthesis SpeechSynthesis
+@inject DataTransferService dt
+@inject NavigationManager Navigation
+@inject AppState AppState
+@rendermode InteractiveServer
+<style>
+    .cparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: 100%; /* Or whatever height your parent should be, like 100% */
+        width:100%;
+    }
+
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        min-height: 50px; /* Or min-height if you want flexibility */
+        /* background: lightgray; */
+    }
+
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        color: var(--neutral-foreground-rest);
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style>
+
+<div class="cparent">
+    <div class="ccontent">
+        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+        <h2>My Setup</h2>
+        <FluentSpacer />
+            <FluentButton Appearance="Appearance.Accent" class="btnShadow" OnClick="onClickSave">Update</FluentButton>
+        </FluentStack>
+        <hr />
+        @if (u != null)
+        {
+            <FluentStack Orientation="Orientation.Vertical">
+                <h4>Theme</h4>
+                <FluentDesignTheme @bind-Mode="@currentMode"
+                                   @bind-OfficeColor="@currentOfficeColor"
+                                   @bind-CustomColor="@currentCustomColor"
+                                   StorageName="themePulse" />
+            
+            <FluentSelect @bind-Value="@pTheme" TOption="string">
+                <FluentOption Value="HM" >H&amp;M Rollers</FluentOption>
+                <FluentOption Value="pulse">Pulse</FluentOption>
+                <FluentOption Value="ocean">Ocean</FluentOption>
+                <FluentOption Value="space">Space</FluentOption>
+            </FluentSelect>
+            </FluentStack>
+            <hr>
+            <h4>AI Settings</h4>
+            <FluentCheckbox @bind-Value="@u.UserSettings.AIHasVoice" style="margin-bottom:10px" Label="Add A Voice To My AI" />
+            <br />
+            <FluentSelect TOption="SpeechSynthesisVoice" Items="Voices" OptionValue="@(v => v.VoiceIdentity.ToString())"
+            Disabled="!u.UserSettings.AIHasVoice"
+            Appearance="Appearance.Outline"
+            OptionText="@(v => v.Name)"
+            Placeholder="Make A Selection..."
+            Height="500px"
+            @bind-SelectedOption="@_voice"
+            @bind-Value="@u.UserSettings.AIVoiceID" />
+            <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="margin-left:10px" @onclick="onClickSpeak">Hear Voice</FluentButton>
+            <hr>
+            
+        }
+    </div>      
+</div>
+
+@code 
+{
+    IEnumerable<SpeechSynthesisVoice> Voices;
+    private SpeechSynthesisVoice? _voice;
+    private string? selectedVoice;
+    private bool onTour = false;
+    private bool shAli = false;
+    private bool shTbls = false;
+    private bool shFlapper = false;
+    private DesignThemeModes currentMode = DesignThemeModes.System;
+    private OfficeColor? currentOfficeColor = OfficeColor.Default;
+    private string? currentCustomColor;
+    private Flapper? flapper;
+    private Ali? ali;
+    private Tables? tables;
+    private int tourIndx = 0;
+    private int? slVal;
+    private User? u;
+    private string? uName;
+    private string? speech;
+    private string logg = string.Empty;
+    private string? pTheme;
+
+    
+    private void btnContinue()
+    {
+        switch (tourIndx)
+        {
+            case 1:
+                shAli = true;
+                break;
+            case 2:
+                shTbls = true;
+                break;
+            case 3:
+                shFlapper = true;
+                break;
+        }
+    }
+    public async void paiIntro()
+    {
+        string i = $"Hey there {uName}, Welcome to Pulse";
+        aiSpeak(i, _voice);
+        i = "I am Pulse AI, your main assistant for this program. I have built a team of agents that have specialised abilities to aid you as you use Pulse Aspire. Let's meet them now.";
+        //Task.Run(async () => { await aiSpeak(i, _voice); }).Wait();
+        await aiSpeak(i, _voice);
+        tourIndx++;
+        StateHasChanged();
+
+    }
+    public async Task ChangePTheme(){
+        
+        u.UserSettings.UserTheme = pTheme;
+        await dt.SetgvUser(u);
+        // pTheme = await dt.GetgvUserTheme();
+        // await AppState.NotifyStateChanged();
+        await AppState.NotifyThemeChanged();
+    }
+    public async Task aliIntro()
+    {
+        string i = $"Hi, I am Ali";
+        aiSpeak(i, ali._Voice);
+        i = "I specialise in performing analysis on a specific subset of information. For instance, I can look for patterns in the activity of a client you are currently viewing, or forecast sales based on history.";
+        aiSpeak(i, ali._Voice);
+        tourIndx++;
+    }
+    public async Task tablesIntro()
+    {
+        string i = $"Hey, I am Tables";
+        aiSpeak(i, tables._Voice);
+        i = "I deal in nothing but data. I can fetch anything from the Pulse database, just tell me what you need. I will then give you a nice organised table you can view, save or download.";
+        aiSpeak(i, tables._Voice);
+        tourIndx++;
+    }
+    public async Task flapperIntro()
+    {
+        string i = $"And last but definately not least, I'm Flapper";
+        aiSpeak(i, flapper._Voice);
+        i = "Not to boast, but I am the most powerful. Have a full conversation with me, I can remember what topic we are discussing, have full access to the database as well as the web! I'm pretty awesome.";
+        aiSpeak(i, flapper._Voice);
+        tourIndx++;
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        await dt.SetgvContextArea(0);
+        flapper = await dt.GetgvFlapper();
+        ali = await dt.GetgvAli();
+        tables = await dt.GetgvTables();
+
+        // u = await dt.GetgvUser();
+        // if (u.UserSettings.AIHasVoice)
+        // {
+        //     _voice = await dt.GetgvUserAIVoice();
+        //     StateHasChanged();
+        // }
+
+    }
+    protected async override Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            this.Voices = await this.SpeechSynthesis.GetVoicesAsync();
+            u = await dt.GetgvUser();
+            pTheme = u.UserSettings.UserTheme;
+            if (u.UserSettings.AIHasVoice)
+            {
+                _voice = await dt.GetgvUserAIVoice();
+                // StateHasChanged();
+            }
+            uName = await dt.GetgvUserFirstName();
+            this.StateHasChanged();
+        }
+    }
+    private async Task onClickSave()
+    {
+        bool themeChanged = u.UserSettings.UserTheme != pTheme;
+        u.UserSettings.UserTheme = pTheme;
+        bool saved = await pApi.PutAsync<User>($"/user/{u.UserID}/UpdateSettings", u);
+        await dt.SetgvUser(u);
+        if(u.UserSettings.AIHasVoice && _voice != null)
+        {
+            await dt.SetgvUserAIVoice(_voice);
+        }
+        if (themeChanged)
+        {
+            await AppState.NotifyThemeChanged();
+        }
+    }
+    async Task onClickSpeak()
+    {
+        var utterancet = new SpeechSynthesisUtterance
+            {
+                Text = "Hi there, it would be an honour, to be the voice behind your Pulse AI.",
+                Voice = _voice // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
+            };
+        await this.SpeechSynthesis.SpeakAsync(utterancet); // 👈 Speak with "Haruka"'s voice!
+    }
+    private async Task aiSpeak(string sTxt, SpeechSynthesisVoice v)
+    {
+        var utterancet = new SpeechSynthesisUtterance
+        {
+            Text = sTxt,
+            Voice = v // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
+        };
+        await this.SpeechSynthesis.SpeakAsync(utterancet); // 👈 Speak with "Haruka"'s voice!
+        // Task.CompletedTask;
+    }
+}

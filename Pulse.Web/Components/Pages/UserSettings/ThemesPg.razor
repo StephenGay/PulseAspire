@@ -1,6 +1,8 @@
 ﻿@page "/UserSettings/ThemesPg"
 @using System.Globalization
+@using DocumentFormat.OpenXml.InkML
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Polly
 @using Pulse.Models.AI.AIds
 @using Pulse.Models.Users
 @using Pulse.Web.Services
@@ -9,7 +11,8 @@
 @inject PulseApiService pApi
 @inject SpeechSynthesis SpeechSynthesis
 @inject DataTransferService dt
-
+@inject NavigationManager Navigation
+@inject AppState AppState
 @rendermode InteractiveServer
 <style>
     .cparent {
@@ -27,12 +30,8 @@
 
     .ccontent {
         flex: 1; /* This magic makes it grow to fill the space */
-        font-family: var(--body-font);
-        font-size: var(--type-ramp-base-font-size);
-        line-height: var(--type-ramp-base-line-height);
-        font-weight: var(--font-weight);
         color: var(--neutral-foreground-rest);
-        background: var(--neutral-fill-layer-rest);
+        background: rgba(255,255,255,0.5);
         margin: 10px;
         padding: 10px;
         border-radius: 10px;
@@ -45,7 +44,13 @@
     <FluentStack Orientation="Orientation.Vertical" Style="flex: 0">
         <h3>Theme</h3><FluentSpacer />
     </FluentStack>
-
+    <h4>Pulse Aspire Theme</h4>
+    <FluentSelect @bind-Value="@pTheme" TOption="string">
+        <FluentOption Value="HM" >H&amp;M Rollers</FluentOption>
+        <FluentOption Value="pulse">Pulse</FluentOption>
+        <FluentOption Value="ocean">Ocean</FluentOption>
+    </FluentSelect>
+    <br />
         
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
             
@@ -67,6 +72,9 @@
                     
             </FluentStack>
             <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+            <FluentButton Appearance="Appearance.Accent" OnClick="onClickSave">Update</FluentButton>
+            <FluentButton Appearance="Appearance.Accent">HM</FluentButton>
+            <br />
             <FluentLabel Typo="Typography.Body">Body Text</FluentLabel>
             <br />
                 <FluentButton Appearance="Appearance.Accent" >Accent</FluentButton>
@@ -79,6 +87,18 @@
             <FluentButton BackgroundColor="var(--warning)" Color="var(--neutral-foreground-rest)">Warning</FluentButton>
             <FluentButton BackgroundColor="var(--error)" Color="var(--neutral-foreground-rest)">Error</FluentButton>
         </FluentStack>
+        <BaseLayerLuminance Value="(float?)0.15">
+	@* <FluentCard ParentReference="@context"> *@
+		<div class="contents">
+			Dark
+			<FluentButton Appearance="Appearance.Accent">Accent</FluentButton>
+			<FluentButton Appearance="Appearance.Stealth">Stealth</FluentButton>
+			<FluentButton Appearance="Appearance.Outline">Outline</FluentButton>
+			<FluentButton Appearance="Appearance.Lightweight">Lightweight</FluentButton>
+		</div>
+	@* </FluentCard> *@
+</BaseLayerLuminance>
+
       
 </div>      
 </div>
@@ -104,6 +124,7 @@
     private string? uName;
     private string? speech;
     private string logg = string.Empty;
+    private string? pTheme;
 
     
     private void btnContinue()
@@ -132,7 +153,14 @@
         StateHasChanged();
 
     }
-
+    public async Task ChangePTheme(){
+        
+        u.UserSettings.UserTheme = pTheme;
+        await dt.SetgvUser(u);
+        // pTheme = await dt.GetgvUserTheme();
+        // await AppState.NotifyStateChanged();
+        await AppState.NotifyThemeChanged();
+    }
     public async Task aliIntro()
     {
         string i = $"Hi, I am Ali";
@@ -178,6 +206,7 @@
         {
             this.Voices = await this.SpeechSynthesis.GetVoicesAsync();
             u = await dt.GetgvUser();
+            pTheme = u.UserSettings.UserTheme;
             if (u.UserSettings.AIHasVoice)
             {
                 _voice = await dt.GetgvUserAIVoice();
@@ -189,11 +218,18 @@
     }
     private async Task onClickSave()
     {
-        bool saved = await pApi.PutAsync<UserSettings>($"/user/{u.UserID}/UpdateSettings", u.UserSettings);
+        bool themeChanged = u.UserSettings.UserTheme != pTheme;
+        u.UserSettings.UserTheme = pTheme;
+        
+        bool saved = await pApi.PutAsync<User>($"/user/{u.UserID}/UpdateSettings", u);
         await dt.SetgvUser(u);
         if(u.UserSettings.AIHasVoice && _voice != null)
         {
             await dt.SetgvUserAIVoice(_voice);
+        }
+        if (themeChanged)
+        {
+            await AppState.NotifyThemeChanged();
         }
     }
     async Task onClickSpeak()
