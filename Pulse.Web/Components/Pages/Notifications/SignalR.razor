@@ -1,5 +1,6 @@
 ﻿@inject MessageHubService MsgHubService
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.CustomComponents
 @inject IToastService ToastService
 @implements IDisposable
 @rendermode InteractiveServer
@@ -19,7 +20,7 @@
         </FluentDataGrid>
     </FluentStack>
 </FluentCard>
-<FluentButton OnClick="@StartSvc">Start</FluentButton>
+
 
 
 @code {
@@ -29,46 +30,52 @@
 
     protected override async Task OnInitializedAsync()
     {
-        MsgHubService.MessageReceived += OnMessageReceived;
-        MsgHubService.ConnectionStatusChanged += OnConnectionStatusChanged;
+        MsgHubService.OnReceiveMessage += OnMessageReceived;
+        // MsgHubService.ConnectionStatusChanged += OnConnectionStatusChanged;
 
         
     }
-    private void OnMessageReceived(object? sender, MessageEventArgs e)
+    private void OnMessageReceived(PulseMessage msg)
     {
-        _messages.Add(new MessageItem(e.User, e.Message));
+        _messages.Add(new MessageItem(msg.SenderUserName , msg.Content));
         InvokeAsync(StateHasChanged);  // Refresh UI async-safe
     }
 
-    private void OnConnectionStatusChanged(object? sender, ConnectionEventArgs e)
-    {
-        if (e.IsConnected)
-        {
-            ToastService?.ShowSuccess($"Connected! ID: {e.ConnectionId}");
-        }
-        else
-        {
-            ToastService?.ShowError("Disconnected");
-        }
-        InvokeAsync(StateHasChanged);
-    }
-    private async Task StartSvc()
-    {
-        // This replaces connection.invoke(...)
-        await MsgHubService.StartAsync();
-    }
+    // private void OnConnectionStatusChanged(object? sender, ConnectionEventArgs e)
+    // {
+    //     if (e.IsConnected)
+    //     {
+    //         ToastService?.ShowSuccess($"Connected! ID: {e.ConnectionId}");
+    //     }
+    //     else
+    //     {
+    //         ToastService?.ShowError("Disconnected");
+    //     }
+    //     InvokeAsync(StateHasChanged);
+    // }
+    // private async Task StartSvc()
+    // {
+    //     // This replaces connection.invoke(...)
+    //     await MsgHubService.StartAsync();
+    // }
     private async Task Send()
     {
         if (!string.IsNullOrWhiteSpace(_message))
         {
-            await MsgHubService.SendMessageAsync(_user, _message);
+            PulseMessage msg = new()
+            {
+                SenderUserName = _user,
+                Content = _message,
+                SentAt = DateTime.UtcNow
+            };
+            await MsgHubService.SendMessageAsync(msg);
             _message = "";
         }
     }
     public void Dispose()
     {
-        MsgHubService.MessageReceived -= OnMessageReceived;
-        MsgHubService.ConnectionStatusChanged -= OnConnectionStatusChanged;
+        MsgHubService.OnReceiveMessage -= OnMessageReceived;
+        // MsgHubService.ConnectionStatusChanged -= OnConnectionStatusChanged;
     }
 
     public record MessageItem(string User, string Message);

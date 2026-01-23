@@ -1,124 +1,63 @@
-﻿@using Aspire.Dashboard.Components.CustomIcons
-@using Aspire.Dashboard.Components.Interactions
-@using Aspire.Dashboard.Components.Dialogs
-@using Microsoft.Extensions.Options
-@using Microsoft.FluentUI.AspNetCore.Components
-@* @using Aspire.Dashboard.Model
-@using Aspire.Dashboard.Model.Assistant
-@using Aspire.Dashboard.Resources
-@using Aspire.Dashboard.Utils *@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@inject IJSRuntime JS
+@inject AppState AppState
+@inject DataTransferService dataTrf
 @inherits LayoutComponentBase
 @rendermode InteractiveServer
 
-<div class="layout" style="overflow: hidden;">
-    <div class="aspire-icon">
-        <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo"
-                      title="ML"
-                      aria-label="ML">
-            <FluentIcon Value="@(new AspireIcons.Size24.Logo())"/>
-        </FluentAnchor>
-    </div>
-
-    @* @if (ViewportInformation.IsDesktop)
-    { *@
-        <FluentHeader>
-            <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
-                <ApplicationName/>
-            </FluentAnchor>
-            <div class="flex-filler"></div>
-            <FluentAnchor Class="header-button"
-                          Appearance="Appearance.Stealth"
-                          Href="https://aka.ms/dotnet/aspire/repo" Target="_blank" Rel="noreferrer noopener"
-                          @* Title="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireRepoLink)]" *@>
-            <FluentIcon Value="@(new AspireIcons.Size24.GitHub())" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Neutral" />
-            </FluentAnchor>
-            <FluentButton Class="header-button"
-                          Appearance="Appearance.Stealth" @* OnClick="@LaunchHelpAsync"
-                          Title="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" aria-label="@Loc[nameof(Layout.MainLayoutAspireDashboardHelpLink)]" *@>
-            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size24.QuestionCircle())" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Neutral" />
-            </FluentButton>
-            @* @if (!Options.CurrentValue.Mcp.Disabled.GetValueOrDefault())
-            {
-                <FluentButton Class="header-button"
-                              Appearance="Appearance.Stealth" OnClick="@LaunchMcpAsync"
-                              Title="MCP Server" aria-label="MCP Server">
-                    <FluentIcon Value="@(new AspireIcons.Size24.McpIcon())" Color="Color.Neutral" />
-                </FluentButton>
-            }
-            @if (AIContextProvider.Enabled)
-            {
-                <FluentButton Class="@("header-button" + ((AIContextProvider.AssistantChatViewModel is {} vm && AIContextProvider.ShowAssistantSidebarDialog) ? " header-button-selected" : ""))"
-                              Appearance="Appearance.Stealth" OnClick="@LaunchAssistantAsync"
-                              Title="@AIAssistantLoc[nameof(AIAssistant.AIAssistantLaunchButtonText)]" aria-label="@AIAssistantLoc[nameof(AIAssistant.AIAssistantLaunchButtonText)]">
-                    <FluentIcon Value="@(new AspireIcons.Size24.GitHubCopilot())" Color="Color.Neutral" />
-                </FluentButton>
-            }
-            <FluentButton Class="header-button"
-                          Appearance="Appearance.Stealth" OnClick="@LaunchSettingsAsync"
-                          Title="@Loc[nameof(Layout.MainLayoutLaunchSettings)]" aria-label="@Loc[nameof(Layout.MainLayoutLaunchSettings)]">
-                <FluentIcon Value="@(new Icons.Regular.Size24.Settings())" Color="Color.Neutral"/>
-            </FluentButton> *@
-            <UserProfile/>
-        </FluentHeader>
-
-        @* @if (AIContextProvider.AssistantChatViewModel is {} vm && AIContextProvider.ShowAssistantSidebarDialog)
-        {
-            <Aspire.Dashboard.Components.Dialogs.AssistantSidebarDialog Content="@(new AssistantDialogViewModel { Chat = vm })" />
-        } *@
-        <DesktopNavMenu/>
+<style>
+    .stack-vertical {
+        row-gap: 0px !important;
     }
-    @* else
+
+    :root {
+        --datagrid-hover-color: var(--pulse-dark-colour);
+    }
+
+    .fluent-data-grid {
+        --fluent-data-grid-resize-handle-color: var(--neutral-stroke-rest) !important;
+    }
+</style>
+
+@* <BootstrapBlazorRoot> *@
+@* <FluentLayout Style="height:100vh; display: flex;flex-direction:column; flex: 1 1; overflow: hidden;"> *@
+<FluentLayout Style="height:100vh; overflow: hidden">
+    @*  ; display: flex;flex-direction:column; overflow: auto;"> *@
+    @* <FluentStack Orientation="Orientation.Vertical" Width="100%" > *@
+    <MasterAIMenu />
+    <CascadingValue Value="this">
+        @Body
+    </CascadingValue>
+    @* </FluentStack> *@
+</FluentLayout>
+@* </BootstrapBlazorRoot> *@
+
+
+@code {
+
+    User user;
+    string? pTheme;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        <FluentHeader>
-            <FluentAnchor Appearance="Appearance.Stealth" Href="/" Class="logo">
-                <ApplicationName/>
-            </FluentAnchor>
-            <div class="flex-filler"></div>
-
-            <UserProfile/>
-            @* <FluentButton
-                IconEnd="@(_isNavMenuOpen ? new Icons.Regular.Size24.Dismiss() : new Icons.Regular.Size24.Navigation())"
-                Title="@(DialogsLoc[nameof(Dialogs.HelpDialogCategoryNavigation)])"
-                Appearance="Appearance.Stealth"
-                BackgroundColor="transparent"
-                OnClick="@(() => _isNavMenuOpen = !_isNavMenuOpen)"
-                Class="navigation-button"/> 
-        </FluentHeader>
-
-        <MobileNavMenu
-            IsNavMenuOpen="_isNavMenuOpen"
-            @* IsAIEnabled="@AIContextProvider.Enabled"
-            CloseNavMenu="@CloseMobileNavMenu"
-            LaunchHelpAsync="@LaunchHelpAsync"
-            LaunchAIAssistantAsync="@LaunchAssistantAsync"
-            LaunchSettingsAsync="@LaunchSettingsAsync" />
-    } *@
-
-    <div class="messagebar-container">
-        @* <FluentMessageBarProvider Section="@DashboardUIHelpers.MessageBarSection" Class="top-messagebar" MaxMessageCount="null" NewestOnTop="true" />
-        @if (AIContextProvider.AssistantChatViewModel is not null && AIContextProvider.ShowAssistantSidebarDialog)
+        if (firstRender)
         {
-            <div class="layout-sidebar-spacer"></div>
-        } *@
-    </div>
-    <div class="layout-body-container">
-        <FluentBodyContent Class="custom-body-content body-content">
-            <FluentToastProvider MaxToastCount="3" Timeout="5000" />
-            @Body
-        </FluentBodyContent>
-        @* @if (AIContextProvider.AssistantChatViewModel is not null && AIContextProvider.ShowAssistantSidebarDialog)
-        {
-            <div class="layout-sidebar-spacer"></div>
-        } *@
-    </div>
+            // user = await dataTrf.GetgvUser();
+            // pTheme = user.UserSettings!.UserTheme ?? "pulse";
+            // await JS.InvokeVoidAsync("applyPulseTheme", pTheme);
+            // this.StateHasChanged();
+        }
+    }
+    protected override void OnInitialized()
+    {
+        // Subscribe to state changes
 
-    <FluentDialogProvider/>
-    <FluentTooltipProvider />
-    <FluentMenuProvider />
-    <InteractionsProvider />
-    <div id="blazor-error-ui">
-        @* @Loc[nameof(Layout.MainLayoutUnhandledErrorMessage)]
-        <a href="" class="reload">@Loc[nameof(Layout.MainLayoutUnhandledErrorReload)]</a> *@
-        <a class="dismiss">🗙</a>
-    </div>
-</div>
+        // AppState.OnThemeChange += async () =>
+        // {
+        //     await InvokeAsync(StateHasChanged);
+        // };
+    }
+
+}

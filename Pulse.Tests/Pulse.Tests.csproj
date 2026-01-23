@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
@@ -14,12 +14,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.Testing" Version="13.1.0" />
-    <PackageReference Include="MSTest" Version="4.0.2" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.13.0" />
+    <PackageReference Include="MSTest.TestAdapter" Version="3.3.2" />
+    <PackageReference Include="MSTest.TestFramework" Version="3.3.2" />
+    <PackageReference Include="Moq" Version="4.20.1" />
+    <PackageReference Include="Moq.Protected" Version="4.20.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Pulse.ApiService\Pulse.ApiService.csproj" />
     <ProjectReference Include="..\Pulse.AppHost\Pulse.AppHost.csproj" />
+    <ProjectReference Include="..\Pulse.Models\Pulse.Models.csproj" />
+    <ProjectReference Include="..\Pulse.Web\Pulse.Web.csproj" />
   </ItemGroup>
 
   <ItemGroup>

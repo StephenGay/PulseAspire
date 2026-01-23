@@ -1,0 +1,21 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.CustomComponents
+
+@implements IToastContentComponent<PulseMessage>
+
+<div style="width: 100%;border-top:1px solid var(--pulse-dark-colour);padding-bottom:10px;padding-top:10px;">
+    
+        <FluentText Variant="TextVariant.BodyStandard">@Content.Content</FluentText>
+
+    @* <div style="display: flex; justify-content: flex-end">
+        <FluentButton Appearance="Appearance.Accent" @onclick="Toast.Close">Close</FluentButton>
+    </div> *@
+</div>
+
+@code {
+    [CascadingParameter]
+    private FluentToast Toast { get; set; } = default!;
+
+    [Parameter]
+    public PulseMessage Content { get; set; } = default!;
+}

@@ -45,7 +45,8 @@ namespace Pulse.ApiService.Endpoints
                 }
             });
 
-            group.MapPost("/login", async (SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, TokenService tokenService, [FromBody] LoginModel model) =>
+            //group.MapPost("/login", async (SignInManager<IdentityUser> signInManager, UserManager<IdentityUser> userManager, TokenService tokenService, [FromBody] LoginModel model) =>
+            group.MapPost("/login", async (SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, TokenService tokenService, [FromBody] LoginModel model) =>
             {
                 if (signInManager == null || userManager == null || tokenService == null)
                 {
@@ -67,14 +68,15 @@ namespace Pulse.ApiService.Endpoints
                     {
                         return Results.Unauthorized();
                     }
+                    var roles = await userManager.GetRolesAsync(user);
 
-                    var token = await tokenService.GenerateJwtToken(user);
+                    var token = await tokenService.GenerateJwtToken(user,roles);
                     return Results.Ok(new { Token = token});
                 }
                 return Results.Unauthorized();
             }).AllowAnonymous();
 
-            group.MapPost("/register", async (UserManager<IdentityUser> userManager, [FromBody] RegisterModel model) =>
+            group.MapPost("/register", async (UserManager<ApplicationUser> userManager, [FromBody] RegisterModel model) =>
             {
                 if (userManager == null)
                 {
@@ -88,7 +90,7 @@ namespace Pulse.ApiService.Endpoints
                     return Results.BadRequest(validationResults.Select(vr => new { vr.ErrorMessage }));
                 }
 
-                var user = new IdentityUser { UserName = model.Email, Email = model.Email };
+                var user = new ApplicationUser { UserName = model.FullName,FullName=model.FullName, Email = model.Email };
                 var result = await userManager.CreateAsync(user, model.Password);
                 if (result.Succeeded) return Results.Ok("User created");
                 return Results.BadRequest(result.Errors);
@@ -130,7 +132,7 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(roles.Select(r => r.Name));
             }).WithName("GetRoles");
 
-            group.MapGet("/users", async (UserManager<IdentityUser> userManager) =>
+            group.MapGet("/users", async (UserManager<ApplicationUser> userManager) =>
             {
                 if (userManager == null)
                 {
@@ -147,7 +149,7 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(userDtos);
             }); //.RequireAuthorization(new AuthorizeAttribute { Roles = AdminRole }).WithName("GetUsers");
 
-            group.MapPost("/assign-role", async (UserManager<IdentityUser> userManager, [FromBody] AssignRoleModel model) =>
+            group.MapPost("/assign-role", async (UserManager<ApplicationUser> userManager, [FromBody] AssignRoleModel model) =>
              {
                  var user = await userManager.FindByIdAsync(model.UserId);
                  if (user == null) return Results.NotFound("User not found");
@@ -195,7 +197,7 @@ namespace Pulse.ApiService.Endpoints
             //    return Results.BadRequest(result.Errors);
             //}).RequireAuthorization(new AuthorizeAttribute { Roles = AdminRole }).WithName("AssignRole");
 
-            group.MapDelete("/users/{userId}/roles/{roleName}", async (UserManager<IdentityUser> userManager, string userId, string roleName) =>
+            group.MapDelete("/users/{userId}/roles/{roleName}", async (UserManager<ApplicationUser> userManager, string userId, string roleName) =>
             {
                 if (userManager == null)
                 {
@@ -216,7 +218,7 @@ namespace Pulse.ApiService.Endpoints
                 return Results.BadRequest(result.Errors);
             }).RequireAuthorization(new AuthorizeAttribute { Roles = AdminRole }).WithName("RemoveRole");
 
-            group.MapGet("/users/{userId}/roles", async (UserManager<IdentityUser> userManager, string userId) =>
+            group.MapGet("/users/{userId}/roles", async (UserManager<ApplicationUser> userManager, string userId) =>
             {
                 if (userManager == null)
                 {

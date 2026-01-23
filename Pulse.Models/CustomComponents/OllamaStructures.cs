@@ -8,11 +8,232 @@ using System.Threading.Tasks;
 
 namespace Pulse.Models.CustomComponents
 {
-    public class OllamaTagsResponse
+    public class OllamaChatResponse
     {
-        public List<OllamaModelInfo> Models { get; set; }
+        [JsonPropertyName("model")]
+        public string Model { get; set; }
+
+        [JsonPropertyName("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonPropertyName("message")]
+        public OllamaChatMessage Message { get; set; } = new();
+
+        [JsonPropertyName("done")]
+        public bool Done { get; set; }
+
+        // Metrics
+        [JsonPropertyName("total_duration")]
+        public long TotalDuration { get; set; }
+
+        [JsonPropertyName("load_duration")]
+        public long LoadDuration { get; set; }
+
+        [JsonPropertyName("prompt_eval_count")]
+        public int PromptEvalCount { get; set; }
+
+        [JsonPropertyName("prompt_eval_duration")]
+        public long PromptEvalDuration { get; set; }
+
+        [JsonPropertyName("eval_count")]
+        public int EvalCount { get; set; }
+
+        [JsonPropertyName("eval_duration")]
+        public long EvalDuration { get; set; }
+    }
+    public class OllamaChatMessage
+    {
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = string.Empty;
+
+        [JsonPropertyName("content")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Content { get; set; }
+
+        [JsonPropertyName("thinking")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Thinking { get; set; }
+
+        [JsonPropertyName("tool_calls")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<OllamaToolCall>? ToolCalls { get; set; }
     }
 
+    public class OllamaToolCall
+    {
+        [JsonPropertyName("function")]
+        public OllamaFunction Function { get; set; } = new();
+
+        [JsonPropertyName("type")]
+        public string Type { get; set; } = "function";
+    }
+
+    public class OllamaFunction
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("arguments")]
+        public JsonElement Arguments { get; set; }
+    }
+
+    public class OllamaMessage
+    {
+        [JsonPropertyName("role")]
+        public string Role { get; set; } = "assistant";
+
+        [JsonPropertyName("content")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Content { get; set; }  // Generated SQL text
+
+        [JsonPropertyName("tool_name")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? ToolName { get; set; }
+
+        [JsonPropertyName("thinking")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Thinking { get; set; }
+
+        [JsonPropertyName("tool_calls")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<OllamaToolCall>? ToolCalls { get; set; }
+    }
+
+    public class OllamaGenerateResponse
+    {
+        [JsonPropertyName("model")]
+        public string Model { get; set; } = string.Empty;
+
+        [JsonPropertyName("created_at")]
+        public string CreatedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("response")]
+        public string Response { get; set; } = string.Empty;
+
+        [JsonPropertyName("done")]
+        public bool Done { get; set; }
+
+        [JsonPropertyName("done_reason")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? DoneReason { get; set; }
+
+        [JsonPropertyName("context")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<int>? Context { get; set; }
+
+        [JsonPropertyName("total_duration")]
+        public long TotalDuration { get; set; }
+
+        [JsonPropertyName("load_duration")]
+        public long LoadDuration { get; set; }
+
+        [JsonPropertyName("prompt_eval_count")]
+        public int PromptEvalCount { get; set; }
+
+        [JsonPropertyName("eval_count")]
+        public int EvalCount { get; set; }
+    }
+
+    public class OllamaWebSearchResponse
+    {
+        [JsonPropertyName("results")]
+        public List<WebSearchResult> Results { get; set; } = new();
+    }
+
+    public class WebSearchResult
+    {
+        [JsonPropertyName("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [JsonPropertyName("url")]
+        public string Url { get; set; } = string.Empty;
+
+        [JsonPropertyName("snippet")]
+        public string Snippet { get; set; } = string.Empty;
+    }
+
+    public class OllamaWebFetchResponse
+    {
+        [JsonPropertyName("content")]
+        public string Content { get; set; } = string.Empty;
+
+        [JsonPropertyName("status_code")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? StatusCode { get; set; }
+    }
+
+    public class OllamaChatChunk
+    {
+        [JsonPropertyName("model")]
+        public string Model { get; set; } = string.Empty;
+
+        [JsonPropertyName("created_at")]
+        public string CreatedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("message")]
+        public OllamaChatMessage Message { get; set; } = new();
+
+        [JsonPropertyName("done")]
+        public bool Done { get; set; }
+
+        [JsonPropertyName("total_duration")]
+        public long TotalDuration { get; set; }
+
+        [JsonPropertyName("load_duration")]
+        public long LoadDuration { get; set; }
+
+        [JsonPropertyName("prompt_eval_count")]
+        public int PromptEvalCount { get; set; }
+
+        [JsonPropertyName("eval_count")]
+        public int EvalCount { get; set; }
+    }
+    public class OllamaTagsResponse
+    {
+        [JsonPropertyName("models")]
+        public List<OllamaModel> Models { get; set; } = new();
+    }
+
+    public class OllamaModel
+    {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+
+        [JsonPropertyName("model")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Model { get; set; }
+
+        [JsonPropertyName("modified_at")]
+        public string ModifiedAt { get; set; } = string.Empty;
+
+        [JsonPropertyName("size")]
+        public long Size { get; set; }
+
+        [JsonPropertyName("digest")]
+        public string Digest { get; set; } = string.Empty;
+
+        [JsonPropertyName("details")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public ModelDetails? Details { get; set; }
+    }
+
+    public class ModelDetails
+    {
+        [JsonPropertyName("format")]
+        public string Format { get; set; } = string.Empty;
+
+        [JsonPropertyName("family")]
+        public string Family { get; set; } = string.Empty;
+
+        [JsonPropertyName("families")]
+        public List<string> Families { get; set; } = new();
+
+        [JsonPropertyName("parameter_size")]
+        public string ParameterSize { get; set; } = string.Empty;
+
+        [JsonPropertyName("quantization_level")]
+        public string QuantizationLevel { get; set; } = string.Empty;
+    }
     public class OllamaModelInfo
     {
         public string Name { get; set; }
@@ -112,24 +333,7 @@ namespace Pulse.Models.CustomComponents
     /// <summary>
     /// Represents a streaming chunk from Ollama's /api/chat.
     /// </summary>
-    public class OllamaChatChunk
-    {
-        [JsonPropertyName("model")]
-        public string Model { get; set; } = string.Empty;
-
-        [JsonPropertyName("created_at")]
-        public string CreatedAt { get; set; } = string.Empty;
-
-        [JsonPropertyName("message")]
-        public OllamaMessageDelta Message { get; set; } = new OllamaMessageDelta();
-
-        [JsonPropertyName("done")]
-        public bool Done { get; set; }
-
-        // Metrics for final chunk
-        [JsonPropertyName("total_duration")]
-        public long TotalDuration { get; set; }
-    }
+    
 
     /// <summary>
     /// Delta for message in streaming chunks (partial content or tool calls).
@@ -150,90 +354,11 @@ namespace Pulse.Models.CustomComponents
     }
 
     // Ollama /api/chat response structure (single non-stream)
-    public class OllamaChatResponse
-    {
-        [JsonPropertyName("model")]
-        public string Model { get; set; }
+    
 
-        [JsonPropertyName("created_at")]
-        public DateTime CreatedAt { get; set; }
+    
 
-        [JsonPropertyName("message")]
-        public OllamaMessage Message { get; set; }  // Includes content and tool_calls
-
-        [JsonPropertyName("done")]
-        public bool Done { get; set; }
-
-        // Metrics
-        [JsonPropertyName("total_duration")]
-        public long TotalDuration { get; set; }
-
-        [JsonPropertyName("load_duration")]
-        public long LoadDuration { get; set; }
-
-        [JsonPropertyName("prompt_eval_count")]
-        public int PromptEvalCount { get; set; }
-
-        [JsonPropertyName("prompt_eval_duration")]
-        public long PromptEvalDuration { get; set; }
-
-        [JsonPropertyName("eval_count")]
-        public int EvalCount { get; set; }
-
-        [JsonPropertyName("eval_duration")]
-        public long EvalDuration { get; set; }
-    }
-
-    public class OllamaMessage
-    {
-        [JsonPropertyName("role")]
-        public string Role { get; set; } = "assistant";
-
-        [JsonPropertyName("content")]
-        public string Content { get; set; }  // Generated SQL text
-
-        [JsonPropertyName("tool_calls")]
-        public List<OllamaToolCall>? ToolCalls { get; set; }  // Plural array, even for single
-
-        public string ToolName { get; set; }  // Custom prop for tool response (not serialized to Ollama, for internal use)
-    }
-
-    public class OllamaGenerateResponse
-    {
-        [JsonPropertyName("model")]
-        public string Model { get; set; } = string.Empty;
-
-        [JsonPropertyName("created_at")]
-        public DateTime CreatedAt { get; set; }
-
-        [JsonPropertyName("response")]
-        public string Response { get; set; } = string.Empty; // The generated text (e.g., SQL from prompt)
-
-        [JsonPropertyName("done")]
-        public bool Done { get; set; }  // True if generation complete
-
-        // Optional metrics for debugging/performance
-        [JsonPropertyName("context")]
-        public int[] Context { get; set; }  // Token context for continuations (if needed)
-
-        [JsonPropertyName("total_duration")]
-        public long TotalDuration { get; set; }  // Nanoseconds
-
-        [JsonPropertyName("load_duration")]
-        public long LoadDuration { get; set; }
-
-        [JsonPropertyName("prompt_eval_count")]
-        public int PromptEvalCount { get; set; }
-
-        [JsonPropertyName("prompt_eval_duration")]
-        public long PromptEvalDuration { get; set; }
-
-        [JsonPropertyName("eval_count")]
-        public int EvalCount { get; set; }
-
-        [JsonPropertyName("eval_duration")]
-        public long EvalDuration { get; set; }
-    }
+    
 
     public class OllamaTool
     {
@@ -243,35 +368,10 @@ namespace Pulse.Models.CustomComponents
         public string Description { get; set; }
     }
 
-    public class OllamaWebSearchResponse
-    {
-        public List<OllamaWebSearchResult> Results { get; set; }
-    }
+    
 
-    public class OllamaWebFetchResponse
-    {
-        [JsonPropertyName("title")] // Assumes camelCase in JSON
-        public string? Title { get; set; } // Nullable to handle omissions
-
-        [JsonPropertyName("content")]
-        public string? Content { get; set; }
-
-        //[JsonPropertyName("links")]
-        //public List<OllamaWebLink>? Links { get; set; } // Nullable list
-    }
-
-    public class OllamaWebSearchResult
-    {
-        [JsonPropertyName("title")]
-        public string? Title { get; set; }
-
-        [JsonPropertyName("url")]
-        public string? Url { get; set; }
-
-        [JsonPropertyName("snippet")]
-        public string? Snippet { get; set; }
-    }
-
+    
+    
     public class OllamaWebLink
     {
         [JsonPropertyName("url")] // Or "href" if that's in your JSON—check logs
@@ -281,18 +381,5 @@ namespace Pulse.Models.CustomComponents
         public string? Text { get; set; }
     }
     // Tool call class for tool_calls array
-    public class OllamaToolCall
-    {
-        [JsonPropertyName("function")]
-        public OllamaFunctionCall Function { get; set; }
-    }
-
-    public class OllamaFunctionCall
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; }
-
-        [JsonPropertyName("arguments")]
-        public JsonElement Arguments { get; set; }  // Flexible for params like {"query": "value"}
-    }
+    
 }

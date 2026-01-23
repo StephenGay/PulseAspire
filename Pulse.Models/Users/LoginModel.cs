@@ -5,16 +5,16 @@ using System.Text;
 
 namespace Pulse.Models.Users
 {
-    //public class LoginModel
-    //{
-    //    [Required]
-    //    [EmailAddress]
-    //    public string Email { get; set; }
+    public class LoginModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; }
 
-    //    [Required]
-    //    [MinLength(6)]
-    //    public string Password { get; set; }
-    //}
+        [Required]
+        [MinLength(6)]
+        public string Password { get; set; }
+    }
     public class RegisterModel
     {
         [Required]
@@ -31,8 +31,13 @@ namespace Pulse.Models.Users
 
         // Add custom properties from ApplicationUser
         public string FullName { get; set; }
+        public PresenceStatus PresenceStatus { get; set; }
     }
 
+    public class AuthResponse 
+    { 
+        public string? Token { get; set; } 
+    }
     public class CreateRoleModel
     {
         [Required]

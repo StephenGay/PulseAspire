@@ -14,6 +14,13 @@
 @inherits LayoutComponentBase
 @layout MasterLayout
  
+<style>
+.cparent {
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  height: calc(100%-56px); /* Or whatever height your parent should be, like 100% */
+}
+</style>
 @* <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="min-height:100%" >  *@
     <EZ_CustomersNavMenu />
     @Body

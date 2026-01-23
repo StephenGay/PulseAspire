@@ -17,10 +17,11 @@ using Pulse.Models.Compounds;
 using Pulse.Models.Users;
 using Pulse.Models.Production;
 using Pulse.Models.AI;
+using Pulse.Models.CustomComponents;
 
 namespace Pulse.Models.PulseContext
 {
-    public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options) : IdentityDbContext<IdentityUser>(options)
+    public sealed class PulseDbContext(DbContextOptions<PulseDbContext> options) : IdentityDbContext<ApplicationUser>(options)
     {
         public DbSet<Customer> ClientMaster { get; set; }
         public DbSet<Company> CompanyMaster { get; set; }
@@ -65,6 +66,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<ContextualPrompt> ContextualPromptMaster { get; set; }
         public DbSet<UserSettings> UserSettingsMaster { get; set; }
         public DbSet<ClientBudgets> ClientBudgetMaster { get; set; }
+        public DbSet<PulseMessage> PulseMessages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -111,6 +113,7 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new ContextualPromptMasterMap());
             modelBuilder.ApplyConfiguration(new UserSettingsMasterMap());
             modelBuilder.ApplyConfiguration(new ClientBudgetMasterMap());
+            modelBuilder.ApplyConfiguration(new PulseMessagesMap());
 
             base.OnModelCreating(modelBuilder);
         }

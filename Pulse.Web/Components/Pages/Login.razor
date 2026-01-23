@@ -1,5 +1,5 @@
 ﻿@page "/login"
-@* @using Microsoft.AspNetCore.Components.Authorization *@
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI.AIds
 @using Pulse.Models.Misc
@@ -14,7 +14,8 @@
 @inject DataTransferService dT
 @inject IJSRuntime JS
 @inject SpeechSynthesis SpeechSynthesis
-@inject IAuthService AuthService
+@inject CustomAuthenticationStateProvider AuthProvider
+@inject AuthService AuthService
 @* @rendermode InteractiveServer *@
 
 <FluentCard Style="min-width:500px">
@@ -63,20 +64,35 @@
             Voices = await SpeechSynthesis.GetVoicesAsync();
         }
     }
+    
     private async Task HandleLogin()
     {
         errorMessage = null;
         try
         {
-            // var client = HttpFactory.CreateClient("PulseApiClient");  // Named client with UseDefaultCredentials for cookies
-            // var response = await client.PostAsJsonAsync("/Security/login", loginModel);
-            //var response = await _pulseApiClient.PostAsync("/Security/login", loginModel);
+            var client = HttpFactory.CreateClient("PulseApiClient");  // Named client with UseDefaultCredentials for cookies
+            var response = await client.PostAsJsonAsync("/Security/login", Model);
+            // var response = await _pulseApiClient.PostAsync("/Security/login", Model);
+            if (!response.IsSuccessStatusCode)
+            {
+                errorMessage = $"Login failed with status code: {response.StatusCode}";
+                return;
+            }
 
-            // if (response.IsSuccessStatusCode)
-            var result = await AuthService.Login(Model);
-            if (result == "Success")
+            var result = await response.Content.ReadFromJsonAsync<AuthResponse>();
+            if (string.IsNullOrEmpty(result?.Token))
+            {
+                errorMessage = "Login returned no token";
+                return;
+            }
+
+            if (response.IsSuccessStatusCode)
+            // var result = await AuthService.Login(Model);
+            // if (result == "Success")
             {
                 // Optional: Notify auth state if using custom provider
+                await AuthService.SetAuthenticatedAsync(result.Token);
+                AuthProvider.NotifyStateChanged();
                 // ((CustomAuthenticationStateProvider)AuthStateProvider).MarkUserAsAuthenticated(/* token or cookie handled server-side */);
                 User? user = await _pulseApiClient.GetAsync<User>($"/Security/EmployeeLogin/email={Model.Email}");
                 if (user == null)
@@ -127,6 +143,7 @@
             else
             {
                 errorMessage = result.ToString();
+                StateHasChanged();
             }
         }
         catch (Exception ex)
@@ -143,6 +160,6 @@
             Voice = vc // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
         };
         await this.SpeechSynthesis.SpeakAsync(utterancet);
-        return ;
+        // return ;
     }
 }

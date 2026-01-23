@@ -1,0 +1,184 @@
+﻿@page "/UserSettings/UserMsgCentre"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.FluentUI.AspNetCore.Components
+@using System.Text.Json
+@using Pulse.Models
+@using Pulse.Models.CustomComponents
+@using System.Security.Claims
+@using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs
+@attribute [Authorize]
+@inject MessageHubService MsgHubService
+@inject AuthService _authService
+@inject CustomAuthenticationStateProvider AuthStateProvider
+
+@implements IAsyncDisposable
+
+<FluentLayout>
+    <FluentStack Orientation="Orientation.Horizontal" Style="height: 100%;">
+        <!-- Main Chat Area -->
+        <FluentStack Orientation="Orientation.Vertical" Style="flex: 1;">
+            <!-- Existing chat messages display -->
+            <FluentCard Style="flex: 1; overflow-y: auto; padding: 20px;">
+                @if (messages == null)
+                {
+                    <FluentProgressRing />
+                }
+                else
+                {
+                    <FluentStack Orientation="Orientation.Vertical" Gap="10px">
+                        @foreach (var msg in messages)
+                        {
+                            var isUser = msg.Role == "user";
+                            <FluentStack HorizontalAlignment="@(isUser? Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End : Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start)" Style="max-width: 80%;">
+                                <FluentCard Style="@(isUser ? "background: #e3f2fd;" : "background: #f5f5f5;")" padding: 10px; border-radius: 8px;">
+                                    <strong>@(isUser ? msg.SenderUserName : "Assistant") (@msg.SentAt)</strong>
+                                    @if (msg.Role == "assistant" && msg.ContentType =="JSON")
+                                    {
+                                        var results = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(msg.Content);
+                                        <FluentDataGrid Items="@results.AsQueryable()" ResizableColumns="true" Pagination="null">
+                                            <PropertyColumn Property="@(r => r)" />
+                                        </FluentDataGrid>
+                                    }
+                                    else
+                                    {
+                                        <p>@msg.Content</p>
+                                    }
+                                </FluentCard>
+                            </FluentStack>
+                        }
+                    </FluentStack>
+                }
+            </FluentCard>
+
+            <!-- Existing input toolbar -->
+            <FluentToolbar>
+                <FluentTextField @bind-Value="currentMessage" Style="flex: 1;" Placeholder="Type your query..." />
+                <FluentButton Appearance="Appearance.Accent" @onclick="Send" Disabled="@isSending">Send</FluentButton>
+            </FluentToolbar>
+        </FluentStack>
+
+        <!-- Online Users Sidebar -->
+        <FluentCard Style="width: 250px; padding: 10px; background: #f9f9f9;">
+            @* <h4>All Users (@presenceList.Count)</h4>
+            <FluentStack Orientation="Orientation.Vertical">
+                @foreach (var aUser in presenceList)
+                {
+                    var isCurrent = aUser.UserId == currentUserId;
+                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                        <FluentPresenceBadge Status="@aUser.EffectiveStatus"
+                                             OutOfOffice="@(aUser.EffectiveStatus == PresenceStatus.OutOfOffice)" />
+                        <FluentLabel Style="@(isCurrent ? "font-weight: bold;" : "")">
+                            @aUser.UserName
+                            (@GetPresenceText(aUser.EffectiveStatus))
+                           
+                        </FluentLabel>
+                    </FluentStack>
+                }
+            </FluentStack> *@
+            <UserPresenceList />
+        </FluentCard>
+    </FluentStack> 
+</FluentLayout>
+
+@code {
+    private List<PulseMessage> messages = new();
+    private string currentMessage = string.Empty;
+    private bool isSending = false;
+    private string currentUserId = string.Empty;
+    private List<UserPresenceDto> presenceList = new();
+    private int currentUserStatusCode = 3;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure connection (safe if already started in MainLayout)
+        await MsgHubService.EnsureConnectedAsync();
+
+        // Subscribe to events
+        MsgHubService.OnReceiveMessage += HandleReceiveMessage;
+        MsgHubService.OnLoadHistory += HandleLoadHistory;
+        MsgHubService.OnPresenceListUpdated += HandlePresenceListUpdated;
+
+        // Get current user ID (for presence selector sync)
+        // var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        currentUserId = _authService.aspireUserId; // authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+    }
+
+    private void HandleReceiveMessage(PulseMessage msg)
+    {
+        messages.Add(msg);
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleLoadHistory(List<PulseMessage> history)
+    {
+        messages = history;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void HandlePresenceListUpdated(List<UserPresenceDto> list)
+    {
+        presenceList = list;
+        var myPresence = list.FirstOrDefault(u => u.UserId == currentUserId);
+        if (myPresence != null && myPresence.IsOnline)
+        {
+            currentUserStatusCode = (int)myPresence.EffectiveStatus;
+        }
+        InvokeAsync(StateHasChanged);
+    }
+    
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(currentMessage)) return;
+
+        PulseMessage msg = new()
+        {
+            SenderUserId = currentUserId,
+            SenderUserName = _authService.aspireUsername,
+            Content = currentMessage,
+            Role = "user",
+            SentAt = DateTime.UtcNow
+        };
+        isSending = true;
+        try
+        {
+            await MsgHubService.SendMessageAsync(msg);
+            currentMessage = string.Empty;
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    private Icon GetPresenceIcon(PresenceStatus status) => status switch
+    {
+        PresenceStatus.Available => new Icons.Regular.Size20.PresenceAvailable(),
+        PresenceStatus.Busy => new Icons.Regular.Size20.PresenceTentative(),
+        PresenceStatus.DoNotDisturb => new Icons.Regular.Size20.PresenceDnd(),
+        PresenceStatus.Away => new Icons.Regular.Size20.PresenceAway(),
+        PresenceStatus.OutOfOffice => new Icons.Regular.Size20.PresenceOof(),
+        PresenceStatus.Offline => new Icons.Regular.Size20.PresenceOffline(),
+        _ => new Icons.Regular.Size20.PresenceUnknown()
+    };
+    public async ValueTask DisposeAsync()
+    {
+        MsgHubService.OnReceiveMessage -= HandleReceiveMessage;
+        MsgHubService.OnLoadHistory -= HandleLoadHistory;
+        MsgHubService.OnPresenceListUpdated -= HandlePresenceListUpdated;
+    }
+    private string GetPresenceText(PresenceStatus status) => status switch
+    {
+        PresenceStatus.Available => "Available",
+        PresenceStatus.Busy => "Busy",
+        PresenceStatus.DoNotDisturb => "Do Not Disturb",
+        PresenceStatus.Away => "Away",
+        PresenceStatus.OutOfOffice => "Out Of Office",
+        PresenceStatus.Offline => "Offline",
+        _ => "Unknown"
+    };
+    // record OnlineUser(string UserId, string UserName);
+}

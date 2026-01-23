@@ -27,6 +27,7 @@
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
 @inject IHttpClientFactory HttpClientFactory
+@inject Global_AI_Functions GlobalAI
 @implements IDisposable
 @rendermode InteractiveServer 
 
@@ -41,7 +42,7 @@
         background-color: var(--pulse-light-colour) !important;
         border: 1px solid var(--pulse-dark-colour) !important;
     }
-    .toast{
+   /*  .toast{
         --bs-toast-bg: white !important;
         --bs-toast-header-color: #365b66 !important;
         --bs-toast-header-bg: rgba(188, 209, 212, 0.5) !important;
@@ -56,7 +57,7 @@
 
     .toast-body {
         height: 70% !important;
-    }
+    } */
     .drawer{
         --bb-drawer-body-padding : 0 !important; 
         top: 56px !important;
@@ -115,7 +116,7 @@
             /* color: var(--pulse-light-colour) !important; */
         }
     fluent-anchored-region > *[b-2ov9fhztky] {
-        background-color: #365b66 !important;
+        background-color: var(--pulse-light-colour) !important;
     }
     .fluent-appbar-item a[class="active"] div[class="stack-vertical"] {
         background-color: var(--pulse-dark-colour) !important;
@@ -436,7 +437,7 @@
             
 </FluentStack>
 </BootstrapBlazorRoot>
-<FluentTooltipProvider />
+
 @code {
 
     private Customer? customer;
@@ -470,8 +471,8 @@
     private string custTitle = string.Empty;
     private string custDesc = string.Empty;
     private string? AIMode; 
-    private bool useSpeechOutput = true;
-    private SpeechSynthesisVoice? _voice;
+    // private bool useSpeechOutput = true;
+    // private SpeechSynthesisVoice? _voice;
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
     private bool _isListening = false;
@@ -585,18 +586,18 @@
     {
         ChooseAi = true;
     }
-    private async Task SayIt(string text)
-    {
-        if (useSpeechOutput)
-        {
-            var utterancet = new SpeechSynthesisUtterance
-            {
-            Text = text.Replace("<br />", ""),
-            Voice = _voice
-            };
-            await this.SpeechSynthesis.SpeakAsync(utterancet);
-        }
-    }
+    // private async Task SayIt(string text)
+    // {
+    //     if (useSpeechOutput)
+    //     {
+    //         var utterancet = new SpeechSynthesisUtterance
+    //         {
+    //         Text = text.Replace("<br />", ""),
+    //         Voice = _voice
+    //         };
+    //         await this.SpeechSynthesis.SpeakAsync(utterancet);
+    //     }
+    // }
     private async Task CloseResults()
     {
         showResultsPanel = false;
@@ -715,11 +716,11 @@
         // await GetClientInfo();
         division = await dataTrf.GetgvSelectedDivision();
         u = await dataTrf.GetgvUser();
-        useSpeechOutput = u.UserSettings.AIHasVoice;
-        if (useSpeechOutput)
-        {
-            _voice = await dataTrf.GetgvUserAIVoice();
-        }
+        // useSpeechOutput = u.UserSettings.AIHasVoice;
+        // if (useSpeechOutput)
+        // {
+        //     _voice = await dataTrf.GetgvUserAIVoice();
+        // }
         custQryHdr = $"Loading...";
         sState = "IDLE";
         mFlapper = await dataTrf.GetgvFlapper();
@@ -955,11 +956,8 @@
     private async Task SendToast(string tType, string tTitle, string tContent)
     {
 
-        if (useSpeechOutput)
-        {
-            await SayIt(tContent);
+        await GlobalAI.AISpeak(tContent,"PulseAI");
 
-        }
         var cat = tType switch
         {
             "Success" => ToastCategory.Success,

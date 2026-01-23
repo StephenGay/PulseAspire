@@ -20,6 +20,13 @@ html, body {
     --pulse-mode-btn-off-item-colour: #9900FF;
     --pulse-mode-btn-bg: #1D722A;
     --pulse-mode-btn-item-colour: white;
+    --datagrid-hover-color: var(--pulse-dark-colour);
+    --bs-info: #9900FF !important;
+    --bs-info-rgb: 153, 0, 255 !important;
+}
+:root, [data-bs-theme=light] {
+    --bs-info: #9900FF !important;
+    --bs-info-rgb: 153, 0, 255 !important;
 }
 /*html, body {
     margin: 0;
@@ -36,8 +43,6 @@ html, body {
     background-repeat: no-repeat;
     background-position: center center;
 }*/
-
-
 .divShadow {
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }

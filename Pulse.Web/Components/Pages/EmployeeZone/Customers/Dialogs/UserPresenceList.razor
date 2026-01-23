@@ -1,0 +1,106 @@
+﻿@using Pulse.Models.CustomComponents
+@using Pulse.Web.Services
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.AspNetCore.Components
+
+@inject MessageHubService MsgHubService
+@inject ILogger<UserPresenceList> _logger
+
+<div class="presence-list-container">
+    <h3>Online Users</h3>
+
+    @if (presenceList == null)
+    {
+        <FluentProgressRing Width="32px"></FluentProgressRing>
+        <p>Loading presence list...</p>
+    }
+    else if (presenceList.Count == 0)
+    {
+        <p>No users online</p>
+    }
+    else
+    {
+        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+            @* Name="@user.UserName" *@
+            @* @(user.IsOnline ? "Online" : "Offline") *@
+            @foreach (var user in presenceList.OrderBy(u => u.UserName))
+            {
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                    <FluentPersona Status="@user.EffectiveStatus"
+                                   StatusSize="PresenceBadgeSize.Medium"
+                                   
+                                   Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                                   ImageSize="40px">
+                    </FluentPersona>
+                    <div>
+                        <span>@user.UserName</span>
+                        <br />
+                        <small style="color: gray;">(@GetPresenceText(user.EffectiveStatus))</small>
+                    </div>
+                </FluentStack>
+            }
+        </FluentStack>
+    }
+</div>
+
+@code {
+    private List<UserPresenceDto> presenceList = null;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Fetch presence list on component load
+        await LoadPresenceListAsync();
+
+        // Subscribe to real-time presence updates
+        MsgHubService.OnPresenceListUpdated += OnPresenceListUpdated;
+    }
+
+    private async Task LoadPresenceListAsync()
+    {
+        try
+        {
+            isLoading = true;
+            presenceList = await MsgHubService.GetPresenceListAsync();
+            _logger?.LogInformation("Loaded {Count} users from presence list", presenceList?.Count ?? 0);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error loading presence list");
+            presenceList = new();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnPresenceListUpdated(List<UserPresenceDto> updatedList)
+    {
+        try
+        {
+            presenceList = updatedList;
+            _logger?.LogInformation("Presence list updated: {Count} users", presenceList.Count);
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error updating presence list");
+        }
+    }
+    private string GetPresenceText(PresenceStatus status) => status switch
+    {
+        PresenceStatus.Available => "Available",
+        PresenceStatus.Busy => "Busy",
+        PresenceStatus.DoNotDisturb => "Do Not Disturb",
+        PresenceStatus.Away => "Away",
+        PresenceStatus.OutOfOffice => "Out Of Office",
+        PresenceStatus.Offline => "Offline",
+        _ => "Unknown"
+    };
+    public void Dispose()
+    {
+        MsgHubService.OnPresenceListUpdated -= OnPresenceListUpdated;
+    }
+}
