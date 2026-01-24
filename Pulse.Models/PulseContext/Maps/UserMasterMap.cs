@@ -1,11 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Pulse.Models.Users;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Pulse.Models.PulseContext.Maps
 {
@@ -21,10 +16,10 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasMany(q => q.UserFavouriteQueries)
                 .WithOne(u => u.User)
                 .HasForeignKey(u => u.UserId);
-            builder.HasOne(us => us.UserSettings)
-                   .WithOne(u => u.User)
-                   .HasForeignKey<User>(us => us.UserID)
-                   .OnDelete(DeleteBehavior.ClientCascade);
+            builder.HasOne(u => u.UserSettings)
+                   .WithOne(us => us.User)
+                   .HasForeignKey<UserSettings>(us => us.UserId)  // FK on dependent entity
+                   .OnDelete(DeleteBehavior.Cascade);
         }
     }
     

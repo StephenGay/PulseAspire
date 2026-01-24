@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.FluentUI.AspNetCore.Components;
 using Pulse.Models.AI.AIds;
+using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Models.Organizational;
@@ -23,6 +24,7 @@ namespace Pulse.Web.Services
         public Ali gv_Ali {  get; set; }
         public Customer gv_Selected_Client { get; set; }
         public ClientCurrentStats gv_Selected_ClientStats { get; set; }
+        public List<PulseMessage> gv_UserMessages { get; set; }
         public Division gv_Selected_Division { get; set; }
         public List<WorkInProgressDto> gv_Selected_Division_WIP { get; set; }
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
@@ -38,6 +40,20 @@ namespace Pulse.Web.Services
         public async Task SetgvAIModel(string aimodel)
         {
             gv_AIModel = aimodel;
+            await Task.CompletedTask;
+        }
+        public async Task SetgvUserMessages (List<PulseMessage> messages)
+        {
+            gv_UserMessages = messages;
+            await Task.CompletedTask;
+        }
+        public async Task<List<PulseMessage>> GetgvUserMessages()
+        {
+            return gv_UserMessages;
+        }
+        public async Task AddgvUserMessage(PulseMessage msg)
+        {
+            gv_UserMessages.Add(msg);
             await Task.CompletedTask;
         }
         public async Task<string> GetgvAIModel()
@@ -224,6 +240,9 @@ namespace Pulse.Web.Services
         public Task<Customer> GetgvSelectedClient();
         public Task SetgvUser(User user);
         public Task<User> GetgvUser();
+        public Task<List<PulseMessage>> GetgvUserMessages();
+        public Task SetgvUserMessages(List<PulseMessage> messages);
+        public Task AddgvUserMessage(PulseMessage msg);
         public Task SetgvSelectedRollSpec(ClientRollerSpecification rollSpec);
         public Task<ClientRollerSpecification> GetgvSelectedRollSpec();
         public Task SetgvSelectedClientStats(ClientCurrentStats stats);

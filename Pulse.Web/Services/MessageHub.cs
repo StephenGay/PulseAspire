@@ -257,6 +257,27 @@ public class MessageHubService : IAsyncDisposable
         }
     }
 
+    public async Task MarkMessageAsDeliveredAsync(int messageId)
+    {
+        if (_hubConnection?.State != HubConnectionState.Connected)
+        {
+            _logger?.LogWarning("Cannot mark message as delivered: Hub not connected.");
+            await EnsureConnectedAsync();
+        }
+
+        if (_hubConnection != null)
+        {
+            try
+            {
+                await _hubConnection.InvokeAsync("MarkMessageAsDeliveredAsync", messageId);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error marking message as delivered via SignalR");
+            }
+        }
+    }
+
     public async ValueTask DisposeAsync()
     {
         if (_disposed)

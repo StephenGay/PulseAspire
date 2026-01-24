@@ -37,6 +37,7 @@ builder.Services.AddScoped<PulseApiService>();
 builder.Services.AddScoped<OllamaService>();
 builder.Services.AddScoped<DataTransferService>();
 builder.Services.AddScoped<Global_AI_Functions>();
+builder.Services.AddScoped<ApiErrorHandler>();
 
 #endregion
 
@@ -68,9 +69,17 @@ builder.Services.AddHttpClient<PulseApiService>("PulseApiClient", client =>
 #endregion
 
 #region Authentication & Authorization (Custom JWT via AuthService)
-builder.Services.AddAuthorizationCore();
+builder.Services.AddAuthorizationCore(options =>
+{
+    options.AddPolicy("Admin", policy =>
+        policy.RequireRole("Admin"));
+    
+    options.AddPolicy("User", policy =>
+        policy.RequireRole("User", "Admin"));
+});
 
 builder.Services.AddScoped<TokenStorageService>();
+builder.Services.AddSingleton<TokenHolderService>();  // Changed from AddScoped to AddSingleton
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<CustomAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(sp =>
@@ -97,6 +106,7 @@ builder.Services.AddSpeechSynthesis();
 builder.Services.AddSpeechRecognition();
 builder.Services.AddFluentUIComponents();
 builder.Services.AddDataGridEntityFrameworkAdapter();
+builder.Services.AddScoped<Microsoft.FluentUI.AspNetCore.Components.DialogService>();
 builder.Services.AddScoped<AppState>();
 builder.Services.Configure<AnimationOptions>(Guid.NewGuid().ToString(), _ => { });
 #endregion

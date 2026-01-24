@@ -1,0 +1,123 @@
+﻿@* @using Markdig *@
+@using Microsoft.FluentUI.AspNetCore.Components
+@* @using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs *@
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@using System.Text.Json
+@using System.Text.Json.Nodes
+@using System.Text
+@using System.Threading.Tasks
+@* @using Toolbelt.Blazor.SpeechSynthesis *@
+
+@* @inject SpeechSynthesis SpeechSynthesis *@
+@* @inject DataTransferService dataTrf *@
+@* @inject IDialogService DialogService *@
+@* @inject BootstrapBlazor.Components.ToastService ToastService *@
+@* @inject Pulse_AI pAI *@
+@* @inject PulseApiService pApi *@
+@* @inject NavigationManager Navigation *@
+@rendermode InteractiveServer
+
+<style>
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style> 
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow" Style="padding-top:5px;padding-bottom:5px;">
+                
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
+        <FluentAppBar id="fab2" Style="height: 90%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:center" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+            <FluentAppBarItem Href="/AdminZone/AdminDashboard"
+                                        Match="NavLinkMatch.All"
+                                        IconRest="DashboardIcon()"
+                                        IconActive="DashboardIcon(active: true)"
+                                        Text="Dashboard" />
+            <FluentAppBarItem Href="/AdminZone/RoleManagementPg"
+                                        IconRest="ProfileIcon()"
+                                        IconActive="ProfileIcon(active: true)"
+                                        Text="Roles" />
+            <FluentAppBarItem Href="/AdminZone/UserManagementPg"
+                              IconRest="ContactsIcon()"
+                              IconActive="ContactsIcon(active: true)"
+                              Text="Users" />
+            <FluentAppBarItem Href="/AdminZone/TokenDebug"
+                              IconRest="BudgetsIcon()"
+                              IconActive="BudgetsIcon(active: true)"
+                              Text="Debug" />
+        </FluentAppBar>
+
+    </FluentStack>
+    <FluentSpacer />
+    
+</FluentStack>
+
+<FluentDialogProvider />
+
+@code
+{
+    private Customer? customer;
+    private bool isLoading = true;
+    private bool openAssists = false;
+    private string _AnalysisResp = string.Empty;
+    private bool showAnalysis = false;
+    private bool HasAssists = false;
+    private bool mnuAssists = false;
+    private List<BlankClientBudget>? upBud;
+    private bool showingBody = true;
+    private bool startAni = false;
+    private bool useSpeechOutput = true;
+    
+    private string sState = "LOAD";
+    private string _Analysis = string.Empty;
+    private string _AssistWith = string.Empty;
+    private IDialogReference? _dialog;
+    Period? period;
+    private User? u;
+    bool? canceled;
+
+    #region AppBar Icons
+
+    private static Icon DashboardIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.BoardSplit().WithColor("#365b66")
+               : new Icons.Regular.Size24.BoardSplit().WithColor("#365b66");
+
+    private static Icon ProfileIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.ContentView().WithColor("#365b66")
+               : new Icons.Regular.Size24.ContentView().WithColor("#365b66");
+
+    private static Icon RollersIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.CompassNorthwest().WithColor("#365b66")
+               : new Icons.Regular.Size24.CompassNorthwest().WithColor("#365b66");
+
+    private static Icon ContactsIcon(bool active = false) =>
+    active ? new Icons.Filled.Size24.ContactCard().WithColor("#365b66")
+    : new Icons.Regular.Size24.ContactCard().WithColor("#365b66");
+
+    private static Icon BudgetsIcon(bool active = false) =>
+    active ? new Icons.Filled.Size24.Money().WithColor("#365b66")
+    : new Icons.Regular.Size24.Money().WithColor("#365b66");
+
+    private static Icon SalesIcon(bool active = false) =>
+        active ? new Icons.Filled.Size24.ChartMultiple().WithColor("#365b66")
+               : new Icons.Regular.Size24.ChartMultiple().WithColor("#365b66");
+
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        
+
+        isLoading = false;
+
+
+    }
+
+    
+}

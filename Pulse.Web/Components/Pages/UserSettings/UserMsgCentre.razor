@@ -9,9 +9,11 @@
 @using Pulse.Models.CustomComponents
 @using System.Security.Claims
 @using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs
+@using Pulse.Web.Services
 @attribute [Authorize]
 @inject MessageHubService MsgHubService
 @inject AuthService _authService
+@inject DataTransferService dataTrf
 @inject CustomAuthenticationStateProvider AuthStateProvider
 
 @implements IAsyncDisposable
@@ -98,17 +100,19 @@
 
         // Subscribe to events
         MsgHubService.OnReceiveMessage += HandleReceiveMessage;
-        MsgHubService.OnLoadHistory += HandleLoadHistory;
+        // MsgHubService.OnLoadHistory += HandleLoadHistory;
         MsgHubService.OnPresenceListUpdated += HandlePresenceListUpdated;
 
         // Get current user ID (for presence selector sync)
         // var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         currentUserId = _authService.aspireUserId; // authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+
+
     }
 
     private void HandleReceiveMessage(PulseMessage msg)
     {
-        messages.Add(msg);
+        // messages.Add(msg);
         InvokeAsync(StateHasChanged);
     }
 
@@ -128,8 +132,15 @@
         }
         InvokeAsync(StateHasChanged);
     }
-    
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            messages = await dataTrf.GetgvUserMessages();
+            InvokeAsync(StateHasChanged);
+        }
+    }
     private async Task Send()
     {
         if (string.IsNullOrWhiteSpace(currentMessage)) return;
@@ -167,7 +178,7 @@
     public async ValueTask DisposeAsync()
     {
         MsgHubService.OnReceiveMessage -= HandleReceiveMessage;
-        MsgHubService.OnLoadHistory -= HandleLoadHistory;
+        // MsgHubService.OnLoadHistory -= HandleLoadHistory;
         MsgHubService.OnPresenceListUpdated -= HandlePresenceListUpdated;
     }
     private string GetPresenceText(PresenceStatus status) => status switch

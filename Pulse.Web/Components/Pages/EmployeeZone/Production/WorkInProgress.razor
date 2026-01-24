@@ -12,27 +12,24 @@
 @inject DataTransferService dataTrf
 @inject AppState AppState
 @inject IDialogService DialogService
-@inject IJSRuntime JS // For alerts or advanced JS interop
+@inject IJSRuntime JS
 @rendermode InteractiveServer
-
 
 <style>
     .cparent {
         display: flex;
-        flex-direction: column; /* Stack children vertically */
-        height: 100%; /* Or whatever height your parent should be, like 100% */
+        flex-direction: column;
+        height: 100%;
         width:100%;
     }
 
     .cheader, .cfooter {
-        /* Fixed sizes; flexbox will respect these */
-        min-height: 50px; /* Or min-height if you want flexibility */
-        /* background: lightgray; */
+        min-height: 50px;
     }
 
     .ccontent {
-        flex: 1; /* This magic makes it grow to fill the space */
-        background: white; /* rgba(255,255,255,0.3); */
+        flex: 1;
+        background: white;
         margin: 10px;
         padding: 10px;
         border-radius: 10px;
@@ -40,93 +37,155 @@
     }
 
     .wipfdgrselected {
-        background-color: #bcd1d4 !important; /* blue !important;*/
-        color: rgb(54,91,102) !important; /* white  !important;*/
+        background-color: #bcd1d4 !important;
+        color: rgb(54,91,102) !important;
     }
 
     .wipfdgrunselected {
         background-color: white;
         color: rgb(54,91,102) !important;
-        /* border-top: 1px solid rgb(54,91,102) !important;*/
     }
 
     .wipfdgrunselected:hover {
-            cursor: pointer;
-            /* background-color: rgb(54,91,102);
-            color: #bcd1d4 !important; */
+        cursor: pointer;
+    }
+
+    .filter-section {
+        background-color: #f5f5f5;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
+    }
+
+    .filter-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    @@media (max-width: 1200px) {
+        .filter-row {
+            grid-template-columns: 1fr 1fr;
         }
+    }
+
+    @@media (max-width: 768px) {
+        .filter-row {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
 
 <div class="cparent">
     <div class="cheader">
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="padding-top:15px;padding-left:15px;padding-right:15px;padding-bottom:0px">
-<FluentLabel Typo="Typography.Header" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgb(255,255,255)">Work In Progress for Division @Division.DivisionName</FluentLabel>
-<FluentSpacer />
-@* <FluentButton Appearance="Appearance.Accent" OnClick="AddToPlan" >Add To Plan</FluentButton> *@
-</FluentStack>
+            <FluentLabel Typo="Typography.Header" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgb(255,255,255)">Work In Progress for Division @Division.DivisionName</FluentLabel>
+            <FluentSpacer />
+            <FluentButton Appearance="Appearance.Neutral" OnClick="() => showFilter = !showFilter">
+                Filters
+            </FluentButton>
+        </FluentStack>
     </div>
     
-@if (wipItems is null)
-{
-    <div class="div-center-screen">
-        <FluentProgressRing />
-    </div>
-}
-else if (!wipItems.Any())
-{
-    <FluentMessageBar Severity="MessageSeverity.Info">No WIP items found.</FluentMessageBar>
-}
-else
-{
-    @* <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="background-color:white; border:1px solid black; border-radius:10px;margin:10px;padding:10px;" > *@
-    <div class="ccontent">
-        <FluentDataGrid Items="@wipItemsQueryable" 
-            TGridItem="WorkInProgressDto" 
-            GenerateHeader="GenerateHeaderOption.Sticky" 
-            SelectionMode="SelectionMode.Single"
-            SelectedItem="@selectedWO"
-                            RowClass="@(context => context == selectedWO ? "wipfdgrselected" : "wipfdgrunselected")"
-            ResizableColumns="true" 
-            Pagination="@pagination" 
+    @if (wipItems is null)
+    {
+        <div class="div-center-screen">
+            <FluentProgressRing />
+        </div>
+    }
+    else if (!wipItems.Any())
+    {
+        <FluentMessageBar Severity="MessageSeverity.Info">No WIP items found.</FluentMessageBar>
+    }
+    else
+    {
+        @if (showFilter)
+        {
             
-                        OnRowClick="OnWORowClick"
-            AutoFit="true">
-            <PropertyColumn Property="@(c => c.WorksOrderNo)" Sortable="true" Align="Align.Center" Title="WO No" />
-            <PropertyColumn Property="@(c => c.WorkTypeName)" Sortable="true" Title="Work Type" />
-            <PropertyColumn Property="@(c => c.ClientName)" Sortable="true" Title="Client" />
-            <PropertyColumn Property="@(c => c.Description)" Title="Description" />
-            <PropertyColumn Property="@(c => c.UndelQty)" Sortable="true" Align="Align.Center" Title="Qty" Format="#,##0.##" />
-            @* <PropertyColumn Property="@(c => c.MaterialCost)" Sortable="true" Title="Cost" Align="Align.End" Format="#,##0.00" /> <!-- Currency format -->
-            <PropertyColumn Property="@(c => c.SellPrice)" Sortable="true" Title="Sell Price" Align="Align.End" Format="#,##0.00" />
-            <PropertyColumn Property="@(c => c.ProductionStageID)" Sortable="false" Title="Stage ID" Align="Align.End"  /> *@
-            <PropertyColumn Property="@(c => c.ProductionStageName)" Sortable="true" Title="Stage" />
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                <FluentLabel Typo="Typography.H5">Filters</FluentLabel>
+                
+                <div class="filter-row">
+                    <FluentTextField @bind-Value="filterWONo" 
+                                     Label="WO No" 
+                                     Placeholder="Filter by Work Order..."
+                                     @oninput="@((ChangeEventArgs e) => { filterWONo = e.Value?.ToString() ?? string.Empty; ApplyFilters(); })" />
+                    
+                    <FluentTextField @bind-Value="filterClient" 
+                                     Label="Client" 
+                                     Placeholder="Filter by Client..."
+                                     @oninput="@((ChangeEventArgs e) => { filterClient = e.Value?.ToString() ?? string.Empty; ApplyFilters(); })" />
+                    
+                    <FluentTextField @bind-Value="filterWorkType" 
+                                     Label="Work Type" 
+                                     Placeholder="Filter by Work Type..."
+                                     @oninput="@((ChangeEventArgs e) => { filterWorkType = e.Value?.ToString() ?? string.Empty; ApplyFilters(); })" />
+                    
+                    <FluentTextField @bind-Value="filterStage" 
+                                     Label="Stage" 
+                                     Placeholder="Filter by Stage..."
+                                     @oninput="@((ChangeEventArgs e) => { filterStage = e.Value?.ToString() ?? string.Empty; ApplyFilters(); })" />
+                </div>
+
+                <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                    <FluentButton Appearance="Appearance.Neutral" OnClick="ClearFilters">
+                        Clear Filters
+                    </FluentButton>
+                    <FluentLabel Typo="Typography.Body" Style="color: #666;">
+                        Showing @filteredItems?.Count() of @wipItems?.Count() items
+                    </FluentLabel>
+                </FluentStack>
+            </FluentStack>
+        </div>
+        }
+        <!-- Data Grid -->
+        <div class="ccontent">
+            <FluentDataGrid Items="@filteredItemsQueryable" 
+                TGridItem="WorkInProgressDto" 
+                GenerateHeader="GenerateHeaderOption.Sticky" 
+                SelectionMode="SelectionMode.Single"
+                SelectedItem="@selectedWO"
+                RowClass="@(context => context == selectedWO ? "wipfdgrselected" : "wipfdgrunselected")"
+                ResizableColumns="true" 
+                Pagination="@pagination" 
+                OnRowClick="OnWORowClick"
+                AutoFit="true">
+                <PropertyColumn Property="@(c => c.WorksOrderNo)" Sortable="true" Align="Align.Center" Title="WO No" />
+                <PropertyColumn Property="@(c => c.WorkTypeName)" Sortable="true" Title="Work Type" />
+                <PropertyColumn Property="@(c => c.ClientName)" Sortable="true" Title="Client" />
+                <PropertyColumn Property="@(c => c.Description)" Title="Description" />
+                <PropertyColumn Property="@(c => c.UndelQty)" Sortable="true" Align="Align.Center" Title="Qty" Format="#,##0.##" />
+                <PropertyColumn Property="@(c => c.ProductionStageName)" Sortable="true" Title="Stage" />
                 <TemplateColumn Title="Plan" Style="padding:0px !important;">
                     <FluentIcon Value="@(new Icons.Filled.Size32.AddSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" OnClick="() => AddToPlan(context)" />
                     <FluentIcon Value="@(new Icons.Filled.Size32.CalendarEdit().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Accent))" OnClick="() => AddToPlan(context)" />
-                    @* <FluentEmoji Value="@(new Emojis.Objects.Color.Default.Calendar())" Width="32px" OnClick="() => AddToPlan(context)" /> *@
-                    @* <FluentButton Appearance="Appearance.Accent" OnClick="AddToPlan">Add To Plan</FluentButton> *@
                 </TemplateColumn>
-            @* <PropertyColumn Property="@(c => c.RequiredDate)" Sortable="true" Title="Required" Align="Align.Center" Format="dd/MM/yy" />
-            <PropertyColumn Property="@(c => c.WorkCentreName)" Sortable="true" Title="Work Centre" />
-            <PropertyColumn Property="@(c => c.DateStarted)" Sortable="true" Title="Started" Align="Align.Center" Format="dd/MM/yy" /> *@
-            
-            <!-- Add more columns as needed; omit if not displayed -->
-        </FluentDataGrid>
-        <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%" />
+            </FluentDataGrid>
+            <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%" />
         </div>
-    @* </FluentStack> *@
-}
-    
+    }
 </div>
 <FluentDialogProvider />
 
 @code {
     public Division? Division;
     private List<WorkInProgressDto>? wipItems;
-    private IQueryable<WorkInProgressDto>? wipItemsQueryable;
+    private List<WorkInProgressDto>? filteredItems;
+    private IQueryable<WorkInProgressDto>? filteredItemsQueryable;
     private WorkInProgressDto? selectedWO;
-    PaginationState pagination = new PaginationState { ItemsPerPage = 23 };
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 23 };
     private IDialogReference? _dialog;
+
+    // Filter state
+    private string filterWONo = string.Empty;
+    private string filterClient = string.Empty;
+    private string filterWorkType = string.Empty;
+    private string filterStage = string.Empty;
+    private bool showFilter = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -138,7 +197,6 @@ else
             showAi.showAli = true;
             await dataTrf.SetgvShowAI(showAi);
             await AppState.NotifyStateChanged();
-
         }
         catch (Exception ex)
         {
@@ -152,20 +210,55 @@ else
         {
             wipItems = await pApiClient.GetAsync<List<WorkInProgressDto>>($"/Divisions/{Division.DivisionID}/GetWIP");
             await dataTrf.SetgvSelectedDivisionWIP(wipItems);
-            wipItemsQueryable = wipItems?.AsQueryable();
+            filteredItems = wipItems?.ToList() ?? new();
+            filteredItemsQueryable = filteredItems.AsQueryable();
             StateHasChanged();
         }
     }
+
+    private void ApplyFilters()
+    {
+        if (wipItems == null) return;
+
+        filteredItems = wipItems
+            .Where(item => 
+                (string.IsNullOrWhiteSpace(filterWONo) || item.WorksOrderNo.ToString().Contains(filterWONo, StringComparison.OrdinalIgnoreCase)) &&
+                (string.IsNullOrWhiteSpace(filterClient) || (item.ClientName?.Contains(filterClient, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+                (string.IsNullOrWhiteSpace(filterWorkType) || (item.WorkTypeName?.Contains(filterWorkType, StringComparison.OrdinalIgnoreCase) ?? false)) &&
+                (string.IsNullOrWhiteSpace(filterStage) || (item.ProductionStageName?.Contains(filterStage, StringComparison.OrdinalIgnoreCase) ?? false))
+            )
+            .ToList();
+
+        filteredItemsQueryable = filteredItems.AsQueryable();
+        
+        // Reset pagination to first page by creating new PaginationState
+        pagination = new PaginationState { ItemsPerPage = 23 };
+        
+        StateHasChanged();
+    }
+
+    private void ClearFilters()
+    {
+        filterWONo = string.Empty;
+        filterClient = string.Empty;
+        filterWorkType = string.Empty;
+        filterStage = string.Empty;
+        
+        filteredItems = wipItems?.ToList() ?? new();
+        filteredItemsQueryable = filteredItems.AsQueryable();
+        
+        // Reset pagination to first page by creating new PaginationState
+        pagination = new PaginationState { ItemsPerPage = 23 };
+        
+        StateHasChanged();
+    }
+
     private void OnWORowClick(FluentDataGridRow<WorkInProgressDto> args)
     {
         try
         {
-
             selectedWO = args.Item;
-            if (selectedWO == null) { return; }
-
-
-            StateHasChanged();  // Ensure UI updates if needed
+            StateHasChanged();
         }
         catch (Exception ex)
         {
@@ -175,32 +268,28 @@ else
 
     private async Task AddToPlan(WorkInProgressDto wipWO)
     {
-        
-        //productionPlanItems = await pApiClient.GetWOProductionPlan(selectedWO.WorksOrderNo);
         _dialog = await DialogService.ShowPanelAsync<WOPlanDialog>(wipWO, new DialogParameters<WorkInProgressDto>()
-            {
-                Content = wipWO,
-                Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left, // Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right,
-                Title = "Work Order Production Plan",
-                PrimaryAction = "Add To Plan",
-                SecondaryAction = "Cancel",
-                Width="50%",
-            });
+        {
+            Content = wipWO,
+            Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left,
+            Title = "Work Order Production Plan",
+            PrimaryAction = "Add To Plan",
+            SecondaryAction = "Cancel",
+            Width = "50%",
+        });
         Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
         HandlePanel(result);
-
     }
+
     private static void HandlePanel(Microsoft.FluentUI.AspNetCore.Components.DialogResult result)
     {
         if (result.Cancelled)
         {
-            
             return;
         }
 
         if (result.Data is not null)
         {
-            
             return;
         }
     }

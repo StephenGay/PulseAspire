@@ -1,0 +1,305 @@
+﻿@page "/AdminZone/RoleManagementPg"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users
+@using Pulse.Models.Api
+@using Pulse.Web.Services
+
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject PulseApiService ApiService
+@inject ILogger<RoleManagementPg> Logger
+
+<div style="padding: 20px;">
+    <!-- User Role Assignment Section -->
+    <FluentCard Height="50%">
+
+        <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
+            <h2 style="margin: 0; color: white;">Assign Roles to Users</h2>
+        </FluentHeader>
+
+        @if (isLoadingUsers)
+        {
+            <FluentProgressRing></FluentProgressRing>
+            <p>Loading users...</p>
+        }
+        else if (users?.Any() == true)
+        {
+            <FluentDataGrid Items="@users.AsQueryable()"
+                            TItem="UserRoleDto"
+                            ResizableColumns="true"
+                            Pagination="@pagination">
+
+                <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+
+                <TemplateColumn Title="Current Roles" Context="user">
+                    @if (user.Roles?.Any() == true)
+                    {
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            @foreach (var role in user.Roles)
+                            {
+                                <FluentBadge Appearance="Appearance.Accent">@role</FluentBadge>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <span style="color: #999;">No roles assigned</span>
+                    }
+                </TemplateColumn>
+
+                <TemplateColumn Title="Add Role" Context="user">
+                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; align-items: center;">
+                        <FluentSelect Items="@roles"
+                                      OptionText="@(r => r)"
+                                      OptionValue="@(r => r)"
+                                      @onchange="@((ChangeEventArgs e) => OnRoleSelected(user.Id, e.Value?.ToString() ?? string.Empty))"
+                                      Style="min-width: 150px;">
+                            <FluentOption Value="">-- Select Role --</FluentOption>
+                        </FluentSelect>
+
+                        <FluentButton @onclick="() => AssignRoleAsync(user.Id, GetSelectedRole(user.Id))"
+                                      Appearance="Appearance.Accent"
+                                      Size="ButtonSize.Small"
+                                      Disabled="@(string.IsNullOrEmpty(GetSelectedRole(user.Id)) || isAssigningRole)">
+                            Assign
+                        </FluentButton>
+                    </FluentStack>
+                </TemplateColumn>
+            </FluentDataGrid>
+
+            <FluentPaginator State="@pagination" Style="margin-top: 20px;"></FluentPaginator>
+        }
+        else
+        {
+            <FluentMessageBar Severity="MessageSeverity.Warning">
+                No users found in the system.
+            </FluentMessageBar>
+        }
+    </FluentCard >
+    
+    <FluentCard Style="margin-bottom: 20px;">
+        <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
+            <h2 style="margin: 0; color: white;">Role Management</h2>
+        </FluentHeader>
+
+        <FluentStack Orientation="Orientation.Vertical" Style="gap: 20px;">
+            <!-- Create New Role Section -->
+            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
+                <div style="flex: 1;">
+                    <FluentTextField @bind-Value="newRoleName"
+                                     Label="New Role Name"
+                                     Placeholder="e.g., Manager, Supervisor"
+                                     Style="width: 100%;" />
+                </div>
+                <FluentButton @onclick="CreateRoleAsync"
+                              Appearance="Appearance.Accent"
+                              Disabled="@(string.IsNullOrWhiteSpace(newRoleName) || isCreatingRole)">
+                    @(isCreatingRole ? "Creating..." : "Create Role")
+                </FluentButton>
+            </FluentStack>
+
+            <!-- Messages -->
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <FluentMessageBar Severity="MessageSeverity.Success"
+                                  OnDismiss="() => successMessage = string.Empty">
+                    @successMessage
+                </FluentMessageBar>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <FluentMessageBar Severity="MessageSeverity.Error"
+                                  OnDismiss="() => errorMessage = string.Empty">
+                    @errorMessage
+                </FluentMessageBar>
+            }
+
+            <!-- Existing Roles Section -->
+            <div>
+                <h3>Existing Roles (@(roles?.Count ?? 0))</h3>
+                @if (roles?.Any() == true)
+                {
+                    <FluentDataGrid Items="@roles.AsQueryable()" TItem="string" ResizableColumns="true">
+                        <PropertyColumn Property="@(r => r)" Title="Role Name" />
+                    </FluentDataGrid>
+                }
+                else
+                {
+                    <FluentMessageBar Severity="MessageSeverity.Warning">
+                        No roles found. Create your first role above.
+                    </FluentMessageBar>
+                }
+            </div>
+        </FluentStack>
+    </FluentCard>
+
+    
+</div>
+
+@code {
+    private List<string> roles = new();
+    private List<UserRoleDto> users = new();
+    private string newRoleName = string.Empty;
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isCreatingRole = false;
+    private bool isLoadingUsers = false;
+    private bool isAssigningRole = false;
+
+    private Dictionary<string, string> selectedRoleForUser = new();
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRolesAsync();
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadRolesAsync()
+    {
+        try
+        {
+            errorMessage = string.Empty;
+            var apiResponse = await ApiService.GetAsync<ApiResponse<List<string>>>("/Security/roles");
+            roles = apiResponse?.Data ?? new();
+            Logger.LogInformation("Loaded {Count} roles", roles.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load roles");
+            errorMessage = "Failed to load roles. Please try again.";
+        }
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        try
+        {
+            isLoadingUsers = true;
+            errorMessage = string.Empty;
+            var apiResponse = await ApiService.GetAsync<ApiResponse<List<UserRoleDto>>>("/Security/users");
+            users = apiResponse?.Data ?? new();
+
+            // Initialize role selection dictionary
+            foreach (var user in users)
+            {
+                selectedRoleForUser.TryAdd(user.Id, string.Empty);
+            }
+
+            Logger.LogInformation("Loaded {Count} users", users.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load users");
+            errorMessage = "Failed to load users. Please try again.";
+        }
+        finally
+        {
+            isLoadingUsers = false;
+        }
+    }
+
+    private async Task CreateRoleAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newRoleName))
+        {
+            errorMessage = "Role name cannot be empty.";
+            return;
+        }
+
+        try
+        {
+            isCreatingRole = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            await ApiService.AddNewRoleAsync(newRoleName);
+
+            successMessage = $"Role '{newRoleName}' created successfully.";
+            newRoleName = string.Empty;
+
+            await LoadRolesAsync();
+            Logger.LogInformation("Role created: {RoleName}", newRoleName);
+        }
+        catch (PulseApiException ex)
+        {
+            Logger.LogError(ex, "API error creating role: {Message}", ex.UserMessage);
+            errorMessage = ex.UserMessage ?? "Failed to create role.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error creating role");
+            errorMessage = "An unexpected error occurred while creating the role.";
+        }
+        finally
+        {
+            isCreatingRole = false;
+        }
+    }
+
+    private async Task AssignRoleAsync(string userId, string roleName)
+    {
+        if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(roleName))
+        {
+            errorMessage = "Please select a role to assign.";
+            return;
+        }
+
+        try
+        {
+            isAssigningRole = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            await ApiService.AssignRoleToUserAsync(userId, roleName);
+
+            successMessage = $"Role '{roleName}' assigned successfully.";
+            selectedRoleForUser[userId] = string.Empty;
+
+            await LoadUsersAsync();
+            Logger.LogInformation("Role assigned - UserId: {UserId}, Role: {RoleName}", userId, roleName);
+        }
+        catch (PulseApiException ex)
+        {
+            Logger.LogError(ex, "API error assigning role: {Message}", ex.UserMessage);
+            errorMessage = ex.UserMessage ?? "Failed to assign role.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error assigning role");
+            errorMessage = "An unexpected error occurred while assigning the role.";
+        }
+        finally
+        {
+            isAssigningRole = false;
+        }
+    }
+
+    /// <summary>
+    /// Handle role selection change event
+    /// </summary>
+    private void OnRoleSelected(string userId, string roleName)
+    {
+        if (selectedRoleForUser.ContainsKey(userId))
+        {
+            selectedRoleForUser[userId] = roleName;
+        }
+        else
+        {
+            selectedRoleForUser.Add(userId, roleName);
+        }
+    }
+
+    /// <summary>
+    /// Get the selected role for a user
+    /// </summary>
+    private string GetSelectedRole(string userId)
+    {
+        return selectedRoleForUser.TryGetValue(userId, out var role) ? role : string.Empty;
+    }
+
+    
+}

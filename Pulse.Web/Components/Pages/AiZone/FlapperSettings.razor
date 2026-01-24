@@ -17,7 +17,7 @@
 }
 else
 {
-    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="margin-top: 20px;margin-bottom: 50px;margin-left: 0px;margin-right: 10px;">
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="10" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="margin-top: 20px;margin-bottom: 5px;margin-left: 0px;margin-right: 10px;">
 
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="padding: 10px">
             <FluentLabel Typo="Typography.Body" Style="color:var(--pulse-dark-colour)">AI Model : </FluentLabel>
@@ -27,14 +27,16 @@ else
             <option value="@model">@model</option>
         }
     </select>
+    <FluentSpacer />
+            <FluentButton OnClick="UpdateModel">Update</FluentButton>
     </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
     <FluentSlider Min="0" Max="1.0" Step="0.1" @bind-Value=flapper.Options.Temperature Label="Temperature">
-        <FluentSliderLabel Position="0.2">Factual</FluentSliderLabel>
-        <FluentSliderLabel Position="0.8">Creative</FluentSliderLabel>
+        <FluentSliderLabel Position="0.05">Factual</FluentSliderLabel>
+        <FluentSliderLabel Position="0.95">Creative</FluentSliderLabel>
     </FluentSlider>
     </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
             <FluentSlider Min="0" Max="128000" Step="1000" @bind-Value=flapper.Options.NumCtx Label="Context Window Size">
                 <FluentSliderLabel Position="0">0</FluentSliderLabel>
                 @* <FluentSliderLabel Position="16000">16K</FluentSliderLabel> *@
@@ -47,27 +49,27 @@ else
                 <FluentSliderLabel Position="128000">128000</FluentSliderLabel>
             </FluentSlider>
         </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
     <FluentSlider Min="-1" Max="300" Step="10" @bind-Value=flapper.Options.NumPredict Label="Num Predict (Max Tokens)">
         <FluentSliderLabel Position="-1">Max</FluentSliderLabel>
         <FluentSliderLabel Position="50">50</FluentSliderLabel>
         <FluentSliderLabel Position="300">300</FluentSliderLabel>
     </FluentSlider>
     </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
     <FluentSlider Min="0" Max="2" Step="0.1" @bind-Value=flapper.Options.RepeatPenalty Label="Repeat Penalty">
         <FluentSliderLabel Position="0">None</FluentSliderLabel>
         <FluentSliderLabel Position="1">Normal</FluentSliderLabel>
         <FluentSliderLabel Position="2">Harsh</FluentSliderLabel>
     </FluentSlider>
     </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
     <FluentSlider Min="0" Max="3" Step="0.2" @bind-Value=flapper.Options.PresencePenalty Label="Presence Penalty">
         <FluentSliderLabel Position="0">Consistant</FluentSliderLabel>
         <FluentSliderLabel Position="3">New Ideas</FluentSliderLabel>
     </FluentSlider>
     </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="100" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 50px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 10px">
     @if(flapper.Model == "gpt-oss:latest")
     {
         <FluentLabel Typo="Typography.Body" Style="color:var(--pulse-dark-colour)">Thinking Level</FluentLabel>
@@ -81,7 +83,7 @@ else
     </FluentStack>
 }
         
-<FluentButton OnClick="UpdateModel">Update</FluentButton>
+
 
  @* </FluentDialogBody>  *@
 @code {
@@ -97,5 +99,5 @@ else
     {
         await dtrf.SetgvFlapper(flapper);
     }
-    }
 }
+

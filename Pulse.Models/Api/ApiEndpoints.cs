@@ -18,7 +18,8 @@
             public const string Register = $"{Prefix}/register";
             public const string Logout = $"{Prefix}/logout";
             public const string RefreshToken = $"{Prefix}/refresh-token";
-            public const string CreateRole = $"{Prefix}/create-role";
+            public const string CreateRole = $"{Prefix}/roles";
+            public const string GetAllUsers = $"{Prefix}/users";
             public const string AssignRole = $"{Prefix}/assign-role";
             public const string RemoveRole = $"{Prefix}/remove-role";
             public const string GetRoles = $"{Prefix}/roles";

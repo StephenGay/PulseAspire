@@ -64,6 +64,6 @@ namespace Pulse.Models.Production
         public Period? Period { get; set; }
         public Division? Division { get; set; }
         public ProductionStage? ProductionStage { get; set; }
-        public ICollection<ProductionPlanItem> ProductionPlanItems { get; set; }
+        public ICollection<ProductionPlanItem> ProductionPlanItems { get; set; } = [];
     }
 }

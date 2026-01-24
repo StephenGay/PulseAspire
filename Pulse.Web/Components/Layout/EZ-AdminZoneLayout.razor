@@ -1,0 +1,34 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.AspNetCore.Components
+@using Pulse.Models.Customers
+@using Pulse.Models.Organizational
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+@using BootstrapBlazor
+@using BootstrapBlazor.Components
+
+@using System.Threading.Tasks
+@using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16
+@inject DataTransferService dataTrf
+@inject Pulse.Web.Services.Pulse_AI pAI
+@inherits LayoutComponentBase
+@layout MasterLayout
+ 
+<style>
+.cparent {
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  height: calc(100%-56px); /* Or whatever height your parent should be, like 100% */
+}
+</style>
+@* <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="min-height:100%" >  *@
+    <EZ_AdminNavMenu />
+    @Body
+@* </FluentStack> *@
+
+@code{
+    [CascadingParameter]
+    public MasterLayout? masterLayout { get; set; }
+
+    
+}

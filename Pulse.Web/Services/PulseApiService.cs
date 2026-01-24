@@ -37,7 +37,7 @@ namespace Pulse.Web.Services
 
         #region Core HTTP Methods
 
-        public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default)
+        public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default) 
             where T : class
         {
             ArgumentException.ThrowIfNullOrEmpty(requestUri);
@@ -46,24 +46,33 @@ namespace Pulse.Web.Services
             {
                 _logger.LogDebug("GET request to {RequestUri}", requestUri);
                 var response = await _httpClient.GetAsync(requestUri, ct);
-
+                
                 response.EnsureSuccessStatusCode();
                 var content = await response.Content.ReadAsStringAsync(ct);
+                
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    _logger.LogWarning("Empty response body from {RequestUri}", requestUri);
+                    return null;
+                }
 
                 return JsonSerializer.Deserialize<T>(content, _jsonOptions);
             }
             catch (HttpRequestException ex)
             {
+                _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}", 
+                    requestUri, ex.StatusCode);
                 throw new PulseApiException(
-                    $"Failed to fetch from {requestUri}",
+                    $"HTTP request failed: {ex.StatusCode}",
                     requestUri,
                     ex.StatusCode,
                     innerException: ex);
             }
             catch (JsonException ex)
             {
+                _logger.LogError(ex, "JSON deserialization failed for {RequestUri}", requestUri);
                 throw new PulseApiException(
-                    $"Invalid JSON response from {requestUri}",
+                    "Invalid JSON response from server",
                     requestUri,
                     innerException: ex);
             }
@@ -75,9 +84,9 @@ namespace Pulse.Web.Services
         }
 
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(
-            string requestUri,
-            TRequest payload,
-            CancellationToken ct = default)
+            string requestUri, 
+            TRequest payload, 
+            CancellationToken ct = default) 
             where TResponse : class
         {
             ArgumentException.ThrowIfNullOrEmpty(requestUri);
@@ -87,26 +96,97 @@ namespace Pulse.Web.Services
             {
                 _logger.LogDebug("POST request to {RequestUri}", requestUri);
                 var response = await _httpClient.PostAsJsonAsync(requestUri, payload, ct);
+                
+                // Read response content first
+                var content = await response.Content.ReadAsStringAsync(ct);
+                
+                _logger.LogDebug("Response Status: {StatusCode}, Content Length: {ContentLength}", 
+                    response.StatusCode, content.Length);
 
+                // Log response for debugging if not successful
                 if (!response.IsSuccessStatusCode)
                 {
-                    await HandleApiErrorAsync(response, requestUri, ct);
+                    _logger.LogWarning("API returned {StatusCode}: {Content}", 
+                        response.StatusCode, content[..Math.Min(500, content.Length)]);
+                    
+                    if (string.IsNullOrWhiteSpace(content))
+                    {
+                        throw new PulseApiException(
+                            "API returned error with no response body",
+                            requestUri,
+                            response.StatusCode);
+                    }
+
+                    // Try to parse error response
+                    try
+                    {
+                        var errorResponse = JsonSerializer.Deserialize<ApiResponse>(content, _jsonOptions);
+                        throw PulseApiException.FromApiResponse(errorResponse ?? new ApiResponse(), requestUri);
+                    }
+                    catch (JsonException)
+                    {
+                        // Not JSON - might be HTML error page
+                        throw new PulseApiException(
+                            $"API returned error ({response.StatusCode}): {content[..Math.Min(200, content.Length)]}",
+                            requestUri,
+                            response.StatusCode);
+                    }
                 }
 
-                return await response.Content.ReadFromJsonAsync<TResponse>(_jsonOptions, ct);
+                // Validate success response has content
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    _logger.LogWarning("Success response but empty content from {RequestUri}", requestUri);
+                    throw new PulseApiException(
+                        "API returned empty response body",
+                        requestUri,
+                        response.StatusCode);
+                }
+
+                // Deserialize response
+                try
+                {
+                    _logger.LogDebug("Deserializing response: {Content}", content[..Math.Min(200, content.Length)]);
+                    return JsonSerializer.Deserialize<TResponse>(content, _jsonOptions);
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Failed to deserialize response from {RequestUri}. Content: {Content}", 
+                        requestUri, content[..Math.Min(500, content.Length)]);
+                    throw new PulseApiException(
+                        $"Invalid JSON response from API: {ex.Message}",
+                        requestUri,
+                        response.StatusCode,
+                        content[..Math.Min(200, content.Length)],
+                        ex);
+                }
             }
             catch (HttpRequestException ex)
             {
+                _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}", 
+                    requestUri, ex.StatusCode);
                 throw new PulseApiException(
-                    $"POST request failed to {requestUri}",
+                    $"Connection failed: {ex.StatusCode}",
                     requestUri,
                     ex.StatusCode,
                     innerException: ex);
             }
+            catch (PulseApiException)
+            {
+                throw; // Re-throw our custom exceptions
+            }
             catch (OperationCanceledException ex)
             {
                 _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", requestUri);
-                throw;
+                throw new PulseApiException("Request was cancelled", requestUri, innerException: ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in PostAsync for {RequestUri}", requestUri);
+                throw new PulseApiException(
+                    $"Unexpected error: {ex.GetType().Name}",
+                    requestUri,
+                    innerException: ex);
             }
         }
 
@@ -324,8 +404,9 @@ namespace Pulse.Web.Services
             CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrEmpty(roleName);
-            return await PostAsync<string, string>(
+            var response = await PostAsync<string, ApiResponse<string>>(
                 ApiEndpoints.Security.CreateRole, roleName, ct);
+            return response?.Data;
         }
 
         public async Task<bool> AssignRoleToUserAsync(
@@ -337,8 +418,14 @@ namespace Pulse.Web.Services
             ArgumentException.ThrowIfNullOrEmpty(roleName);
 
             var payload = new { userId, roleName };
-            await PostAsync<object, object>(ApiEndpoints.Security.AssignRole, payload, ct);
+            await PostAsync<object, ApiResponse<string>>(
+                ApiEndpoints.Security.AssignRole, payload, ct);
             return true;
+        }
+
+        public async Task<bool> DeleteUserAsync(string userId, CancellationToken ct = default)
+        {
+            return await DeleteAsync($"/Security/users/{userId}", ct);
         }
 
         #endregion

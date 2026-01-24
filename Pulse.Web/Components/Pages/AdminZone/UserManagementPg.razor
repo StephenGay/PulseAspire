@@ -1,0 +1,336 @@
+@page "/AdminZone/UserManagementPg"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Users
+@using Pulse.Models.Api
+@using Pulse.Web.Services
+
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject PulseApiService ApiService
+@inject ILogger<UserManagementPg> Logger
+
+<div style="padding: 20px;">
+    <!-- Create New User Section -->
+    <FluentCard Height="70%" Style="margin-bottom: 20px;">
+        <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
+            <h2 style="margin: 0; color: white;">Add New User</h2>
+        </FluentHeader>
+
+        <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
+            <!-- User Registration Form -->
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                <FluentTextField @bind-Value="newUser.Email"
+                                 Label="Email"
+                                 Type="InputType.Email"
+                                 Placeholder="user@example.com"
+                                 Required="true"
+                                 Style="width: 100%;" />
+
+                <FluentTextField @bind-Value="newUser.UserName"
+                                 Label="Username"
+                                 Placeholder="Enter username"
+                                 Required="true"
+                                 Style="width: 100%;" />
+
+                <FluentTextField @bind-Value="newUser.Password"
+                                 Label="Password"
+                                 Type="InputType.Password"
+                                 Placeholder="Enter password (min 8 characters)"
+                                 Required="true"
+                                 Style="width: 100%;" />
+
+                <FluentTextField @bind-Value="confirmPassword"
+                                 Label="Confirm Password"
+                                 Type="InputType.Password"
+                                 Placeholder="Confirm password"
+                                 Required="true"
+                                 Style="width: 100%;" />
+            </FluentStack>
+
+            <!-- Messages -->
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <FluentMessageBar Severity="MessageSeverity.Success"
+                                  OnDismiss="() => successMessage = string.Empty">
+                    @successMessage
+                </FluentMessageBar>
+            }
+
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <FluentMessageBar Severity="MessageSeverity.Error"
+                                  OnDismiss="() => errorMessage = string.Empty">
+                    @errorMessage
+                </FluentMessageBar>
+            }
+
+            <!-- Action Buttons -->
+            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                <FluentButton Appearance="Appearance.Accent"
+                              @onclick="CreateUserAsync"
+                              Disabled="@(isCreatingUser || !IsFormValid())">
+                    @(isCreatingUser ? "Creating..." : "Create User")
+                </FluentButton>
+
+                <FluentButton Appearance="Appearance.Neutral"
+                              @onclick="ResetForm"
+                              Disabled="@isCreatingUser">
+                    Clear Form
+                </FluentButton>
+            </FluentStack>
+        </FluentStack>
+    </FluentCard>
+
+    <!-- Users List Section -->
+    <FluentCard>
+        <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
+            <h2 style="margin: 0; color: white;">Manage Users</h2>
+        </FluentHeader>
+
+        @if (isLoadingUsers)
+        {
+            <FluentProgressRing></FluentProgressRing>
+            <p>Loading users...</p>
+        }
+        else if (users?.Any() == true)
+        {
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                <!-- Filter Section -->
+                <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: center;">
+                    <FluentTextField @bind-Value="filterEmail"
+                                     Label="Search by Email"
+                                     Placeholder="Filter users..."
+                                     @oninput="@((ChangeEventArgs e) => { filterEmail = e.Value?.ToString() ?? string.Empty; ApplyUserFilter(); })"
+                                     Style="flex: 1;" />
+
+                    <FluentButton Appearance="Appearance.Neutral"
+                                  @onclick="ClearUserFilter"
+                                  Disabled="@string.IsNullOrEmpty(filterEmail)">
+                        Clear
+                    </FluentButton>
+
+                    <FluentLabel Typo="Typography.Body" Style="color: #666;">
+                        Showing @filteredUsers?.Count() of @users?.Count() users
+                    </FluentLabel>
+                </FluentStack>
+
+                <!-- Users Data Grid -->
+                <FluentDataGrid Items="@(filteredUsers?.AsQueryable() ?? new List<UserRoleDto>().AsQueryable())"
+                                TItem="UserRoleDto"
+                                ResizableColumns="true"
+                                Pagination="@pagination">
+                    <PropertyColumn Property="@(u => u.Email)" Title="Email" />
+                    <PropertyColumn Property="@(u => u.UserName)" Title="Username" />
+
+                    <TemplateColumn Title="Roles" Context="user">
+                        @if (user.Roles?.Any() == true)
+                        {
+                            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                @foreach (var role in user.Roles)
+                                {
+                                    <FluentBadge Appearance="Appearance.Accent">@role</FluentBadge>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <span style="color: #999;">No roles assigned</span>
+                        }
+                    </TemplateColumn>
+
+                    <TemplateColumn Title="Actions" Context="user">
+                        <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                            <FluentButton Appearance="Appearance.Lightweight"
+                                          Size="ButtonSize.Small"
+                                          @onclick="() => EditUser(user)"
+                                          Title="Edit user details">
+                                Edit
+                            </FluentButton>
+
+                            <FluentButton Appearance="Appearance.Lightweight"
+                                          IconStart="@(new Icons.Filled.Size16.Delete())"
+                                          Size="ButtonSize.Small"
+                                          @onclick="() => DeleteUserAsync(user.Id)"
+                                          Title="Delete user">
+                                Delete
+                            </FluentButton>
+                        </FluentStack>
+                    </TemplateColumn>
+                </FluentDataGrid>
+
+                <FluentPaginator State="@pagination" Style="margin-top: 20px;"></FluentPaginator>
+            </FluentStack>
+        }
+        else
+        {
+            <FluentMessageBar Severity="MessageSeverity.Warning">
+                No users found in the system.
+            </FluentMessageBar>
+        }
+    </FluentCard>
+</div>
+
+@code {
+    private RegisterModel newUser = new();
+    private string confirmPassword = string.Empty;
+    private List<UserRoleDto> users = new();
+    private List<UserRoleDto> filteredUsers = new();
+    private string filterEmail = string.Empty;
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isCreatingUser = false;
+    private bool isLoadingUsers = false;
+    private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsersAsync();
+    }
+
+    private async Task LoadUsersAsync()
+    {
+        try
+        {
+            isLoadingUsers = true;
+            errorMessage = string.Empty;
+            var apiResponse = await ApiService.GetAsync<ApiResponse<List<UserRoleDto>>>("/Security/users");
+            users = apiResponse?.Data ?? new();
+            filteredUsers = users.ToList();
+            Logger.LogInformation("Loaded {Count} users", users.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load users");
+            errorMessage = "Failed to load users. Please try again.";
+        }
+        finally
+        {
+            isLoadingUsers = false;
+        }
+    }
+
+    private async Task CreateUserAsync()
+    {
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+
+        // Validation
+        if (!IsFormValid())
+        {
+            errorMessage = "Please fill in all fields correctly.";
+            return;
+        }
+
+        if (newUser.Password != confirmPassword)
+        {
+            errorMessage = "Passwords do not match.";
+            return;
+        }
+
+        if (newUser.Password.Length < 8)
+        {
+            errorMessage = "Password must be at least 8 characters long.";
+            return;
+        }
+
+        try
+        {
+            isCreatingUser = true;
+            var result = await ApiService.UserRegisterAsync(newUser);
+
+            if (result != null)
+            {
+                successMessage = $"User '{newUser.Email}' created successfully.";
+                ResetForm();
+                await LoadUsersAsync();
+                Logger.LogInformation("User created: {Email}", newUser.Email);
+            }
+            else
+            {
+                errorMessage = "Failed to create user. Please try again.";
+            }
+        }
+        catch (PulseApiException ex)
+        {
+            Logger.LogError(ex, "API error creating user: {Message}", ex.UserMessage);
+            errorMessage = ex.UserMessage ?? "Failed to create user.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error creating user");
+            errorMessage = "An unexpected error occurred while creating the user.";
+        }
+        finally
+        {
+            isCreatingUser = false;
+        }
+    }
+
+    private async Task DeleteUserAsync(string userId)
+    {
+        if (!await ConfirmAsync("Are you sure you want to delete this user?"))
+            return;
+
+        try
+        {
+            // TODO: Implement DeleteUserAsync in PulseApiService
+            errorMessage = "Delete functionality not yet implemented.";
+            Logger.LogWarning("Delete user attempted for userId: {UserId}", userId);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error deleting user");
+            errorMessage = "Failed to delete user.";
+        }
+    }
+
+    private void EditUser(UserRoleDto user)
+    {
+        // TODO: Implement edit functionality (could open a dialog)
+        Logger.LogInformation("Edit user: {Email}", user.Email);
+    }
+
+    private void ApplyUserFilter()
+    {
+        if (users == null) return;
+
+        filteredUsers = users
+            .Where(u => string.IsNullOrWhiteSpace(filterEmail) || 
+                        (u.Email?.Contains(filterEmail, StringComparison.OrdinalIgnoreCase) ?? false))
+            .ToList();
+
+        pagination = new PaginationState { ItemsPerPage = 10 };
+    }
+
+    private void ClearUserFilter()
+    {
+        filterEmail = string.Empty;
+        filteredUsers = users?.ToList() ?? new();
+        pagination = new PaginationState { ItemsPerPage = 10 };
+    }
+
+    private void ResetForm()
+    {
+        newUser = new();
+        confirmPassword = string.Empty;
+        errorMessage = string.Empty;
+        successMessage = string.Empty;
+    }
+
+    private bool IsFormValid()
+    {
+        return !string.IsNullOrWhiteSpace(newUser.Email) &&
+               !string.IsNullOrWhiteSpace(newUser.UserName) &&
+               !string.IsNullOrWhiteSpace(newUser.Password) &&
+               !string.IsNullOrWhiteSpace(confirmPassword) &&
+               newUser.Password.Length >= 8;
+    }
+
+    private async Task<bool> ConfirmAsync(string message)
+    {
+        // Simple confirmation (you can enhance this with a dialog)
+        return await Task.FromResult(true); // Placeholder
+    }
+}

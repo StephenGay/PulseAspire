@@ -19,9 +19,8 @@ namespace Pulse.Models.Geographic
         public required string ProvinceName { get; set; }
         [Required]
         public required int CountryID { get; set; }
-        [Required]
-        public required Country Country { get; set; }
         public bool IsActive { get; set; } = true;
+        public Country? Country { get; set; }
         public ICollection<Region>? Regions { get; set; } = new HashSet<Region>();
     }
 }

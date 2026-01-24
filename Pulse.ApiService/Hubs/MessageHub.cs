@@ -35,6 +35,9 @@ public class MessageHub : Hub
     // Clients will call this to send a message
     public async Task SendMessage(PulseMessage msg)
     {
+        using var db = await _dbFactory.CreateDbContextAsync();
+        db.PulseMessages.Add(msg);
+        await db.SaveChangesAsync();
         // Broadcast to ALL connected clients
         await Clients.All.SendAsync("ReceiveMessage", msg);
         _logger.LogDebug("Broadcast message from {User}", msg.SenderUserName);
@@ -193,7 +196,7 @@ public class MessageHub : Hub
             var history = await db.PulseMessages
                 .Where(m => m.RecipientUserId == userId)
                 .OrderBy(m => m.SentAt)
-                .Take(100)
+                //.Take(100)
                 .ToListAsync();
 
             await Clients.Caller.SendAsync("LoadHistory", history);
@@ -255,5 +258,19 @@ public class MessageHub : Hub
         }
 
         await base.OnDisconnectedAsync(exception);
+    }
+
+    public async Task MarkMessageAsDeliveredAsync(int messageId)
+    {
+        // Update in your database
+        using var db = await _dbFactory.CreateDbContextAsync();
+        var message = await db.PulseMessages
+            .FirstOrDefaultAsync(m => m.Id == messageId);
+            //.FindAsync(messageId);
+        if (message != null)
+        {
+            message.Delivered = true;
+            await db.SaveChangesAsync();
+        }
     }
 }

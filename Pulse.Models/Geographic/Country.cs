@@ -20,9 +20,7 @@ namespace Pulse.Models.Geographic
         [Required]
         public required int ContinentID { get; set; }
         public bool IsActive { get; set; } = true;
-        [Required]
-        public required Continent Continent { get; set; }
-        public ICollection<Province>? Provinces { get; set; } = new HashSet<Province>(); 
-
+        public Continent Continent { get; set; } = null!;
+        public ICollection<Province> Provinces { get; set; } = [];
     }
 }

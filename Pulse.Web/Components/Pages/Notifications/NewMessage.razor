@@ -1,0 +1,57 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.CustomComponents
+
+@inject MessageHubService MsgHubService
+
+@implements IDialogContentComponent<PulseMessage>
+
+<FluentDialogBody>
+     @if(Content != null && isLoaded)
+    { 
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Stretch" Width="100%">
+            <FluentLabel Typo="Typography.EmailHeader" Style="color:var(--pulse-dark-colour)">@Content.RecipientUserId</FluentLabel>
+            <FluentLabel Typo="Typography.EmailHeader" Style="color:var(--pulse-dark-colour)">@Content.SenderUserId</FluentLabel>
+            <FluentLabel Typo="Typography.EmailHeader" Style="color:var(--pulse-dark-colour)">@Content.SenderUserName</FluentLabel>
+            <FluentTextArea Rows="4" Style="width:100%;color:var(--pulse-dark-colour)" @bind-Value="Content.Content"></FluentTextArea>
+            <FluentButton Appearance="Appearance.Accent" @onclick="Send" Disabled="@isSending">Send</FluentButton>
+        </FluentStack>
+     }
+     else
+     {
+        <FluentProgressRing />
+     }
+
+</FluentDialogBody>
+
+@code {
+    [Parameter]
+    public PulseMessage Content { get; set; } = default!;
+    
+    private bool isSending = false;
+    private bool isLoaded = false;
+
+    private async Task Send()
+    {
+        if (string.IsNullOrWhiteSpace(Content.Content)) return;
+
+        isSending = true;
+        try
+        {
+            await MsgHubService.SendMessageAsync(Content);
+        }
+        finally
+        {
+            isSending = false;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (Content != null)
+        {
+            // Perform any async initialization here (e.g., loading data, validation)
+            // await Task.Delay(100); // Example async operation
+            isLoaded = true;
+        }
+    }
+}
