@@ -130,7 +130,7 @@ namespace Pulse.Web.Services
         }
 
         public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default)
-    where T : class
+        where T : class
         {
             ArgumentException.ThrowIfNullOrEmpty(requestUri);
 
@@ -169,9 +169,9 @@ namespace Pulse.Web.Services
 
 
         public async IAsyncEnumerable<string> PostStreamAsync(
-    string requestUri,
-    object payload,
-    [EnumeratorCancellation] CancellationToken ct = default)
+            string requestUri,
+            object payload,
+            [EnumeratorCancellation] CancellationToken ct = default)
         {
             ArgumentException.ThrowIfNullOrEmpty(requestUri);
             ArgumentNullException.ThrowIfNull(payload);
@@ -372,18 +372,18 @@ namespace Pulse.Web.Services
     }
 
     // Add these response models if not already present
-    public class OllamaTagsResponse
-    {
-        [JsonPropertyName("models")]
-        public List<OllamaModel> Models { get; set; } = new();
-    }
+    //public class OllamaTagsResponse
+    //{
+    //    [JsonPropertyName("models")]
+    //    public List<OllamaModel> Models { get; set; } = new();
+    //}
 
-    public class OllamaModel
-    {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+    //public class OllamaModel
+    //{
+    //    [JsonPropertyName("name")]
+    //    public string Name { get; set; } = string.Empty;
 
-        [JsonPropertyName("size")]
-        public long Size { get; set; }
-    }
+    //    [JsonPropertyName("size")]
+    //    public long Size { get; set; }
+    //}
 }

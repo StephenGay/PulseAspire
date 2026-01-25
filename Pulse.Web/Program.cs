@@ -38,6 +38,7 @@ builder.Services.AddScoped<OllamaService>();
 builder.Services.AddScoped<DataTransferService>();
 builder.Services.AddScoped<Global_AI_Functions>();
 builder.Services.AddScoped<ApiErrorHandler>();
+builder.Services.AddScoped<AiPromptService>();  // ? Centralized AI prompts
 
 #endregion
 
@@ -126,6 +127,9 @@ builder.Services.AddHttpForwarderWithServiceDiscovery();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MessageHubService>();
 #endregion
+
+// Add IMemoryCache if not already registered
+builder.Services.AddMemoryCache();
 
 var app = builder.Build();
 

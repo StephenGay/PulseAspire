@@ -32,6 +32,9 @@ namespace Pulse.Models.AI.AIds
         [JsonPropertyName("think")]
         public string Think { get; set; } = "medium";
 
+        public int MaxRecursionDepth { get; set; } = 3;
+        public int MaxFailedAttempts { get; set; } = 2;
+
         [JsonPropertyName("options")]
         public OllamaOptions Options { get; set; } = new OllamaOptions
             { Temperature = 0.0,

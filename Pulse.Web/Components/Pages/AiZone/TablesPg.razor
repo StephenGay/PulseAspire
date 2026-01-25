@@ -1,18 +1,17 @@
 ﻿@* @page "/AiZone/AIQueryPg" *@
 
-
 @using ClosedXML.Excel
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Pulse.Web.Components.Layout
+@using Pulse.Web.Services
+@using Pulse.Web.Tools
 @using Pulse.Models.AI.AIds
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
 @using Pulse.Models.Users
-@using Pulse.Web.Services
 @using System.Data
-@using Pulse.Web.Tools
 @using System.Threading.Tasks
 @using Markdig
 @using Toolbelt.Blazor.SpeechRecognition
@@ -936,21 +935,16 @@
                 isCorrect = true; // Reset for next time
             }
 
-            Dictionary<string, string> aiSQLv = await pAI.GetSQLFromOllamaAsync(aiSQL + query, aiModel, cts.Token);
+            var aiSQLv = await pAI.GetSQLFromOllamaAsync(aiSQL + query, aiModel, cts.Token);
 
-            if( aiSQLv["Status"] == "Error")
+            if (!aiSQLv.Success)
             {
-                errorMessage = aiSQLv["Comments"];
+                errorMessage = aiSQLv.ErrorMessage ?? "Unknown error";
                 return;
             }
-            if (aiSQLv["Status"] == "Cancelled")
-            {
-                
-                errorMessage = aiSQLv["Comments"];
-                return;
-            }
-            strResponse = aiSQLv["SQL"];
-            strReasoning = $"SQL:\n {aiSQLv["SQL"]}\n\nExecuting...";
+
+            strResponse = aiSQLv.Sql ?? string.Empty;
+            strReasoning = $"SQL:\n {aiSQLv.Sql}\n\nExecuting...";
             StateHasChanged();
 
             var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{strResponse}",cts.Token);
@@ -1043,7 +1037,7 @@
 
     private async Task SaveQry()
     {
-        Pulse.Models.Misc.AiQuery newEntry = new Models.Misc.AiQuery
+        var newEntry = new AiQuery
         {
             Question = query,
             SqlQuery = strResponse,

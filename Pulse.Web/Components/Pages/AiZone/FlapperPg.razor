@@ -11,6 +11,7 @@
 @using Pulse.Models.Misc
 @using Pulse.Models.Users
 @using Pulse.Web.Services
+@using Pulse.Web.Models
 @using System.Data
 @using Pulse.Web.Tools
 @using System.Threading.Tasks
@@ -31,6 +32,7 @@
 @inject SpeechSynthesis SpeechSynthesis
 @inject SpeechRecognition SpeechRecognition
 @inject IHttpClientFactory HttpClientFactory
+@inject AiPromptService AiPrompts
 @implements IAsyncDisposable
 @implements IDisposable
 @rendermode InteractiveServer
@@ -274,14 +276,20 @@
                     {
                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                             <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                <div style="color: black;">@((MarkupString)AddMUcss(ParseToHtml(aiSQL))) </div>
+                                <div style="color: black;">
+                                    @* Show thinking first (if available) *@
+                                    
+                                    @* Then show the answer *@
+                                    @((MarkupString)AddMUcss(ParseToHtml(aiSQL)))
+                                </div>
                             </FluentLabel>
                         </FluentStack>
                     }
-                    @if (stream)
+                    @if (stream && !string.IsNullOrEmpty(strResponse))
                     {
-                        <br />
-                        <FluentLabel Typo="Typography.Body" class="divShadow" style="background-color:white;margin-top: 10px; padding:10px; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@strResponse</FluentLabel>
+                        <div style="color:#666666; font-style:italic; font-size:0.95em; margin-bottom:10px; padding-bottom:10px; border-bottom: 1px solid #cccccc;">
+                            @strResponse
+                        </div>
                     }
                 }
                 else
@@ -627,23 +635,26 @@
 
             if (stream)
             {
-                bool isAnswer = false;
-                //Flapper flapper = await dt.GetgvFlapper();
-                // Flapper flapper2 = await dtrf.GetgvFlapper();
+                // ✅ Streaming enabled: consume chunks, display thinking, and extract final answer
                 await foreach (var chunk in StreamChatWithFlapperAsync(chatHistory, aiModel, true, cts.Token))
                 {
-                    // if(chunk.StartsWith("Answer")){ isAnswer = true; }
-                    // if(!isAnswer)
-                    // {
-                    //     strResponse += chunk;
-                    //     strResponse = strResponse.Replace("<thinking>", "\n");
-                    //     strResponse = strResponse.Replace("</thinking>", "");
-                    //     StateHasChanged();
-                    // }
-                    // else
-                    // {
-                    //     aiSQL += chunk;
-                    // }
+                    if (string.IsNullOrEmpty(chunk)) continue;
+
+                    // Check for thinking marker (simple prefix-based approach)
+                    if (chunk.StartsWith("__THINKING__"))
+                    {
+                        var thinking = chunk.Substring("__THINKING__".Length);
+                        if (!string.IsNullOrEmpty(thinking))
+                        {
+                            // strResponse += thinking;
+                            StateHasChanged();  // Update UI in real-time with thinking
+                        }
+                    }
+                    // Check for final answer marker
+                    else if (chunk.StartsWith("__FINAL_ANSWER__"))
+                    {
+                        aiSQL = chunk.Substring("__FINAL_ANSWER__".Length);
+                    }
                 }
             }
             else 
@@ -651,10 +662,15 @@
                 aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, aiModel, togWebSearch, cts.Token);
             }
 
-            if (aiSQL.StartsWith("Error:"))
+            if (string.IsNullOrEmpty(aiSQL))
+            {
+                // Empty response - likely streaming didn't populate
+                errorMessage = "No response received. Please try again.";
+                retryBtn = true;
+            }
+            else if (aiSQL.StartsWith("Error:"))
             {
                 errorMessage = "I'm sorry, there was a problem responding to your question. Try again, reword the question or try another AI model...";
-                // chatHistory.Add(new OllamaMessage { Role = "assistant", Content = "I'm sorry, there was a problem responding to your question. Try again, reword the question or try another AI model..." });
                 retryBtn = true;
                 await SayIt("I'm sorry, there was a problem responding to your question.", "Flapper");
             }
@@ -663,13 +679,12 @@
                 if (aiSQL.StartsWith("Answer:")){ aiSQL = aiSQL.Substring(7); }
                 // Add assistant response to history
                 chatHistory.Add(new OllamaMessage { Role = "assistant", Content = aiSQL });
-                // StateHasChanged();
-                // await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
             }
 
             query = string.Empty;
             txtQ = string.Empty;
             isLoading = false;
+            //strResponse = string.Empty;  // ← Clear streaming response after it's been processed
             StateHasChanged();
             // // await JSRuntime.InvokeVoidAsync("scrollToBottom", chatContainer);
             return; 
@@ -747,425 +762,472 @@
              .Replace("h3", "h2");
     }
 
-    private async IAsyncEnumerable<string> StreamChatWithFlapperAsync(List<OllamaMessage> historyMessages, string sModel, bool enableSearch = true, [EnumeratorCancellation] CancellationToken ct = default, int qryLoop = 0, bool inThinking = false)
+    /// <summary>
+    /// Prepares context for streaming chat - handles exceptions safely.
+    /// </summary>
+    private async Task<(string? Schema, string? Examples, string? Error)> PrepareStreamContextAsync(CancellationToken ct)
     {
-
-        // if (qryLoop >= MAX_TOTAL_QRY_ATTEMPTS)
-        // {
-        //     _toolAttempts = 0;
-        //     _toolAttemptName = "";
-        //     yield return "My apologies, I seem to be caught in a loop. Maybe try and rephrase the question.";
-        //     yield break;
-        // }
-
-        string schemaText = string.Empty;
-        string examples = string.Empty;
-        string yMsg = string.Empty;
-        flapper = await dtrf.GetgvFlapper();
         try
         {
-            schemaText = await pAI.GetDetailedSchemaAsync(ct);
+            var schemaText = await pAI.GetDetailedSchemaAsync(ct);
             if (string.IsNullOrEmpty(schemaText))
             {
-                yMsg = "Error: Unable to retrieve database schema information.";
+                return (null, null, "Error: Unable to retrieve database schema information.");
             }
-            else
-            {
-                examples = await pAI.GetAiExamplesAsync(ct);
-            }
+
+            var examples = await pAI.GetAiExamplesAsync(ct);
+            return (schemaText, examples, null);
+        }
+        catch (OperationCanceledException)
+        {
+            return (null, null, "Request cancelled.");
         }
         catch (Exception ex)
         {
-            // _logger?.LogError(ex, "Error during setup in ChatWithOllamaAsync.");
-            // _toolAttempts = 0;
-            // _toolAttemptName = "";
-            yMsg = $"Error during setup: {ex.Message}";
-
+            return (null, null, $"Error during setup: {ex.Message}");
         }
-        if (!string.IsNullOrEmpty(yMsg))
+    }
+
+    /// <summary>
+    /// Streams chat chunks with proper error handling.
+    /// </summary>
+    private async IAsyncEnumerable<string> StreamChatWithFlapperAsync(
+        List<OllamaMessage> historyMessages,
+        string sModel,
+        bool enableSearch = true,
+        [EnumeratorCancellation] CancellationToken ct = default,
+        int qryLoop = 0,
+        bool inThinking = false,
+        int failedAttempts = 0)
+    {
+        flapper = await dtrf.GetgvFlapper();
+        if (flapper == null)
         {
-            yield return yMsg;
+            yield return "Error: Flapper configuration not available";
             yield break;
         }
-        string inAdmin = string.Empty;
-        if (AdminMode)
+
+        // ⚠️ PREVENT INFINITE LOOPS
+        // int MAX_RECURSION_DEPTH = 6;
+        // int MAX_FAILED_ATTEMPTS = 2;
+
+        if (qryLoop >= flapper.MaxRecursionDepth) // MAX_RECURSION_DEPTH)
         {
-            inAdmin = @"**Admin Mode**
-            You are in a special mode available to administrators. You can now do the following:
-            -You can add further assistance and offer to write results back to the database.
-            - This mode removes the limitation of only being able to create SELECT SQL Statements
-            - An additional tool 'execute_action_sql' is available to run any SQL Statements that are not SELECT Statements
-            - Only offer this if relevant";    
+            yield return $"\n\n⚠️ **Maximum recursion depth reached ({flapper.MaxRecursionDepth})**. " +
+                        "The conversation loop is too deep. Please start a new query.";
+            yield break;
         }
-        
-        var systemMessage = new OllamaMessage
+
+        if (failedAttempts >= flapper.MaxFailedAttempts) // MAX_FAILED_ATTEMPTS)
         {
-            Role = "system",
-            Content = $"""
-            You are PulseAI, a helpful AI performing services for H&M Rollers.
+            yield return $"\n\n❌ **Too many failed attempts ({flapper.MaxFailedAttempts})**. " +
+                        "The system is unable to execute your request. Please rephrase or try a different query.";
+            yield break;
+        }
 
-            H&M Rollers primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials for
-            various industries including paper, steel, food processing, and more.
+        // Prepare context - errors handled inside, returns tuple
+        var prepResult = await pAI.PrepareStreamContextAsync(ct);
+        if (prepResult.Error != null)
+        {
+            yield return prepResult.Error;
+            yield break;
+        }
 
-            You are conversing with a colleague, and they have asked if you could provide meaningful information regarding
-            the following:
+        
 
-            {historyMessages.Last(m => m.Role == "user")?.Content}
+        string inAdmin = AdminMode
+            ? """
+              **Admin Mode**
+              You are in a special mode available to administrators. You can now do the following:
+              - You can add further assistance and offer to write results back to the database.
+              - This mode removes the limitation of only being able to create SELECT SQL Statements
+              - An additional tool 'execute_action_sql' is available to run any SQL Statements that are not SELECT Statements
+              - Only offer this if relevant
+              """
+            : string.Empty;
 
-            You have been provided with the entire conversation so far in a list of messages. Go through them as they may provide context
-            for the current query.
+        var systemMessage = BuildFlapperSystemMessage(
+            historyMessages,
+            prepResult.Schema!,
+            prepResult.Examples!,
+            inAdmin,
+            qryLoop);  // ← Pass recursion level
 
-            Along with your vast General Knowledge, you will have the following tools to help you provide the best response for your fellow
-            worker. Select whichever tool you think will help you the most.
-
-            **Tools**
-            1. The SQL Server 2022 database schema for the company database. You can examine this to see if the database contains any information
-               that may help you. If it does have relevant data, you can write a SQL Statement and run it with the 'execute_sql' tool to get what
-               need. The schema and guidelines for creating these statements can be found later in this message.
-            2. You can search the web by using the 'web_search' tool. This will enable you to retrieve links and short snippets of the websites
-               contents from websites that may help you. Examine the results returned by this tool to see if any of them can help you. Only
-               use the web_search tool once per query.
-            3. You can use the 'web_fetch' tool to retrieve more information from any sites of interest returned by web_search.
-
-            If results are returned from the tool call, incorporate these results in your response and use them to determine either what the next step
-            should be or if you now have enough information to provide a final response.
-
-            You can use the tools as many times as you need to provide the best response. However, be careful to not re-use a tool to requery
-            information that has already been searched for. Also take care to not get caught in a loop repeating the same action. If this happens
-            for more than 4 loops, exit and provide a response on the data you have.
-
-            If a tool call comes back with no results, first check if the tool name is a valid tool name. If it isn't do not incorporate the
-            empty result in your reasoning.
-
-            If you are unsure of anything, or require more information, ask clarifying questions to the user.
-
-            Check the messages list for any messages that come after the users query, these are actions that have already been taken to respond
-            to this query. Continue from the last message, do not start from the user query again, for e.g. if you previously received three
-            links from the 'web_search' tool, but have only run the 'web_fetch' tool on the first one, move on to the second - don't start a
-            new action.
-
-            Here is the company database schema, detailing the tables, entities and how they relate to each other:
-
-            {schemaText}
-
-            If you need information from the database, create SQL Statements based on this Schema, just follow the guidelines listed below:
-
-            **SQL Statement Creation Guidelines**
-            - Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
-            - Ensure that you use the exact table and column names from the schema.
-            - Respect relationships for joins
-            - Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-            - Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
-
-            {examples}
-
-            Once you have created the SQL Statement, pass it as a parameter to the 'execute_sql' tool to run it and retrieve the result.
-            If the database does not return any results then you can try again with a different statement, but only up to 3 attempts,
-            then move on to a different tool or provide your response.
-
-            **Thinking Process**:
-            - Always think step-by-step before responding or calling tools.
-            - Stream your thoughts progressively if possible, let the user know what is happening as often as possible.
-            - Only provide the reasoning since the last message, do not duplicate.
-            - After thinking, either call a tool or provide the final answer.
-            - If calling a tool, double-check toolname is valid.
-            
-            {inAdmin}
-            **Formatting Rules For Your Final Response**:
-            - Always aim to provide clear, concise, and accurate information in your responses.
-            - Remember to cite sources when using web_search results to support your answers.
-            - If using results from the database in your answer, state this in your answer.
-            - Do not return a SQL Query as the answer.
-            - If you do not know the answer to a question, then say you do not know. Do not make up an answer.
-            - All amounts are South African Rands (ZAR)
-            - End your answers with a friendly remark or offer further assistance. A suggestion of what may be of interest to look at next would be helpful.
-            
-            """
-        };
-        //var systemMessage = new OllamaMessage
-        //{
-        //    Role = "system",
-        //    Content = $"""
-        //You are PulseAI, a helpful AI performing services for H&M Rollers, a company that primarily covers industrial rollers with Rubber, Polyurethane, and other specialized materials.
-        //We cover rollers for various industries including paper, steel, food processing, and more. You will be assisting your colleagues by answering
-        //questions related to our business operations, products, and services as well as general topics.
-        //To enable you to do this effectively, you will rely on your general knowledge, access to web search tools, and querying our internal SQL Server 2022 database. You will decide when
-        //to use each resource to best answer the user's questions. Sometimes, you may need to use multiple resources in sequence to gather the necessary information.
-
-        //**Thinking Process**:
-        //- Always think step-by-step before responding or calling tools.
-        //- Output your reasoning in <thinking> tags, e.g., <thinking>Step 1: Analyze query. Step 2: Check schema relevance.</thinking>
-        //- Stream your thoughts progressively if possible.
-        //- After thinking, either call tools or provide the final answer.
-
-        //If you need information from the database, create a SQL Statement based on the provided Database Schema using these guidelines:
-        //- Generate a valid, efficient SQL query (SELECT only, no DDL/DML) based on the Schema and user question.
-        //- Ensure that you use the exact table and column names from the schema.
-        //- Respect relationships for joins
-        //- Handle nullability and data types (e.g., string filters with LIKE, dates with CAST).
-        //- Optimize: Use WHERE for filters, JOINs only if needed, TOP if limiting results.
-
-        //- Use the 'execute_sql' tool using SQL Query as parameter to run your queries and retrieve results.
-        //- If no results are returned from the database, use the 'web_search' and 'web_fetch' tools to find relevant information on the web
-
-        //The user question is:
-        //{historyMessages.Last(m => m.Role == "user")?.Content}
-        //- Check the following schema to see if you need information from the database:
-        //Schema:
-        //{schemaText}
-        //{examples}
-
-        //- If you require more information to answer a question, you can ask clarifying questions to the user.
-        //- Do not return a SQL Query as the answer. Use these results to formulate accurate and relevant responses to the user's questions.
-
-        //    **Rules**:
-        //- Only one tool call allowed for the 'web_search' and 'web_fetch' tools. Do not re-search or re-query the same info.
-        //- If tool results (e.g., web_search) are provided in the conversation, use them to refine your answer.
-        //- After tool results, if result starts with 'Invalid Tool Name', provide the final answer without further tool calls. Do not re-search or re-query the same info.
-        //- Always aim to provide clear, concise, and accurate information in your responses.
-        //- Remember to cite sources when using web search results to support your answers.
-        //- If using results from the database in your answer, state this in your answer.
-        //- If you do not know the answer to a question, then say you do not know. Do not make up an answer.
-        //- All amounts are South African Rands (ZAR)
-        //- End your answers with a friendly remark or offer further assistance.
-        //"""
-        //};
         var messages = new List<OllamaMessage> { systemMessage };
-        messages.AddRange(historyMessages);
-        var tools = new List<object>();
-        if (enableSearch)
-        {
-            tools.Add(new { type = "function", function = new { name = "web_search", description = "Search the web for current information.", parameters = new { type = "object", properties = new { query = new { type = "string", description = "Search query" } }, required = new[] { "query" } } } });
-            tools.Add(new { type = "function", function = new { name = "web_fetch", description = "Fetch full content from a URL.", parameters = new { type = "object", properties = new { url = new { type = "string", description = "URL to fetch" } }, required = new[] { "url" } } } });
-        }
-        tools.Add(new { type = "function", function = new { name = "execute_sql", description = "Execute a SELECT SQL query against the dbPulse database and return results.", parameters = new { type = "object", properties = new { sql = new { type = "string", description = "The SQL query to execute" } }, required = new[] { "sql" } } } });
-        // Commented: execute_action_sql for safety (enable with user auth)
-        if (AdminMode)
-        {
-            tools.Add(new { type = "function", function = new { name = "execute_action_sql", description = "Execute an UPDATE, INSERT or DELETE SQL query against the dbPulse database and return results.", parameters = new { type = "object", properties = new { sql = new { type = "string", description = "The SQL query to execute" } }, required = new[] { "sql" } } } });
-        }
-        
 
+        // On recursive calls, trim message history to preserve context window
+        // Keep only: original user query + recent assistant/tool messages
+        if (qryLoop > 0 && historyMessages.Count > 4)
+        {
+            // Find the original user query (first user message)
+            //var originalUserQuery = historyMessages.FirstOrDefault(m => m.Role == "user");
+            
+            // ** INCORRECT: Should be last user message **
+            var originalUserQuery = historyMessages.Last(m => m.Role == "user");
 
+            // Keep original query + last 3 recent messages (includes errors)
+            if (originalUserQuery != null)
+            {
+                messages.Add(originalUserQuery);
+            }
+
+            // Add only the most recent messages (last 3) - this includes any error responses
+            var recentMessages = historyMessages.Where(m => m.Role != "user" || m == originalUserQuery)
+                                                  .TakeLast(4)  // Increased to 4 to keep more context including errors
+                                                  .ToList();
+            messages.AddRange(recentMessages);
+        }
+        else
+        {
+            // First call: use full history
+            messages.AddRange(historyMessages);
+        }
+
+        var tools = BuildFlapperTools(enableSearch);
 
         var ollamaRequest = new
         {
-            model = flapper.Model,
+            model = flapper!.Model,
             messages = messages.ToArray(),
             tools = tools.ToArray(),
             think = flapper.Think,
             keep_alive = "30m",
-            stream = true,  // Enable streaming
-            options = new { temperature = flapper.Options.Temperature, num_ctx = flapper.Options.NumCtx, repeat_penalty = flapper.Options.RepeatPenalty, frequency_penalty = flapper.Options.FrequencyPenalty, presence_penalty = flapper.Options.PresencePenalty }
+            stream = true,
+            options = new
+            {
+                temperature = flapper.Options.Temperature,
+                num_ctx = flapper.Options.NumCtx,
+                repeat_penalty = flapper.Options.RepeatPenalty,
+                frequency_penalty = flapper.Options.FrequencyPenalty,
+                presence_penalty = flapper.Options.PresencePenalty
+            }
         };
-        //var ollamaRequest = new
-        //{
-        //    model = flapper.Model,
-        //    messages = messages.ToArray(),
-        //    tools = tools.ToArray(),
-        //    think = flapper.Think,
-        //    keep_alive = "10m",
-        //    stream = true,  // Enable streaming
-        //    options = new { temperature = flapper.Options.Temperature, num_ctx = flapper.Options.NumCtx, num_predict = flapper.Options.NumPredict, repeat_penalty = flapper.Options.RepeatPenalty, frequency_penalty = flapper.Options.FrequencyPenalty, presence_penalty = flapper.Options.PresencePenalty }
-        //};
-        // _logger.LogInformation("Starting Ollama chat stream for query: {Query}", historyMessages.LastOrDefault()?.Content);
 
-        // Accumulate full message for tool call check
         var accumulatedMessage = new OllamaMessage { Role = "assistant" };
-
         bool hasYieldedContent = false;
+        string? pendingError = null;
 
-        var response = await ollamaClient.PostAsJsonAsync("/api/chat", ollamaRequest, ct);
-        response.EnsureSuccessStatusCode();
-
-        var stream = await response.Content.ReadAsStreamAsync(ct);
-        using var reader = new StreamReader(stream);
-
-        string? line;
-        while ((line = await reader.ReadLineAsync(ct)) != null)
+        // Get the stream - handle initialization errors
+        HttpResponseMessage? response = null;
+        try
         {
+            response = await ollamaClient!.PostAsJsonAsync("/api/chat", ollamaRequest, ct);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (OperationCanceledException)
+        {
+            pendingError = "Request cancelled.";
+        }
+        catch (Exception ex)
+        {
+            pendingError = $"Error connecting to Ollama: {ex.Message}";
+        }
+
+        // Yield initialization error outside catch
+        if (pendingError != null)
+        {
+            yield return pendingError;
+            yield break;
+        }
+
+        Stream? contentStream = null;
+        try
+        {
+            contentStream = await response!.Content.ReadAsStreamAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            pendingError = $"Error reading response: {ex.Message}";
+        }
+
+        if (pendingError != null)
+        {
+            yield return pendingError;
+            yield break;
+        }
+
+        using var reader = new StreamReader(contentStream!);
+
+        // Process stream line by line
+        while (true)
+        {
+            string? line = null;
+            bool readerDone = false;
+
+            try
+            {
+                line = await reader.ReadLineAsync(ct);
+                readerDone = line == null;
+            }
+            catch (OperationCanceledException)
+            {
+                pendingError = "Request cancelled.";
+                break;
+            }
+            catch (Exception ex)
+            {
+                pendingError = $"Stream error: {ex.Message}";
+                break;
+            }
+
+            if (readerDone) break;
             if (string.IsNullOrWhiteSpace(line)) continue;
+
             OllamaChatChunk? chunk = null;
             try
             {
                 chunk = JsonSerializer.Deserialize<OllamaChatChunk>(line, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
             }
             catch (JsonException ex)
             {
-                // _logger?.LogError(ex, "Failed to deserialize Ollama chat chunk: {Line}", line);
-                throw;
+                pendingError = $"Failed to parse response: {ex.Message}";
+                break;
             }
-            if (!string.IsNullOrEmpty(chunk.Message.Thinking) && !inThinking)
-            {
-                inThinking = true;
-                strResponse += "Thinking:\n";
-            }
-            // Append deltas
-            if (!string.IsNullOrEmpty(chunk.Message.Thinking))
-            {
-                hasYieldedContent = true;
-                //accumulatedMessage.Content += chunk.Message.Thinking;
-                //_logger.LogInformation("Ollama chat stream thinking chunk: {ch}", chunk.Message.Thinking);
-                strResponse += chunk.Message.Thinking;
-                StateHasChanged();
-            }
-            //else if (!string.IsNullOrEmpty(chunk.Message.Content))
 
-            // TESTING !!!
-            if (!string.IsNullOrEmpty(chunk.Message.Content))
-            {
-                if (inThinking)
+                if (chunk == null) continue;
+
+                // Handle thinking content
+                if (!string.IsNullOrEmpty(chunk.Message?.Thinking))
                 {
-                    inThinking = false;
-                    aiSQL += "Answer:\n";
+                    if (!inThinking)
+                    {
+                        inThinking = true;
+                        strResponse += "Thinking:\n";
+                    }
+                    hasYieldedContent = true;
+                    strResponse += chunk.Message.Thinking;
+                    // ✅ Yield thinking with simple marker so it displays in real-time
+                    yield return $"__THINKING__{chunk.Message.Thinking}";
+                    StateHasChanged();
                 }
 
-                //_logger.LogInformation("Ollama chat stream answer chunk: {ch}", chunk.Message.Content);
-                //accumulatedMessage.Content += chunk.Message.Content;
-                aiSQL += chunk.Message.Content;  // Stream to UI
-                hasYieldedContent = true;
-                StateHasChanged();
-            }
-
-            if (chunk.Message.ToolCalls != null)
-            {
-                accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
-                accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
-            }
-
-            if (chunk.Done)
-            {
-                if (accumulatedMessage.ToolCalls?.Any() == true)
+                // Handle answer content
+                if (!string.IsNullOrEmpty(chunk.Message?.Content))
                 {
-                    // Yield progress before handling
-                    if (!hasYieldedContent)
+                    if (inThinking)
                     {
-                        yield return "<thinking>Analyzing query and preparing tools...</thinking>\n";
+                        inThinking = false;
+                        aiSQL += "Answer:\n";
                     }
-                    else
-                    {
-                        yield return "\n<thinking>Tool calls detected. Processing...</thinking>\n";
-                    }
-
-                    // Handle each tool with specific progress yields
-                    foreach (var toolCall in accumulatedMessage.ToolCalls)
-                    {
-                        var toolName = toolCall.Function.Name;
-                        yield return $"<thinking>Invoking tool: {toolName}...</thinking>\n";
-
-                        // Existing HandleToolCalls logic, but yield results summary if visible
-                        await pAI.HandleToolCalls(new List<OllamaToolCall> { toolCall }, messages, sModel, ct);
-                        yield return $"<thinking>Tool {toolName} complete. Incorporating results...</thinking>\n";
-                    }
-
-                    // TESTING TAKING OUT
-                    //await HandleToolCalls(accumulatedMessage.ToolCalls, messages, sModel, ct);
-
-                    // Recurse and yield from next iteration
-                    await foreach (var recursiveChunk in StreamChatWithFlapperAsync(messages, sModel, enableSearch, ct, qryLoop + 1, inThinking))
-                    {
-                        //_logger.LogInformation("Ollama chat stream recursivechunk: {ch}", recursiveChunk);
-                        yield return recursiveChunk;
-                    }
+                    aiSQL += chunk.Message.Content;
+                    hasYieldedContent = true;
+                    StateHasChanged();
                 }
-                else
+
+                // Accumulate tool calls
+                if (chunk.Message?.ToolCalls != null)
                 {
-                    // _logger.LogInformation("Ollama chat stream completed.");
+                    accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
+                    accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
                 }
-                yield break;
+
+                // Only break when Done=true, regardless of content type
+                // Ollama sends thinking first, then content, both with Done=false except the last chunk
+                if (chunk.Done)
+                {
+                    if (accumulatedMessage.ToolCalls is { Count: > 0 })
+                    {
+                        if (!hasYieldedContent)
+                        {
+                            yield return "<thinking>Analyzing query and preparing tools...</thinking>\n";
+                        }
+                        else
+                        {
+                            yield return "\n<thinking>Tool calls detected. Processing...</thinking>\n";
+                        }
+
+                        // Process tool calls
+                        var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, messages, sModel, ct);
+                        if (toolError != null)
+                        {
+                            yield return toolError;
+                            // Increment failed attempts if tool processing failed
+                            var newFailureCount = toolError.Contains("unable to execute") || toolError.Contains("error") 
+                                ? failedAttempts + 1 
+                                : failedAttempts;
+                            yield break;
+                        }
+
+                        // Recursive call for tool results
+                        await foreach (var recursiveChunk in StreamChatWithFlapperAsync(
+                            messages, sModel, enableSearch, ct, qryLoop + 1, inThinking, failedAttempts))
+                        {
+                            yield return recursiveChunk;
+                        }
+                    }
+                    break;
+                }
             }
+
+        // Yield any pending error outside the loop
+        if (pendingError != null)
+        {
+            yield return pendingError;
+            yield break;
         }
 
+        if (!hasYieldedContent && accumulatedMessage.ToolCalls is not { Count: > 0 })
+        {
+            yield return "No response from Ollama.";
+        }
 
-        //     await foreach (var chunk in _ollamaservice.ChatStreamAsync("/api/chat", ollamaRequest, ct))
-        // {
-        //     if (!string.IsNullOrEmpty(chunk.Message.Thinking) && !inThinking)
-        //     {
-        //         inThinking = true;
-        //         yield return "Thinking:\n";
-        //     }
-        //     // Append deltas
-        //     if (!string.IsNullOrEmpty(chunk.Message.Thinking))
-        //     {
-        //         hasYieldedContent = true;
-        //         //accumulatedMessage.Content += chunk.Message.Thinking;
-        //         //_logger.LogInformation("Ollama chat stream thinking chunk: {ch}", chunk.Message.Thinking);
-        //         yield return chunk.Message.Thinking;
-        //     }
-        //     //else if (!string.IsNullOrEmpty(chunk.Message.Content))
-
-        //     // TESTING !!!
-        //     if (!string.IsNullOrEmpty(chunk.Message.Content))
-        //     {
-        //         if (inThinking)
-        //         {
-        //             inThinking = false;
-        //             yield return "Answer:\n";
-        //         }
-
-        //         //_logger.LogInformation("Ollama chat stream answer chunk: {ch}", chunk.Message.Content);
-        //         //accumulatedMessage.Content += chunk.Message.Content;
-        //         yield return chunk.Message.Content;  // Stream to UI
-        //         hasYieldedContent = true;
-        //     }
-
-        //     if (chunk.Message.ToolCalls != null)
-        //     {
-        //         accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
-        //         accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
-        //     }
-
-        //     if (chunk.Done)
-        //     {
-        //         if (accumulatedMessage.ToolCalls?.Any() == true)
-        //         {
-        //             // Yield progress before handling
-        //             if (!hasYieldedContent)
-        //             {
-        //                 yield return "<thinking>Analyzing query and preparing tools...</thinking>\n";
-        //             }
-        //             else
-        //             {
-        //                 yield return "\n<thinking>Tool calls detected. Processing...</thinking>\n";
-        //             }
-
-        //             // Handle each tool with specific progress yields
-        //             foreach (var toolCall in accumulatedMessage.ToolCalls)
-        //             {
-        //                 var toolName = toolCall.Function.Name;
-        //                 yield return $"<thinking>Invoking tool: {toolName}...</thinking>\n";
-
-        //                 // Existing HandleToolCalls logic, but yield results summary if visible
-        //                 await HandleToolCalls(new List<OllamaToolCall> { toolCall }, messages, sModel, ct);
-        //                 yield return $"<thinking>Tool {toolName} complete. Incorporating results...</thinking>\n";
-        //             }
-
-        //             // TESTING TAKING OUT
-        //             //await HandleToolCalls(accumulatedMessage.ToolCalls, messages, sModel, ct);
-
-        //             // Recurse and yield from next iteration
-        //             await foreach (var recursiveChunk in StreamChatWithOllamaAsync(messages, sModel, enableSearch, ct, qryLoop + 1, inThinking))
-        //             {
-        //                 //_logger.LogInformation("Ollama chat stream recursivechunk: {ch}", recursiveChunk);
-        //                 yield return recursiveChunk;
-        //             }
-        //         }
-        //         else
-        //         {
-        //             _logger.LogInformation("Ollama chat stream completed.");
-        //         }
-        //         yield break;
-        //     }
-        // }
-
-        // if (!hasYieldedContent)
-        // {
-        //     yield return "No response from Ollama.";
-        // }
+        // ✅ CRITICAL: Yield the final answer content (without thinking) so caller can capture it
+        if (!string.IsNullOrEmpty(aiSQL))
+        {
+            yield return $"__FINAL_ANSWER__{aiSQL}";  // Marker so we can identify final answer
+        }
     }
 
+    /// <summary>
+    /// Processes tool calls with error handling.
+    /// </summary>
+    private async Task<string?> ProcessToolCallsAsync(
+        List<OllamaToolCall> toolCalls,
+        List<OllamaMessage> messages,
+        string model,
+        CancellationToken ct)
+    {
+        try
+        {
+            var context = new QueryContext();
+            foreach (var toolCall in toolCalls)
+            {
+                var toolName = toolCall.Function?.Name ?? "unknown";
+                strResponse += $"\n<thinking>Invoking tool: {toolName}...</thinking>\n";
+                StateHasChanged();
+
+                await pAI.HandleToolCallsAsync(
+                    [toolCall],
+                    messages,
+                    context,
+                    ct);
+
+                strResponse += $"<thinking>Tool {toolName} complete.</thinking>\n";
+                StateHasChanged();
+            }
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            return "Request cancelled.";
+        }
+        catch (Exception ex)
+        {
+            return $"Tool error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Builds the system message for Flapper using centralized prompts.
+    /// Uses concise version on recursive calls to preserve context window.
+    /// </summary>
+    private OllamaMessage BuildFlapperSystemMessage(
+        List<OllamaMessage> historyMessages,
+        string schemaText,
+        string examples,
+        string adminSection,
+        int recursionLevel = 0)
+    {
+        // On recursive calls (2nd loop+), use concise message to save context window
+        if (recursionLevel > 0)
+        {
+            return new OllamaMessage
+            {
+                Role = "system",
+                Content = AiPrompts.GetFlapperSystemMessageConcise(AdminMode)
+            };
+        }
+
+        // First call: use full system message with all context
+        var systemContent = AiPrompts.GetFlapperSystemMessage(schemaText, examples, AdminMode);
+
+        return new OllamaMessage
+        {
+            Role = "system",
+            Content = systemContent
+        };
+    }
+
+    /// <summary>
+    /// Builds the tools list for Flapper.
+    /// </summary>
+    private List<object> BuildFlapperTools(bool enableSearch)
+    {
+        var tools = new List<object>();
+
+        if (enableSearch)
+        {
+            tools.Add(new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "web_search",
+                    description = "Search the web for current information.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { query = new { type = "string", description = "Search query" } },
+                        required = new[] { "query" }
+                    }
+                }
+            });
+
+            tools.Add(new
+            {
+                type = "function",
+                function = new
+                {
+                    name = "web_fetch",
+                    description = "Fetch full content from a URL.",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { url = new { type = "string", description = "URL to fetch" } },
+                        required = new[] { "url" }
+                    }
+                }
+            });
+        }
+
+        tools.Add(new
+        {
+            type = "function",
+            function = new
+            {
+                name = "execute_sql",
+                description = "Execute a SELECT SQL query against the dbPulse database and return results.",
+                parameters = new
+                {
+                    type = "object",
+                    properties = new { sql = new { type = "string", description = "The SQL query to execute" } },
+                    required = new[] { "sql" }
+                }
+            }
+        });
+
+                if (AdminMode)
+                {
+                    tools.Add(new
+                    {
+                        type = "function",
+                        function = new
+                        {
+                            name = "execute_action_sql",
+                            description = "Execute an UPDATE, INSERT or DELETE SQL query against the dbPulse database and return results.",
+                            parameters = new
+                            {
+                                type = "object",
+                                properties = new { sql = new { type = "string", description = "The SQL query to execute" } },
+                                required = new[] { "sql" }
+                            }
+                        }
+                    });
+                }
+
+                return tools;
+            }
 
 
 
-}
+        }

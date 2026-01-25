@@ -30,11 +30,25 @@ else
     <FluentSpacer />
             <FluentButton OnClick="UpdateModel">Update</FluentButton>
     </FluentStack>
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
-    <FluentSlider Min="0" Max="1.0" Step="0.1" @bind-Value=flapper.Options.Temperature Label="Temperature">
-        <FluentSliderLabel Position="0.05">Factual</FluentSliderLabel>
-        <FluentSliderLabel Position="0.95">Creative</FluentSliderLabel>
-    </FluentSlider>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
+        <FluentSlider Min="1" Max="10" Step="1" @bind-Value=flapper.MaxRecursionDepth Label="Max Recursion Depth">
+            <FluentSliderLabel Position="1">1</FluentSliderLabel>
+            <FluentSliderLabel Position="5">5</FluentSliderLabel>
+            <FluentSliderLabel Position="10">10</FluentSliderLabel>
+        </FluentSlider>
+    </FluentStack>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
+        <FluentSlider Min="1" Max="6" Step="1" @bind-Value=flapper.MaxFailedAttempts Label="Max Failed Attempts">
+            <FluentSliderLabel Position="1">1</FluentSliderLabel>
+            <FluentSliderLabel Position="3">3</FluentSliderLabel>
+            <FluentSliderLabel Position="6">6</FluentSliderLabel>
+        </FluentSlider>
+    </FluentStack>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
+        <FluentSlider Min="0" Max="1.0" Step="0.1" @bind-Value=flapper.Options.Temperature Label="Temperature">
+            <FluentSliderLabel Position="0.05">Factual</FluentSliderLabel>
+            <FluentSliderLabel Position="0.95">Creative</FluentSliderLabel>
+        </FluentSlider>
     </FluentStack>
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
             <FluentSlider Min="0" Max="128000" Step="1000" @bind-Value=flapper.Options.NumCtx Label="Context Window Size">

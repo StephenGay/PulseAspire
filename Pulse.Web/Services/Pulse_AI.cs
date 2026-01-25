@@ -1,931 +1,1059 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Caching.Memory;
 using Pulse.Models.AI.AIds;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
+using Pulse.Web.Models;
 using Pulse.Web.Tools;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Pulse.Web.Services
+namespace Pulse.Web.Services;
+
+/// <summary>
+/// AI service for natural language to SQL conversion and chat interactions.
+/// Thread-safe: uses request-scoped context instead of instance state.
+/// </summary>
+public sealed class Pulse_AI(
+    IHttpClientFactory httpClientFactory,
+    OllamaService ollamaService,
+    ILogger<Pulse_AI> logger,
+    IConfiguration configuration,
+    IMemoryCache cache)
 {
-    public class Pulse_AI
+    #region Constants
+
+    private static class CacheKeys
     {
-        private readonly HttpClient _pulseApiClient;
-        private readonly ILogger<Pulse_AI> _logger;
-        private readonly OllamaService _ollamaService;
-        private readonly IConfiguration _configuration;
-        private readonly JsonSerializerOptions _jsonOptions;
+        public const string Schema = "pulse_ai_schema";
+        public const string Examples = "pulse_ai_examples";
+    }
 
-        // Instance-level state (not static—thread-safe per service instance)
-        private string? _cachedSchema;
-        private string? _cachedExamples;
-        private DateTime _cacheSchemaExpiry = DateTime.MinValue;
-        private DateTime _cacheExamplesExpiry = DateTime.MinValue;
-        private readonly object _cacheLock = new();
+    private static class ToolNames
+    {
+        public const string ExecuteSql = "execute_sql";
+        public const string WebSearch = "web_search";
+        public const string WebFetch = "web_fetch";
 
-        // Per-query state (reset per request to avoid cross-request contamination)
-        private string _toolAttemptName = "";
-        private int _toolAttempts = 0;
-        private bool _cancelQuery = false;
+        public static readonly HashSet<string> All = [ExecuteSql, WebSearch, WebFetch];
+    }
 
-        private const int MaxToolAttempts = 5;
-        private const int MaxTotalQueryAttempts = 10;
-        private const string DefaultModel = "gpt-oss:latest";
+    private static class ApiRoutes
+    {
+        public const string Schema = "/AI/schema";
+        public const string Examples = "/AI/examples";
+        public const string Execute = "/AI/execute:";
+        public const string Chat = "/api/chat";       // ✅ Ensure this exists
+        public const string Generate = "/api/generate";
+        public const string Tags = "/api/tags";
+    }
 
-        public Pulse_AI(
-            IHttpClientFactory httpClientFactory,
-            OllamaService ollamaService,
-            ILogger<Pulse_AI> logger,
-            IConfiguration configuration)
-        {
-            _pulseApiClient = httpClientFactory.CreateClient("PulseApiClient");
-            _ollamaService = ollamaService ?? throw new ArgumentNullException(nameof(ollamaService));
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+    private const int MaxTotalQueryAttempts = 10;
+    private const int MaxToolRetries = 6;
+    private static readonly TimeSpan SchemaCacheDuration = TimeSpan.FromMinutes(120);
+    private static readonly TimeSpan ExamplesCacheDuration = TimeSpan.FromMinutes(60);
 
-            _jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
-        }
+    #endregion
 
-        /// <summary>
-        /// Resets query state. Call before each new query to prevent cross-request contamination.
-        /// </summary>
-        private void ResetQueryState()
-        {
-            _toolAttemptName = "";
-            _toolAttempts = 0;
-            _cancelQuery = false;
-        }
+    #region Fields
 
-        public Task CancelQueryAsync()
-        {
-            _cancelQuery = true;
-            return Task.CompletedTask;
-        }
+    private readonly HttpClient _pulseApiClient = httpClientFactory.CreateClient("PulseApiClient");
+    private readonly OllamaService _ollamaService = ollamaService;
+    private readonly ILogger<Pulse_AI> _logger = logger;
+    private readonly IConfiguration _configuration = configuration;
+    private readonly IMemoryCache _cache = cache;
 
-        public async Task<Dictionary<string, string>> GetSQLFromOllamaAsync(
-            string userQuery,
-            string model,
-            CancellationToken ct = default)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(userQuery);
-            ArgumentException.ThrowIfNullOrEmpty(model);
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
-            var result = new Dictionary<string, string>
-            {
-                { "Status", "" },
-                { "Comments", "" },
-                { "SQL", "" }
-            };
+     #endregion
 
-            try
-            {
-                var schemaText = await GetDetailedSchemaAsync(ct);
-                if (string.IsNullOrEmpty(schemaText))
-                {
-                    result["Status"] = "Error";
-                    result["Comments"] = "Unable to retrieve database schema.";
-                    return result;
-                }
+    #region SQL Validation
 
-                var examples = await GetAiExamplesAsync(ct);
-                var prompt = BuildSqlPrompt(schemaText, examples, userQuery);
-
-                var ollamaRequest = new
-                {
-                    model,
-                    prompt,
-                    stream = false,
-                    options = new { temperature = 0.0, num_predict = 8000 }
-                };
-
-                var ollamaResponse = await _ollamaService.PostAsync<OllamaGenerateResponse>(
-                    "/api/generate", ollamaRequest, ct);
-
-                if (ollamaResponse?.Done != true || string.IsNullOrEmpty(ollamaResponse.Response))
-                {
-                    result["Status"] = "Error";
-                    result["Comments"] = "Ollama generation incomplete.";
-                    return result;
-                }
-
-                var sql = ExtractSqlFromResponse(ollamaResponse.Response);
-                if (string.IsNullOrEmpty(sql))
-                {
-                    result["Status"] = "Error";
-                    result["Comments"] = "No SQL statement found in response.";
-                    return result;
-                }
-
-                result["Status"] = "Success";
-                result["Comments"] = ExtractComments(ollamaResponse.Response);
-                result["SQL"] = sql;
-
-                _logger.LogInformation("SQL generated successfully with {Tokens} tokens", ollamaResponse.PromptEvalCount);
-                return result;
-            }
-            catch (OperationCanceledException)
-            {
-                result["Status"] = "Cancelled";
-                result["Comments"] = "Request was cancelled by user.";
-                return result;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating SQL");
-                result["Status"] = "Error";
-                result["Comments"] = $"Error: {ex.Message}";
-                return result;
-            }
-        }
-
-        private static string BuildSqlPrompt(string schema, string examples, string userQuery)
-        {
-            return $$"""
-                You are a SQL expert for SQL Server 2022.
-                - Generate valid, efficient SELECT-only queries based on schema and user question.
-                - Use exact table/column names from the schema.
-                - Respect relationships for joins; handle nullability and data types.
-                - Format DateTime as "dd-MM-yy".
-                - Optimize with WHERE filters and JOINs only if needed.
-                
-                Schema:
-                {{schema}}
-                {{examples}}
-                
-                User Question: {{userQuery}}
-                """;
-        }
-
-        public async Task<string> AskPulseAIAsync(
-    string prompt,
-    string model,
-    CancellationToken ct = default)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(prompt);
-            ArgumentException.ThrowIfNullOrEmpty(model);
-
-            try
-            {
-                var request = new
-                {
-                    model,
-                    prompt,
-                    stream = false
-                    //options = new { temperature = 0.0, num_predict = 8000 }
-                };
-
-                var response = await _ollamaService.PostAsync<OllamaGenerateResponse>(
-                    "/api/generate", request, ct);
-
-                if (response?.Done != true || string.IsNullOrEmpty(response.Response))
-                    //if (response == null || !response.Done || string.IsNullOrEmpty(response.Response))
-                {
-                    _logger.LogWarning("Empty response from Ollama for prompt: {Prompt}", prompt[..50]);
-                    return "No response from Ollama.";
-                }
-
-                _logger.LogInformation("Generated response with {Tokens} tokens", response.EvalCount);
-                return response.Response.Trim();
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("Request cancelled");
-                return "Request was cancelled.";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in AskPulseAIAsync");
-                return $"Error: {ex.Message}";
-            }
-        }
-        private static string ExtractSqlFromResponse(string response)
-        {
-            var trimmed = response.Trim();
-
-            // Try [SQL Start]/[SQL End]
-            var startIdx = trimmed.IndexOf("[SQL Start]", StringComparison.Ordinal);
-            if (startIdx >= 0)
-            {
-                startIdx += "[SQL Start]".Length;
-                var endIdx = trimmed.IndexOf("[SQL End]", startIdx, StringComparison.Ordinal);
-                if (endIdx > startIdx)
-                {
-                    return trimmed.Substring(startIdx, endIdx - startIdx).Trim();
-                }
-            }
-
-            // Try markdown ```sql
-            startIdx = trimmed.IndexOf("```sql", StringComparison.OrdinalIgnoreCase);
-            if (startIdx >= 0)
-            {
-                startIdx += 6;
-                var endIdx = trimmed.IndexOf("```", startIdx, StringComparison.Ordinal);
-                if (endIdx > startIdx)
-                {
-                    return trimmed.Substring(startIdx, endIdx - startIdx).Trim();
-                }
-            }
-
-            // Fallback: Extract SELECT statement
-            var selectIdx = trimmed.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
-            if (selectIdx >= 0)
-            {
-                var endIdx = trimmed.IndexOf(";", selectIdx);
-                endIdx = endIdx < 0 ? trimmed.Length : endIdx + 1;
-                return trimmed.Substring(selectIdx, endIdx - selectIdx).Trim();
-            }
-
+    /// <summary>
+    /// Validates that SQL is SQL Server T-SQL and rejects SQLite/MySQL/PostgreSQL syntax.
+    /// </summary>
+    private static string? ValidateSqlServerSyntax(string sql)
+    {
+        if (string.IsNullOrWhiteSpace(sql))
             return null;
-        }
 
-        private static string ExtractComments(string response)
-        {
-            var sqlStart = response.IndexOf("```sql", StringComparison.OrdinalIgnoreCase);
-            if (sqlStart < 0)
-            {
-                sqlStart = response.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
-            }
+        var sqlLower = sql.ToLower();
 
-            if (sqlStart <= 0) return response.Trim();
+        // ❌ FORBIDDEN: SQLite syntax
+        if (sqlLower.Contains("sqlite_master") || sqlLower.Contains("sqlite_temp_master"))
+            return "❌ ERROR: SQLite syntax detected (sqlite_master). This is a SQL Server 2022 database. Use SQL Server T-SQL syntax only.";
 
-            var comments = response.Substring(0, sqlStart).Trim();
-            return comments.EndsWith("```sql", StringComparison.OrdinalIgnoreCase)
-                ? comments[..^6].Trim()
-                : comments;
-        }
+        if (sqlLower.Contains("pragma") && sqlLower.Contains("table_info"))
+            return "❌ ERROR: SQLite PRAGMA syntax detected. This is SQL Server 2022 - use sys.columns or sp_help instead.";
 
-        public async Task<string> GetDetailedSchemaAsync(CancellationToken ct = default)
-        {
-            lock (_cacheLock)
-            {
-                if (DateTime.UtcNow < _cacheSchemaExpiry && _cachedSchema != null)
-                {
-                    return _cachedSchema;
-                }
-            }
+        if (sqlLower.Contains("autoincrement"))
+            return "❌ ERROR: SQLite AUTOINCREMENT detected. Use SQL Server IDENTITY or SEQUENCE instead.";
 
-            try
-            {
-                var schemas = await GetSchemaFromApiAsync(ct);
-                if (!schemas.Any()) return "";
+        if (sqlLower.Contains(" rowid"))
+            return "❌ ERROR: SQLite ROWID detected. Use SQL Server row_number() or identity columns instead.";
 
-                var schemaBuilder = new StringBuilder();
-                foreach (var schema in schemas)
-                {
-                    AppendSchemaEntity(schemaBuilder, schema);
-                }
+        // ❌ FORBIDDEN: MySQL syntax
+        if (sqlLower.Contains("auto_increment") && !sqlLower.Contains("identity"))
+            return "❌ ERROR: MySQL AUTO_INCREMENT syntax detected. Use SQL Server IDENTITY instead.";
 
-                lock (_cacheLock)
-                {
-                    _cachedSchema = schemaBuilder.ToString();
-                    _cacheSchemaExpiry = DateTime.UtcNow.AddMinutes(120);
-                }
+        if (sqlLower.Contains("`") && sqlLower.Contains("`"))
+            return "❌ ERROR: MySQL backtick identifiers detected. Use SQL Server [brackets] instead.";
 
-                return _cachedSchema;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch schema");
-                return "";
-            }
-        }
+        // ❌ FORBIDDEN: PostgreSQL syntax
+        if (sqlLower.Contains("::") && (sqlLower.Contains("::text") || sqlLower.Contains("::int")))
+            return "❌ ERROR: PostgreSQL type casting detected. Use SQL Server CAST() instead.";
 
-        private static void AppendSchemaEntity(StringBuilder sb, SchemaDto schema)
-        {
-            sb.AppendLine($"Entity: {schema.EntityType} (Table: {schema.TableName})");
-            sb.AppendLine($"Primary Keys: {string.Join(", ", schema.PrimaryKeys ?? Enumerable.Empty<string>())}");
-            sb.AppendLine("Columns:");
+        if (sqlLower.Contains("serial") && !sqlLower.Contains("serializable"))
+            return "❌ ERROR: PostgreSQL SERIAL data type detected. Use SQL Server IDENTITY or BIGINT instead.";
 
-            foreach (var col in schema.Columns ?? Enumerable.Empty<ColumnDto>())
-            {
-                sb.AppendLine($"  - {col.Name} ({col.DataType}, Nullable: {col.IsNullable}, PK: {col.IsPrimaryKey})");
-            }
+        return null; // Valid SQL Server syntax
+    }
 
-            sb.AppendLine("Relationships:");
-            if (schema.Relationships?.Any() == true)
-            {
-                foreach (var rel in schema.Relationships)
-                {
-                    sb.AppendLine($"  - {rel.NavigationName} → {rel.RelatedEntityType} ({rel.RelatedTableName})");
-                }
-            }
-            else
-            {
-                sb.AppendLine("  - None");
-            }
+    #endregion
 
-            sb.AppendLine();
-        }
+    #region SQL Generation
 
-        public async Task<string> GetAiExamplesAsync(CancellationToken ct = default)
-        {
-            lock (_cacheLock)
-            {
-                if (DateTime.UtcNow < _cacheExamplesExpiry && _cachedExamples != null)
-                {
-                    return _cachedExamples;
-                }
-            }
+    /// <summary>
+    /// Generates SQL from a natural language query.
+    /// </summary>
+    public async Task<SqlGenerationResult> GetSQLFromOllamaAsync(
+        string userQuery,
+        string model,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(userQuery);
+        ArgumentException.ThrowIfNullOrEmpty(model);
 
-            try
-            {
-                var response = await _pulseApiClient.GetAsync("/AI/examples", ct);
-                response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync(ct);
-
-                var aiQueries = JsonSerializer.Deserialize<List<AiQuery>>(content, _jsonOptions) ?? new();
-
-                var examples = aiQueries.Any()
-                    ? "\nExamples:\n" + string.Join("\n", aiQueries.Select(q =>
-                        $"Q: {q.Question}\nSQL: {q.SqlQuery}"))
-                    : "";
-
-                lock (_cacheLock)
-                {
-                    _cachedExamples = examples;
-                    _cacheExamplesExpiry = DateTime.UtcNow.AddMinutes(60);
-                }
-
-                return examples;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to fetch examples");
-                return "";
-            }
-        }
-
-        public async Task<List<string>> GetOllamaModelsAsync(CancellationToken ct = default)
-        {
-            try
-            {
-                var tags = await _ollamaService.GetAsync<OllamaTagsResponse>("/api/tags", ct);
-                return tags?.Models?.Select(m => m.Name).ToList() ?? new();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to fetch Ollama models");
-                return new List<string> { "llama3.1:latest", "gemma3:27b", "sqlcoder:15b" };
-            }
-        }
-
-        public async Task<string> ChatWithOllamaAsync(
-            List<OllamaMessage> messages,
-            string model,
-            bool enableSearch = true,
-            CancellationToken ct = default,
-            int queryLoop = 0)
-        {
-            if (_cancelQuery)
-            {
-                ResetQueryState();
-                return "Query cancelled.";
-            }
-
-            if (queryLoop >= MaxTotalQueryAttempts)
-            {
-                ResetQueryState();
-                return "Query exceeded maximum loop attempts. Please rephrase.";
-            }
-
-            try
-            {
-                var response = await ExecuteChatAsync(messages, model, enableSearch, ct, queryLoop);
-
-                if (response?.Message.ToolCalls?.Any() == true)
-                {
-                    await HandleToolCalls(response.Message.ToolCalls, messages, model, ct);
-                    return await ChatWithOllamaAsync(messages, model, enableSearch, ct, queryLoop + 1);
-                }
-
-                ResetQueryState();
-                return response.Message?.Content?.Trim() ?? "No response.";
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Chat error");
-                ResetQueryState();
-                return $"Error: {ex.Message}";
-            }
-        }
-
-        private async Task<OllamaChatResponse> ExecuteChatAsync(
-            List<OllamaMessage> messages,
-            string model,
-            bool enableSearch,
-            CancellationToken ct,
-            int queryLoop)
+        try
         {
             var schemaText = await GetDetailedSchemaAsync(ct);
             if (string.IsNullOrEmpty(schemaText))
             {
-                throw new InvalidOperationException("Schema unavailable");
+                return SqlGenerationResult.Error("Unable to retrieve database schema.");
             }
 
             var examples = await GetAiExamplesAsync(ct);
-            var systemMessage = BuildSystemMessage(schemaText, examples, messages);
+            var prompt = BuildSqlPrompt(schemaText, examples, userQuery);
 
-            var allMessages = new List<OllamaMessage> { systemMessage };
-            allMessages.AddRange(messages);
+            var ollamaRequest = new
+            {
+                model,
+                prompt,
+                stream = false,
+                options = new { temperature = 0.0, num_predict = 8000 }
+            };
 
-            var tools = BuildToolsList(enableSearch);
+            var ollamaResponse = await _ollamaService.PostAsync<OllamaGenerateResponse>(
+                ApiRoutes.Generate, ollamaRequest, ct);
+
+            if (ollamaResponse?.Done != true || string.IsNullOrEmpty(ollamaResponse.Response))
+            {
+                return SqlGenerationResult.Error("Ollama generation incomplete.");
+            }
+
+            var sql = SqlExtractor.Extract(ollamaResponse.Response);
+            if (string.IsNullOrEmpty(sql))
+            {
+                return SqlGenerationResult.Error("No SQL statement found in response.");
+            }
+
+            // 🚨 Validate SQL Server syntax
+            var syntaxError = ValidateSqlServerSyntax(sql);
+            if (syntaxError != null)
+            {
+                _logger.LogError("SQLite/MySQL/PostgreSQL syntax detected: {Query}", sql[..Math.Min(100, sql.Length)]);
+                return SqlGenerationResult.Error(syntaxError);
+            }
+
+            _logger.LogInformation(
+                "SQL generated successfully with {Tokens} tokens for query: {Query}",
+                ollamaResponse.PromptEvalCount,
+                userQuery[..Math.Min(50, userQuery.Length)]);
+
+            return SqlGenerationResult.Ok(sql, SqlExtractor.ExtractComments(ollamaResponse.Response));
+        }
+        catch (OperationCanceledException)
+        {
+            return SqlGenerationResult.Cancelled();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error generating SQL for query: {Query}", userQuery);
+            return SqlGenerationResult.Error($"Error: {ex.Message}");
+        }
+    }
+
+    private static string BuildSqlPrompt(string schema, string examples, string userQuery) =>
+        $$"""
+        You are a SQL expert for SQL Server 2022.
+        - Generate valid, efficient SELECT-only queries based on schema and user question.
+        - Use exact table/column names from the schema.
+        - Respect relationships for joins; handle nullability and data types.
+        - Format DateTime as "dd-MM-yy".
+        - Optimize with WHERE filters and JOINs only if needed.
+        
+        Schema:
+        {{schema}}
+        {{examples}}
+        
+        User Question: {{userQuery}}
+        """;
+    #endregion
+
+    #region Simple Generation
+
+    /// <summary>
+    /// Simple prompt-response generation without tools.
+    /// </summary>
+    public async Task<string> AskPulseAIAsync(
+        string prompt,
+        string model,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(prompt);
+        ArgumentException.ThrowIfNullOrEmpty(model);
+
+        try
+        {
             var request = new
             {
                 model,
-                messages = allMessages.ToArray(),
-                tools = tools.ToArray(),
-                think = true,
-                keep_alive = "10m",
-                stream = false,
-                options = new { temperature = 0.0, num_ctx = 32000 }
+                prompt,
+                stream = false
             };
 
-            _logger.LogInformation("Executing chat request (loop {Loop})", queryLoop);
-            return await _ollamaService.PostAsync<OllamaChatResponse>("/api/chat", request, ct)
-                ?? throw new InvalidOperationException("No response from Ollama");
+            var response = await _ollamaService.PostAsync<OllamaGenerateResponse>(
+                ApiRoutes.Generate, request, ct);
+
+            if (response is not { Done: true, Response.Length: > 0 })
+            {
+                _logger.LogWarning("Empty response from Ollama for prompt: {Prompt}",
+                    prompt[..Math.Min(50, prompt.Length)]);
+                return "No response from Ollama.";
+            }
+
+            _logger.LogInformation("Generated response with {Tokens} tokens", response.EvalCount);
+            return response.Response.Trim();
         }
-
-        private static OllamaMessage BuildSystemMessage(string schema, string examples, List<OllamaMessage> messages)
+        catch (OperationCanceledException)
         {
-            var userQuery = messages.Last(m => m.Role == "user")?.Content ?? "Unknown";
-
-            return new OllamaMessage
-            {
-                Role = "system",
-                Content = $$"""
-                    You are PulseAI, assisting H&M Rollers with business inquiries.
-                    
-                    **Available Tools**: execute_sql, web_search, web_fetch
-                    - One web_search per query
-                    - Limit retries to 3 per tool
-                    - Stop after results; don't re-query
-                    
-                    **Database Schema**:
-                    {{schema}}
-                    
-                    **SQL Guidelines**:
-                    - SELECT only, no DDL/DML
-                    - Use exact table/column names
-                    - Handle nullability and data types
-                    - Optimize with WHERE and minimal JOINs
-                    
-                    {{examples}}
-                    
-                    **Query**: {{userQuery}}
-                    
-                    **Output Rules**:
-                    - Cite web sources
-                    - Don't return SQL as answer
-                    - All amounts in ZAR
-                    - Ask clarifying questions if needed
-                    - Say "I don't know" if unsure
-                    """
-            };
+            _logger.LogWarning("Request cancelled");
+            return "Request was cancelled.";
         }
-
-        private static List<object> BuildToolsList(bool enableSearch)
+        catch (Exception ex)
         {
-            var tools = new List<object>
-            {
-                new
-                {
-                    type = "function",
-                    function = new
-                    {
-                        name = "execute_sql",
-                        description = "Execute SELECT query against dbPulse",
-                        parameters = new
-                        {
-                            type = "object",
-                            properties = new { sql = new { type = "string" } },
-                            required = new[] { "sql" }
-                        }
-                    }
-                }
-            };
-
-            if (enableSearch)
-            {
-                tools.Add(new
-                {
-                    type = "function",
-                    function = new
-                    {
-                        name = "web_search",
-                        description = "Search the web",
-                        parameters = new
-                        {
-                            type = "object",
-                            properties = new { query = new { type = "string" } },
-                            required = new[] { "query" }
-                        }
-                    }
-                });
-
-                tools.Add(new
-                {
-                    type = "function",
-                    function = new
-                    {
-                        name = "web_fetch",
-                        description = "Fetch URL content",
-                        parameters = new
-                        {
-                            type = "object",
-                            properties = new { url = new { type = "string" } },
-                            required = new[] { "url" }
-                        }
-                    }
-                });
-            }
-
-            return tools;
-        }
-
-        public async Task HandleToolCalls(List<OllamaToolCall> toolCalls, List<OllamaMessage> messages, string model, CancellationToken ct)
-        {
-            var knownTools = new HashSet<string> { "execute_sql", "web_search", "web_fetch" };
-
-            foreach (var toolCall in toolCalls)
-            {
-                var toolName = NormalizeTooName(toolCall.Function.Name);
-
-                if (!knownTools.Contains(toolName))
-                {
-                    _logger.LogWarning("Unknown tool: {Tool}", toolName);
-                    messages.Add(new OllamaMessage
-                    {
-                        Role = "tool",
-                        Content = $"Invalid tool '{toolName}'. Use: {string.Join(", ", knownTools)}",
-                        ToolName = toolName
-                    });
-                    continue;
-                }
-
-                var toolResult = await ExecuteToolAsync(toolName, toolCall.Function.Arguments, ct);
-                messages.Add(new OllamaMessage { Role = "tool", Content = toolResult, ToolName = toolName });
-            }
-        }
-
-        private static string NormalizeTooName(string? toolName)
-        {
-            if (string.IsNullOrEmpty(toolName)) return "unknown";
-
-            var normalized = toolName.ToLowerInvariant();
-            var knownTools = new[] { "execute_sql", "web_search", "web_fetch" };
-
-            return knownTools.FirstOrDefault(t => normalized.Contains(t)) ?? normalized;
-        }
-
-        private async Task<string> ExecuteToolAsync(string toolName, JsonElement args, CancellationToken ct)
-        {
-            try
-            {
-                return toolName switch
-                {
-                    "execute_sql" => await ExecuteSqlAsync(args, ct),
-                    "web_search" => await WebSearchAsync(args, ct),
-                    "web_fetch" => await WebFetchAsync(args, ct),
-                    _ => "Unknown tool"
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Tool {Tool} failed", toolName);
-                return $"Error: {ex.Message}";
-            }
-        }
-
-        private async Task<string> ExecuteSqlAsync(JsonElement args, CancellationToken ct)
-        {
-            if (!args.TryGetProperty("sql", out var sqlProp))
-            {
-                return "Error: Missing 'sql' argument";
-            }
-
-            var sql = sqlProp.GetString()?.Trim();
-            if (string.IsNullOrEmpty(sql))
-            {
-                return "Error: SQL is empty";
-            }
-
-            if (!sql.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
-            {
-                return "Error: Only SELECT statements allowed";
-            }
-
-            try
-            {
-                _logger.LogInformation("Executing SQL: {Sql}", sql);
-                var response = await _pulseApiClient.GetAsync(
-                    $"/AI/execute:{Uri.EscapeDataString(sql)}", ct);
-                response.EnsureSuccessStatusCode();
-                return await response.Content.ReadAsStringAsync(ct);
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "SQL execution failed");
-                return $"Database error: {ex.Message}";
-            }
-        }
-
-        private async Task<string> WebSearchAsync(JsonElement args, CancellationToken ct)
-        {
-            if (!args.TryGetProperty("query", out var queryProp))
-            {
-                return "Error: Missing 'query' argument";
-            }
-
-            var query = queryProp.GetString();
-            if (string.IsNullOrEmpty(query))
-            {
-                return "Error: Query is empty";
-            }
-
-            try
-            {
-                var searchUrl = _configuration["OllamaApi:WebSearchEndpoint"]
-                    ?? "https://ollama.com/api/web_search";
-
-                var response = await _ollamaService.PostAsync<OllamaWebSearchResponse>(
-                    searchUrl, new { query }, ct);
-
-                if (response?.Results?.Any() != true)
-                {
-                    return "No search results found.";
-                }
-
-                var results = string.Join(" | ", response.Results.Select(r =>
-                    $"[{r.Title}]({r.Url}): {r.Snippet}"));
-
-                return results.Length > 8000 ? results[..8000] + "..." : results;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Web search failed");
-                return $"Search error: {ex.Message}";
-            }
-        }
-
-        private async Task<string> WebFetchAsync(JsonElement args, CancellationToken ct)
-        {
-            if (!args.TryGetProperty("url", out var urlProp))
-            {
-                return "Error: Missing 'url' argument";
-            }
-
-            var url = urlProp.GetString();
-            if (string.IsNullOrEmpty(url))
-            {
-                return "Error: URL is empty";
-            }
-
-            try
-            {
-                var fetchUrl = _configuration["OllamaApi:WebFetchEndpoint"]
-                    ?? "https://ollama.com/api/web_fetch";
-
-                var response = await _ollamaService.PostAsync<OllamaWebFetchResponse>(
-                    fetchUrl, new { url }, ct);
-
-                var content = response?.Content ?? "";
-                return content.Length > 12000 ? content[..12000] + "..." : content;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Web fetch failed");
-                return $"Fetch error: {ex.Message}";
-            }
-        }
-
-        public async IAsyncEnumerable<string> StreamChatWithOllamaAsync(
-    List<OllamaMessage> messages,
-    string model,
-    bool enableSearch = true,
-    [EnumeratorCancellation] CancellationToken ct = default,
-    int queryLoop = 0)
-        {
-            if (_cancelQuery)
-            {
-                ResetQueryState();
-                yield return "Query cancelled.";
-                yield break;
-            }
-
-            if (queryLoop >= MaxTotalQueryAttempts)
-            {
-                ResetQueryState();
-                yield return "Maximum loop attempts exceeded.";
-                yield break;
-            }
-
-            // No try-catch here—delegate to helper that handles exceptions internally
-            var chunks = await ExecuteStreamChatAsync(messages, model, enableSearch, ct, queryLoop);
-            foreach (var chunk in chunks)
-            {
-                yield return chunk;
-            }
-        }
-
-        /// <summary>
-        /// Executes streaming chat with internal exception handling.
-        /// Returns results as a list (no async enumerable, so try-catch is allowed).
-        /// </summary>
-        private async Task<List<string>> ExecuteStreamChatAsync(
-            List<OllamaMessage> messages,
-            string model,
-            bool enableSearch,
-            CancellationToken ct,
-            int queryLoop)
-        {
-            var results = new List<string>();
-
-            try
-            {
-                var schemaText = await GetDetailedSchemaAsync(ct);
-                if (string.IsNullOrEmpty(schemaText))
-                {
-                    results.Add("Error: Schema unavailable");
-                    return results;
-                }
-
-                var examples = await GetAiExamplesAsync(ct);
-                var systemMessage = BuildSystemMessage(schemaText, examples, messages);
-                var allMessages = new List<OllamaMessage> { systemMessage };
-                allMessages.AddRange(messages);
-                var tools = BuildToolsList(enableSearch);
-
-                var request = new
-                {
-                    model,
-                    messages = allMessages.ToArray(),
-                    tools = tools.ToArray(),
-                    think = "high",
-                    keep_alive = "30m",
-                    stream = true,
-                    options = new { temperature = 0.0, num_ctx = 32000 }
-                };
-
-                _logger.LogInformation("Starting chat stream (loop {Loop})", queryLoop);
-
-                var accumulatedMessage = new OllamaMessage { Role = "assistant" };
-                var inThinking = false;
-                var hasContent = false;
-
-                await foreach (var chunk in _ollamaService.ChatStreamAsync("/api/chat", request, ct))
-                {
-                    if (!string.IsNullOrEmpty(chunk.Message?.Thinking))
-                    {
-                        if (!inThinking)
-                        {
-                            inThinking = true;
-                            results.Add("\n**Thinking:**\n");
-                        }
-                        results.Add(chunk.Message.Thinking);
-                        hasContent = true;
-                    }
-
-                    if (!string.IsNullOrEmpty(chunk.Message?.Content))
-                    {
-                        if (inThinking)
-                        {
-                            inThinking = false;
-                            results.Add("\n**Response:**\n");
-                        }
-                        results.Add(chunk.Message.Content);
-                        hasContent = true;
-                    }
-
-                    if (chunk.Message?.ToolCalls?.Any() == true)
-                    {
-                        accumulatedMessage.ToolCalls ??= new();
-                        accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
-                    }
-
-                    if (chunk.Done)
-                    {
-                        if (accumulatedMessage.ToolCalls?.Any() == true)
-                        {
-                            results.Add("\n*Processing tool calls...*\n");
-                            await HandleToolCalls(accumulatedMessage.ToolCalls, messages, model, ct);
-
-                            // Recursively execute and collect results
-                            var recursiveResults = await ExecuteStreamChatAsync(
-                                messages, model, enableSearch, ct, queryLoop + 1);
-                            results.AddRange(recursiveResults);
-                        }
-                        break;
-                    }
-                }
-
-                if (!hasContent && results.Count == 0)
-                {
-                    results.Add("No response from Ollama.");
-                }
-
-                ResetQueryState();
-            }
-            catch (OperationCanceledException)
-            {
-                ResetQueryState();
-                results.Add("\nRequest cancelled.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Stream chat error");
-                ResetQueryState();
-                results.Add($"\nError: {ex.Message}");
-            }
-
-            return results;
-        }
-        // Helper methods for API calls
-        public async Task<List<ClientSale>> GetClientSalesAsync(string clientId, CancellationToken ct = default)
-        {
-            try
-            {
-                var response = await _pulseApiClient.GetAsync(
-                    $"/Customers/Details/{Uri.EscapeDataString(clientId)}/Sales", ct);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-                return JsonSerializer.Deserialize<List<ClientSale>>(json, _jsonOptions) ?? new();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch client sales");
-                return new();
-            }
-        }
-
-        public async Task<ClientCurrentStats> GetClientStatsAsync(string clientId, CancellationToken ct = default)
-        {
-            try
-            {
-                var response = await _pulseApiClient.GetAsync(
-                    $"/Customers/Details/{Uri.EscapeDataString(clientId)}/CurrentStats", ct);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-                return JsonSerializer.Deserialize<ClientCurrentStats>(json, _jsonOptions) ?? new();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch client stats");
-                return new();
-            }
-        }
-
-        private async Task<List<SchemaDto>> GetSchemaFromApiAsync(CancellationToken ct = default)
-        {
-            try
-            {
-                var response = await _pulseApiClient.GetAsync("/AI/schema", ct);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-                return JsonSerializer.Deserialize<List<SchemaDto>>(json, _jsonOptions) ?? new();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to fetch schema");
-                return new();
-            }
-        }
-
-        public async Task<List<ClientRollerSpecification>> GetClientRollerSpecificationsAsync(
-    string clientId,
-    CancellationToken ct = default)
-        {
-            ArgumentException.ThrowIfNullOrEmpty(clientId);
-
-            try
-            {
-                var response = await _pulseApiClient.GetAsync(
-                    $"/Customers/Details/{Uri.EscapeDataString(clientId)}/RollerSpecifications", ct);
-                response.EnsureSuccessStatusCode();
-                var json = await response.Content.ReadAsStringAsync(ct);
-
-                var specs = JsonSerializer.Deserialize<List<ClientRollerSpecification>>(json, _jsonOptions) ?? new();
-                _logger.LogInformation("Fetched {Count} roller specifications for client {ClientId}", specs.Count, clientId);
-                return specs;
-            }
-            catch (HttpRequestException ex)
-            {
-                _logger.LogError(ex, "Failed to fetch roller specifications for client {ClientId}", clientId);
-                return new();
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error fetching roller specifications");
-                return new();
-            }
+            _logger.LogError(ex, "Error in AskPulseAIAsync");
+            return $"Error: {ex.Message}";
         }
     }
+
+    #endregion
+
+    #region Chat with Tools
+
+    /// <summary>
+    /// Non-streaming chat with tool support.
+    /// </summary>
+    public async Task<string> ChatWithOllamaAsync(
+        List<OllamaMessage> messages,
+        string model,
+        bool enableSearch = true,
+        CancellationToken ct = default,
+        QueryContext? context = null,
+        int queryLoop = 0)
+    {
+        context ??= new QueryContext();
+
+        if (context.CancelQuery)
+        {
+            return "Query cancelled.";
+        }
+
+        if (queryLoop >= MaxTotalQueryAttempts)
+        {
+            return "Query exceeded maximum loop attempts. Please rephrase.";
+        }
+
+        try
+        {
+            var response = await ExecuteChatAsync(messages, model, enableSearch, ct);
+
+            if (response is { Message.ToolCalls.Count: > 0 })
+            {
+                await HandleToolCallsAsync(response.Message.ToolCalls, messages, context, ct);
+                return await ChatWithOllamaAsync(messages, model, enableSearch, ct, context, queryLoop + 1);
+            }
+
+            return response?.Message?.Content?.Trim() ?? "No response.";
+        }
+        catch (OperationCanceledException)
+        {
+            return "Request cancelled.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Chat error at loop {Loop}", queryLoop);
+            return $"Error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Streaming chat with tool support.
+    /// </summary>
+    public async IAsyncEnumerable<string> StreamChatWithOllamaAsync(
+        List<OllamaMessage> messages,
+        string model,
+        bool enableSearch = true,
+        [EnumeratorCancellation] CancellationToken ct = default,
+        QueryContext? context = null,
+        int queryLoop = 0)
+    {
+        context ??= new QueryContext();
+
+        if (context.CancelQuery)
+        {
+            yield return "Query cancelled.";
+            yield break;
+        }
+
+        if (queryLoop >= MaxTotalQueryAttempts)
+        {
+            yield return "Maximum loop attempts exceeded.";
+            yield break;
+        }
+
+        // Prepare context outside the streaming loop
+        var prepResult = await PrepareStreamContextAsync(ct);
+        if (prepResult.Error != null)
+        {
+            yield return prepResult.Error;
+            yield break;
+        }
+
+        var systemMessage = BuildSystemMessage(prepResult.Schema!, prepResult.Examples!, messages);
+        var allMessages = new List<OllamaMessage> { systemMessage };
+        allMessages.AddRange(messages);
+
+        var tools = BuildToolsList(enableSearch);
+        var request = new
+        {
+            model,
+            messages = allMessages.ToArray(),
+            tools = tools.ToArray(),
+            think = "high",
+            keep_alive = "30m",
+            stream = true,
+            options = new { temperature = 0.0, num_ctx = 32000 }
+        };
+
+        _logger.LogInformation("Starting chat stream (loop {Loop})", queryLoop);
+
+        // Get the stream wrapper (handles initialization errors)
+        var streamResult = await CreateStreamAsync(request, ct);
+        if (streamResult.Error != null)
+        {
+            yield return streamResult.Error;
+            yield break;
+        }
+
+        var accumulatedToolCalls = new List<OllamaToolCall>();
+        var inThinking = false;
+        var hasContent = false;
+
+        // Iterate through chunks
+        await foreach (var chunk in streamResult.Stream!)
+        {
+            if (chunk.Error != null)
+            {
+                yield return chunk.Error;
+                yield break;
+            }
+
+            if (!string.IsNullOrEmpty(chunk.Thinking))
+            {
+                if (!inThinking)
+                {
+                    inThinking = true;
+                    yield return "\n**Thinking:**\n";
+                }
+                yield return chunk.Thinking;
+                hasContent = true;
+            }
+
+            if (!string.IsNullOrEmpty(chunk.Content))
+            {
+                if (inThinking)
+                {
+                    inThinking = false;
+                    yield return "\n**Response:**\n";
+                }
+                yield return chunk.Content;
+                hasContent = true;
+            }
+
+            if (chunk.ToolCalls is { Count: > 0 })
+            {
+                accumulatedToolCalls.AddRange(chunk.ToolCalls);
+            }
+
+            if (chunk.Done)
+            {
+                break;
+            }
+        }
+
+        // Handle tool calls after streaming completes
+        if (accumulatedToolCalls.Count > 0)
+        {
+            yield return "\n*Processing tool calls...*\n";
+
+            var toolError = await HandleToolCallsSafeAsync(accumulatedToolCalls, messages, context, ct);
+            if (toolError != null)
+            {
+                yield return toolError;
+                yield break;
+            }
+
+            // Recursive streaming for tool results
+            await foreach (var recursiveChunk in StreamChatWithOllamaAsync(
+                messages, model, enableSearch, ct, context, queryLoop + 1))
+            {
+                yield return recursiveChunk;
+            }
+            yield break;
+        }
+
+        if (!hasContent)
+        {
+            yield return "No response from Ollama.";
+        }
+    }
+
+    /// <summary>
+    /// Prepares schema and examples for streaming.
+    /// </summary>
+    public async Task<(string? Schema, string? Examples, string? Error)> PrepareStreamContextAsync(
+        CancellationToken ct)
+    {
+        try
+        {
+            var schemaText = await GetDetailedSchemaAsync(ct);
+            if (string.IsNullOrEmpty(schemaText))
+            {
+                return (null, null, "Error: Schema unavailable");
+            }
+
+            var examples = await GetAiExamplesAsync(ct);
+            return (schemaText, examples, null);
+        }
+        catch (OperationCanceledException)
+        {
+            return (null, null, "Request cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to prepare stream context");
+            return (null, null, $"Error loading context: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Creates the stream with error handling during initialization.
+    /// Returns either the stream or an error message.
+    /// </summary>
+    private async Task<(IAsyncEnumerable<StreamChunk>? Stream, string? Error)> CreateStreamAsync(
+        object request,
+        CancellationToken ct)
+    {
+        try
+        {
+            // Test that we can start the stream
+            var stream = StreamChunksCore(request, ct);
+            return (stream, null);
+        }
+        catch (OperationCanceledException)
+        {
+            return (null, "Request cancelled.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to create chat stream");
+            return (null, $"Stream error: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Core streaming logic - wraps exceptions into StreamChunk.Error.
+    /// No yield inside catch blocks.
+    /// </summary>
+    private async IAsyncEnumerable<StreamChunk> StreamChunksCore(
+        object request,
+        [EnumeratorCancellation] CancellationToken ct)
+    {
+        var enumerator = _ollamaService.ChatStreamAsync(ApiRoutes.Chat, request, ct).GetAsyncEnumerator(ct);
+        
+        string? pendingError = null;
+        
+        try
+        {
+            while (true)
+            {
+                bool hasNext;
+                OllamaChatChunk? current = null;
+
+                try
+                {
+                    hasNext = await enumerator.MoveNextAsync();
+                    if (hasNext)
+                    {
+                        current = enumerator.Current;
+                    }
+                }
+                catch (OperationCanceledException)
+                {
+                    pendingError = "Request cancelled.";
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Stream iteration error");
+                    pendingError = $"Stream error: {ex.Message}";
+                    break;
+                }
+
+                if (!hasNext || current == null)
+                {
+                    break;
+                }
+
+                yield return new StreamChunk
+                {
+                    Thinking = current.Message?.Thinking,
+                    Content = current.Message?.Content,
+                    ToolCalls = current.Message?.ToolCalls,
+                    Done = current.Done
+                };
+
+                if (current.Done)
+                {
+                    break;
+                }
+            }
+        }
+        finally
+        {
+            await enumerator.DisposeAsync();
+        }
+
+        // Yield error outside of catch block
+        if (pendingError != null)
+        {
+            yield return new StreamChunk { Error = pendingError };
+        }
+    }
+
+    /// <summary>
+    /// Handles tool calls with exception handling.
+    /// </summary>
+    private async Task<string?> HandleToolCallsSafeAsync(
+        List<OllamaToolCall> toolCalls,
+        List<OllamaMessage> messages,
+        QueryContext context,
+        CancellationToken ct)
+    {
+        try
+        {
+            await HandleToolCallsAsync(toolCalls, messages, context, ct);
+            return null;
+        }
+        catch (OperationCanceledException)
+        {
+            return "Request cancelled.";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tool handling failed");
+            return $"Tool error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Internal chunk representation for streaming.
+    /// </summary>
+    private sealed class StreamChunk
+    {
+        public string? Thinking { get; init; }
+        public string? Content { get; init; }
+        public List<OllamaToolCall>? ToolCalls { get; init; }
+        public bool Done { get; init; }
+        public string? Error { get; init; }
+    }
+
+    #endregion
+
+    #region Tool Handling
+
+    public async Task HandleToolCallsAsync(
+        List<OllamaToolCall> toolCalls,
+        List<OllamaMessage> messages,
+        QueryContext context,
+        CancellationToken ct)
+    {
+        foreach (var toolCall in toolCalls)
+        {
+            var toolName = NormalizeToolName(toolCall.Function?.Name);
+
+            if (!ToolNames.All.Contains(toolName))
+            {
+                _logger.LogWarning("Unknown tool requested: {Tool}", toolName);
+                messages.Add(new OllamaMessage
+                {
+                    Role = "tool",
+                    Content = $"Invalid tool '{toolName}'. Available: {string.Join(", ", ToolNames.All)}",
+                    ToolName = toolName
+                });
+                continue;
+            }
+
+            if (!context.ShouldRetryTool(toolName, MaxToolRetries))
+            {
+                _logger.LogWarning("Tool {Tool} exceeded max retries", toolName);
+                messages.Add(new OllamaMessage
+                {
+                    Role = "tool",
+                    Content = $"Tool '{toolName}' exceeded maximum retry attempts.",
+                    ToolName = toolName
+                });
+                continue;
+            }
+
+            var toolResult = await ExecuteToolAsync(toolName, toolCall.Function?.Arguments ?? default, ct);
+            messages.Add(new OllamaMessage
+            {
+                Role = "tool",
+                Content = toolResult,
+                ToolName = toolName
+            });
+        }
+    }
+
+    private static string NormalizeToolName(string? toolName)
+    {
+        if (string.IsNullOrEmpty(toolName))
+            return "unknown";
+
+        var normalized = toolName.ToLowerInvariant().Trim();
+        return ToolNames.All.FirstOrDefault(t => normalized.Contains(t)) ?? normalized;
+    }
+
+    private async Task<string> ExecuteToolAsync(string toolName, JsonElement args, CancellationToken ct)
+    {
+        try
+        {
+            return toolName switch
+            {
+                ToolNames.ExecuteSql => await ExecuteSqlAsync(args, ct),
+                ToolNames.WebSearch => await WebSearchAsync(args, ct),
+                ToolNames.WebFetch => await WebFetchAsync(args, ct),
+                _ => $"Unknown tool: {toolName}"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tool {Tool} failed", toolName);
+            return $"Tool error: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ExecuteSqlAsync(JsonElement args, CancellationToken ct)
+    {
+        if (!args.TryGetProperty("sql", out var sqlProp))
+            return "Error: Missing 'sql' argument";
+
+        var sql = sqlProp.GetString()?.Trim();
+        if (string.IsNullOrEmpty(sql))
+            return "Error: SQL is empty";
+
+        if (!sql.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            return "Error: Only SELECT statements allowed";
+
+        _logger.LogInformation("Executing SQL: {Sql}", sql[..Math.Min(100, sql.Length)]);
+
+        var response = await _pulseApiClient.GetAsync(
+            $"{ApiRoutes.Execute}{Uri.EscapeDataString(sql)}", ct);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync(ct);
+    }
+
+    private async Task<string> WebSearchAsync(JsonElement args, CancellationToken ct)
+    {
+        if (!args.TryGetProperty("query", out var queryProp))
+            return "Error: Missing 'query' argument";
+
+        var query = queryProp.GetString();
+        if (string.IsNullOrEmpty(query))
+            return "Error: Query is empty";
+
+        var searchUrl = _configuration["OllamaApi:WebSearchEndpoint"]
+            ?? "https://ollama.com/api/web_search";
+
+        var response = await _ollamaService.PostAsync<OllamaWebSearchResponse>(
+            searchUrl, new { query }, ct);
+
+        if (response?.Results is not { Count: > 0 })
+            return "No search results found.";
+
+        var results = string.Join(" | ", response.Results.Select(r =>
+            $"[{r.Title}]({r.Url}): {r.Snippet}"));
+
+        return results.Length > 8000 ? results[..8000] + "..." : results;
+    }
+
+    private async Task<string> WebFetchAsync(JsonElement args, CancellationToken ct)
+    {
+        if (!args.TryGetProperty("url", out var urlProp))
+            return "Error: Missing 'url' argument";
+
+        var url = urlProp.GetString();
+        if (string.IsNullOrEmpty(url))
+            return "Error: URL is empty";
+
+        var fetchUrl = _configuration["OllamaApi:WebFetchEndpoint"]
+            ?? "https://ollama.com/api/web_fetch";
+
+        var response = await _ollamaService.PostAsync<OllamaWebFetchResponse>(
+            fetchUrl, new { url }, ct);
+
+        var content = response?.Content ?? "";
+        return content.Length > 12000 ? content[..12000] + "..." : content;
+    }
+
+    #endregion
+
+    #region Schema & Examples Caching
+
+    public async Task<string> GetDetailedSchemaAsync(CancellationToken ct = default)
+    {
+        return await _cache.GetOrCreateAsync(CacheKeys.Schema, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = SchemaCacheDuration;
+
+            var schemas = await GetSchemaFromApiAsync(ct);
+            if (schemas.Count == 0)
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30); // Short cache on failure
+                return "";
+            }
+
+            var schemaBuilder = new StringBuilder();
+            foreach (var schema in schemas)
+            {
+                AppendSchemaEntity(schemaBuilder, schema);
+            }
+
+            _logger.LogInformation("Schema cached: {TableCount} tables", schemas.Count);
+            return schemaBuilder.ToString();
+        }) ?? "";
+    }
+
+    public async Task<string> GetAiExamplesAsync(CancellationToken ct = default)
+    {
+        return await _cache.GetOrCreateAsync(CacheKeys.Examples, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = ExamplesCacheDuration;
+
+            try
+            {
+                var response = await _pulseApiClient.GetAsync(ApiRoutes.Examples, ct);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync(ct);
+
+                var aiQueries = JsonSerializer.Deserialize<List<AiQuery>>(content, _jsonOptions) ?? [];
+
+                if (aiQueries.Count == 0)
+                    return "";
+
+                _logger.LogInformation("Examples cached: {Count} queries", aiQueries.Count);
+                return "\nExamples:\n" + string.Join("\n", aiQueries.Select(q =>
+                    $"Q: {q.Question}\nSQL: {q.SqlQuery}"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to fetch examples");
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30);
+                return "";
+            }
+        }) ?? "";
+    }
+
+    private static void AppendSchemaEntity(StringBuilder sb, SchemaDto schema)
+    {
+        sb.AppendLine($"Entity: {schema.EntityType} (Table: {schema.TableName})");
+        sb.AppendLine($"Primary Keys: {string.Join(", ", schema.PrimaryKeys ?? [])}");
+        sb.AppendLine("Columns:");
+
+        foreach (var col in schema.Columns ?? [])
+        {
+            sb.AppendLine($"  - {col.Name} ({col.DataType}, Nullable: {col.IsNullable}, PK: {col.IsPrimaryKey})");
+        }
+
+        sb.AppendLine("Relationships:");
+        if (schema.Relationships is { Count: > 0 })
+        {
+            foreach (var rel in schema.Relationships)
+            {
+                sb.AppendLine($"  - {rel.NavigationName} → {rel.RelatedEntityType} ({rel.RelatedTableName})");
+            }
+        }
+        else
+        {
+            sb.AppendLine("  - None");
+        }
+        sb.AppendLine();
+    }
+
+    #endregion
+
+    #region Helper Methods
+
+    public async Task<List<string>> GetOllamaModelsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var tags = await _ollamaService.GetAsync<OllamaTagsResponse>(ApiRoutes.Tags, ct);
+            return tags?.Models?.Select(m => m.Name).ToList() ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to fetch Ollama models");
+            return ["llama3.1:latest", "gemma3:27b", "sqlcoder:15b"];
+        }
+    }
+
+    private async Task<List<SchemaDto>> GetSchemaFromApiAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _pulseApiClient.GetAsync(ApiRoutes.Schema, ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonSerializer.Deserialize<List<SchemaDto>>(json, _jsonOptions) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch schema");
+            return [];
+        }
+    }
+
+    public async Task<List<ClientSale>> GetClientSalesAsync(string clientId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _pulseApiClient.GetAsync(
+                $"/Customers/Details/{Uri.EscapeDataString(clientId)}/Sales", ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonSerializer.Deserialize<List<ClientSale>>(json, _jsonOptions) ?? [];
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch client sales for {ClientId}", clientId);
+            return [];
+        }
+    }
+
+    public async Task<ClientCurrentStats> GetClientStatsAsync(string clientId, CancellationToken ct = default)
+    {
+        try
+        {
+            var response = await _pulseApiClient.GetAsync(
+                $"/Customers/Details/{Uri.EscapeDataString(clientId)}/CurrentStats", ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(ct);
+            return JsonSerializer.Deserialize<ClientCurrentStats>(json, _jsonOptions) ?? new();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch client stats for {ClientId}", clientId);
+            return new();
+        }
+    }
+
+    public async Task<List<ClientRollerSpecification>> GetClientRollerSpecificationsAsync(
+        string clientId,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(clientId);
+
+        try
+        {
+            var response = await _pulseApiClient.GetAsync(
+                $"/Customers/Details/{Uri.EscapeDataString(clientId)}/RollerSpecifications", ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(ct);
+
+            var specs = JsonSerializer.Deserialize<List<ClientRollerSpecification>>(json, _jsonOptions) ?? [];
+            _logger.LogInformation("Fetched {Count} roller specifications for client {ClientId}",
+                specs.Count, clientId);
+            return specs;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to fetch roller specifications for {ClientId}", clientId);
+            return [];
+        }
+    }
+
+    #endregion
+
+    #region Message Building
+
+    private static OllamaMessage BuildSystemMessage(string schema, string examples, List<OllamaMessage> messages)
+    {
+        var userQuery = messages.LastOrDefault(m => m.Role == "user")?.Content ?? "Unknown";
+
+        return new OllamaMessage
+        {
+            Role = "system",
+            Content = $$"""
+                You are PulseAI, assisting H&M Rollers with business inquiries.
+                
+                **Available Tools**: execute_sql, web_search, web_fetch
+                - One web_search per query
+                - Limit retries to 3 per tool
+                - Stop after results; don't re-query
+                
+                **Database Schema**:
+                {{schema}}
+                
+                **SQL Guidelines**:
+                - SELECT only, no DDL/DML
+                - Use exact table/column names
+                - Handle nullability and data types
+                - Optimize with WHERE and minimal JOINs
+                
+                {{examples}}
+                
+                **Query**: {{userQuery}}
+                
+                **Output Rules**:
+                - Cite web sources
+                - Don't return SQL as answer
+                - All amounts in ZAR
+                - Ask clarifying questions if needed
+                - Say "I don't know" if unsure
+                """
+        };
+    }
+
+    private static List<object> BuildToolsList(bool enableSearch)
+    {
+        var tools = new List<object>
+        {
+            new
+            {
+                type = "function",
+                function = new
+                {
+                    name = ToolNames.ExecuteSql,
+                    description = "Execute SELECT query against dbPulse",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { sql = new { type = "string" } },
+                        required = new[] { "sql" }
+                    }
+                }
+            }
+        };
+
+        if (enableSearch)
+        {
+            tools.Add(new
+            {
+                type = "function",
+                function = new
+                {
+                    name = ToolNames.WebSearch,
+                    description = "Search the web",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { query = new { type = "string" } },
+                        required = new[] { "query" }
+                    }
+                }
+            });
+
+            tools.Add(new
+            {
+                type = "function",
+                function = new
+                {
+                    name = ToolNames.WebFetch,
+                    description = "Fetch URL content",
+                    parameters = new
+                    {
+                        type = "object",
+                        properties = new { url = new { type = "string" } },
+                        required = new[] { "url" }
+                    }
+                }
+            });
+        }
+
+        return tools;
+    }
+
+    #endregion
+
+    #region Chat Execution
+
+    /// <summary>
+    /// Executes a non-streaming chat request with tools.
+    /// </summary>
+    private async Task<OllamaChatResponse?> ExecuteChatAsync(
+        List<OllamaMessage> messages,
+        string model,
+        bool enableSearch,
+        CancellationToken ct)
+    {
+        var schemaText = await GetDetailedSchemaAsync(ct);
+        if (string.IsNullOrEmpty(schemaText))
+        {
+            throw new InvalidOperationException("Schema unavailable");
+        }
+
+        var examples = await GetAiExamplesAsync(ct);
+        var systemMessage = BuildSystemMessage(schemaText, examples, messages);
+
+        var allMessages = new List<OllamaMessage> { systemMessage };
+        allMessages.AddRange(messages);
+
+        var tools = BuildToolsList(enableSearch);
+        var request = new
+        {
+            model,
+            messages = allMessages.ToArray(),
+            tools = tools.ToArray(),
+            think = true,
+            keep_alive = "10m",
+            stream = false,
+            options = new { temperature = 0.0, num_ctx = 32000 }
+        };
+
+        _logger.LogInformation("Executing non-streaming chat request");
+
+        return await _ollamaService.PostAsync<OllamaChatResponse>(ApiRoutes.Chat, request, ct);
+    }
+
+    #endregion
 }

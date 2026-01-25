@@ -1,17 +1,16 @@
 ﻿@page "/AiZone/AIQueryPg"
 
-
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Pulse.Web.Components.Layout
+@using Pulse.Web.Services
+@using Pulse.Web.Tools
 @using Pulse.Models.AI.AIds
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
 @using Pulse.Models.Users
-@using Pulse.Web.Services
 @using System.Data
-@using Pulse.Web.Tools
 @using System.Threading.Tasks
 @using Markdig
 @using Toolbelt.Blazor.SpeechSynthesis
@@ -427,6 +426,7 @@
     private bool useSpeechOutput = false;
     private SpeechSynthesisVoice? _voice;
     private User? user;
+    private CancellationTokenSource? cts;
     PaginationState pagination = new PaginationState { ItemsPerPage = 19 };
     private Tables? tables;
     private Flapper? flapper;
@@ -681,7 +681,7 @@
 
     private async Task CancelQuery()
     {
-        await pAI.CancelQueryAsync();
+        cts?.Cancel();
         isLoading = false;
     }
 
@@ -902,16 +902,16 @@
                 isCorrect = true; // Reset for next time
             }
 
-            Dictionary<string, string> aiSQLv = await pAI.GetSQLFromOllamaAsync(aiSQL + query, aiModel, cts.Token);
+            var aiSQLv = await pAI.GetSQLFromOllamaAsync(aiSQL + query, aiModel, cts.Token);
 
-            if( aiSQLv["Status"] == "Error")
+            if (!aiSQLv.Success)
             {
-                errorMessage = aiSQLv["Comments"];
+                errorMessage = aiSQLv.ErrorMessage ?? "Unknown error";
                 return;
             }
 
-            strResponse = aiSQLv["SQL"];
-            strReasoning = aiSQLv["Comments"];
+            strResponse = aiSQLv.Sql ?? string.Empty;
+            strReasoning = aiSQLv.Comments ?? string.Empty;
 
             var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{strResponse}");
             if (aiResponse == null)
@@ -968,7 +968,7 @@
 
     private async Task SaveQry()
     {
-        Pulse.Models.Misc.AiQuery newEntry = new Models.Misc.AiQuery
+        var newEntry = new AiQuery
         {
             Question = query,
             SqlQuery = strResponse,
