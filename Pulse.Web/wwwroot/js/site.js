@@ -40,32 +40,42 @@ function downloadExcel(filename, byteBase64) {
 function applyPulseTheme(themeN) {
     const sheet = new CSSStyleSheet();
     var darkC;
+    var darkCt50;
     var lightC;
+    var lightC2;
     var bgPic;
 
     switch (themeN) {
         case 'pulse':
-            darkC = "#660000";
-            lightC = "#d9d9d9";
+            darkC = "hsl(0,100%,20%)";
+            darkCt50 = "hsla(0,100%,20%,0.5)";
+            lightC = "hsl(0, 0%, 85%)";
+            lightC2 = "hsl(0, 0%, 75%)";
             bgPic = "PulseAspireBG.png";
             break;
         case 'HM':
-            darkC = "#365b66";
-            lightC = "#bcd1d4";
+            darkC = "hsl(200, 40%, 30%)";
+            darkCt50 = "hsla(200, 40%, 30%, 0.5)";
+            lightC = "hsl(190, 30%, 80%)";
+            lightC2 = "hsl(190, 30%, 70%)";
             bgPic = "HMBG.png";
             break;
         case 'ocean':
             darkC = "hsl(240, 100%, 15%)";
+            darkCt50 = "hsla(240, 100%, 15%,0.5)"; 
             lightC = "hsl(209, 100%, 90%)";
+            lightC2 = "hsl(209, 70%, 80%)";
             bgPic = "Ocean.png";
             break;
         case 'space':
             darkC = "hsl(0, 0%, 0%)";
+            darkCt50 = "hsla(0, 0%, 0%, 0.5)";
             lightC = "hsl(0, 0%, 86%)";
+            lightC2 = "hsl(0, 0%, 75%)";
             bgPic = "Space.png";
             break;
     }
-    sheet.replaceSync(':root { --pulse-dark-colour: ' + darkC + '; --pulse-light-colour:' + lightC + '; --pulse-theme-bg: url(../images/backgrounds/' + bgPic + '); --accent-fill-rest: ' + darkC + '; }');
+    sheet.replaceSync(':root { --pulse-dark-colour: ' + darkC + '; --pulse-dark-t50-colour:' + darkCt50 + '; --pulse-light-colour:' + lightC + '; --pulse-light-2-colour:' + lightC2 + '; --pulse-theme-bg: url(../images/backgrounds/' + bgPic + '); --accent-fill-rest: ' + darkC + '; }');
     /*document.adoptedStyleSheets = [sheet];*/
     document.adoptedStyleSheets = document.adoptedStyleSheets.concat(sheet);
 }

@@ -51,13 +51,14 @@ namespace Pulse.ApiService.Security
                 new Claim(JwtRegisteredClaimNames.NameId, user.Id),
                 new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email ?? string.Empty),
+                new Claim("FullName", user.FullName ?? string.Empty),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
 
             // Add roles as claims
             claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-            
+
             var credentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(

@@ -29,6 +29,10 @@ namespace Pulse.Models.Users
         [JsonPropertyName("email")]
         public string Email { get; set; } = string.Empty;
 
+        [JsonPropertyName("fullName")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? FullName { get; set; }
+
         [JsonPropertyName("success")]
         public bool Success { get; set; } = true;
 

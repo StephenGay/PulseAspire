@@ -58,10 +58,10 @@
     .toast-body {
         height: 70% !important;
     } */
-    .drawer{
+    /* .drawer{
         --bb-drawer-body-padding : 0 !important; 
         top: 56px !important;
-    }
+    } */
     hr{
         color: #365b66 !important;
         background-color: #365b66 !important;
@@ -388,7 +388,7 @@
         </div>
     </Drawer>
 
-    <Drawer Id="ResultsPanel" Placement="Placement.Bottom" @bind-IsOpen="@showResultsPanel" width="100%" Height="calc(100vh - 56px)"  AllowResize="true">
+    <Drawer Id="ResultsPanel" Placement="Placement.Bottom" @bind-IsOpen="@showResultsPanel" width="100%" Height="calc(100vh - 112px)"  AllowResize="true">
         <div style="display: flex;flex-direction: column;overflow:hidden;height:100%;padding:5px;background-color:rgba(188,209,212,0.8)">
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding: 5px;min-height:50px">
                 <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"

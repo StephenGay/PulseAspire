@@ -8,6 +8,7 @@ namespace Pulse.Models.CustomComponents
     public record UserPresenceDto(
                     string UserId,
                     string UserName,
+                    string FullName,
                     bool IsOnline,
                     PresenceStatus EffectiveStatus);
 }

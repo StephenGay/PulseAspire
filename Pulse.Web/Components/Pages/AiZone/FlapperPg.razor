@@ -19,7 +19,7 @@
 @using System.Runtime.CompilerServices
 @using System.Text.Json
 @using Toolbelt.Blazor.SpeechRecognition
-@using Toolbelt.Blazor.SpeechSynthesis
+@* @using Toolbelt.Blazor.SpeechSynthesis *@
 
 @inject Pulse_AI pAI
 @inject PulseApiService pulseApiClient 
@@ -29,7 +29,8 @@
 @inject IMenuService ms
 @inject IJSRuntime JSRuntime
 @inject AccentBaseColor AccentBaseColor
-@inject SpeechSynthesis SpeechSynthesis
+@inject Global_AI_Functions GlobalAI
+@* @inject SpeechSynthesis SpeechSynthesis *@
 @inject SpeechRecognition SpeechRecognition
 @inject IHttpClientFactory HttpClientFactory
 @inject AiPromptService AiPrompts
@@ -46,7 +47,7 @@
     .dparent {
         display: flex;
         flex-direction: column; /* Stack children vertically */
-        height: calc(100vh - 56px); /* Or whatever height your parent should be, like 100% */
+        height: calc(100vh - 112px); /* Or whatever height your parent should be, like 100% */
         background-color: var(--pulse-light-colour);
     }
 
@@ -78,7 +79,7 @@
                           Style="border: 1px solid white" OnClick="() => viewBox = !viewBox"></FluentButton> *@
             <FluentButton class=@(!viewBox ? "myModeBtnOff" : "flapOn")
                           BackgroundColor="white"
-                          Style="border: 2px solid ;height:40px;margin-left:10px"
+                          Style="border: 2px solid ;height:40px;width:40px;margin-left:10px"
                           OnClick="() => viewBox = !viewBox">
                 @if (flapper != null)
                 {
@@ -90,10 +91,16 @@
             <!-- Create Role Form (only shown to admins) -->
                     <FluentButton Appearance="Appearance.Accent" class=@(!ViewSettings ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
-                                  OnClick="() => ViewSettings = !ViewSettings">Settings</FluentButton>
+                                  IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                                  Style="height:40px;width:40px"
+                                  Title="Flapper Settings"
+                                  OnClick="() => ViewSettings = !ViewSettings"></FluentButton>
                     <FluentButton Appearance="Appearance.Accent" class=@(!AdminMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
-                                  OnClick="() => AdminMode = !AdminMode">Admin</FluentButton>
+                                  Style="height:40px;width:40px"
+                                  IconStart="@(new Icons.Filled.Size24.PersonEdit().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                                  Title="Admin Mode"
+                                  OnClick="() => AdminMode = !AdminMode"></FluentButton>
         </Authorized>
     </AuthorizeView>
             
@@ -109,6 +116,7 @@
             <FluentSpacer />
             <FluentButton Appearance="Appearance.Accent" class=@(!ViewAll ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                           Color="var(--pulse-mode-btn-item-colour)"
+
                           Style="height:40px"
                           OnClick="() => ViewAll = !ViewAll">View All</FluentButton>
 
@@ -160,8 +168,8 @@
             {
             <FluentGridItem Style="max-height:100%" xs="12" sm="12" md="6" lg="4" xl="3" xxl="2"> 
                 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                    <div class="myContentDiv" style="overflow-x:hidden">
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style=" padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:10px;">
+                    <div class="myContentDiv" style="overflow-x:hidden;">
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-light-2-colour); border-bottom: 1px solid var(--pulse-dark-colour); padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
                             @if(flapper != null)
                             {
                             
@@ -169,7 +177,7 @@
                             } 
                             <FluentSpacer />
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
-                                <FluentLabel Typo="Typography.H4">CONVERSATIONS</FluentLabel>
+                                    <FluentLabel Typo="Typography.H4">@(!ViewSettings ? "CONVERSATIONS" : "SETTINGS")</FluentLabel>
                                 <FluentLabel Typo="Typography.Body">with Flapper</FluentLabel>
                             </FluentStack>
                         </FluentStack>
@@ -191,15 +199,48 @@
                                     }
                                     else
                                     {
-                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
-                                            <FluentButton Appearance="Appearance.Accent" class=@(!stream ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
-                                            Color="var(--pulse-mode-btn-item-colour)"
-                                            OnClick="() => stream = !stream">Show Thinking</FluentButton>
+                                        
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
                                             
-                                            <FluentButton Appearance="Appearance.Accent" class="btnShadow"
-                                            Style="border: 1px solid white" OnClick="@ClearChatHistory">New Topic</FluentButton>
+                                            <FluentSpacer />
+                                            
                                         </FluentStack>
-                                        <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
+                                        <Textarea rows="10" style="border: 1px solid var(--pulse-dark-colour); margin-top: 0px;margin-left: 10px;margin-right: 10px;margin-bottom:20px;width: calc(100% - 20px)" @bind-Value="txtQ" PlaceHolder="What would you like to know?..." />
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:20px;">
+                                            @if (this._isListening)
+                                            {
+                                                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                                    <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" Title="Turn Off Microphone" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="OnClickStop"></FluentButton>
+                                                </Animation>
+                                            }
+                                            else
+                                            {
+                                                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                                    <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" Title="Turn On Microphone" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="StartRecClick"></FluentButton>
+                                                </Animation>
+                                            }
+
+                                            <FluentSpacer />
+                                            <FluentButton Appearance="Appearance.Accent" class=@(!stream ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                                                          Color="var(--pulse-mode-btn-item-colour)"
+                                                          IconStart="@(new Icons.Filled.Size24.Thinking().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
+                                                          Title="Toggle Thinking"
+                                                          OnClick="() => stream = !stream"></FluentButton>
+                                            <FluentSpacer />
+                                            <FluentButton Appearance="Appearance.Accent" class="btnShadow"
+                                                          IconStart="@(new Icons.Filled.Size24.QuizNew())"
+                                                          Title="New Topic"
+                                                          Style="border: 1px solid white; height:50px;width:50px" OnClick="@ClearChatHistory"></FluentButton>
+                                            <FluentSpacer />
+                                                          @if (retryBtn)
+                                            {
+                                                <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" class="btnShadow"  OnClick="@RetryBtn">RETRY</FluentButton>
+                                                <FluentSpacer />
+                                            }
+                                            <FluentButton Appearance="Appearance.Accent" class="btnShadow" IconStart="@(new Icons.Filled.Size24.Send())"
+                                                          Style="border: 1px solid white; height:50px;width:50px" OnClick="@SubmitQuery"></FluentButton>
+                                        </FluentStack>
+                                        @* <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
                                             <HeaderTemplate>
                                                 Enter Chat
                                             </HeaderTemplate>
@@ -230,7 +271,7 @@
                                                     <FluentButton Appearance="Appearance.Accent" class="btnShadow" OnClick="@SubmitQuery">SUBMIT</FluentButton>
                                                 </FluentStack> 
                                             </FooterTemplate>
-                                        </Card>
+                                        </Card> *@
                                     }
                                     @* <FluentLabel>@aiModel</FluentLabel> *@
                                     @if (_isListening)
@@ -249,11 +290,11 @@
                             {
                                 <FlapperSettings />
                             }
-                            @if (ViewAll)
+                            @* @if (ViewAll)
                                     {
                         <br />
                                 <FluentLabel Typo="Typography.Body" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@strResponse</FluentLabel>
-                                    }
+                                    } *@
             </div>
             </Animation>
          </FluentGridItem>
@@ -269,7 +310,7 @@
                     @if (!string.IsNullOrEmpty(@userQry))
                     {
                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%">@userQry</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%">@userQry</FluentLabel>
                         </FluentStack>
                     }
                     @if (!string.IsNullOrEmpty(aiSQL))
@@ -287,9 +328,11 @@
                     }
                     @if (stream && !string.IsNullOrEmpty(strResponse))
                     {
-                        <div style="color:#666666; font-style:italic; font-size:0.95em; margin-bottom:10px; padding-bottom:10px; border-bottom: 1px solid #cccccc;">
+                        @* <div style="color:#666666; font-style:italic; font-size:0.95em; margin-bottom:10px; padding-bottom:10px; border-bottom: 1px solid #cccccc;">
                             @strResponse
-                        </div>
+                        </div> *@
+                        <br />
+                            <FluentLabel Typo="Typography.Body" class="divShadow" style="background-color:rgba(255,255,255,0.5);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@strResponse</FluentLabel>
                     }
                 }
                 else
@@ -324,7 +367,7 @@
         
     </FluentGrid> 
     </div>
-    <div class="dfooter"></div>
+    @* <div class="dfooter"></div> *@
   </div> 
 
         
@@ -338,31 +381,31 @@
 
 @code {
     private string query = string.Empty;
-    private bool firstMsg = true;
+    // private bool firstMsg = true;
     private bool isLoading = false;
-    private bool togChat = false;
+    // private bool togChat = false;
     private bool pdfLoading = false;
     private bool oldFirst = false;
     private string txtQ = string.Empty;
-    private bool togWebSearch = true;
+    // private bool togWebSearch = true;
     private bool showResults = false;
     private bool ViewAll = false;
     private bool ViewSettings = false;
     private bool viewBox = true;
-    private bool ChatMode = true;
-    private bool startingChat = false;
+    // private bool ChatMode = true;
+    // private bool startingChat = false;
     private string errorMessage = string.Empty;
     private string aiSQL = string.Empty;
     private string userQry = string.Empty;
     private string strReasoning = string.Empty;
     private string strResponse = string.Empty;
-    private string? aiModel;
+    // private string? aiModel;
     private bool AdminMode = false;
     private ElementReference chatContainer;
-    private bool useSpeechOutput = false;
+    // private bool useSpeechOutput = false;
     private bool retryBtn = false;
     private bool fromRetryBtn = false;
-    private SpeechSynthesisVoice? _voice;
+    // private SpeechSynthesisVoice? _voice;
     private User? user;
     private bool stream = false;
     private Flapper? flapper;
@@ -526,22 +569,23 @@
     }
     private async Task SayIt(string text,string V = "User")
     {
-        SpeechSynthesisVoice? vc;
-        vc = _voice;
-        if (V == "Flapper")
-        {
-            vc = flapper._Voice;
-        }
+        await GlobalAI.AISpeak(text, "Flapper");
+        // SpeechSynthesisVoice? vc;
+        // vc = _voice;
+        // if (V == "Flapper")
+        // {
+        //     vc = flapper._Voice;
+        // }
 
-        if (useSpeechOutput)
-        {
-            var utterancet = new SpeechSynthesisUtterance
-            {
-                Text = text.Replace("<br />", ""),
-                Voice = vc
-            };
-            await this.SpeechSynthesis.SpeakAsync(utterancet);
-        }
+        // if (useSpeechOutput)
+        // {
+        //     var utterancet = new SpeechSynthesisUtterance
+        //     {
+        //         Text = text.Replace("<br />", ""),
+        //         Voice = vc
+        //     };
+        //     await this.SpeechSynthesis.SpeakAsync(utterancet);
+        // }
         // Microsoft Ava Online(Natural) - English(United States)(en - US)
     }
     protected override async Task OnInitializedAsync()
@@ -550,11 +594,11 @@
         user = await dtrf.GetgvUser();
         uName = await dtrf.GetgvUserFirstName();
 
-        useSpeechOutput = user.UserSettings.AIHasVoice;
-        if (useSpeechOutput)
-        {
-            _voice = await dtrf.GetgvUserAIVoice();
-        }
+        // useSpeechOutput = user.UserSettings.AIHasVoice;
+        // if (useSpeechOutput)
+        // {
+        //     _voice = await dtrf.GetgvUserAIVoice();
+        // }
         ollamaClient = HttpClientFactory.CreateClient("OllamaClient");
         // aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
     }
@@ -563,7 +607,7 @@
         if (firstRender)
         {
             flapper = await dtrf.GetgvFlapper();
-            aiModel = await dtrf.GetgvAIModel();
+            // aiModel = await dtrf.GetgvAIModel();
             this._available = await this.SpeechRecognition.IsAvailableAsync();
             StateHasChanged();
         }
@@ -607,7 +651,7 @@
     {
         query = txtQ;
         if (string.IsNullOrWhiteSpace(query)) return;
-        aiModel = await dtrf.GetgvAIModel();
+        // aiModel = await dtrf.GetgvAIModel();
         isLoading = true;
         retryBtn = false;
         errorMessage = string.Empty;
@@ -615,13 +659,13 @@
         strReasoning = string.Empty;
         aiSQL = string.Empty;
         userQry = query;
-        firstMsg = true;
+        // firstMsg = true;
         try
         {
             // Call Ollama to process the natural language query
             cts = new CancellationTokenSource();
-
-            startingChat = false;
+            flapper = await dtrf.GetgvFlapper();
+            // startingChat = false;
             // Add user message to history
 
             if (fromRetryBtn)
@@ -636,36 +680,39 @@
             if (stream)
             {
                 // ✅ Streaming enabled: consume chunks, display thinking, and extract final answer
-                await foreach (var chunk in StreamChatWithFlapperAsync(chatHistory, aiModel, true, cts.Token))
+                await foreach (var chunk in StreamChatWithFlapperAsync(chatHistory, true, cts.Token))
                 {
                     if (string.IsNullOrEmpty(chunk)) continue;
 
-                    // Check for thinking marker (simple prefix-based approach)
+                    // Check for thinking marker
                     if (chunk.StartsWith("__THINKING__"))
                     {
                         var thinking = chunk.Substring("__THINKING__".Length);
                         if (!string.IsNullOrEmpty(thinking))
                         {
-                            // strResponse += thinking;
-                            StateHasChanged();  // Update UI in real-time with thinking
+                            strResponse += thinking;
+                            StateHasChanged();  // Update UI immediately
                         }
                     }
                     // Check for final answer marker
                     else if (chunk.StartsWith("__FINAL_ANSWER__"))
                     {
-                        aiSQL = chunk.Substring("__FINAL_ANSWER__".Length);
+                        var answer = chunk.Substring("__FINAL_ANSWER__".Length);
+                        aiSQL += answer;  // ← USE += NOT = (accumulate, don't overwrite!)
+                        StateHasChanged();  // Update UI immediately
                     }
                 }
             }
             else 
             { 
-                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, aiModel, togWebSearch, cts.Token);
+                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, cts.Token);
             }
 
             if (string.IsNullOrEmpty(aiSQL))
             {
                 // Empty response - likely streaming didn't populate
                 errorMessage = "No response received. Please try again.";
+                await SayIt("I didn't receive any response. Please try again.", "Flapper");
                 retryBtn = true;
             }
             else if (aiSQL.StartsWith("Error:"))
@@ -734,8 +781,16 @@
     private string ParseToHtml(string markdownContent)
     {
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
-        return Markdig.Markdown.ToHtml(markdownContent, pipeline);
+        var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
 
+        // Add target="_blank" and rel="noopener noreferrer" to all links
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html, 
+            @"<a\s+href=""([^""]*)""",
+            @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
+        );
+
+        return html;
     }
 
     private string AddMUcss(string html)
@@ -793,7 +848,6 @@
     /// </summary>
     private async IAsyncEnumerable<string> StreamChatWithFlapperAsync(
         List<OllamaMessage> historyMessages,
-        string sModel,
         bool enableSearch = true,
         [EnumeratorCancellation] CancellationToken ct = default,
         int qryLoop = 0,
@@ -811,14 +865,14 @@
         // int MAX_RECURSION_DEPTH = 6;
         // int MAX_FAILED_ATTEMPTS = 2;
 
-        if (qryLoop >= flapper.MaxRecursionDepth) // MAX_RECURSION_DEPTH)
+        if (!AdminMode && qryLoop >= flapper.MaxRecursionDepth) // MAX_RECURSION_DEPTH)
         {
             yield return $"\n\n⚠️ **Maximum recursion depth reached ({flapper.MaxRecursionDepth})**. " +
                         "The conversation loop is too deep. Please start a new query.";
             yield break;
         }
 
-        if (failedAttempts >= flapper.MaxFailedAttempts) // MAX_FAILED_ATTEMPTS)
+        if (!AdminMode && failedAttempts >= flapper.MaxFailedAttempts) // MAX_FAILED_ATTEMPTS)
         {
             yield return $"\n\n❌ **Too many failed attempts ({flapper.MaxFailedAttempts})**. " +
                         "The system is unable to execute your request. Please rephrase or try a different query.";
@@ -833,7 +887,7 @@
             yield break;
         }
 
-        
+
 
         string inAdmin = AdminMode
             ? """
@@ -846,42 +900,29 @@
               """
             : string.Empty;
 
-        var systemMessage = BuildFlapperSystemMessage(
-            historyMessages,
-            prepResult.Schema!,
-            prepResult.Examples!,
-            inAdmin,
-            qryLoop);  // ← Pass recursion level
+        // var systemMessage = BuildFlapperSystemMessage(
+        //     historyMessages,
+        //     prepResult.Schema!,
+        //     prepResult.Examples!,
+        //     inAdmin,
+        //     qryLoop);  // ← Pass recursion level
 
-        var messages = new List<OllamaMessage> { systemMessage };
+        var messages = new List<OllamaMessage>();
 
-        // On recursive calls, trim message history to preserve context window
-        // Keep only: original user query + recent assistant/tool messages
-        if (qryLoop > 0 && historyMessages.Count > 4)
+        // Only add system message on first call (qryLoop == 0)
+        if (qryLoop == 0)
         {
-            // Find the original user query (first user message)
-            //var originalUserQuery = historyMessages.FirstOrDefault(m => m.Role == "user");
-            
-            // ** INCORRECT: Should be last user message **
-            var originalUserQuery = historyMessages.Last(m => m.Role == "user");
-
-            // Keep original query + last 3 recent messages (includes errors)
-            if (originalUserQuery != null)
-            {
-                messages.Add(originalUserQuery);
-            }
-
-            // Add only the most recent messages (last 3) - this includes any error responses
-            var recentMessages = historyMessages.Where(m => m.Role != "user" || m == originalUserQuery)
-                                                  .TakeLast(4)  // Increased to 4 to keep more context including errors
-                                                  .ToList();
-            messages.AddRange(recentMessages);
+            var systemMessage = BuildFlapperSystemMessage(
+                historyMessages,
+                prepResult.Schema!,
+                prepResult.Examples!,
+                inAdmin,
+                qryLoop);
+            messages.Add(systemMessage);
         }
-        else
-        {
-            // First call: use full history
-            messages.AddRange(historyMessages);
-        }
+
+        // Always add full history on recursive calls (it includes previous system message effects)
+        messages.AddRange(historyMessages);
 
         var tools = BuildFlapperTools(enableSearch);
 
@@ -933,7 +974,7 @@
         Stream? contentStream = null;
         try
         {
-            contentStream = await response!.Content.ReadAsStreamAsync(ct);
+            contentStream = await response.Content.ReadAsStreamAsync(ct);
         }
         catch (Exception ex)
         {
@@ -984,80 +1025,81 @@
                 break;
             }
 
-                if (chunk == null) continue;
+            if (chunk == null) continue;
 
-                // Handle thinking content
-                if (!string.IsNullOrEmpty(chunk.Message?.Thinking))
+            // Handle thinking content
+            if (!string.IsNullOrEmpty(chunk.Message?.Thinking))
+            {
+                if (!inThinking)
                 {
-                    if (!inThinking)
-                    {
-                        inThinking = true;
-                        strResponse += "Thinking:\n";
-                    }
-                    hasYieldedContent = true;
-                    strResponse += chunk.Message.Thinking;
-                    // ✅ Yield thinking with simple marker so it displays in real-time
-                    yield return $"__THINKING__{chunk.Message.Thinking}";
-                    StateHasChanged();
+                    inThinking = true;
+                    yield return "__THINKING__Thinking:\n";
                 }
+                hasYieldedContent = true;
 
-                // Handle answer content
-                if (!string.IsNullOrEmpty(chunk.Message?.Content))
-                {
-                    if (inThinking)
-                    {
-                        inThinking = false;
-                        aiSQL += "Answer:\n";
-                    }
-                    aiSQL += chunk.Message.Content;
-                    hasYieldedContent = true;
-                    StateHasChanged();
-                }
-
-                // Accumulate tool calls
-                if (chunk.Message?.ToolCalls != null)
-                {
-                    accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
-                    accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
-                }
-
-                // Only break when Done=true, regardless of content type
-                // Ollama sends thinking first, then content, both with Done=false except the last chunk
-                if (chunk.Done)
-                {
-                    if (accumulatedMessage.ToolCalls is { Count: > 0 })
-                    {
-                        if (!hasYieldedContent)
-                        {
-                            yield return "<thinking>Analyzing query and preparing tools...</thinking>\n";
-                        }
-                        else
-                        {
-                            yield return "\n<thinking>Tool calls detected. Processing...</thinking>\n";
-                        }
-
-                        // Process tool calls
-                        var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, messages, sModel, ct);
-                        if (toolError != null)
-                        {
-                            yield return toolError;
-                            // Increment failed attempts if tool processing failed
-                            var newFailureCount = toolError.Contains("unable to execute") || toolError.Contains("error") 
-                                ? failedAttempts + 1 
-                                : failedAttempts;
-                            yield break;
-                        }
-
-                        // Recursive call for tool results
-                        await foreach (var recursiveChunk in StreamChatWithFlapperAsync(
-                            messages, sModel, enableSearch, ct, qryLoop + 1, inThinking, failedAttempts))
-                        {
-                            yield return recursiveChunk;
-                        }
-                    }
-                    break;
-                }
+                // ✅ Yield thinking chunk as-is (chunks are already good sizes from Ollama)
+                // Don't split by sentences/paragraphs - chunks may break mid-word, destroying formatting
+                yield return $"__THINKING__{chunk.Message.Thinking}";
+                // Small delay to let UI render between chunks
+                await Task.Delay(5, ct);
             }
+
+            // Handle answer content
+            if (!string.IsNullOrEmpty(chunk.Message?.Content))
+            {
+                if (inThinking)
+                {
+                    inThinking = false;
+                    yield return "__FINAL_ANSWER__Answer:\n";
+                }
+                hasYieldedContent = true;
+                yield return $"__FINAL_ANSWER__{chunk.Message.Content}";
+            }
+
+            // Accumulate tool calls
+            if (chunk.Message?.ToolCalls != null)
+            {
+                accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
+                accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
+            }
+
+            // Only break when Done=true, regardless of content type
+            // Ollama sends thinking first, then content, both with Done=false except the last chunk
+            if (chunk.Done)
+            {
+                if (accumulatedMessage.ToolCalls is { Count: > 0 })
+                {
+                    if (!hasYieldedContent)
+                    {
+                        yield return "<thinking>Analyzing query and preparing tools...</thinking>\n";
+                    }
+                    else
+                    {
+                        yield return "\n<thinking>Tool calls detected. Processing...</thinking>\n";
+                    }
+
+                    // Process tool calls
+                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, messages, ct);
+                    if (toolError != null)
+                    {
+                        yield return toolError;
+                        // Increment failed attempts if tool processing failed
+                        var newFailureCount = toolError.Contains("unable to execute") || toolError.Contains("error") 
+                            ? failedAttempts + 1 
+                            : failedAttempts;
+                        yield break;
+                    }
+
+                    // Recursive call for tool results
+                    await foreach (var recursiveChunk in StreamChatWithFlapperAsync(
+                        messages, enableSearch, ct, qryLoop + 1, inThinking, failedAttempts))
+                    {
+                        yield return recursiveChunk;
+                    }
+                }
+                break;
+            }
+        }
 
         // Yield any pending error outside the loop
         if (pendingError != null)
@@ -1071,11 +1113,8 @@
             yield return "No response from Ollama.";
         }
 
-        // ✅ CRITICAL: Yield the final answer content (without thinking) so caller can capture it
-        if (!string.IsNullOrEmpty(aiSQL))
-        {
-            yield return $"__FINAL_ANSWER__{aiSQL}";  // Marker so we can identify final answer
-        }
+        // ✅ DON'T yield final accumulated answer here!
+        // We already yielded individual chunks, so accumulating and yielding the whole thing causes duplication
     }
 
     /// <summary>
@@ -1084,7 +1123,6 @@
     private async Task<string?> ProcessToolCallsAsync(
         List<OllamaToolCall> toolCalls,
         List<OllamaMessage> messages,
-        string model,
         CancellationToken ct)
     {
         try
@@ -1093,7 +1131,7 @@
             foreach (var toolCall in toolCalls)
             {
                 var toolName = toolCall.Function?.Name ?? "unknown";
-                strResponse += $"\n<thinking>Invoking tool: {toolName}...</thinking>\n";
+                strResponse += $"\n\nInvoking tool: {toolName}...";
                 StateHasChanged();
 
                 await pAI.HandleToolCallsAsync(
@@ -1102,7 +1140,7 @@
                     context,
                     ct);
 
-                strResponse += $"<thinking>Tool {toolName} complete.</thinking>\n";
+                strResponse += $"complete.\n\n";
                 StateHasChanged();
             }
             return null;
@@ -1129,14 +1167,14 @@
         int recursionLevel = 0)
     {
         // On recursive calls (2nd loop+), use concise message to save context window
-        if (recursionLevel > 0)
-        {
-            return new OllamaMessage
-            {
-                Role = "system",
-                Content = AiPrompts.GetFlapperSystemMessageConcise(AdminMode)
-            };
-        }
+        // if (recursionLevel > 0)
+        // {
+        //     return new OllamaMessage
+        //     {
+        //         Role = "system",
+        //         Content = AiPrompts.GetFlapperSystemMessageConcise(AdminMode)
+        //     };
+        // }
 
         // First call: use full system message with all context
         var systemContent = AiPrompts.GetFlapperSystemMessage(schemaText, examples, AdminMode);

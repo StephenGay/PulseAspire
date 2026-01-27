@@ -72,6 +72,7 @@ namespace Pulse.ApiService.Endpoints
                             UserId = user.Id,
                             Username = user.UserName ?? user.Email,
                             Email = user.Email,
+                            FullName = user.FullName,
                             TokenType = "Bearer",
                             ExpiresIn = 86400  // Changed from 3600 (1 hour) to 86400 (24 hours)
                         },

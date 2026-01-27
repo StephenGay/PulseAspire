@@ -7,7 +7,7 @@
 @inject ILogger<UserPresenceList> _logger
 
 <div class="presence-list-container">
-    <h3>Online Users</h3>
+    @* <h3>Online Users</h3> *@
 
     @if (presenceList == null)
     {
@@ -20,32 +20,60 @@
     }
     else
     {
-        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
-            @* Name="@user.UserName" *@
-            @* @(user.IsOnline ? "Online" : "Offline") *@
-            @foreach (var user in presenceList.OrderBy(u => u.UserName))
-            {
-                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
-                    <FluentPersona Status="@user.EffectiveStatus"
-                                   StatusSize="PresenceBadgeSize.Medium"
-                                   
-                                   Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
-                                   ImageSize="40px">
-                    </FluentPersona>
-                    <div>
-                        <span>@user.UserName</span>
-                        <br />
-                        <small style="color: gray;">(@GetPresenceText(user.EffectiveStatus))</small>
-                    </div>
-                </FluentStack>
-            }
+        <!-- Search Box -->
+        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--pulse-dark-colour);">
+            <FluentTextField 
+                @bind-Value="searchQuery"
+                @oninput="OnSearchInput"
+                Placeholder="Search users..."
+                IconStart="@(new Icons.Regular.Size20.Search())"
+                Appearance="FluentInputAppearance.Filled"
+                Style="width: 100%;">
+            </FluentTextField>
         </FluentStack>
+
+        <!-- Users List -->
+        @if (GetFilteredUsers().Count == 0)
+        {
+            <p style="text-align: center; color: var(--neutral-foreground-hint);">No users match your search</p>
+        }
+        else
+        {
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                @foreach (var user in GetFilteredUsers())
+                {
+                    <div style="@($"padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; background-color: {(hoveredUserId == user.UserId ? "var(--accent-fill-rest)" : "transparent")}; color: {(hoveredUserId == user.UserId ? "white" : "inherit")};")" 
+                         @onmouseover="@((e) => hoveredUserId = user.UserId)" 
+                         @onmouseout="@((e) => hoveredUserId = null)"
+                         @onclick="@(() => OnUserClicked(user))">
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                            <FluentPersona Status="@user.EffectiveStatus"
+                                           StatusSize="PresenceBadgeSize.Medium"
+
+                                           Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                                           ImageSize="40px">
+                            </FluentPersona>
+                            <div>
+                                <span>@(user.FullName ?? user.UserName)</span>
+                                <br />
+                                <small style="@(hoveredUserId == user.UserId ? "color: rgba(255,255,255,0.7);" : "color: gray;")">(@GetPresenceText(user.EffectiveStatus))</small>
+                            </div>
+                        </FluentStack>
+                    </div>
+                }
+            </FluentStack>
+        }
     }
 </div>
 
 @code {
+    [Parameter]
+    public Func<UserPresenceDto, Task>? OnUserSelected { get; set; }
+
     private List<UserPresenceDto> presenceList = null;
     private bool isLoading = false;
+    private string? hoveredUserId = null;
+    private string searchQuery = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -89,6 +117,35 @@
             _logger?.LogError(ex, "Error updating presence list");
         }
     }
+
+    private async Task OnUserClicked(UserPresenceDto user)
+    {
+        if (OnUserSelected != null)
+        {
+            await OnUserSelected(user);
+        }
+    }
+
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchQuery = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private List<UserPresenceDto> GetFilteredUsers()
+    {
+        if (presenceList == null || string.IsNullOrWhiteSpace(searchQuery))
+        {
+            return presenceList?.OrderBy(u => u.FullName ?? u.UserName).ToList() ?? new();
+        }
+
+        var query = searchQuery.ToLower();
+        return presenceList
+            .Where(u => (u.FullName ?? u.UserName ?? "").ToLower().Contains(query))
+            .OrderBy(u => u.FullName ?? u.UserName)
+            .ToList();
+    }
+
     private string GetPresenceText(PresenceStatus status) => status switch
     {
         PresenceStatus.Available => "Available",

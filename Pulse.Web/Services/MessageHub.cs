@@ -236,6 +236,27 @@ public class MessageHubService : IAsyncDisposable
         }
     }
 
+    public async Task SendPrivateMessageAsync(PulseMessage msg)
+    {
+        if (_hubConnection?.State != HubConnectionState.Connected)
+        {
+            _logger?.LogWarning("Cannot send message: Hub not connected.");
+            await EnsureConnectedAsync();
+        }
+
+        if (_hubConnection != null)
+        {
+            try
+            {
+                await _hubConnection.InvokeAsync("SendPrivateMessage", msg);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error sending message via SignalR");
+                throw;
+            }
+        }
+    }
     public async Task SetPresenceAsync(int code)
     {
         if (_hubConnection?.State != HubConnectionState.Connected)

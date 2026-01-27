@@ -11,7 +11,9 @@ html, body {
 
 :root {
     --pulse-dark-colour: #365b66; /*#660000;*/ /*#365b66;*/
+    --pulse-dark-t50-colour: #5a7a89;
     --pulse-light-colour: #bcd1d4; /*#d9d9d9;*/ /*#bcd1d4;*/
+    --pulse-light-2-colour: #a0b0b3;
     --pulse-theme-bg: url(../images/backgrounds/HMBG.png);
     /* Mode Toggle Button */
     --pulse-mode-btn-on-bg: #1D722A;

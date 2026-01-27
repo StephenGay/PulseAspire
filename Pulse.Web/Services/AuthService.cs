@@ -16,6 +16,7 @@ public class AuthService
     public ClaimsPrincipal aspireUser { get; private set; } = new ClaimsPrincipal(new ClaimsIdentity());
     public string? aspireUserId => aspireUser.FindFirstValue(ClaimTypes.NameIdentifier) ?? aspireUser.FindFirstValue(JwtRegisteredClaimNames.Sub);
     public string? aspireUsername => aspireUser.FindFirstValue(ClaimTypes.Name) ?? aspireUser.FindFirstValue(JwtRegisteredClaimNames.UniqueName);
+    public string? aspireFullName => aspireUser.FindFirstValue("FullName") ?? aspireUser.FindFirstValue(ClaimTypes.GivenName) ?? aspireUser.FindFirstValue(JwtRegisteredClaimNames.Name);
     public string? aspireEmail => aspireUser.FindFirstValue(ClaimTypes.Email) ?? aspireUser.FindFirstValue(JwtRegisteredClaimNames.Email);
     public IEnumerable<string> Roles => aspireUser.FindAll(ClaimTypes.Role).Select(c => c.Value);
     public bool IsAuthenticated => aspireUser.Identity?.IsAuthenticated ?? false;

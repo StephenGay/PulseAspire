@@ -6,14 +6,57 @@
 @implements IDialogContentComponent<PulseMessage>
 
 <FluentDialogBody>
-     @if(Content != null && isLoaded)
+    @if(Content != null && isLoaded)
     { 
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="10" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Stretch" Width="100%">
-            <FluentLabel Typo="Typography.EmailHeader" Style="color:var(--pulse-dark-colour)">@Content.RecipientUserId</FluentLabel>
-            <FluentLabel Typo="Typography.EmailHeader" Style="color:var(--pulse-dark-colour)">@Content.SenderUserId</FluentLabel>
-            <FluentLabel Typo="Typography.EmailHeader" Style="color:var(--pulse-dark-colour)">@Content.SenderUserName</FluentLabel>
-            <FluentTextArea Rows="4" Style="width:100%;color:var(--pulse-dark-colour)" @bind-Value="Content.Content"></FluentTextArea>
-            <FluentButton Appearance="Appearance.Accent" @onclick="Send" Disabled="@isSending">Send</FluentButton>
+        <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Stretch" Width="100%">
+            <!-- Email Header -->
+            @* <div style="border-bottom: 2px solid var(--pulse-accent-colour); padding-bottom: 16px;">
+                <FluentLabel Typo="Typography.PageTitle" Style="color:var(--pulse-dark-colour)">New Message</FluentLabel>
+            </div> *@
+
+            <!-- From Field -->
+            @* <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                <FluentLabel Typo="Typography.Body">From</FluentLabel>
+                <FluentTextField 
+                    Value="@Content.SenderUserName" 
+                    Readonly="true"
+                    Style="width:100%"
+                    Appearance="FluentInputAppearance.Filled"></FluentTextField>
+            </FluentStack>
+
+            <!-- To Field -->
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                <FluentLabel Typo="Typography.Body">To</FluentLabel>
+                <FluentTextField 
+                    @bind-Value="Content.RecipientUserId"
+                    Placeholder="@Content.RecipientUserId"
+                    Style="width:100%"
+                    Appearance="FluentInputAppearance.Filled"></FluentTextField>
+            </FluentStack> *@
+
+            <!-- Subject Field -->
+            @* <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                <FluentLabel Typo="Typography.Body">Subject</FluentLabel>
+                <FluentTextField 
+                    @bind-Value="emailSubject"
+                    Placeholder="Enter message subject"
+                    Style="width:100%"
+                    Appearance="FluentInputAppearance.Filled"></FluentTextField>
+            </FluentStack> *@
+
+            <!-- Message Body -->
+            <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                <FluentLabel Typo="Typography.Body">Message</FluentLabel>
+                <FluentTextArea 
+                    Rows="20" 
+                    @bind-Value="Content.Content"
+                    Placeholder="Type your message here..."
+                    Style="width:100%;color:var(--pulse-dark-colour); resize: vertical;"
+                    Appearance="FluentInputAppearance.Filled"></FluentTextArea>
+                <div style="font-size: 12px; color: var(--neutral-foreground-hint);">
+                    @((Content.Content?.Length ?? 0)) characters
+                </div>
+            </FluentStack>
         </FluentStack>
      }
      else
@@ -26,31 +69,14 @@
 @code {
     [Parameter]
     public PulseMessage Content { get; set; } = default!;
-    
-    private bool isSending = false;
+
     private bool isLoaded = false;
-
-    private async Task Send()
-    {
-        if (string.IsNullOrWhiteSpace(Content.Content)) return;
-
-        isSending = true;
-        try
-        {
-            await MsgHubService.SendMessageAsync(Content);
-        }
-        finally
-        {
-            isSending = false;
-        }
-    }
+    private string emailSubject = string.Empty;
 
     protected override async Task OnParametersSetAsync()
     {
         if (Content != null)
         {
-            // Perform any async initialization here (e.g., loading data, validation)
-            // await Task.Delay(100); // Example async operation
             isLoaded = true;
         }
     }

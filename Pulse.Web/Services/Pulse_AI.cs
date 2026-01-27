@@ -36,8 +36,9 @@ public sealed class Pulse_AI(
         public const string ExecuteSql = "execute_sql";
         public const string WebSearch = "web_search";
         public const string WebFetch = "web_fetch";
+        public const string ExecuteActionSql = "execute_action_sql";
 
-        public static readonly HashSet<string> All = [ExecuteSql, WebSearch, WebFetch];
+        public static readonly HashSet<string> All = [ExecuteSql, WebSearch, WebFetch, ExecuteActionSql];
     }
 
     private static class ApiRoutes
@@ -88,7 +89,7 @@ public sealed class Pulse_AI(
 
         // ❌ FORBIDDEN: SQLite syntax
         if (sqlLower.Contains("sqlite_master") || sqlLower.Contains("sqlite_temp_master"))
-            return "❌ ERROR: SQLite syntax detected (sqlite_master). This is a SQL Server 2022 database. Use SQL Server T-SQL syntax only.";
+            return "❌ ERROR: SQLite syntax detected (sqlite_master). This is a SQL Server 2022 database. Use SQL Server syntax only.";
 
         if (sqlLower.Contains("pragma") && sqlLower.Contains("table_info"))
             return "❌ ERROR: SQLite PRAGMA syntax detected. This is SQL Server 2022 - use sys.columns or sp_help instead.";
@@ -662,6 +663,7 @@ public sealed class Pulse_AI(
                 ToolNames.ExecuteSql => await ExecuteSqlAsync(args, ct),
                 ToolNames.WebSearch => await WebSearchAsync(args, ct),
                 ToolNames.WebFetch => await WebFetchAsync(args, ct),
+                ToolNames.ExecuteActionSql => await ExecuteActionSqlToolAsync(args, ct),
                 _ => $"Unknown tool: {toolName}"
             };
         }
@@ -686,12 +688,76 @@ public sealed class Pulse_AI(
 
         _logger.LogInformation("Executing SQL: {Sql}", sql[..Math.Min(100, sql.Length)]);
 
-        var response = await _pulseApiClient.GetAsync(
-            $"{ApiRoutes.Execute}{Uri.EscapeDataString(sql)}", ct);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync(ct);
+        try
+        {
+            var response = await _pulseApiClient.GetAsync(
+                $"{ApiRoutes.Execute}{Uri.EscapeDataString(sql)}", ct);
+
+            // Check for HTTP errors
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(ct);
+                _logger.LogError("SQL execution returned {StatusCode}: {Error}", response.StatusCode, errorContent[..Math.Min(200, errorContent.Length)]);
+                return $"❌ __SQL_ERROR__ ❌\n\nSQL Query Failed with error:\n{errorContent}\n\nYou MUST generate a DIFFERENT SQL query and retry, OR use web_search if the query cannot be fixed.";
+            }
+
+            var result = await response.Content.ReadAsStringAsync(ct);
+
+            // ✅ Check if result is empty (no data found)
+            if (string.IsNullOrWhiteSpace(result) || result == "[]" || result == "{}" || result.Contains("No data found"))
+            {
+                _logger.LogWarning("SQL query returned no results");
+                return $"⚠️ __SQL_NO_RESULTS__ ⚠️\n\nThe query executed successfully but returned NO DATA from the database.\n\nYou MUST now use web_search to find this information externally.";
+            }
+
+            return result;
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "SQL execution failed with HTTP error");
+            return $"__SQL_ERROR__Database connection failed: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SQL execution failed");
+            return $"__SQL_ERROR__SQL error: {ex.Message}";
+        }
     }
 
+    private async Task<string> ExecuteActionSqlToolAsync(JsonElement args, CancellationToken ct)
+    {
+        string sql = args.TryGetProperty("sql", out var sqlProp) ? sqlProp.GetString() ?? "" : "";
+        if (string.IsNullOrEmpty(sql))
+        {
+            sql = args.TryGetProperty("query", out var sqlProp2) ? sqlProp2.GetString() ?? "" : "";
+            if (string.IsNullOrEmpty(sql))
+            {
+                sql = args.TryGetProperty("arguments", out var sqlProp3) ? sqlProp3.GetString() ?? "" : "";
+            }
+        }
+
+        if (string.IsNullOrEmpty(sql))
+        {
+            return "Error: Missing 'sql' argument.";
+        }
+        //var apiClient = _httpClientFactory.CreateClient("PulseApiClient");
+        try
+        {
+            _logger.LogInformation("Executing SQL Action tool: {Sql}", sql);
+            // TESTING PUTTING THIS BACK
+            //sql = sql.Replace("\n", " ");
+            var response = await _pulseApiClient.GetAsync($"/AI/ExecuteAiUpdateInsertQry:{sql}", ct);
+            response.EnsureSuccessStatusCode();
+            var json = await response.Content.ReadAsStringAsync(ct);
+            //var result = JsonSerializer.Deserialize<string>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); // Return raw JSON data for Ollama to use in next turn
+            return $"{json} rows affected";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "SQL tool execution error.");
+            return $"Error executing SQL: {ex.Message}";
+        }
+    }
     private async Task<string> WebSearchAsync(JsonElement args, CancellationToken ct)
     {
         if (!args.TryGetProperty("query", out var queryProp))
@@ -833,7 +899,7 @@ public sealed class Pulse_AI(
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to fetch Ollama models");
-            return ["llama3.1:latest", "gemma3:27b", "sqlcoder:15b"];
+            return ["llama3.1:latest", "gpt-oss:latest"];
         }
     }
 

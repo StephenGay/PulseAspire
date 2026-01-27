@@ -54,10 +54,19 @@ public class PresenceService
             : 0;
     }
 
-    public IEnumerable<OnlineUser> GetOnlineUsers()
-    {
-        return _userNames
-            .Where(kv => IsUserOnline(kv.Key))
-            .Select(kv => new OnlineUser(kv.Key, kv.Value));
+        public IEnumerable<OnlineUser> GetOnlineUsers()
+        {
+            return _userNames
+                .Where(kv => IsUserOnline(kv.Key))
+                .Select(kv => new OnlineUser(kv.Key, kv.Value));
+        }
+
+        public IEnumerable<string> GetUserConnectionIds(string userId)
+        {
+            if (_userToConnections.TryGetValue(userId, out var connections))
+            {
+                return connections.ToList();
+            }
+            return Enumerable.Empty<string>();
+        }
     }
-}

@@ -13,6 +13,9 @@ namespace Pulse.Models.AI.AIds
         public Microsoft.FluentUI.AspNetCore.Components.Emoji emoji { get; set; } = new Emojis.PeopleBody.Color.MediumLight.ManTechnologist();
         public SpeechSynthesisVoice _Voice { get; set; }
         public string _VoiceId { get; set; } = "Microsoft Guy Online (Natural) - English (United States)|en-US";
+
+        [JsonPropertyName("model")]
+        public string Model { get; set; } = "gpt-oss:latest";
     }
     
     public class Ali
@@ -20,6 +23,9 @@ namespace Pulse.Models.AI.AIds
         public Microsoft.FluentUI.AspNetCore.Components.Emoji emoji { get; set; } = new Emojis.PeopleBody.Color.MediumLight.Detective();
         public SpeechSynthesisVoice _Voice { get; set; }
         public string _VoiceId { get; set; } = "Microsoft Steffan Online (Natural) - English (United States)|en-US";
+
+        [JsonPropertyName("model")]
+        public string Model { get; set; } = "gpt-oss:latest";
     }
     public class Flapper
     {
@@ -32,7 +38,7 @@ namespace Pulse.Models.AI.AIds
         [JsonPropertyName("think")]
         public string Think { get; set; } = "medium";
 
-        public int MaxRecursionDepth { get; set; } = 3;
+        public int MaxRecursionDepth { get; set; } = 5;
         public int MaxFailedAttempts { get; set; } = 2;
 
         [JsonPropertyName("options")]

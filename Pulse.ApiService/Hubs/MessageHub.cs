@@ -43,10 +43,30 @@ public class MessageHub : Hub
         _logger.LogDebug("Broadcast message from {User}", msg.SenderUserName);
     }
 
-    // Optional: Send only to the caller
-    public async Task SendPrivateMessage(string message)
+    // Send private message to a specific recipient
+    public async Task SendPrivateMessage(PulseMessage msg)
     {
-        await Clients.Caller.SendAsync("ReceiveMessage", "You", message);
+        using var db = await _dbFactory.CreateDbContextAsync();
+        db.PulseMessages.Add(msg);
+        await db.SaveChangesAsync();
+
+        // Get the recipient's connection IDs
+        var recipientConnectionIds = _presenceService.GetUserConnectionIds(msg.RecipientUserId);
+
+        if (recipientConnectionIds.Any())
+        {
+            // Send to the specific recipient via their connection IDs
+            await Clients.Clients(recipientConnectionIds.ToList()).SendAsync("ReceiveMessage", msg);
+            _logger.LogDebug("Private message from {User} sent to {Recipient} ({Count} connections)", 
+                msg.SenderUserName, msg.RecipientUserId, recipientConnectionIds.Count());
+        }
+        else
+        {
+            _logger.LogWarning("Recipient {UserId} not online. Message saved but not delivered.", msg.RecipientUserId);
+        }
+
+        // Also notify the sender that message was sent
+        //await Clients.Caller.SendAsync("ReceiveMessage", msg);
     }
 
     // Optional: Send to a specific group
@@ -108,19 +128,20 @@ public class MessageHub : Hub
 
         using var db = await _dbFactory.CreateDbContextAsync();
         var allUsers = await db.Users
-            .Select(u => new { u.Id, u.Email, u.UserName, u.PresenceStatus })
+            .Select(u => new { u.Id, u.Email, u.UserName, u.FullName, u.PresenceStatus })
             .ToListAsync();
 
         var presenceList = allUsers
             .Select(u => new UserPresenceDto(
                 UserId: u.Id,
                 UserName: u.Email ?? u.UserName ?? "Anonymous",
+                FullName: u.FullName ?? u.Email ?? u.UserName ?? "Anonymous",
                 IsOnline: onlineUserIds.Contains(u.Id),
                 EffectiveStatus: onlineUserIds.Contains(u.Id) 
                     ? (Microsoft.FluentUI.AspNetCore.Components.PresenceStatus)u.PresenceStatus
                     : Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.Offline
             ))
-            .OrderBy(dto => dto.UserName)
+            .OrderBy(dto => dto.FullName)
             .ToList();
 
         _logger.LogDebug("Broadcasting {Count} users to all clients", presenceList.Count);
@@ -140,6 +161,7 @@ public class MessageHub : Hub
                 u.Id,
                 u.Email,
                 u.UserName,
+                u.FullName,
                 u.PresenceStatus
             })
             .ToListAsync();
@@ -147,10 +169,11 @@ public class MessageHub : Hub
         var presenceList = allUsers.Select(u => new UserPresenceDto(
             UserId: u.Id,
             UserName: u.Email ?? u.UserName ?? "Anonymous",
+            FullName: u.FullName ?? u.Email ?? u.UserName ?? "Anonymous",
             IsOnline: onlineUserIds.Contains(u.Id),
             EffectiveStatus: (Microsoft.FluentUI.AspNetCore.Components.PresenceStatus)(onlineUserIds.Contains(u.Id) ? u.PresenceStatus : PresenceStatus.Offline)
         ))
-        .OrderBy(dto => dto.UserName)
+        .OrderBy(dto => dto.FullName)
         .ToList();
 
         return presenceList;

@@ -18,6 +18,7 @@
 @using Toolbelt.Blazor.SpeechSynthesis
 
 @inject Pulse_AI pAI
+@inject AiPromptService AiPrompts
 @inject PulseApiService pulseApiClient 
 @inject SpeechRecognition SpeechRecognition
 @inject IMessageService MessageService
@@ -25,6 +26,7 @@
 @inject DataTransferService dtrf
 @inject IMenuService ms
 @inject IJSRuntime JSRuntime
+@inject Global_AI_Functions GlobalAI
 @inject AccentBaseColor AccentBaseColor
 @inject SpeechSynthesis SpeechSynthesis
 @inject IHttpClientFactory HttpClientFactory
@@ -36,7 +38,7 @@
     .dparent {
         display: flex;
         flex-direction: column; /* Stack children vertically */
-        height: calc(100vh - 56px); /* Or whatever height your parent should be, like 100% */
+        height: calc(100vh - 112px); /* Or whatever height your parent should be, like 100% */
         background-color: var(--pulse-light-colour);
     }
 
@@ -299,17 +301,13 @@
                                                     </FluentStack> 
                                             </HeaderCellTitleTemplate>
                                 
-                                            <ChildContent >
-                                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
-                                                            
-                                                            <FluentButton BackgroundColor="white"  
-                                                                          IconStart=@(user.UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID) ? (new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star()) : null)  OnClick="() => btnFaveClick(gridContext.AiQueryID)">
-                                                        @* @if (user.UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID))
-                                                    {
-                                                        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star())" Style="fill:blue" />
-                                                    } *@
-                                                    </FluentButton>
-                                                </FluentStack>
+                                            <ChildContent>
+                                                <FluentButton 
+                                                    BackgroundColor="white" 
+                                                    Style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 8px;"
+                                                    IconStart="@(user.UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID) ? (new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star()) : null)"
+                                                    OnClick="() => btnFaveClick(gridContext.AiQueryID)">
+                                                </FluentButton>
                                             </ChildContent>
 
                                         </TemplateColumn>
@@ -447,7 +445,7 @@
     private User? user;
     PaginationState pagination = new PaginationState { ItemsPerPage = 23 };
     private Tables? tables;
-    private Flapper? flapper;
+    // private Flapper? flapper;
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
     private bool _isListening = false;
@@ -579,27 +577,33 @@
     }
     private async Task btnFaveClick(int qID)
     {
-        if (!isFavourite)
+        // Check if this specific query is already a favorite
+        var isFavouriteQuery = user?.UserFavouriteQueries?.Any(q => q.QueryId == qID) ?? false;
+
+        if (!isFavouriteQuery)
         {
+            // Add to favorites
             UserFavouriteQry favouriteQry = new UserFavouriteQry();
             favouriteQry.UserId = user.UserID;
-            favouriteQry.QueryId = qID; /*  selectedSavedQuery.AiQueryID; */
+            favouriteQry.QueryId = qID;
             var response = await pulseApiClient.SaveFavouriteQueryAsync(favouriteQry);
-            if(response != null)
+            if (response != null)
             {
                 user.UserFavouriteQueries.Add(response);
-                isFavourite = !isFavourite;
+                StateHasChanged(); // Refresh UI to show the star
             }
         }
         else
         {
-            UserFavouriteQry? delfav = user?.UserFavouriteQueries?.FirstOrDefault(q => q.QueryId == qID); /* selectedSavedQuery.AiQuery */
-            if(delfav == null){ return; }
+            // Remove from favorites
+            UserFavouriteQry? delfav = user?.UserFavouriteQueries?.FirstOrDefault(q => q.QueryId == qID);
+            if (delfav == null) return;
+
             var dresponse = await pulseApiClient.DeleteFavouriteQueryAsync(delfav.Id);
             if (dresponse != null)
             {
                 user.UserFavouriteQueries.Remove(delfav);
-                isFavourite = !isFavourite;
+                StateHasChanged(); // Refresh UI to hide the star
             }
         }
     }
@@ -617,15 +621,15 @@
 
     // }
 
-    private string GetTruncatedSql(string sql)
-    {
-        return sql.Substring(0, Math.Min(100, sql.Length)) + (sql.Length > 100 ? "..." : "");
-    }
+    // private string GetTruncatedSql(string sql)
+    // {
+    //     return sql.Substring(0, Math.Min(100, sql.Length)) + (sql.Length > 100 ? "..." : "");
+    // }
 
-    private void ToggleWebSearch()
-    {
-        ExportToPdf();
-    }
+    // private void ToggleWebSearch()
+    // {
+    //     ExportToPdf();
+    // }
 
     private async void ToggleFavourites()
     {
@@ -685,7 +689,7 @@
         {
             options.Title = message;
             options.Intent = type;
-            options.Section = "MESSAGES_TOP"; // Use your actual section name or constant here
+            options.Section = "MESSAGES_TOP";
             options.Timeout = 4000;
         });
     }
@@ -806,47 +810,48 @@
 
     private async Task SayIt(string text,string V = "User")
     {
-        SpeechSynthesisVoice? vc;
-        vc = _voice;
-        if (V == "Flapper")
-        {
-            vc = flapper._Voice;
-        }
+        await GlobalAI.AISpeak(text, "Tables");
+        // SpeechSynthesisVoice? vc;
+        // vc = _voice;
+        // if (V == "Flapper")
+        // {
+        //     vc = flapper._Voice;
+        // }
 
-        if (useSpeechOutput)
-        {
-            var utterancet = new SpeechSynthesisUtterance
-            {
-                Text = text.Replace("<br />", ""),
-                Voice = vc
-            };
-            await this.SpeechSynthesis.SpeakAsync(utterancet);
-        }
+        // if (useSpeechOutput)
+        // {
+        //     var utterancet = new SpeechSynthesisUtterance
+        //     {
+        //         Text = text.Replace("<br />", ""),
+        //         Voice = vc
+        //     };
+        //     await this.SpeechSynthesis.SpeakAsync(utterancet);
+        // }
         // Microsoft Ava Online(Natural) - English(United States)(en - US)
     }
     protected override async Task OnInitializedAsync()
     {
         // ollamaModels = await pAI.GetOllamaModelsAsync();
         user = await dtrf.GetgvUser();
-        uName = await dtrf.GetgvUserFirstName();
+        // uName = await dtrf.GetgvUserFirstName();
 
 
         if(user.UserFavouriteQueries == null)
         {
             user.UserFavouriteQueries = await pulseApiClient.GetAsync<List<UserFavouriteQry>>($"/User/Favourites/SavedQueries/GetById/{user.UserID}");
         }
-        useSpeechOutput = user.UserSettings.AIHasVoice;
-        if (useSpeechOutput)
-        {
-            _voice = await dtrf.GetgvUserAIVoice();
-        }
+        // useSpeechOutput = user.UserSettings.AIHasVoice;
+        // if (useSpeechOutput)
+        // {
+        //     _voice = await dtrf.GetgvUserAIVoice();
+        // }
         // aiModel = ollamaModels.FirstOrDefault() ?? "llama3.1:latest"; // Default to first or fallback
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            flapper = await dtrf.GetgvFlapper();
+            // flapper = await dtrf.GetgvFlapper();
             tables = await dtrf.GetgvTables();
             StateHasChanged();
         }
@@ -923,44 +928,67 @@
 
         try
         {
-            // Call Ollama to process the natural language query
             cts = new CancellationTokenSource();
             query = txtQ;
-
+            tables = await dtrf.GetgvTables();
             showResults = true;
-            if (!isCorrect)
-            {
-                // If marked incorrect, adjust the query to inform the AI
-                aiSQL = "The previous SQL query was incorrect. Please provide a revised SQL query. ";
-                isCorrect = true; // Reset for next time
-            }
 
-            var aiSQLv = await pAI.GetSQLFromOllamaAsync(aiSQL + query, aiModel, cts.Token);
+            // Get schema and examples for SQL generation
+            var schemaText = await pAI.GetDetailedSchemaAsync(cts.Token);
+            var examples = await pAI.GetAiExamplesAsync(cts.Token);
 
-            if (!aiSQLv.Success)
+            // Build system message for SQL generation only (no tools, no streaming)
+            var systemMessage = new OllamaMessage
             {
-                errorMessage = aiSQLv.ErrorMessage ?? "Unknown error";
+                Role = "system",
+                Content = AiPrompts.GetTablesSystemMessage(schemaText, examples, false)
+            };
+
+            // Simple single-turn conversation: system message + user query
+            var messages = new List<OllamaMessage>
+            {
+                systemMessage,
+                new OllamaMessage { Role = "user", Content = query }
+            };
+
+            // Get SQL from AI (non-streaming, just SQL generation)
+            aiSQL = await pAI.ChatWithOllamaAsync(messages, tables.Model, false, cts.Token);
+
+            if (string.IsNullOrEmpty(aiSQL))
+            {
+                errorMessage = "AI could not generate SQL for your query.";
                 return;
             }
 
-            strResponse = aiSQLv.Sql ?? string.Empty;
-            strReasoning = $"SQL:\n {aiSQLv.Sql}\n\nExecuting...";
+            // Extract SQL (AI should return just SQL, but handle if it adds explanation)
+            strResponse = aiSQL.Trim();
+
+            // If response includes explanation, try to extract just the SQL
+            if (strResponse.Contains("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                var selectIndex = strResponse.IndexOf("SELECT", StringComparison.OrdinalIgnoreCase);
+                if (selectIndex > 0)
+                {
+                    // Extract from SELECT onwards
+                    strResponse = strResponse.Substring(selectIndex);
+                }
+            }
+
+            strReasoning = $"SQL:\n{strResponse}\n\nExecuting...";
             StateHasChanged();
 
-            var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{strResponse}",cts.Token);
-            if (aiResponse == null)
+            // Execute the SQL
+            var aiResponse = await pulseApiClient.GetAsync<List<Dictionary<string, object>>>($"/AI/execute:{Uri.EscapeDataString(strResponse)}", cts.Token);
+
+            if (aiResponse == null || !aiResponse.Any())
             {
-                errorMessage = "No response from AI execution.";
+                errorMessage = "Query executed but returned no results. Try a different query.";
+                showResults = false;
                 return;
             }
+
             rows = aiResponse;
-            if (rows.Any())
-            {
-                columns = rows.First().Keys.ToList();
-            }
-
-            // StateHasChanged();
-
+            columns = rows.First().Keys.ToList();
         }
         catch (TaskCanceledException)
         {
@@ -969,13 +997,17 @@
         }
         catch (Exception ex)
         {
-            errorMessage = ex.Message.Contains("timeout") ? "Ollama is taking too long—try simpler query or check local service." : $"Error: {ex.Message}";
+            errorMessage = ex.Message.Contains("timeout") 
+                ? "Ollama is taking too long—try simpler query or check local service." 
+                : ex.Message.Contains("Incorrect syntax")
+                    ? "SQL syntax error. Try asking your question differently."
+                    : $"Error: {ex.Message}";
+            showResults = false;
         }
         finally
         {
-
             isLoading = false;
-            // if (ChatMode) { await SetQuestionFocus(); }
+            StateHasChanged();
         }
     }
     private async Task ExportToExcelAsync()
@@ -1130,6 +1162,15 @@
     private string ParseToHtml(string markdownContent)
     {
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
-        return Markdig.Markdown.ToHtml(markdownContent, pipeline);
+        var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
+
+        // Add target="_blank" and rel="noopener noreferrer" to all links
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html, 
+            @"<a\s+href=""([^""]*)""",
+            @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
+        );
+
+        return html;
     }
 }
