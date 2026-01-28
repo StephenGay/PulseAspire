@@ -463,7 +463,7 @@
             "PulseAI" => await dataTrf.GetgvUserAIVoice(),
             _ => null
         };
-
+        what = what.Replace("\n", " ").Replace("<br />", " ");
         var utterancet = new SpeechSynthesisUtterance
         {
             Text = what,

@@ -450,6 +450,12 @@ namespace Pulse.ApiService.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ClientBudgetId"));
 
+                    b.Property<decimal>("AIForecast")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<decimal>("BudgetedSales")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(18, 2)

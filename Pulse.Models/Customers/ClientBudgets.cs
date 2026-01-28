@@ -26,6 +26,10 @@ namespace Pulse.Models.Customers
         [DefaultValue(0)]
         public decimal BudgetedSales { get; set; } = 0;
 
+        [Required]
+        [DefaultValue(0)]
+        public decimal AIForecast { get; set; } = 0;
+
         public Customer? customer { get; set; }
         public Period? period { get; set; }
     }
@@ -43,5 +47,8 @@ namespace Pulse.Models.Customers
         [Required]
         [DefaultValue(0)]
         public decimal BudgetedSales { get; set; } = 0;
+        [Required]
+        [DefaultValue(0)]
+        public decimal AIForecast { get; set; } = 0;
     }
 }

@@ -26,7 +26,7 @@
 <div class="cparent">
     @* <div class="cheader">Fixed Header (e.g., 50px)</div> *@
     <div class="ccontent">
-        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 10px;margin:10px;overflow:hidden">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 10px;overflow:hidden">
             <h5 style="color:var(--pulse-dark-colour)">Financial Year : @(curPer == null ? "Loading" : curPer.FinancialYear)</h5>
         @if(_client != null)
         {
@@ -44,6 +44,7 @@
             <PropertyColumn Property="@(context => context.period.Month)" Title="Month" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.period.CalendarYear)" Title="Cal Year" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.BudgetedSales)" Title="Budget" Format="#,##0.00" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.AIForecast)" Title="AI Forecast" Format="#,##0.00" Align="Align.Center" Sortable="false" />
         </FluentDataGrid>
     </Animation>
         }

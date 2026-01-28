@@ -23,7 +23,11 @@ namespace Pulse.Models.PulseContext.Maps
             .HasMaxLength(4);
             builder.Property(e => e.BudgetedSales)
             .IsRequired()
-            .HasPrecision(18, 2) // Assuming standard decimal precision for financial values; adjust if needed
+            .HasPrecision(18, 2) 
+            .HasDefaultValue(0);
+            builder.Property(e => e.AIForecast)
+            .IsRequired()
+            .HasPrecision(18, 2)
             .HasDefaultValue(0);
 
             builder.HasIndex(e => e.FullClientId)

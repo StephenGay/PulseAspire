@@ -9,9 +9,9 @@
 @using System.Text.Json.Nodes
 @using System.Text
 @using System.Threading.Tasks
-@using Toolbelt.Blazor.SpeechSynthesis
 
-@inject SpeechSynthesis SpeechSynthesis
+
+@inject Global_AI_Functions GlobalAI
 @inject DataTransferService dataTrf
 @inject IDialogService DialogService
 @inject BootstrapBlazor.Components.ToastService ToastService
@@ -274,7 +274,7 @@ else
     </div>
 </Drawer>
 
-<FluentDialogProvider />
+@* <FluentDialogProvider /> *@
 
 @code
 {
@@ -288,8 +288,8 @@ else
     private List<BlankClientBudget>? upBud;
     private bool showingBody = true;
     private bool startAni = false;
-    private bool useSpeechOutput = true;
-    private SpeechSynthesisVoice? _voice;
+    
+    
     private string sState = "LOAD";
     private string _Analysis = string.Empty;
     private string _AssistWith = string.Empty;
@@ -330,11 +330,7 @@ else
     {
         u = await dataTrf.GetgvUser();
         period = await dataTrf.GetgvCurrentPeriod();
-        useSpeechOutput = u.UserSettings.AIHasVoice;
-        if (useSpeechOutput)
-        {
-            _voice = await dataTrf.GetgvUserAIVoice();
-        }
+        
         await GetClientInfo();
 
         isLoading = false;
@@ -344,15 +340,7 @@ else
 
     private async Task AiSpeak(string text)
     {
-        if (useSpeechOutput)
-        {
-            var utterancet = new SpeechSynthesisUtterance
-            {
-                Text = text.Replace("<br />", ""),
-                Voice = _voice
-            };
-            await this.SpeechSynthesis.SpeakAsync(utterancet);
-        }
+        await GlobalAI.AISpeak(text, "PulseAI");
     }
 
     private async Task GetClientInfo()
@@ -452,7 +440,8 @@ else
                     FullClientId = bud.FullClientId,
                     PeriodID = bud.PeriodID,
                     FinancialYear = bud.FinancialYear,
-                    BudgetedSales = bud.BudgetedSales
+                    BudgetedSales = bud.BudgetedSales,
+                    AIForecast = bud.BudgetedSales
                 };
                 var response = await pApi.PostAsync<ClientBudgets, ClientBudgets>("/Customers/Budgets/Add/", clientBudgets);
             }
@@ -719,11 +708,10 @@ else
     private async Task SendToast(string tType, string tTitle, string tContent)
     {
 
-        if (useSpeechOutput)
-        {
-            await AiSpeak(tContent);
+        
+        await AiSpeak(tContent);
 
-        }
+        
         var cat = tType switch
         {
             "Success" => ToastCategory.Success,
