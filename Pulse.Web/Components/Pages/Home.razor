@@ -1,184 +1,18 @@
 ﻿@page "/"
 @page "/home"
-@using System.Security.Cryptography
-@using System.Text
-@using System.Threading.Tasks
-@using Pulse.Models.Customers
-@using Pulse.Models.Organizational
-@using Pulse.Models.Users
 @using Pulse.Web.Components.Layout
-@using Pulse.Web.Services
-@rendermode InteractiveServer
-@inject NavigationManager Navigation
-@inject DataTransferService _DataTransferService
-@inject PulseApiService _pulseApiClient
 @layout NoLayout
 
 <PageTitle>Home</PageTitle>
 
-<div class="div-center-screen">
-@if(!showCustLogin && !showEmpLogin)
-{
-	
-		<Animation name="logoAni" Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@Delay.None">
-			<img src="images/Logos/HMLogo.png" class="img-fluid" alt="HM Logo" />
-			<br />
-			<br />
-		</Animation>
-		
-		@* <Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1)">
-			<button class="btn btn-light btn-lg" @onclick="ShowClientLogin">Customer Zone</button>
-			<br />
-			<br />
-		</Animation> *@
-		
-		<Animation Effect="@Effect.FadeInUp" Speed="@TimeSpan.FromSeconds(0.5)" Delay="@TimeSpan.FromSeconds(1.5)">
-			<button class="btn btn-light btn-lg" @onclick="ShowEmployeeLogin">Login</button>
-		</Animation>
-		@* <Login /> *@
-	
-}
-@* else if (showCustLogin)
-{
-		
-		<Animation Effect="@Effect.LightSpeedInRight" Speed="@TimeSpan.FromSeconds(1)" Delay="@Delay.None">
-			<div>	
-			<input type="text" id="txtCust" @bind="clientId" @bind:event="oninput" placeholder="Enter Client ID" />
-			<br />
-			<br />
-			<button class="btn btn-light btn-lg" @onclick="NavigateToCustomerZone">Login</button>
-				<br />
-				<br />
-			<button class="btn btn-light btn-lg" @onclick="CancelLogin">Cancel</button>
-			</div>
-		</Animation>
-	
-
-	@* @if (!string.IsNullOrEmpty(client_Id))
-	{
-		<CascadingValue Value="client_Id" Name="_customer_Id">
-			<WebApp.Components.Pages.CustomerZone.CustomerZoneHome />
-		</CascadingValue>
-	}
-	@if (!string.IsNullOrEmpty(validationMessage))
-	{
-		<div class="alert alert-danger">@validationMessage</div>
-	} *@
-	@* <CustomerLogin OnCancel="() => showCustLogin = false" /> 
-} *@
-else if (showEmpLogin)
-{
-		<Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1.5)" Delay="@Delay.None">
-			@* <div class="col-12">
-				<div class="card shadow-2-strong" style="border-radius: 1rem;">
-				  <div class="card-body p-5 text-center">
-
-					<h3 class="mb-5">Sign in</h3>
-
-					<div data-mdb-input-init class="form-outline mb-4">
-							<input type="text" id="txtEmp" @bind="empEM" @bind:event="oninput" class="form-control form-control-lg" placeholder="Enter Your E-Mail Address" />
-					</div>
-								
-				<div data-mdb-input-init class="form-outline mb-4">
-							<input type="password" id="txtPwd" @bind="empPwd" @bind:event="oninput" class="form-control form-control-lg" placeholder="Enter Your Password" />
-				</div>
-
-				
-				<br />
-						<button class="btn btn-danger btn-lg btn-block" @onclick="CancelLogin">Cancel</button>
-				<button class="btn btn-primary btn-lg btn-block" @onclick="NavigateToEmployeeZone">Login</button>
-
-				
-					</div>
-				</div>
-				
-				
-			</div> *@
-			<Login />
-		</Animation>
-}
+<div class="div-center-screen" style="background-color: rgb(0,0,0);padding-left:20px; padding-right:20px;">
+	<img src="images/Logos/PulseIntro.gif" class="img-fluid" alt="Pulse Aspire Logo" />
+	<Animation Effect="@Effect.ZoomIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(5)">
+		<Login />
+	</Animation>
 </div>
-
 
 @code 
 {
 
-	private bool showCustLogin = false;
-	private bool showEmpLogin = false;
-	private string clientId = string.Empty;
-	private string? client_Id;
-	private string validationMessage = string.Empty;
-	private string empEM = string.Empty;
-	private string empPwd = string.Empty;
-	private AnimationEffect logoSelectedEffect = new AnimationEffect("FadeIn");
-	private AnimationEffect logoBtnSelectedEffect = new AnimationEffect("FadeInUp");
-
-	private void ShowClientLogin()
-	{
-		// logoSelectedEffect = new AnimationEffect("LightSpeedOutLeft");
-		// // logoBtnSelectedEffect = new AnimationEffect("LightSpeedOutLeft");
-		//  StateHasChanged();
-		// await Task.Delay(2000); // Wait for the animation to complete
-		showCustLogin = true;
-	}
-
-	private void ShowEmployeeLogin()
-	{
-		// Navigation.NavigateTo("/Login");
-		showEmpLogin = true;
-	}
-
-	private void CancelLogin()
-	{
-		showCustLogin = false;
-		showEmpLogin = false;
-	}
-
-	private async void NavigateToEmployeeZone()
-	{
-		if (string.IsNullOrWhiteSpace(empEM) || string.IsNullOrWhiteSpace(empPwd))
-		{
-			validationMessage = "Please enter both E-Mail and Password.";
-			return;
-		}
-		string hashedPwd = HashPassword(empPwd);
-		User? user = await _pulseApiClient.GetAsync<User>($"/Security/EmployeeLogin/email={empEM}pwd={hashedPwd}");
-		if (user == null)
-		{
-			validationMessage = "Invalid E-Mail or Password. Please try again.";
-			return;
-		}
-		validationMessage = string.Empty;
-		await _DataTransferService.SetgvUser(user);
-
-		Navigation.NavigateTo("/DivisionLogon?nextpage=/EmployeeZone/");
-    }
-	
-	public static string HashPassword(string password)
-	{
-		using (SHA256 sha256 = SHA256.Create())
-		{
-			byte[] bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
-			StringBuilder builder = new StringBuilder();
-			foreach (byte b in bytes)
-			{
-				builder.Append(b.ToString("x2"));
-			}
-			return builder.ToString();
-		}
-	}
-
-	private async void NavigateToCustomerZone() 
-    {
-		Customer? client = await _pulseApiClient.GetAsync<Customer>($"/Customers/Details/{clientId}");
-		if (client == null)
-		{
-			validationMessage = "Client ID not found. Please enter a valid Client ID.";
-			return;
-		}
-		validationMessage = string.Empty;
-		await _DataTransferService.SetgvClient(client);
-        
-		Navigation.NavigateTo("/CustomerZone/");
-	}
 }

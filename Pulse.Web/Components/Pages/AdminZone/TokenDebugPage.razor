@@ -11,153 +11,168 @@
 @inject TokenHolderService TokenHolder
 @inject PulseApiService ApiService
 @inject ILogger<TokenDebugPage> Logger
-@layout NoLayout
+@* @layout NoLayout *@
 
-<div style="padding: 20px;">
-    <FluentCard>
+<style>
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style>
+
+<div class="ccontent">
+    @* <FluentCard> *@
         <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">Token Diagnostic</h2>
         </FluentHeader>
 
         <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
-            
-            <!-- Auth Service Status -->
-            <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
-                <h3>AuthService Status</h3>
-                <ul style="list-style: none; padding: 0;">
-                    <li><strong>Is Authenticated:</strong> <span style="color: @(AuthService.IsAuthenticated ? "green" : "red");">@AuthService.IsAuthenticated</span></li>
-                    <li><strong>User ID:</strong> <code>@AuthService.aspireUserId</code></li>
-                    <li><strong>Email:</strong> <code>@AuthService.aspireEmail</code></li>
-                    <li><strong>Roles:</strong> <code>@string.Join(", ", AuthService.Roles)</code></li>
-                </ul>
-            </div>
-
-            <!-- Token Status -->
-            <div style="border: 1px solid #ddd; padding: 12px, border-radius: 4px;">
-                <h3>Token Status</h3>
-                <ul style="list-style: none; padding: 0;">
-                    <li><strong>Token in AuthService:</strong> <span style="color: @(string.IsNullOrEmpty(AuthService.JwtToken) ? "red" : "green");">@(string.IsNullOrEmpty(AuthService.JwtToken) ? "NOT SET" : "SET")</span></li>
-                    <li><strong>Token in Holder:</strong> <span style="color: @(string.IsNullOrEmpty(tokenFromHolder) ? "red" : "green");">@(string.IsNullOrEmpty(tokenFromHolder) ? "NOT SET" : "SET")</span></li>
-                    <li><strong>Token Length (Holder):</strong> <code>@tokenFromHolder?.Length ?? 0</code> characters</li>
-                </ul>
-            </div>
-
-            <!-- JWT Claims -->
-            @if (!string.IsNullOrEmpty(tokenFromHolder))
-            {
-                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
-                    <h3>JWT Token Claims</h3>
-                    <div style="font-size: 12px; max-height: 300px; overflow-y: auto;">
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background-color: #f5f5f5;">
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Claim Type</th>
-                                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Claim Value</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var claim in tokenClaims)
-                                {
-                                    <tr>
-                                        <td style="border: 1px solid #ddd; padding: 8px;"><code>@claim.Type</code></td>
-                                        <td style="border: 1px solid #ddd; padding: 8px;"><code style="word-break: break-all;">@claim.Value</code></td>
-                                    </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            }
-
-            <!-- Debug API Methods -->
-            <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
-                <h3>Debug Methods</h3>
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
-                    
-                    <!-- Check My Roles -->
-                    <div>
-                        <h4 style="margin-top: 0;">Check Current User Roles</h4>
-                        <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
-                            <FluentButton Appearance="Appearance.Accent" 
-                                         @onclick="CheckMyRolesAsync" 
-                                         Disabled="@isDebugTesting">
-                                @(isDebugTesting && debugAction == "roles" ? "Checking..." : "GET /debug/my-roles")
-                            </FluentButton>
-                        </FluentStack>
-                        @if (!string.IsNullOrEmpty(debugMessage) && debugAction == "roles")
-                        {
-                            <div style="@GetTestMessageStyle(debugSeverity); margin-top: 12px;">
-                                @((MarkupString)debugMessage)
-                            </div>
-                        }
-                    </div>
-
-                    <!-- Assign Admin Role -->
-                    <div style="border-top: 1px solid #eee; padding-top: 12px;">
-                        <h4 style="margin-top: 0;">Assign Admin Role</h4>
-                        <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
-                            <div style="flex: 1;">
-                                <FluentTextField @bind-Value="adminAssignEmail"
-                                               Label="User Email"
-                                               Placeholder="e.g., user@example.com"
-                                               Style="width: 100%;" />
-                            </div>
-                            <FluentButton Appearance="Appearance.Accent" 
-                                         @onclick="AssignAdminAsync" 
-                                         Disabled="@(string.IsNullOrWhiteSpace(adminAssignEmail) || isDebugTesting)">
-                                @(isDebugTesting && debugAction == "admin" ? "Assigning..." : "POST /debug/assign-admin")
-                            </FluentButton>
-                        </FluentStack>
-                        @if (!string.IsNullOrEmpty(debugMessage) && debugAction == "admin")
-                        {
-                            <div style="@GetTestMessageStyle(debugSeverity); margin-top: 12px;">
-                                @debugMessage
-                            </div>
-                        }
-                    </div>
-                </FluentStack>
-            </div>
-
-            <!-- Test API Calls -->
-            <div style="border: 1px solid #ddd; padding: 12px; border-radius: 4px;">
-                <h3>Test API Requests</h3>
-                <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
-                    <FluentButton Appearance="Appearance.Accent" @onclick="TestGetRolesAsync" Disabled="@isTestingApi">
-                        @(isTestingApi ? "Testing..." : "Test GET /roles")
-                    </FluentButton>
-                    <FluentButton Appearance="Appearance.Accent" @onclick="TestGetUsersAsync" Disabled="@isTestingApi">
-                        @(isTestingApi ? "Testing..." : "Test GET /users")
-                    </FluentButton>
-                </FluentStack>
-                @if (!string.IsNullOrEmpty(testMessage))
-                {
-                    <div style="@GetTestMessageStyle(testSeverity)">
-                        @testMessage
-                    </div>
-                }
-            </div>
-
-            <!-- Recommendations -->
-            @if (recommendations.Any())
-            {
-                <div style="border: 2px solid #ff9800; padding: 12px; border-radius: 4px; background-color: #fff3cd;">
-                    <h3 style="color: #cc6600; margin-top: 0;">⚠️ Issues Detected</h3>
-                    <ul>
-                        @foreach (var rec in recommendations)
-                        {
-                            <li>@rec</li>
-                        }
+            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 16px;">
+                <!-- Auth Service Status -->
+                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
+                    <h3>AuthService Status</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li><strong>Is Authenticated:</strong> <span style="color: @(AuthService.IsAuthenticated ? "green" : "red");">@AuthService.IsAuthenticated</span></li>
+                        <li><strong>User ID:</strong> <code>@AuthService.aspireUserId</code></li>
+                        <li><strong>Email:</strong> <code>@AuthService.aspireEmail</code></li>
+                        <li><strong>Roles:</strong> <code>@string.Join(", ", AuthService.Roles)</code></li>
                     </ul>
                 </div>
-            }
-            else
-            {
-                <div style="border: 2px solid #4caf50; padding: 12px; border-radius: 4px; background-color: #e8f5e9;">
-                    <h3 style="color: #2e7d32; margin-top: 0;">✅ All Checks Passed</h3>
+
+                <!-- Token Status -->
+                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
+                    <h3>Token Status</h3>
+                    <ul style="list-style: none; padding: 0;">
+                        <li><strong>Token in AuthService:</strong> <span style="color: @(string.IsNullOrEmpty(AuthService.JwtToken) ? "red" : "green");">@(string.IsNullOrEmpty(AuthService.JwtToken) ? "NOT SET" : "SET")</span></li>
+                        <li><strong>Token in Holder:</strong> <span style="color: @(string.IsNullOrEmpty(tokenFromHolder) ? "red" : "green");">@(string.IsNullOrEmpty(tokenFromHolder) ? "NOT SET" : "SET")</span></li>
+                        <li><strong>Token Length (Holder):</strong> <code>@tokenFromHolder?.Length ?? 0</code> characters</li>
+                    </ul>
                 </div>
-            }
+
+                <!-- Test API Calls -->
+                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
+                    <h3>Test API Requests</h3>
+                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                        <FluentButton Appearance="Appearance.Accent" @onclick="TestGetRolesAsync" Disabled="@isTestingApi">
+                            @(isTestingApi ? "Testing..." : "Test GET /roles")
+                        </FluentButton>
+                        <FluentButton Appearance="Appearance.Accent" @onclick="TestGetUsersAsync" Disabled="@isTestingApi">
+                            @(isTestingApi ? "Testing..." : "Test GET /users")
+                        </FluentButton>
+                    </FluentStack>
+                    @if (!string.IsNullOrEmpty(testMessage))
+                    {
+                        <div style="@GetTestMessageStyle(testSeverity)">
+                            @testMessage
+                        </div>
+                    }
+                </div>
+
+                <!-- Recommendations -->
+                @if (recommendations.Any())
+                {
+                    <div style="border: 2px solid #ff9800; padding: 12px; border-radius: 10px; background-color: #fff3cd;">
+                        <h3 style="color: #cc6600; margin-top: 0;">⚠️ Issues Detected</h3>
+                        <ul>
+                            @foreach (var rec in recommendations)
+                            {
+                                <li>@rec</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                else
+                {
+                    <div style="border: 2px solid #4caf50; padding: 12px; border-radius: 10px; background-color: #e8f5e9;">
+                        <h3 style="color: #2e7d32; margin-top: 0;">✅ All Checks Passed</h3>
+                    </div>
+                }
+            </FluentStack>
+
+            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 16px;">
+                <!-- JWT Claims -->
+                @if (!string.IsNullOrEmpty(tokenFromHolder))
+                {
+                    <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
+                        <h3>JWT Token Claims</h3>
+                        <div style="font-size: 12px; max-height: 300px; overflow-y: auto;">
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background-color: #f5f5f5;">
+                                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Claim Type</th>
+                                        <th style="border: 1px solid #ddd; padding: 8px; text-align: left;">Claim Value</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var claim in tokenClaims)
+                                    {
+                                        <tr>
+                                            <td style="border: 1px solid #ddd; padding: 8px;"><code>@claim.Type</code></td>
+                                            <td style="border: 1px solid #ddd; padding: 8px;"><code style="word-break: break-all;">@claim.Value</code></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
+
+                <!-- Debug API Methods -->
+                <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
+                    <h3>Debug Methods</h3>
+                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                    
+                        <!-- Check My Roles -->
+                        <div>
+                            <h4 style="margin-top: 0px;">Check Current User Roles</h4>
+                            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                                <FluentButton Appearance="Appearance.Accent" 
+                                             @onclick="CheckMyRolesAsync" 
+                                             Disabled="@isDebugTesting">
+                                    @(isDebugTesting && debugAction == "roles" ? "Checking..." : "GET /debug/my-roles")
+                                </FluentButton>
+                            </FluentStack>
+                            @if (!string.IsNullOrEmpty(debugMessage) && debugAction == "roles")
+                            {
+                                <div style="@GetTestMessageStyle(debugSeverity); margin-top: 12px;">
+                                    @((MarkupString)debugMessage)
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Assign Admin Role -->
+                        <div style="border-top: 1px solid #eee; padding-top: 12px;">
+                            <h4 style="margin-top: 0;">Assign Admin Role</h4>
+                            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
+                                <div style="flex: 1;">
+                                    <FluentTextField @bind-Value="adminAssignEmail"
+                                                   Label="User Email"
+                                                   Placeholder="e.g., user@example.com"
+                                                   Style="width: 100%;" />
+                                </div>
+                                <FluentButton Appearance="Appearance.Accent" 
+                                             @onclick="AssignAdminAsync" 
+                                             Disabled="@(string.IsNullOrWhiteSpace(adminAssignEmail) || isDebugTesting)">
+                                    @(isDebugTesting && debugAction == "admin" ? "Assigning..." : "POST /debug/assign-admin")
+                                </FluentButton>
+                            </FluentStack>
+                            @if (!string.IsNullOrEmpty(debugMessage) && debugAction == "admin")
+                            {
+                                <div style="@GetTestMessageStyle(debugSeverity); margin-top: 12px;">
+                                    @debugMessage
+                                </div>
+                            }
+                        </div>
+                    </FluentStack>
+                </div>
+                    
+            </FluentStack>
         </FluentStack>
-    </FluentCard>
+    @* </FluentCard> *@
 </div>
 
 @code {

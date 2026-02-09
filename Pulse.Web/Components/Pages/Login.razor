@@ -17,10 +17,17 @@
 @inject SpeechSynthesis SpeechSynthesis
 @inject ILogger<Login> Logger
 
-<FluentCard Style="min-width: 500px;">
-    <FluentHeader Style="background-color: #365b66;">
+<style>
+    .fluent-input-label[b-hum22yrq17] {
+        color: white !important;
+    }
+
+</style>
+
+<FluentCard Style="min-width: 400px; background-color: rgb(0,0,0)">
+    @* <FluentHeader Style="background-color: #365b66;">
         Login
-    </FluentHeader>
+    </FluentHeader> *@
 
     <FluentBodyContent>
         <EditForm Model="Model" OnValidSubmit="HandleLoginAsync">
@@ -53,15 +60,15 @@
                 </FluentMessageBar>
             }
 
-            <div style="display: flex; justify-content: space-between; margin-top: 24px; gap: 16px;">
-                <FluentButton Appearance="Appearance.Neutral"
+            <div style="display: flex; justify-content: center; margin-top: 24px; gap: 16px;">
+                @* <FluentButton Appearance="Appearance.Neutral"
                               @onclick="HandleRegisterClickAsync"
                               Disabled="isLoading">
                     Register
-                </FluentButton>
+                </FluentButton> *@
 
                 <FluentButton Type="Microsoft.FluentUI.AspNetCore.Components.ButtonType.Submit"
-                              BackgroundColor="#365b66"
+                              BackgroundColor="#660000"
                               Appearance="Appearance.Accent"
                               Disabled="isLoading">
                     @(isLoading ? "Logging in..." : "Login")

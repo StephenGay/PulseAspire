@@ -33,7 +33,7 @@
 
 <style>
     .card-header{
-        background-color: var(--pulse-dark-colour) !important;
+        background-color: var(--pulse-dark-t50-colour) !important;
         color: white !important;
         font-weight : bolder !important;
     }
@@ -244,7 +244,7 @@
         }
         @if (sState == "BUSY")
         {
-                <Button Color="BootstrapBlazor.Components.Color.Info" Style="border: 1px solid white" class="btnShadow" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="Processing" />
+                <Button Color="BootstrapBlazor.Components.Color.Info" style="border: 1px solid white; background-color:#9900FF; color: white;" class="btnShadow" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="Processing" />
         }
         
         @if (sState == "WAIT")

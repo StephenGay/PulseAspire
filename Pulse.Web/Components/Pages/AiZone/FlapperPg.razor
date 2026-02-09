@@ -232,9 +232,14 @@
                                                           Title="New Topic"
                                                           Style="border: 1px solid white; height:50px;width:50px" OnClick="@ClearChatHistory"></FluentButton>
                                             <FluentSpacer />
-                                                          @if (retryBtn)
+                                            @if (retryBtn)
                                             {
-                                                <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" class="btnShadow"  OnClick="@RetryBtn">RETRY</FluentButton>
+                                                <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" 
+                                                                Style="border: 1px solid white; height:50px;width:50px" 
+                                                                class="btnShadow" 
+                                                                  IconStart="@(new Icons.Filled.Size24.ArrowRepeatAll())"
+                                                                  Title="Retry Query"
+                                                                OnClick="@RetryBtn"></FluentButton>
                                                 <FluentSpacer />
                                             }
                                             <FluentButton Appearance="Appearance.Accent" class="btnShadow" IconStart="@(new Icons.Filled.Size24.Send())"

@@ -11,9 +11,20 @@
 @inject PulseApiService ApiService
 @inject ILogger<RoleManagementPg> Logger
 
-<div style="padding: 20px;">
+<style>
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style>
+
+<div class="ccontent">
     <!-- User Role Assignment Section -->
-    <FluentCard Height="50%">
+    @* <FluentCard Height="50%">
 
         <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">Assign Roles to Users</h2>
@@ -77,10 +88,10 @@
                 No users found in the system.
             </FluentMessageBar>
         }
-    </FluentCard >
+    </FluentCard > *@
     
-    <FluentCard Style="margin-bottom: 20px;">
-        <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
+    <FluentCard >
+        <FluentHeader Style="background-color:  var(--pulse-dark-t50-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">Role Management</h2>
         </FluentHeader>
 

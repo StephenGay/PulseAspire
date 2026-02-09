@@ -11,9 +11,20 @@
 @inject PulseApiService ApiService
 @inject ILogger<UserManagementPg> Logger
 
-<div style="padding: 20px;">
+<style>
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+</style>
+
+<div class="ccontent">
     <!-- Create New User Section -->
-    <FluentCard Height="70%" Style="margin-bottom: 20px;">
+    @* <FluentCard Height="70%" Style="margin-bottom: 20px;">
         <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">Add New User</h2>
         </FluentHeader>
@@ -81,11 +92,11 @@
                 </FluentButton>
             </FluentStack>
         </FluentStack>
-    </FluentCard>
+    </FluentCard> *@
 
     <!-- Users List Section -->
     <FluentCard>
-        <FluentHeader Style="background-color: #365b66; margin: -16px -16px 16px -16px; padding: 16px;">
+        <FluentHeader Style="background-color: var(--pulse-dark-t50-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">Manage Users</h2>
         </FluentHeader>
 
@@ -100,7 +111,7 @@
                 <!-- Filter Section -->
                 <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: center;">
                     <FluentTextField @bind-Value="filterEmail"
-                                     Label="Search by Email"
+                                     Label="Search by Name"
                                      Placeholder="Filter users..."
                                      @oninput="@((ChangeEventArgs e) => { filterEmail = e.Value?.ToString() ?? string.Empty; ApplyUserFilter(); })"
                                      Style="flex: 1;" />
@@ -121,8 +132,9 @@
                                 TItem="UserRoleDto"
                                 ResizableColumns="true"
                                 Pagination="@pagination">
+                    <PropertyColumn Property="@(u => u.FullName)" Title="Full Name" />
                     <PropertyColumn Property="@(u => u.Email)" Title="Email" />
-                    <PropertyColumn Property="@(u => u.UserName)" Title="Username" />
+                    @* <PropertyColumn Property="@(u => u.UserName)" Title="Username" /> *@
 
                     <TemplateColumn Title="Roles" Context="user">
                         @if (user.Roles?.Any() == true)
@@ -298,7 +310,7 @@
 
         filteredUsers = users
             .Where(u => string.IsNullOrWhiteSpace(filterEmail) || 
-                        (u.Email?.Contains(filterEmail, StringComparison.OrdinalIgnoreCase) ?? false))
+                        (u.FullName?.Contains(filterEmail, StringComparison.OrdinalIgnoreCase) ?? false))
             .ToList();
 
         pagination = new PaginationState { ItemsPerPage = 10 };
