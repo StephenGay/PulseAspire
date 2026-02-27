@@ -10,6 +10,7 @@ public interface IPulseToastService
     void ShowInformation(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000);
     void ShowWarning(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 8000);
     void ShowError(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 8000);
+    void ShowToast(string tType, string message, bool isHtml = false, bool autoHide = true, string AiEmoji = "PulseAI", string? title = null);
     void Show(PulseToastMessage message);
 }
 
@@ -21,6 +22,7 @@ public class PulseToastMessage
     public string Message { get; set; } = string.Empty;
     public string AiEmoji { get; set; } = "PulseAI";
     public int AutoHideMs { get; set; } = 5000000;
+    public bool IsHtml { get; set; } = false;
     public DateTime Created { get; } = DateTime.UtcNow;
 }
 

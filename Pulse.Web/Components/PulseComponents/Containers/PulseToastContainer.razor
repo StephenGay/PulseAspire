@@ -9,7 +9,7 @@
         for (int i = 0; i < toasts.Count; i++)
         {
             var msg = toasts[i];
-            <PulseToast Message="msg" ToastIndex="i" OnClose="() => RemoveToast(msg.Id)" />
+            <PulseToast Message="msg" ToastIndex="i" OnClose="@(new EventCallback<Guid>(this, (Guid id) => RemoveToast(id)))" />
         }
     }
 </div>

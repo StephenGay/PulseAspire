@@ -955,39 +955,40 @@
         showResultsPanel = false;
     }
 
-    private async Task SendToast(string tType, string tTitle, string tContent, string tAI = "Ali")
+    private async Task SendToast(string tType, string tContent, string tAI = "Ali", bool autoHide = true, bool isHtml = false, string? tTitle = null)
     {
 
         await GlobalAI.AISpeak(tContent,tAI);
+        PulseToastService.ShowToast(tType,tContent,isHtml,autoHide,tAI,tTitle);
 
-        switch (tType)
-        {
-            case "Success":
-                PulseToastService.ShowSuccess(tContent,tAI,tTitle);
-                return;
-            case "Information":
-                PulseToastService.ShowInformation(tContent,tAI,tTitle);
-                return;
-            case "Error":
-                PulseToastService.ShowError(tContent,tAI,tTitle);
-                return;
-            case "Warning":
-                PulseToastService.ShowWarning(tContent,tAI,tTitle);
-                return;
-            default:
-                PulseToastService.ShowWarning(tContent,tAI,tTitle);
-                return;
-        }
+        // switch (tType)
+        // {
+        //     case "Success":
+        //         PulseToastService.ShowSuccess(tContent,tAI,tTitle);
+        //         return;
+        //     case "Information":
+        //         PulseToastService.ShowInformation(tContent,tAI,tTitle);
+        //         return;
+        //     case "Error":
+        //         PulseToastService.ShowError(tContent,tAI,tTitle);
+        //         return;
+        //     case "Warning":
+        //         PulseToastService.ShowWarning(tContent,tAI,tTitle);
+        //         return;
+        //     default:
+        //         PulseToastService.ShowWarning(tContent,tAI,tTitle);
+        //         return;
+        // }
 
 
     }
 
     private async Task btnTestClick()
     {
-        await SendToast("Information", "Test Toast", "This is a test Information toast message to demonstrate the toast notification system.");    
-        await SendToast("Warning", "Test Toast", "This is a test Warning toast message to demonstrate the toast notification system."); 
-        await SendToast("Error", "Test Toast", "This is a test Error toast message to demonstrate the toast notification system.");
-        await SendToast("Success", "Test Toast", "This is a test Success toast message to demonstrate the toast notification system."); 
+        await SendToast("Information", "This is a test Information toast message to demonstrate the toast notification system.", "Ali", true, false, "Test Toast");    
+        await SendToast("Warning", "This is a test Warning toast message to demonstrate the toast notification system.", "Ali", true, false, "Test Toast"); 
+        await SendToast("Error", "This is a test Error toast message to demonstrate the toast notification system.", "Ali", true, false, "Test Toast");
+        await SendToast("Success", "This is a test <strong>Success</strong> toast message<br />to demonstrate the toast notification system.", "Ali", false, true, "Test Toast"); 
     }
 
     private string ParseToHtml(string markdown)

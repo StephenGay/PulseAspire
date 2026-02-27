@@ -9,12 +9,21 @@
             {
                 <strong class="pulse-toast-title">@Message.Title</strong>
             }
-            <button class="pulse-toast-close" @onclick="HandleDismiss">×</button>
+            <button type="button" class="pulse-toast-close" @onclick="HandleDismiss">×</button>
         </div>
 
         <div class="pulse-toast-body">
             <div class="pulse-toast-message-container">
-                <div class="pulse-toast-message">@Message.Message</div>
+                <div class="pulse-toast-message">
+                    @if (Message.IsHtml)
+                    {
+                        @((MarkupString)Message.Message)
+                    }
+                    else
+                    {
+                        @Message.Message
+                    }
+                </div>
                 <div class="pulse-toast-emoji">
                     @GetEmojiDisplay()
                 </div>

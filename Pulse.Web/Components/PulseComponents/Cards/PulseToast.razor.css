@@ -81,7 +81,38 @@
 }
 
 .pulse-toast-close {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #d1d5db;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    align-self: flex-start;
+    margin-top: 0;
     margin-left: auto;
+    border-radius: 4px;
+}
+
+.pulse-toast-close:hover {
+    color: #1f2937;
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+.pulse-toast-close:focus {
+    outline: none;
+    color: #1f2937;
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.pulse-toast-close:active {
+    transform: scale(0.95);
 }
 
 .pulse-toast-success .pulse-toast-header {
@@ -135,28 +166,6 @@
     font-size: 14px;
     line-height: 1.4;
     margin-top: 0px;
-}
-
-.pulse-toast-close {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    font-size: 24px;
-    cursor: pointer;
-    color: #d1d5db;
-    padding: 0;
-    width: 24px;
-    height: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.2s;
-    align-self: flex-start;
-    margin-top: 2px;
-}
-
-.pulse-toast-close:hover {
-    color: #6b7280;
 }
 
 @keyframes slideIn {
