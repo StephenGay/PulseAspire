@@ -1,7 +1,7 @@
 @using Pulse.Web.Services
 
-<div class="pulse-toast pulse-toast-@(Message.Level.ToString().ToLower())" 
-     style="animation: slideIn 0.3s ease-out;">
+<div class="divShadow pulse-toast pulse-toast-@(Message.Level.ToString().ToLower())" 
+     style="animation: slideIn 0.3s ease-out; --toast-bottom: @($"{ToastIndex * 120 + 20}px")">
     <div class="pulse-toast-content">
         <div class="pulse-toast-header">
             <span class="pulse-toast-icon">@GetStatusIcon()</span>
@@ -9,22 +9,34 @@
             {
                 <strong class="pulse-toast-title">@Message.Title</strong>
             }
-            <button class="pulse-toast-close" @onclick="HandleDismiss">×</button>
+            <button type="button" class="pulse-toast-close" @onclick="HandleDismiss">×</button>
         </div>
-        
+
         <div class="pulse-toast-body">
-            <div class="pulse-toast-message">@Message.Message</div>
-            <div class="pulse-toast-emoji">
-                @GetEmojiDisplay()
+            <div class="pulse-toast-message-container">
+                <div class="pulse-toast-message">
+                    @if (Message.IsHtml)
+                    {
+                        @((MarkupString)Message.Message)
+                    }
+                    else
+                    {
+                        @Message.Message
+                    }
+                </div>
+                <div class="pulse-toast-emoji">
+                    @GetEmojiDisplay()
+                </div>
             </div>
         </div>
-        
+
     </div>
 </div>
 
 @code {
     [Parameter] public PulseToastMessage Message { get; set; } = default!;
     [Parameter] public EventCallback<Guid> OnClose { get; set; }
+    [Parameter] public int ToastIndex { get; set; } = 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -47,7 +59,7 @@
     private string GetStatusIcon() => Message.Level switch
     {
         ToastLevel.Success => "✓",
-        ToastLevel.Info => "ℹ",
+        ToastLevel.Information => "ℹ",
         ToastLevel.Warning => "⚠",
         ToastLevel.Error => "✕",
         _ => "●"

@@ -4,9 +4,13 @@
 @inject IPulseToastService PulseToastService
 @rendermode InteractiveServer
 <div class="pulse-toast-container">
-    @foreach (var msg in _activeMessages)
-    {
-        <PulseToast Message="msg" OnClose="() => RemoveToast(msg.Id)" />
+    @{
+        var toasts = _activeMessages.ToList();
+        for (int i = 0; i < toasts.Count; i++)
+        {
+            var msg = toasts[i];
+            <PulseToast Message="msg" ToastIndex="i" OnClose="@(new EventCallback<Guid>(this, (Guid id) => RemoveToast(id)))" />
+        }
     }
 </div>
 
