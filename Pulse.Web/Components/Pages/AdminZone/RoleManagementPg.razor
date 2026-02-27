@@ -91,7 +91,7 @@
     </FluentCard > *@
     
     <FluentCard >
-        <FluentHeader Style="background-color:  var(--pulse-dark-t50-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+        <FluentHeader Style="background-color:  var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">Role Management</h2>
         </FluentHeader>
 
@@ -104,8 +104,10 @@
                                      Placeholder="e.g., Manager, Supervisor"
                                      Style="width: 100%;" />
                 </div>
-                <FluentButton @onclick="CreateRoleAsync"
-                              Appearance="Appearance.Accent"
+                <FluentButton Class="myOkBtn"
+                              BackgroundColor="var(--pulse-ok-btn-bg)"
+                              Color="var(--pulse-ok-btn-colour)" 
+                              @onclick="CreateRoleAsync"
                               Disabled="@(string.IsNullOrWhiteSpace(newRoleName) || isCreatingRole)">
                     @(isCreatingRole ? "Creating..." : "Create Role")
                 </FluentButton>

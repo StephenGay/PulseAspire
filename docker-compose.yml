@@ -20,7 +20,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8081
-      - PulseSqlDb__ConnectionString=Server=host.docker.internal\DEV;Database=dbPulse;User Id=sa;Password=TestPassword123!;TrustServerCertificate=true;ConnectRetryCount=5;ConnectRetryInterval=5;
+      - PulseSqlDb__ConnectionString=Server=host.docker.internal\DEV;Database=dbPulse;User Id=sa;Password=$$T3ph3n$$$$$;TrustServerCertificate=true;ConnectRetryCount=5;ConnectRetryInterval=5;
       - ConnectionStrings__cache=redis:6379
     depends_on:
       - redis

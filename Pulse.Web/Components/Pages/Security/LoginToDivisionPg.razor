@@ -1,0 +1,54 @@
+﻿@page "/DivisionLogonBU"
+@using Pulse.Models.Misc
+@using Pulse.Models.Organizational
+@using Pulse.Web.Components.Layout
+@using Pulse.Web.Services
+@inject Pulse.Web.Services.PulseApiService pApiClient
+@inject DataTransferService dTrf
+@inject NavigationManager Navigation
+
+@layout NoLayout
+@rendermode InteractiveServer
+
+<Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+<div class="div-center-screen" style="align-items:center">
+        <ListView TItem="Division" Items="@_allDivisions" style="align-items:center; max-width:60%; background-color:var(--pulse-dark-colour)" OnListViewItemClick="OnDivisionClick" Height="100%">
+    <HeaderTemplate>
+        <div style="color:white">SELECT A DIVISION</div>
+    </HeaderTemplate>
+    <BodyTemplate>
+        <Card>
+            <BodyTemplate>
+                <img src="Images/Divisions/@(context.DivisionID).jpg" />
+                <div class="lv-demo-desc" style="text-align:center;margin:5px;">@context.DivisionName</div>
+            </BodyTemplate>
+        </Card>
+    </BodyTemplate>
+    <FooterTemplate>
+        <div class="text-end">
+            
+        </div>
+    </FooterTemplate>
+</ListView>
+</div>
+</Animation>
+
+@code {
+    [Parameter][SupplyParameterFromQuery(Name = "nextpage")] public string? NextPage { get; set; } = "/EmployeeZone";
+    List<Division>? _allDivisions;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _allDivisions = await pApiClient.GetAsync<List<Division>>("/Divisions/GetAll");
+    }
+
+    private async Task OnDivisionClick(Division div)
+    {
+        await dTrf.SetgvSelectedDivision(div);
+        string m = DateTime.Now.ToString("MMMM");
+        string y = DateTime.Now.Year.ToString();
+        Period cur = await pApiClient.GetAsync<Period>($"/Companies/{div.CompanyID}/CurrentPeriod/{m}/{y}");
+        await dTrf.SetgvCurrentPeriod(cur);
+        Navigation.NavigateTo("/EmployeeZone");
+    }
+}

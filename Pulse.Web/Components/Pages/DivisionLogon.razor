@@ -1,4 +1,5 @@
 ﻿@page "/DivisionLogon"
+@using Pulse.Models.Api
 @using Pulse.Models.Misc
 @using Pulse.Models.Organizational
 @using Pulse.Web.Components.Layout
@@ -6,42 +7,94 @@
 @inject Pulse.Web.Services.PulseApiService pApiClient
 @inject DataTransferService dTrf
 @inject NavigationManager Navigation
-
+@inject IPulseToastService ToastService
 @layout NoLayout
 @rendermode InteractiveServer
 
-<Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-<div class="div-center-screen" style="align-items:center">
-        <ListView TItem="Division" Items="@_allDivisions" style="align-items:center; max-width:60%; background-color:var(--pulse-dark-colour)" OnListViewItemClick="OnDivisionClick" Height="100%">
-    <HeaderTemplate>
-        <div style="color:white">SELECT A DIVISION</div>
-    </HeaderTemplate>
-    <BodyTemplate>
-        <Card>
-            <BodyTemplate>
-                <img src="Images/Divisions/@(context.DivisionID).jpg" />
-                <div class="lv-demo-desc" style="text-align:center;margin:5px;">@context.DivisionName</div>
-            </BodyTemplate>
-        </Card>
-    </BodyTemplate>
-    <FooterTemplate>
-        <div class="text-end">
-            
-        </div>
-    </FooterTemplate>
-</ListView>
-</div>
-</Animation>
+<style>
+    .divLayoutParent {
+        display: flex;
+        width: 100vw;
+        flex-direction: column; /* Stack children vertically */
+        height: 100vh; /* Or whatever height your parent should be, like 100% */
+        overflow: hidden;
+    }
+    .divLayoutContent {
+        width: 100vw;
+        flex: 1; /* This magic makes it grow to fill the space */
+        overflow: hidden;
+    }
+</style>
 
+<div class="divLayoutParent">
+    <div class="divLayoutContent">
+        <div style="align-items:center; width: calc(100vw - 32px); height: calc(100vh - 32px); background-color:rgba(255,255,255,0.5); padding: 15px; border: 1px solid white; border-radius: 10px; margin-left: 15px; margin-top: 15px;">
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+        @* <div class="div-center-screen" style="align-items:center"> *@
+            
+
+            @try
+{
+    
+    <ListView TItem="Division" Items="@_allDivisions" OnListViewItemClick="OnDivisionClick">
+            <HeaderTemplate>
+                        <div style="background-color: var(--pulse-dark-colour); color:var(--pulse-light-colour)">SELECT A DIVISION</div>
+            </HeaderTemplate>
+            <BodyTemplate>
+                <div class="btnShadow">
+                    <Card>
+                        <BodyTemplate>
+                            @if (!string.IsNullOrEmpty(context.DivisionID))
+                            {
+                                <img src="Images/Divisions/@(context.DivisionID).jpg" 
+                                     onerror="this.src='Images/Divisions/default.jpg'" 
+                                     alt="@context.DivisionName" />
+                            }
+                            else
+                            {
+                                <img src="Images/Divisions/default.jpg" 
+                                     alt="Division Image" />
+                            }
+                            <div class="lv-demo-desc" style="text-align:center;margin:5px;">@context.DivisionName</div>
+                        </BodyTemplate>
+                    </Card>
+                </div>
+            </BodyTemplate>
+            <FooterTemplate>
+                <div class="text-end">
+            
+                </div>
+            </FooterTemplate>
+        </ListView>
+}
+catch (Exception ex)
+{
+    <p>Error loading divisions: @ex.Message</p>
+}
+
+        @* </div> *@
+        </Animation>
+        </div>
+    </div>
+</div>
 @code {
     [Parameter][SupplyParameterFromQuery(Name = "nextpage")] public string? NextPage { get; set; } = "/EmployeeZone";
-    List<Division>? _allDivisions;
+    List<Division> _allDivisions = new();
 
     protected override async Task OnInitializedAsync()
     {
-        _allDivisions = await pApiClient.GetAsync<List<Division>>("/Divisions/GetAll");
+        try
+        {
+            var response = await pApiClient.GetAsync<ApiResponse<List<Division>>>(ApiEndpoints.Divisions.GetActive);
+            _allDivisions = response?.Data ?? new();
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowError($"Failed to load divisions: {ex.Message}", "Error");
+            _allDivisions = new();
+        }
     }
-
+    
     private async Task OnDivisionClick(Division div)
     {
         await dTrf.SetgvSelectedDivision(div);

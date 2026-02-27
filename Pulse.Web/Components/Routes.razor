@@ -1,5 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
+@inject AuthService AuthService
+@inject CustomAuthenticationStateProvider AuthProvider
+@inject ILogger<Routes> Logger
 
 <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
@@ -7,7 +10,9 @@
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.NoLayout)" >
                 <NotAuthorized>
                     <p>You are not authorized. Redirecting to login...</p>
-                    Navigation.NavigateTo("/home", true);
+                    @{
+                        Navigation.NavigateTo("/home", true);
+                    }
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="routeData" Selector="h1" />
@@ -19,3 +24,28 @@
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+    private bool _tokenLoaded = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_tokenLoaded)
+        {
+            try
+            {
+                // Load token from localStorage (safe here in OnAfterRenderAsync)
+                await AuthService.InitializeAsync();
+                AuthProvider.NotifyStateChanged();
+                _tokenLoaded = true;
+                
+                Logger.LogInformation("Token loaded and auth state updated");
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to initialize auth");
+            }
+        }
+    }
+}
+

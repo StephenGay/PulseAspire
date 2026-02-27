@@ -79,11 +79,11 @@
                           Style="border: 1px solid white" OnClick="() => viewBox = !viewBox"></FluentButton> *@
             <FluentButton class=@(!viewBox ? "myModeBtnOff" : "flapOn")
                           BackgroundColor="white"
-                          Style="border: 2px solid ;height:40px;width:40px;margin-left:10px"
+                          Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
                           OnClick="() => viewBox = !viewBox">
                 @if (flapper != null)
                 {
-                    @(flapper.emoji.ToMarkup("32px"))
+                    @(flapper.emoji.ToMarkup("45px"))
                 }
             </FluentButton>
             <AuthorizeView Roles="Admin">
@@ -92,12 +92,12 @@
                     <FluentButton Appearance="Appearance.Accent" class=@(!ViewSettings ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
                                   IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
-                                  Style="height:40px;width:40px"
+                                  Style="height:50px;width:50px"
                                   Title="Flapper Settings"
                                   OnClick="() => ViewSettings = !ViewSettings"></FluentButton>
                     <FluentButton Appearance="Appearance.Accent" class=@(!AdminMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
-                                  Style="height:40px;width:40px"
+                                  Style="height:50px;width:50px"
                                   IconStart="@(new Icons.Filled.Size24.PersonEdit().WithColor("var(--pulse-mode-btn-item-colour)"))"
                                   Title="Admin Mode"
                                   OnClick="() => AdminMode = !AdminMode"></FluentButton>
@@ -169,7 +169,7 @@
             <FluentGridItem Style="max-height:100%" xs="12" sm="12" md="6" lg="4" xl="3" xxl="2"> 
                 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
                     <div class="myContentDiv" style="overflow-x:hidden;">
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-light-2-colour); border-bottom: 1px solid var(--pulse-dark-colour); padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t25-colour); border-bottom: 1px solid var(--pulse-dark-colour); padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
                             @if(flapper != null)
                             {
                             
@@ -227,23 +227,23 @@
                                                           Title="Toggle Thinking"
                                                           OnClick="() => stream = !stream"></FluentButton>
                                             <FluentSpacer />
-                                            <FluentButton Appearance="Appearance.Accent" class="btnShadow"
-                                                          IconStart="@(new Icons.Filled.Size24.QuizNew())"
+                                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                                                          IconStart="@(new Icons.Filled.Size24.QuizNew().WithColor("var(--pulse-accent-btn-colour)"))"
                                                           Title="New Topic"
-                                                          Style="border: 1px solid white; height:50px;width:50px" OnClick="@ClearChatHistory"></FluentButton>
+                                                          Style="height:50px;width:50px" OnClick="@ClearChatHistory"></FluentButton>
                                             <FluentSpacer />
                                             @if (retryBtn)
                                             {
                                                 <FluentButton BackgroundColor="rgba(204,0,0,1)" Color="rgba(255,255,255,1)" 
                                                                 Style="border: 1px solid white; height:50px;width:50px" 
                                                                 class="btnShadow" 
-                                                                  IconStart="@(new Icons.Filled.Size24.ArrowRepeatAll())"
+                                                              IconStart="@(new Icons.Filled.Size24.ArrowRepeatAll().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
                                                                   Title="Retry Query"
                                                                 OnClick="@RetryBtn"></FluentButton>
                                                 <FluentSpacer />
                                             }
-                                            <FluentButton Appearance="Appearance.Accent" class="btnShadow" IconStart="@(new Icons.Filled.Size24.Send())"
-                                                          Style="border: 1px solid white; height:50px;width:50px" OnClick="@SubmitQuery"></FluentButton>
+                                            <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-ok-btn-colour"))"
+                                                          Style="height:50px;width:50px" OnClick="@SubmitQuery"></FluentButton>
                                         </FluentStack>
                                         @* <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
                                             <HeaderTemplate>
@@ -411,7 +411,7 @@
     private bool retryBtn = false;
     private bool fromRetryBtn = false;
     // private SpeechSynthesisVoice? _voice;
-    private User? user;
+    // private User? user;
     private bool stream = false;
     private Flapper? flapper;
     // Dynamic models for select
@@ -596,7 +596,7 @@
     protected override async Task OnInitializedAsync()
     {
         // ollamaModels = await pAI.GetOllamaModelsAsync();
-        user = await dtrf.GetgvUser();
+        // user = await dtrf.GetgvUser();
         uName = await dtrf.GetgvUserFirstName();
 
         // useSpeechOutput = user.UserSettings.AIHasVoice;

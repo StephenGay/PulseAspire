@@ -17,7 +17,8 @@ namespace Pulse.Web.Services
     {
         //public string gv_clientId { get; set; } = string.Empty;
         public Customer gv_client { get; set; }
-        public User gv_user { get; set; }
+        //public User gv_user { get; set; }
+        public ApplicationUserSettings gvUserSettings { get; set; }
         public Period gv_Current_Period {  get; set; }
         public Tables gv_Tables { get; set; }
         public Flapper gv_Flapper { get; set; }
@@ -69,16 +70,26 @@ namespace Pulse.Web.Services
         {
             return gvShowAI;
         }
-        public async Task SetgvUser(User user)
+        public async Task SetgvUserSettings(ApplicationUserSettings userSettings)
         {
-            gv_user = user;
-            gvUserFirstName = gv_user.UserName.Split(' ')[0];
+            gvUserSettings = userSettings;
+            gvUserFirstName = userSettings.PreferredUserName;
             await Task.CompletedTask;
         }
-        public async Task<User> GetgvUser()
+        public async Task<ApplicationUserSettings> GetgvUserSettings()
         {
-            return await Task.FromResult(gv_user);
+            return await Task.FromResult(gvUserSettings);
         }
+        //public async Task SetgvUser(User user)
+        //{
+        //    gv_user = user;
+            //gvUserFirstName = gv_user.UserName.Split(' ')[0];
+        //    await Task.CompletedTask;
+        //}
+        //public async Task<User> GetgvUser()
+        //{
+        //    return await Task.FromResult(gv_user);
+        //}
         public async Task<Tables> GetgvTables()
         {
             return await Task.FromResult(gv_Tables);
@@ -238,11 +249,13 @@ namespace Pulse.Web.Services
         public Task<Customer> GetgvClient();
         public Task SetgvSelectedClient(Customer client);
         public Task<Customer> GetgvSelectedClient();
-        public Task SetgvUser(User user);
-        public Task<User> GetgvUser();
+        //public Task SetgvUser(User user);
+        //public Task<User> GetgvUser();
         public Task<List<PulseMessage>> GetgvUserMessages();
         public Task SetgvUserMessages(List<PulseMessage> messages);
         public Task AddgvUserMessage(PulseMessage msg);
+        public Task SetgvUserSettings(ApplicationUserSettings userSettings);
+        public Task<ApplicationUserSettings> GetgvUserSettings();
         public Task SetgvSelectedRollSpec(ClientRollerSpecification rollSpec);
         public Task<ClientRollerSpecification> GetgvSelectedRollSpec();
         public Task SetgvSelectedClientStats(ClientCurrentStats stats);

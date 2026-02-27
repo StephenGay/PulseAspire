@@ -4,7 +4,10 @@
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Organizational
 @using Pulse.Models.Users
+@using Pulse.Web.Components.Pages.Security
 @using Pulse.Web.Components.Pages.UserSettings
+@using Pulse.Web.Components.PulseComponents.Cards
+@using Pulse.Web.Components.PulseComponents.Containers
 @using Pulse.Web.Services
 @using Pulse.Web.Components.Pages.Notifications
 @using Toolbelt.Blazor.SpeechSynthesis
@@ -14,7 +17,8 @@
 @inject IJSRuntime JS
 @inject AppState AppState
 @inject DataTransferService dataTrf
-@inject IToastService ToastService
+
+
 @inject SpeechSynthesis SpeechSynthesis
 @inject Global_AI_Functions GlobalAI
 @inject IMessageService MessageService
@@ -60,11 +64,12 @@
                     <div class="mbparent">
                         @Body
                     </div>
+                   
             </div>
 
             <div class="MasterLayoutFooter">
                 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height:100%;padding:10px" Width="100%" >
-                    @if (user == null)
+                    @if (userSettings == null)
                     {
                         <FluentProgressRing Width="32px" Color="var(--pulse-light-colour)"></FluentProgressRing>
                     }
@@ -79,8 +84,8 @@
                                        Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                        ImageSize="40px">
                         </FluentPersona>
-                        <Animation Effect="@Effect.FadeInUp" Enabled="@showProfileMenu" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                            <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.End" VerticalPosition="VerticalPosition.Top" AnchorId="btnProfile" @bind-Open="showProfileMenu">
+                        @* <Animation Effect="@Effect.FadeInUp" Enabled="@showProfileMenu" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> *@
+                            <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.End" VerticalPosition="VerticalPosition.Top" AutoFocus="false" AnchorId="btnProfile" @bind-Open="showProfileMenu">
                                 <Header>@_authService.aspireFullName</Header>
                                 <Body>
                                     <FluentStack Orientation="Orientation.Vertical">
@@ -99,7 +104,7 @@
                                     <FluentButton Appearance="Appearance.Accent" aria-label="Log Out" OnClick="Logout">Logout</FluentButton>
                                 </Footer>
                             </FluentPopover>
-                        </Animation>
+                        @* </Animation> *@
                     }
                     <FluentSpacer />
                     <Animation Effect="@Effect.Shake" Enabled="@aniMsg" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2" OnAnimationEnd="() => aniMsg=false">
@@ -116,7 +121,7 @@
                     }
                     else
                     {
-                        <FluentButton BackgroundColor="var(--pulse-light-colour)" Color="var(--pulse-dark-colour)" aria-label="Change to a different Division" style="margin-right:10px" OnClick="ChangeDiv">@division.DivisionName</FluentButton>
+                        <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" aria-label="Change to a different Division" style="margin-right:10px" OnClick="ChangeDiv">@division.DivisionName</FluentButton>
                     }
                 </FluentStack>
              </div>
@@ -124,10 +129,11 @@
                 <UserMsgCentre OnCloseDrawer="(closeDrawer) => ShowMsgCentre = closeDrawer" />
             </Drawer>
         </div>
+        
     </Authorized>
     
         <NotAuthorized>
-            <Pulse.Web.Components.Pages.Access_Denied />
+            <Access_Denied />
         </NotAuthorized>
 
     </AuthorizeView>
@@ -136,9 +142,10 @@
 <FluentDialogProvider />
 <FluentTooltipProvider />
 
+
 @code {
 
-    User? user;
+    // User? user;
     Division? division;
     Flapper? flapper;
     Tables? tables;
@@ -150,10 +157,12 @@
     string? pTheme;
     private const int MaxMessages = 50;
     private List<PulseMessage> _messages = new();
+    
     string presence = "3";
     private string _message = "";
     private string _userId= string.Empty;
     private string _userName = string.Empty;
+    private ApplicationUserSettings? userSettings;
     private IDialogReference? _dialog;
 
     #region Layout Lifecycle Methods
@@ -162,8 +171,8 @@
     {
         if (firstRender)
         {
-            await _authService.LoadTokenAsync();
-            _authProvider.NotifyStateChanged();
+            // await _authService.LoadTokenAsync();
+            // _authProvider.NotifyStateChanged();
 
 
 
@@ -175,7 +184,7 @@
             _userId = _authService.aspireUserId;
             _userName = _authService.aspireUsername;
 
-            user = await dataTrf.GetgvUser();
+            userSettings = await dataTrf.GetgvUserSettings();
             division =  await dataTrf.GetgvSelectedDivision();
             flapper = await dataTrf.GetgvFlapper();
             tables = await dataTrf.GetgvTables();
@@ -184,17 +193,7 @@
             StateHasChanged();
         }
     }
-    protected override void OnInitialized()
-    {
-        // Create handlers (store so we can unsubscribe in Dispose)
-        // _messageReceivedHandler = (s, e) => { _ = OnMessageReceived(s, e); };
-        // _connectionStatusChangedHandler = (s, e) => { _ = OnConnectionStatusChanged(s, e); };
-
-        // MsgHubService.MessageReceived += _messageReceivedHandler;
-        // MsgHubService.ConnectionStatusChanged += _connectionStatusChangedHandler;
-        // GlobalAI.OnAISpeakRequested += AISpeak;
-    }
-
+    
     protected override async Task OnInitializedAsync()
     {
         if (_authService.IsAuthenticated)
@@ -451,7 +450,7 @@
 
     private async Task AISpeak(string what, string who)
     {
-        if(user?.UserSettings == null || user.UserSettings.AIHasVoice != true)
+        if(userSettings == null || userSettings.AIHasVoice != true)
         {
             return;
         }

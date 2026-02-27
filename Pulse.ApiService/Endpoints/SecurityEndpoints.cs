@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Pulse.ApiService.Security;
+using Pulse.ApiService.Services;
 using Pulse.Models.Api;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
@@ -137,7 +138,7 @@ namespace Pulse.ApiService.Endpoints
             })
             .WithName("GetEmployeeByEmail")
             //.WithOpenApi()
-            //.RequireAuthorization()
+            .RequireAuthorization()
             .Produces<ApiResponse<ApplicationUser>>(StatusCodes.Status200OK)
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
             .Produces<ApiResponse>(StatusCodes.Status404NotFound)
@@ -193,16 +194,15 @@ namespace Pulse.ApiService.Endpoints
                     if (result.Succeeded)
                     {
                         logger.LogInformation("User registered successfully: {Email}", model.Email);
-                        return Results.Ok(new ApiResponse<AuthenticationToken>
+                        return Results.Ok(new ApiResponse<UserRoleDto>
                         {
                             Success = true,
-                            Data = new AuthenticationToken
+                            Data = new UserRoleDto
                             {
-                                UserId = user.Id,
+                                Id = user.Id,
                                 Email = user.Email,
-                                Username = user.UserName ?? user.Email,
-                                TokenType = "Bearer",
-                                Message = "User created successfully"
+                                UserName = user.UserName ?? user.Email,
+                                FullName = user.FullName ?? user.Email
                             },
                             Message = "User registered successfully",
                             StatusCode = 200
@@ -226,8 +226,154 @@ namespace Pulse.ApiService.Endpoints
             })
             .AllowAnonymous()
             .WithName("Register")
-            .Produces<ApiResponse<AuthenticationToken>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<UserRoleDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/forgot-password", async (
+                [FromBody] ForgotPasswordModel model,
+                UserManager<ApplicationUser> userManager,
+                IEmailService emailService,
+                IConfiguration configuration,
+                ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("ForgotPassword");
+
+                if (string.IsNullOrEmpty(model?.Email))
+                    return Results.BadRequest(new ApiResponse
+                    {
+                        Success = false,
+                        Message = "Email is required",
+                        StatusCode = 400
+                    });
+
+                try
+                {
+                    var user = await userManager.FindByEmailAsync(model.Email);
+
+                    // Always return success for security (don't reveal if email exists)
+                    if (user == null)
+                    {
+                        logger.LogInformation("Forgot password attempt for non-existent email: {Email}", model.Email);
+                        return Results.Ok(new ApiResponse
+                        {
+                            Success = true,
+                            Message = "If an account exists with this email, a password reset link has been sent",
+                            StatusCode = 200
+                        });
+                    }
+
+                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+                    var appBaseUrl = configuration["AppBaseUrl"] ?? "https://localhost:7219";
+                    var resetLink = $"{appBaseUrl}/reset-password?token={Uri.EscapeDataString(resetToken)}&email={Uri.EscapeDataString(user.Email)}";
+
+                    var emailSent = await emailService.SendPasswordResetAsync(
+                        user.Email!,
+                        user.UserName ?? "User",
+                        resetLink);
+
+                    if (!emailSent)
+                    {
+                        logger.LogError("Failed to send password reset email to {Email}", user.Email);
+                        return Results.Ok(new ApiResponse
+                        {
+                            Success = true,
+                            Message = "If an account exists with this email, a password reset link has been sent",
+                            StatusCode = 200
+                        });
+                    }
+
+                    logger.LogInformation("Password reset email sent to {Email}", user.Email);
+                    return Results.Ok(new ApiResponse
+                    {
+                        Success = true,
+                        Message = "If an account exists with this email, a password reset link has been sent",
+                        StatusCode = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error processing forgot password for {Email}", model?.Email);
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+            .AllowAnonymous()
+            .WithName("ForgotPassword")
+            .Produces<ApiResponse>(StatusCodes.Status200OK)
+            .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/reset-password", async (
+                [FromBody] ResetPasswordModel model,
+                UserManager<ApplicationUser> userManager,
+                IEmailService emailService,
+                ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("ResetPassword");
+
+                if (string.IsNullOrEmpty(model?.Email) ||
+                    string.IsNullOrEmpty(model?.Token) ||
+                    string.IsNullOrEmpty(model?.NewPassword))
+                {
+                    return Results.BadRequest(new ApiResponse
+                    {
+                        Success = false,
+                        Message = "Email, token, and new password are required",
+                        StatusCode = 400
+                    });
+                }
+
+                try
+                {
+                    var user = await userManager.FindByEmailAsync(model.Email);
+                    if (user == null)
+                    {
+                        logger.LogWarning("Password reset attempt for non-existent user: {Email}", model.Email);
+                        return Results.NotFound(new ApiResponse
+                        {
+                            Success = false,
+                            Message = "User not found",
+                            StatusCode = 404
+                        });
+                    }
+
+                    var result = await userManager.ResetPasswordAsync(user, model.Token, model.NewPassword);
+
+                    if (!result.Succeeded)
+                    {
+                        logger.LogWarning("Password reset failed for {Email}: {Errors}",
+                            model.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                        return Results.BadRequest(new ApiResponse
+                        {
+                            Success = false,
+                            Message = "Password reset failed",
+                            Errors = result.Errors.ToDictionary(e => "password", e => new[] { e.Description }),
+                            StatusCode = 400
+                        });
+                    }
+
+                    // Send confirmation email
+                    await emailService.SendPasswordChangedNotificationAsync(user.Email!, user.UserName ?? "User");
+
+                    logger.LogInformation("Password reset successfully for {Email}", user.Email);
+                    return Results.Ok(new ApiResponse
+                    {
+                        Success = true,
+                        Message = "Password reset successfully",
+                        StatusCode = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error resetting password for {Email}", model?.Email);
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+            .AllowAnonymous()
+            .WithName("ResetPassword")
+            .Produces<ApiResponse>(StatusCodes.Status200OK)
+            .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse>(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status500InternalServerError);
 
             group.MapGet("/OldEmployeeLogin/email={email}", async (string email, PulseDbContext db) =>
@@ -401,7 +547,7 @@ namespace Pulse.ApiService.Endpoints
                     return Results.StatusCode(StatusCodes.Status500InternalServerError);
                 }
             })
-            //.RequireAuthorization(AdminRole)
+            .RequireAuthorization("Admin")
             .WithName("GetUsers")
             .Produces<ApiResponse<List<UserRoleDto>>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status500InternalServerError);

@@ -1,12 +1,82 @@
 ﻿@page "/EmployeeZone/"
 @using Pulse.Models.Misc
 @using Pulse.Web.Components.Pages.Notifications
+@using Pulse.Web.Components.PulseComponents.Cards
+@using Pulse.Web.Services
 @inject Pulse.Web.Services.DataTransferService dts
 @inject AppState AppState
+@inject IPulseToastService ToastService
 @layout EmployeeZoneMainLayout
 @rendermode InteractiveServer
 
+<style>
+    .cparent {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        padding: 10px;
+        border-radius: 10px;
+        overflow: auto;
+    }
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    }
+</style>
+
+<div class="cparent">
+    <div class="ccontent">
+        @* <PulseAICard Title="Non-Conformance Report #1234"
+                    Subtitle="Raised BY mE"
+                    Icon="@(new Icons.Filled.Size24.Warning())"
+                    Width="420px">
+
+            <p><strong>Type:</strong> Material Defect</p>
+            <p><strong>Status:</strong> New</p>
+            <p><strong>Against Department:</strong> Production Line 3</p>
+
+            <FluentDivider />
+
+            <p>Details: Contamination found in batch during visual inspection.</p>
+        </PulseAICard> *@
+
+        <div style="margin: 10px; padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+            <div style="margin-bottom: 10px;">
+                <label for="aiSelect" style="font-weight: bold; margin-right: 10px;">Select AI:</label>
+                <select id="aiSelect" @bind="SelectedAI" style="padding: 8px; border-radius: 4px; border: 1px solid #999;">
+                    <option value="PulseAI">PulseAI 🤖</option>
+                    <option value="Tables">Tables 👨‍💻</option>
+                    <option value="Ali">Ali 🕵️</option>
+                    <option value="Flapper">Flapper 👩‍🎓</option>
+                </select>
+            </div>
+
+            <button style="margin:5px" @onclick="HandleShowToast">
+                Success
+            </button>
+            <button style="margin:5px" @onclick="HandleInfoToast">
+                Info
+            </button>
+            <button style="margin:5px" @onclick="HandleErrToast">
+                Error
+            </button>
+            <button style="margin:5px" @onclick="HandleWarningToast">
+                Warning
+            </button>
+        </div>
+
+    </div>
+</div>
+
 @code {
+    private string SelectedAI = "PulseAI";
+
     protected override async Task OnInitializedAsync()
     {
         await dts.SetgvContextArea(0);
@@ -15,4 +85,23 @@
         await AppState.NotifyStateChanged();
     }
 
+    private void HandleShowToast()
+    {
+        ToastService.ShowSuccess("This is a Test Success message", SelectedAI, "Success");
+    }
+
+    private void HandleInfoToast()
+    {
+        ToastService.ShowInfo("This is a Test Info message", SelectedAI, "Info");
+    }
+
+    private void HandleErrToast()
+    {
+        ToastService.ShowError("This is a Test Error message", SelectedAI, "Error");
+    }
+
+    private void HandleWarningToast()
+    {
+        ToastService.ShowWarning("This is a Test Warning message", SelectedAI, "Warning");
+    }
 }

@@ -5,6 +5,7 @@ using Pulse.Models.Customers;
 using Pulse.Models.Organizational;
 using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
+using Pulse.Models.Api;
 using Pulse.Models.Users;
 using System.Linq;
 
@@ -22,10 +23,19 @@ namespace Pulse.ApiService.Endpoints
 
             group.MapGet("/GetAll", async ( PulseDbContext db) =>
                 await db.DivisionMaster
-                .Where(d => d.IsActive)
                 .ToListAsync())
                 .WithName("GetAllDivisions")
                 .Produces<List<Division>>(StatusCodes.Status200OK);
+
+            group.MapGet("/GetActive", async (PulseDbContext db) =>
+            {
+                var divisions = await db.DivisionMaster
+                    .Where(d => d.IsActive)
+                    .ToListAsync();
+                return Results.Ok(new ApiResponse<List<Division>> { Data = divisions, Success = true });
+            })
+                .WithName("GetActiveDivisions")
+                .Produces<ApiResponse<List<Division>>>(StatusCodes.Status200OK);
 
             group.MapGet(ByDivIdPath, async (string divisionid, PulseDbContext db) =>
             await db.DivisionMaster.AsNoTracking()

@@ -18,6 +18,7 @@ using Pulse.Models.Users;
 using Pulse.Models.Production;
 using Pulse.Models.AI;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Production.NonConformance;
 
 namespace Pulse.Models.PulseContext
 {
@@ -51,7 +52,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<ClientContact> ClientContactMaster { get; set; }
         public DbSet<ClientRollerSpecification> ClientRollerSpecificationMaster { get; set; }
         public DbSet<ClientRoller> ClientRollerMaster { get; set; }
-        public DbSet<UserFavouriteQry> UserFavouriteQueries { get; set; }
+        public DbSet<UserFavouriteQry> UserFavouriteQuery { get; set; }
         public DbSet<WorkType> WorkTypeMaster { get; set; }
         public DbSet<WorksOrder> WorksOrder { get; set; }
         public DbSet<ProductionStage> ProductionStageMaster {  get; set; }
@@ -67,6 +68,9 @@ namespace Pulse.Models.PulseContext
         public DbSet<UserSettings> UserSettingsMaster { get; set; }
         public DbSet<ClientBudgets> ClientBudgetMaster { get; set; }
         public DbSet<PulseMessage> PulseMessages { get; set; }
+        public DbSet<ApplicationUserSettings> AspNetUserSettings { get; set; }
+        public DbSet<UserFavouriteQuery> UserFaveQueries { get; set; }
+        public DbSet<NonConformanceReport> NonConformanceReports { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -114,6 +118,9 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new UserSettingsMasterMap());
             modelBuilder.ApplyConfiguration(new ClientBudgetMasterMap());
             modelBuilder.ApplyConfiguration(new PulseMessagesMap());
+            modelBuilder.ApplyConfiguration(new ApplicationUserSettingsMap());
+            modelBuilder.ApplyConfiguration(new UserFaveQueryMap());
+            modelBuilder.ApplyConfiguration(new NonConformanceReportMap());
 
             base.OnModelCreating(modelBuilder);
         }

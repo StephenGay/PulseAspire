@@ -4,6 +4,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
+@using Pulse.Models.Api
 @using Pulse.Web.Components.Layout
 @using Pulse.Web.Services
 @using Pulse.Web.Tools
@@ -20,6 +21,7 @@
 @inject Pulse_AI pAI
 @inject AiPromptService AiPrompts
 @inject PulseApiService pulseApiClient 
+@inject AuthService AuthService
 @inject SpeechRecognition SpeechRecognition
 @inject IMessageService MessageService
 @inject IDialogService DialogService
@@ -80,6 +82,12 @@
     .tblsOn {
         border-color: #1D722A;
     }
+    :host{
+        --fill-color : green !important;
+    }
+    .ttRed{
+        --fill-color : red !important;
+    }
 </style>
 <div class="dparent">
     <div class="dheader" Style="border-bottom: 1px solid black">
@@ -110,22 +118,42 @@
             else
             {
                 @* <FluentButton Appearance="Appearance.Accent" class="btnShadow" Style="border: 1px solid white;height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="ResultsGoBack">Back</FluentButton> *@
-                <FluentButton Appearance="Appearance.Accent" class="btnShadow" Style="border: 1px solid white;height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="ResultsGoBack">Back</FluentButton>
+                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor("var(--pulse-accent-btn-colour)"))" Title="Back To Tables" OnClick="ResultsGoBack"></FluentButton>
+                <FluentSpacer />
                 if (rows.Any())
                 { 
-                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                    @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> *@
                 
                         @if (SavedQueryMode)
                         {
                             @* <FluentStack Style="margin-bottom: 10px;" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center"> *@
                             @* <FluentLabel Typo="Typography.Body" Style="color:white;">Are your results for this query correct?</FluentLabel> *@
                             @* <FluentStack Style="margin-bottom: 10px;" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center"> *@
-                            <FluentButton BackgroundColor="var(--success)" class="btnShadow" Style="border: 1px solid white;height:36px" Color="white" IconStart="@(new Icons.Filled.Size24.ThumbLike().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="QryUpVote">
-                                Correct
+                            <FluentButton id="btnVoteUp" BackgroundColor="white" class="btnShadow" Style="border: 1px solid green;height:50px;width:50px; margin-right:10px" Color="white"  OnClick="QryUpVote">
+                                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ThumbLike().WithColor("green"))" Width="36px" />
                             </FluentButton>
-                            <FluentButton BackgroundColor="var(--error)" Color="white" class="btnShadow" Style="border: 1px solid white;height:36px" IconStart="@(new Icons.Filled.Size24.ThumbDislike().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="QryDownVote">
-                                Wrong
+                            <FluentTooltip Anchor="btnVoteUp" HideTooltipOnCursorLeave="true" Class="ttGreen" AutoUpdateMode="AutoUpdateMode.Anchor" Delay=100>
+                                <strong>Vote Up:</strong><br />
+                                Give a positive vote if the Query provides the<br />
+                                correct data. <br /><br />
+                                Queries that have a positive score can be used<br />
+                                by users with confidence and provide Pulse AI<br />
+                                with good examples to learn from.
+                            </FluentTooltip>
+                            
+                            <FluentButton id="btnVoteDown" BackgroundColor="white" Color="red" class="btnShadow" Style="border: 1px solid red;height:50px;width:50px;margin-left:10px" OnClick="QryDownVote">
+                                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ThumbDislike().WithColor("red"))" Width="36px" />
                             </FluentButton>
+                            <FluentTooltip Anchor="btnVoteDown" HideTooltipOnCursorLeave="true" Class="ttRed" AutoUpdateMode="AutoUpdateMode.Anchor" Delay=100>
+                                <strong>Down Vote:</strong><br />
+                                Give a negative vote if the Query provides the<br />
+                                wrong information. <br /><br />
+                                Queries that have negative votes should be used<br />
+                                with caution and lets Pulse AI know not to use<br />
+                                it for training.<br /><br />
+                                Queries that acquire too many down votes will<br />
+                                removed.
+                            </FluentTooltip>
                             @* </FluentStack> *@
                             @* </FluentStack> *@
                         }
@@ -140,7 +168,7 @@
                         }
 
                        
-                        </Animation>
+                        @* </Animation> *@
                     <FluentSpacer />
                     <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
                         <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentTable().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
@@ -277,9 +305,9 @@
                     {
                         @if (savedQueries.Any())
                         {
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%">
-                                <FluentGrid>
-                                    <FluentGridItem  xs="12">
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%"> @* Style="padding-left:10px; padding-right:10px;"> *@
+                                @* <FluentGrid>
+                                    <FluentGridItem  xs="12"> *@
                                     <FluentDataGrid Items="@savedQueries.AsQueryable()" TGridItem="AiQuery"
                                                     RowClass="@(context => context == selectedSavedQuery ? "fdgrselected" : "fdgrunselected")"
                                                     SelectionMode="SelectionMode.Single"
@@ -289,14 +317,15 @@
                                                     Pagination="@pagination"
                                                         ShowHover="true"
                                                     AutoFit="true"
-                                                    Style="width: 100%;" 
+                                                    Style="width: 100%; margin-left:10px; margin-right:10px;" 
                                                     GenerateHeader="GenerateHeaderOption.Sticky">
                                         <PropertyColumn Property="@(context => context.AiQueryID)" Title="ID" Align="Align.Center" Sortable="true" />
 
                                             <TemplateColumn Context="gridContext" Align="Align.Center">
                                                 <HeaderCellTitleTemplate >
                                                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
-                                                            <FluentButton IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20.Star().WithColor("yellow"))" BackgroundColor=@(myFave ? "green" : "#bcd1d4") Color=@(myFave ? "white" : "black") Style="border: 1px solid black;width:100%;height:100%" OnClick="ToggleFavourites">
+                                                            <FluentButton  BackgroundColor=@(myFave ? "green" : "#bcd1d4") Color=@(myFave ? "white" : "black") Style="border: 1px solid black;width:100%;height:100%" OnClick="ToggleFavourites">
+                                                                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20.Star().WithColor("yellow"))" Width="36px" /> 
                                                         </FluentButton>
                                                     </FluentStack> 
                                             </HeaderCellTitleTemplate>
@@ -305,7 +334,7 @@
                                                 <FluentButton 
                                                     BackgroundColor="white" 
                                                     Style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 8px;"
-                                                    IconStart="@(user.UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID) ? (new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star()) : null)"
+                                                    IconStart="@(UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID) ? (new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star()) : null)"
                                                     OnClick="() => btnFaveClick(gridContext.AiQueryID)">
                                                 </FluentButton>
                                             </ChildContent>
@@ -332,10 +361,10 @@
                                             @GetTruncatedSql(gridContext.SqlQuery)
                                         </TemplateColumn> *@
                                         </FluentDataGrid>
-                                                    <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; padding:10px ; color: white; width:100%" />
-                                    </FluentGridItem> 
+                                        <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; padding:10px ; color: white; width:100%" />
+                                    @* </FluentGridItem> 
                         
-                                </FluentGrid>
+                                </FluentGrid> *@
                             </FluentStack>
                             @* </div> *@
                         }
@@ -359,7 +388,7 @@
                 {
                     if (rows.Any())
                         {
-                                    <div style="overflow-x: auto; width: 100%; align-content:center; background-color: var(--pulse-light-colour);">
+                            <div style="overflow-x: auto; width: 100%; align-content:center; background-color: var(--pulse-light-colour);">
 
 
                     
@@ -438,12 +467,12 @@
     private string strReasoning = string.Empty;
     private bool showSQL = false;
     private string strResponse = string.Empty;
-    private string aiModel = "llama3.1:latest";
+    private string aiModel = "gpt-oss:latest";
     private ElementReference chatContainer;
     private bool useSpeechOutput = false;
     private SpeechSynthesisVoice? _voice;
-    private User? user;
-    PaginationState pagination = new PaginationState { ItemsPerPage = 23 };
+    // private User? user;
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
     private Tables? tables;
     // private Flapper? flapper;
     private SpeechRecognitionResult[] _results = [];
@@ -458,9 +487,10 @@
     // Saved Queries state
     private bool showSavedQueries = false;
     private List<AiQuery>? savedQueries = new();
+    private List<UserFavouriteQuery>? UserFavouriteQueries;
     private AiQuery? selectedSavedQuery;
     private bool isLoadingSaved = false;
-    private string? uName;
+    // private string? uName;
 
 
 
@@ -578,31 +608,31 @@
     private async Task btnFaveClick(int qID)
     {
         // Check if this specific query is already a favorite
-        var isFavouriteQuery = user?.UserFavouriteQueries?.Any(q => q.QueryId == qID) ?? false;
+        var isFavouriteQuery = UserFavouriteQueries?.Any(q => q.QueryId == qID) ?? false;
 
         if (!isFavouriteQuery)
         {
             // Add to favorites
-            UserFavouriteQry favouriteQry = new UserFavouriteQry();
-            favouriteQry.UserId = user.UserID;
+            UserFavouriteQuery favouriteQry = new UserFavouriteQuery();
+            favouriteQry.UserId = AuthService.aspireUserId;
             favouriteQry.QueryId = qID;
             var response = await pulseApiClient.SaveFavouriteQueryAsync(favouriteQry);
             if (response != null)
             {
-                user.UserFavouriteQueries.Add(response);
+                UserFavouriteQueries.Add(response);
                 StateHasChanged(); // Refresh UI to show the star
             }
         }
         else
         {
             // Remove from favorites
-            UserFavouriteQry? delfav = user?.UserFavouriteQueries?.FirstOrDefault(q => q.QueryId == qID);
+            UserFavouriteQuery? delfav = UserFavouriteQueries?.FirstOrDefault(q => q.QueryId == qID);
             if (delfav == null) return;
 
             var dresponse = await pulseApiClient.DeleteFavouriteQueryAsync(delfav.Id);
             if (dresponse != null)
             {
-                user.UserFavouriteQueries.Remove(delfav);
+                UserFavouriteQueries.Remove(delfav);
                 StateHasChanged(); // Refresh UI to hide the star
             }
         }
@@ -788,7 +818,7 @@
                 }
                 else
                 {
-                    var favoriteQueryIds = user.UserFavouriteQueries.Select(f => f.QueryId).ToList(); // Or .ToHashSet() for faster lookups if the list is large.
+                    var favoriteQueryIds = UserFavouriteQueries.Select(f => f.QueryId).ToList(); // Or .ToHashSet() for faster lookups if the list is large.
                     savedQueries = allQ.Where(q => favoriteQueryIds.Contains(q.AiQueryID)).ToList();
 
                 }
@@ -832,13 +862,13 @@
     protected override async Task OnInitializedAsync()
     {
         // ollamaModels = await pAI.GetOllamaModelsAsync();
-        user = await dtrf.GetgvUser();
+        // user = await dtrf.GetgvUser();
         // uName = await dtrf.GetgvUserFirstName();
 
 
-        if(user.UserFavouriteQueries == null)
+        if(UserFavouriteQueries == null)
         {
-            user.UserFavouriteQueries = await pulseApiClient.GetAsync<List<UserFavouriteQry>>($"/User/Favourites/SavedQueries/GetById/{user.UserID}");
+            UserFavouriteQueries = await pulseApiClient.GetAsync<List<UserFavouriteQuery>>(ApiEndpoints.User.Favourites.SavedQueries.GetUserFavourites(AuthService.aspireUserId));
         }
         // useSpeechOutput = user.UserSettings.AIHasVoice;
         // if (useSpeechOutput)
@@ -1120,10 +1150,10 @@
             
             if (selectedSavedQuery == null) { return; }
             txtQ = selectedSavedQuery.Question;
-            if (user.UserFavouriteQueries == null) { return; }
-            if (user.UserFavouriteQueries.Count() == 0) { return; }
+            if (UserFavouriteQueries == null) { return; }
+            if (UserFavouriteQueries.Count() == 0) { return; }
             
-                isFavourite = user.UserFavouriteQueries.Any(qr => qr.QueryId == selectedSavedQuery.AiQueryID);
+                isFavourite = UserFavouriteQueries.Any(qr => qr.QueryId == selectedSavedQuery.AiQueryID);
             
             StateHasChanged();  // Ensure UI updates if needed
         }

@@ -1,0 +1,60 @@
+@using Pulse.Web.Services
+
+<div class="pulse-toast pulse-toast-@(Message.Level.ToString().ToLower())" 
+     style="animation: slideIn 0.3s ease-out;">
+    <div class="pulse-toast-content">
+        <div class="pulse-toast-header">
+            <span class="pulse-toast-icon">@GetStatusIcon()</span>
+            @if (!string.IsNullOrEmpty(Message.Title))
+            {
+                <strong class="pulse-toast-title">@Message.Title</strong>
+            }
+            <button class="pulse-toast-close" @onclick="HandleDismiss">×</button>
+        </div>
+        
+        <div class="pulse-toast-body">
+            <div class="pulse-toast-message">@Message.Message</div>
+            <div class="pulse-toast-emoji">
+                @GetEmojiDisplay()
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+@code {
+    [Parameter] public PulseToastMessage Message { get; set; } = default!;
+    [Parameter] public EventCallback<Guid> OnClose { get; set; }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && Message != null)
+        {
+            // await Task.Delay(Message.AutoHideMs);
+            // await HandleDismiss();
+        }
+    }
+
+    private string GetEmojiDisplay() => Message.AiEmoji switch
+    {
+        "Tables" => "👨‍💻",
+        "Ali" => "🕵️",
+        "Flapper" => "👩‍🎓",
+        "PulseAI" => "🤖",
+        _ => "🤖"
+    };
+
+    private string GetStatusIcon() => Message.Level switch
+    {
+        ToastLevel.Success => "✓",
+        ToastLevel.Info => "ℹ",
+        ToastLevel.Warning => "⚠",
+        ToastLevel.Error => "✕",
+        _ => "●"
+    };
+
+    private async Task HandleDismiss()
+    {
+        await OnClose.InvokeAsync(Message.Id);
+    }
+}

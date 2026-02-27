@@ -18,7 +18,8 @@
 @using Toolbelt.Blazor.SpeechRecognition
 
 @inject SpeechRecognition SpeechRecognition
-@inject BootstrapBlazor.Components.ToastService ToastService
+@* @inject BootstrapBlazor.Components.ToastService ToastService *@
+@inject IPulseToastService PulseToastService
 @inject AppState AppState
 @inject Pulse_AI pAI
 @inject PulseApiService pApiClient
@@ -33,7 +34,7 @@
 
 <style>
     .card-header{
-        background-color: var(--pulse-dark-t50-colour) !important;
+        background-color: var(--pulse-dark-t75-colour) !important;
         color: white !important;
         font-weight : bolder !important;
     }
@@ -197,6 +198,7 @@
                     }
                     else
                     {
+                        <FluentButton Style="height:40px"  class="btnShadow" BackgroundColor="var(--pulse-light-colour)" OnClick="btnTestClick" />
                         <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showAli" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
                             <FluentButton Id="mnuAliBtn" Style="height:40px" Disabled="!showAi.showAli" class="btnShadow" BackgroundColor="var(--pulse-light-colour)" OnClick="btnOpenAIMenu">
                                 @(mAli.emoji.ToMarkup("40px"))
@@ -560,8 +562,8 @@
         };
         AppState.OnThemeChange += async () =>
         {
-            User user = await dataTrf.GetgvUser();
-            pTheme = user.UserSettings!.UserTheme ?? "pulse";
+            ApplicationUserSettings uSettings = await dataTrf.GetgvUserSettings();
+            pTheme = uSettings!.UserTheme ?? "pulse";
             await JSRuntime.InvokeVoidAsync("applyPulseTheme", pTheme);
             await InvokeAsync(StateHasChanged);
         };
@@ -604,7 +606,7 @@
         sState = "WAIT";
         // IsOpen = true;
     }
-    
+
     private async Task RunCommunityPrompt(int promptId)
     {
         IsOpen = false;
@@ -641,7 +643,7 @@
                 return;
             case "Production":
                 prodSel = true;
-                Navigation.NavigateTo("/EmployeeZone/Production/ProductionDashboard");
+                Navigation.NavigateTo("/EmployeeZone/Production/DashboardFH");
                 return;
             case "Admin":
                 adminSel = true;
@@ -660,7 +662,7 @@
         }
         // IsOpen = true;
     }
-    
+
     private async Task btnOpenAIMenu()
     {
         // AIMode = await dataTrf.GetgvAIContextMode();
@@ -678,7 +680,7 @@
                 custQryHdr = $"Here is a the WIP for the Division. I want you to..."; //customer {customer.ClientName}...";
                 break;
             default:
-                SendToast("Warning", "Invalid Page", "This page does not have contextual AI yet.");
+                PulseToastService.ShowWarning("This page does not have contextual AI yet.","Invalid Page");
                 return;
         }
         IsOpen = true;
@@ -715,7 +717,7 @@
     {
         // await GetClientInfo();
         division = await dataTrf.GetgvSelectedDivision();
-        u = await dataTrf.GetgvUser();
+        // u = await dataTrf.GetgvUser();
         // useSpeechOutput = u.UserSettings.AIHasVoice;
         // if (useSpeechOutput)
         // {
@@ -772,7 +774,7 @@
             this.StateHasChanged();
         }
     }
-   
+
     private async Task btnAskAIClick()
     {
         // if (ContextAreaId == 1)
@@ -958,21 +960,34 @@
 
         await GlobalAI.AISpeak(tContent,"Ali");
 
-        var cat = tType switch
+        switch (tType)
         {
-            "Success" => ToastCategory.Success,
-            "Information" => ToastCategory.Information,
-            "Error" => ToastCategory.Error,
-            "Warning" => ToastCategory.Warning,
-            _ => ToastCategory.Warning
-        };
+            case "Success":
+                PulseToastService.ShowSuccess(tContent,tTitle);
+                return;
+            case "Information":
+                PulseToastService.ShowInfo(tContent,tTitle);
+                return;
+            case "Error":
+                PulseToastService.ShowError(tContent,tTitle);
+                return;
+            case "Warning":
+                PulseToastService.ShowWarning(tContent,tTitle);
+                return;
+            default:
+                PulseToastService.ShowWarning(tContent,tTitle);
+                return;
+        }
 
-        await ToastService.Show(new ToastOption
-        {
-            Category = cat,
-            Title = tTitle,
-            Content = tContent
-        });
+
+    }
+
+    private async Task btnTestClick()
+    {
+        await SendToast("Information", "Test Toast", "This is a test Information toast message to demonstrate the toast notification system.");    
+        await SendToast("Warning", "Test Toast", "This is a test Warning toast message to demonstrate the toast notification system."); 
+        await SendToast("Error", "Test Toast", "This is a test Error toast message to demonstrate the toast notification system.");
+        await SendToast("Success", "Test Toast", "This is a test Success toast message to demonstrate the toast notification system."); 
     }
 
     private string ParseToHtml(string markdown)

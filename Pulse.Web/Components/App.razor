@@ -1,5 +1,6 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Web.Components.PulseComponents.Containers
 @* @using Microsoft.FluentUI.AspNetCore.Components *@
 <!DOCTYPE html>
 <html lang="en">
@@ -54,16 +55,14 @@
 
 <body>
     <FluentDesignTheme StorageName="themePulse" Mode="DesignThemeModes.Light" >
-        @* <component type="typeof(App)" render-mode="Server" /> *@
-        
     <BootstrapBlazorRoot>
-    @* <Routes @rendermode="@(new InteractiveServerRenderMode(prerender: false))" /> *@
-            <Routes @rendermode="InteractiveServer" />
-    @* <Routes /> *@
+        <Routes @rendermode="InteractiveServer" />
     </BootstrapBlazorRoot>
-        
     </FluentDesignTheme>
-    @* <component type="typeof(App)" render-mode="ServerPrerendered" /> *@
+    
+    <!-- Move OUTSIDE theme/root so z-index works properly -->
+    <PulseToastContainer />
+
     <script src="@Assets["_framework/blazor.web.js"]"></script>
     @* <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script> *@
     <!-- Add chart.js reference if chart components are used in your application. -->
@@ -80,6 +79,7 @@
     @* <script src="js/signalr-connection.js"></script> *@
     @* <script type="module" src="js/fullcalendarInterop.js"></script> *@
     <script src="js/fullcalendarInterop.js"></script>
+    <script src="js/scriptLoader.js"></script>
     @* <script src="js/calendarInterop.js"></script> *@
     @* <script type="module" src="js/fullcalendar.js"></script> *@
     @* <script src="js/index.global.min.js"></script> *@

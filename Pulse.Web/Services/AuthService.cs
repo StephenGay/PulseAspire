@@ -33,12 +33,26 @@ public class AuthService
         _logger = logger;
     }
 
+    public async Task InitializeAsync()
+    {
+        await LoadTokenAsync();
+    }
+
     public async Task LoadTokenAsync()
     {
         var token = await _tokenStorage.GetTokenAsync();
         if (!string.IsNullOrEmpty(token))
         {
-            await SetAuthenticatedAsync(token);
+            try
+            {
+                await SetAuthenticatedAsync(token);
+                _logger.LogInformation("Token loaded from persistent storage");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load persisted token");
+                await ClearAsync();
+            }
         }
     }
 

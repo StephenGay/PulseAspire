@@ -15,4 +15,8 @@
     <PackageReference Include="Toolbelt.Blazor.SpeechSynthesis" Version="11.0.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="PulseContext\Configurations\" />
+  </ItemGroup>
+
 </Project>

@@ -1,9 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Pulse.Models.Users;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Pulse.Models.PulseContext.Maps
 {

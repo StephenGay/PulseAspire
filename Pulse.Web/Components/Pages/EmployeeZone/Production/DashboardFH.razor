@@ -1,0 +1,1930 @@
+﻿@page "/EmployeeZone/Production/DashboardFH"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<style>
+    .cparent {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        /* padding: 10px; */
+        border-radius: 10px;
+        overflow: auto;
+    }
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    }
+
+    :root {
+    --primary: #3b82f6;
+    --primary-dark: #2563eb;
+    --primary-glow: rgba(59, 130, 246, 0.3);
+    --bg: #0a0e1a;
+    --bg-card: #111827;
+    --bg-surface: #1a2236;
+    --bg-hover: #243049;
+    --text: var(--pulse-light-colour); /*#e8edf5;*/
+    --text-muted: var(--pulse-light-colour);
+    --text-dim: var(--pulse-light-colour); /* #4a5568; */
+    --border: #1e293b;
+    --border-light: #2a3a52;
+    --success: #10b981;
+    --success-glow: rgba(16, 185, 129, 0.25);
+    --warning: #f59e0b;
+    --warning-glow: rgba(245, 158, 11, 0.25);
+    --danger: #ef4444;
+    --danger-glow: rgba(239, 68, 68, 0.3);
+    --critical: #dc2626;
+    --info: #6366f1;
+    --cyan: #06b6d4; 
+    --grid-line: rgba(59, 130, 246, 0.06);
+    --grid-line-major: rgba(59, 130, 246, 0.12);
+    --bs-alert-margin-bottom: 0px;
+}
+.alert {
+    margin-bottom: 0px !important;
+}
+</style>
+
+<div class="cparent">
+    <div class="ccontent">
+        <!-- Stat Strip: Production KPIs -->
+        <div class="stat-strip">
+            <div class="stat-chip">
+                <div class="chip-icon products">📦</div>
+                <div class="chip-data">
+                    <span class="chip-val purple">1201</span>
+                    <span class="chip-label">On Floor</span>
+                </div>
+            </div>
+            <div class="stat-chip">
+                <div class="chip-icon progress">🔄</div>
+                <div class="chip-data">
+                    <span class="chip-val blue">13</span>
+                    <span class="chip-label">In Progress</span>
+                </div>
+            </div>
+            <div class="stat-chip">
+                <div class="chip-icon done">✅</div>
+                <div class="chip-data">
+                    <span class="chip-val green">519</span>
+                    <span class="chip-label">Completed</span>
+                </div>
+            </div>
+            <div class="stat-chip">
+                <div class="chip-icon machines">⚙️</div>
+                <div class="chip-data">
+                    <span class="chip-val orange">10</span>
+                    <span class="chip-label">Active Machines</span>
+                </div>
+            </div>
+            <div class="stat-chip">
+                <div class="chip-icon orders">📋</div>
+                <div class="chip-data">
+                    <span class="chip-val cyan">4</span>
+                    <span class="chip-label">Orders</span>
+                </div>
+            </div>
+            <div class="stat-chip has-critical">
+                <div class="chip-icon anomalies">🔺</div>
+                <div class="chip-data">
+                    <span class="chip-val red">50</span>
+                    <span class="chip-label">Alerts</span>
+                </div>
+            </div>
+        </div>
+
+    
+
+        <div class="floor-area">
+            <div class="floor-plan" id="floorPlan">
+                <!-- Floating toolbar -->
+                <div class="floor-toolbar">
+                    
+                    <div class="toolbar-actions">
+                        <h2>
+                            Factory Floor
+                            <span class="badge" id="liveIndicator">● LIVE</span>
+                            <span class="last-update" id="lastUpdateTime"></span>
+                        </h2>
+                        <button class="tool-btn lock-btn locked" id="btnLock" @onclick="togFloorLock">🔒 Locked</button>
+                        <button class="tool-btn" id="btnFilterAlerts" @onclick="togAlertFilter">🔴 Alerts Only</button> 
+                        <button class="tool-btn" id="btnShowZones" @onclick="togZones">📐 Zones</button> 
+                        <a href="/floor-plan/edit" class="tool-btn" id="btnEditLayout" onclick="return checkUnlocked(event)">✏️ Edit Layout</a>
+                    </div>
+                </div>
+
+                <div class="floor-canvas" id="floorCanvas">
+
+                    <div class="asset-node s-idle machine-state-idle draggable"
+                            style="left: 10.0%; margin-top: 10.0%;"
+                            data-asset-id="123"
+                            data-asset-sid="hm-vdb-cast-01"
+                            data-state="idle"
+                            data-name="Casting Bay #1"
+                            data-icon="press"
+                            data-desc="PU casting station - 6-head carousel mould"
+                            data-anomalies="2">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">2</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Casting Bay #1</span>
+                        <span class="node-state">idle</span>
+                        
+                        <span class="wo-badge" title="PU Casting - 75x500 Nip Roller">📋 2 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-alert machine-state-alert draggable"
+                            style="left: 10.0%; margin-top: 20.0%;"
+                            data-asset-id="124"
+                            data-asset-sid="hm-vdb-cast-02"
+                            data-state="alert"
+                            data-name="Casting Bay #2"
+                            data-icon="press"
+                            data-desc="Rubber casting station - manual pour moulding"
+                            data-anomalies="0">
+                        <span class="state-pip"></span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Casting Bay #2</span>
+                        <span class="node-state">alert</span>
+                        
+                        <span class="wo-badge" title="Rubber Casting - 100x800 Feed">📋 2 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-idle machine-state-idle draggable"
+                            style="left: 30.0%; margin-top: 10.0%;"
+                            data-asset-id="125"
+                            data-asset-sid="hm-vdb-oven-01"
+                            data-state="idle"
+                            data-name="Curing Oven #1"
+                            data-icon="oven"
+                            data-desc="Walk-in curing oven - 180C max - PU rollers"
+                            data-anomalies="2">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">2</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Curing Oven #1</span>
+                        <span class="node-state">idle</span>
+                        
+                        <span class="wo-badge" title="PU Curing - 180C / 4hr">📋 2 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 30.0%; margin-top: 20.0%;"
+                            data-asset-id="126"
+                            data-asset-sid="hm-vdb-oven-02"
+                            data-state="on"
+                            data-name="Curing Oven #2"
+                            data-icon="oven"
+                            data-desc="Tunnel oven - continuous cure - rubber compound"
+                            data-anomalies="4">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">4</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Curing Oven #2</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="Rubber Curing - 150C / 6hr">📋 2 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 50.0%; margin-top: 8.0%;"
+                            data-asset-id="127"
+                            data-asset-sid="hm-vdb-lathe-01"
+                            data-state="on"
+                            data-name="Lathe #1"
+                            data-icon="lathe"
+                            data-desc="CNC roller lathe - precision OD turning &amp; profiling"
+                            data-anomalies="5">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">5</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Lathe #1</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="OD Turning &amp; Profile">📋 3 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 50.0%; margin-top: 18.0%;"
+                            data-asset-id="128"
+                            data-asset-sid="hm-vdb-lathe-02"
+                            data-state="on"
+                            data-name="Lathe #2"
+                            data-icon="lathe"
+                            data-desc="Manual gap-bed lathe - engineering &amp; re-covers"
+                            data-anomalies="8">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">8</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Lathe #2</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="OD Turning - Crowned">📋 2 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 50.0%; margin-top: 28.0%;"
+                            data-asset-id="129"
+                            data-asset-sid="hm-vdb-rib-01"
+                            data-state="on"
+                            data-name="Ribbing Machine"
+                            data-icon="machine"
+                            data-desc="Helical rib cutting head - spiral groove pattern"
+                            data-anomalies="3">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">3</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Ribbing Machine</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="Helical Rib Cut">📋 1 job</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 70.0%; margin-top: 10.0%;"
+                            data-asset-id="130"
+                            data-asset-sid="hm-vdb-sand-01"
+                            data-state="on"
+                            data-name="Sanding Station #1"
+                            data-icon="machine"
+                            data-desc="Cylindrical roller sander - 80 to 400 grit"
+                            data-anomalies="3">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">3</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Sanding Station #1</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="Finish Sanding 320 grit">📋 2 jobs</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 70.0%; margin-top: 20.0%;"
+                            data-asset-id="131"
+                            data-asset-sid="hm-vdb-sand-02"
+                            data-state="on"
+                            data-name="Sanding Station #2"
+                            data-icon="machine"
+                            data-desc="Fine finish sander - mirror polish capability"
+                            data-anomalies="7">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">7</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Sanding Station #2</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="Finish Sand 240 grit">📋 1 job</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 45.0%; margin-top: 38.0%;"
+                            data-asset-id="132"
+                            data-asset-sid="hm-vdb-flow-01"
+                            data-state="on"
+                            data-name="Flow Line"
+                            data-icon="conveyor"
+                            data-desc="Roller conveyor flow line - casting to dispatch"
+                            data-anomalies="4">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">4</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Flow Line</span>
+                        <span class="node-state">on</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 85.0%; margin-top: 5.0%;"
+                            data-asset-id="133"
+                            data-asset-sid="hm-vdb-qc-01"
+                            data-state="on"
+                            data-name="QC Inspection Table"
+                            data-icon="sensor"
+                            data-desc="Hardness testing, OD measurement, visual check"
+                            data-anomalies="5">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">5</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">QC Inspection Table</span>
+                        <span class="node-state">on</span>
+                        
+                        <span class="wo-badge" title="QC Hardness &amp; OD Check">📋 1 job</span>
+                        
+                    </div>
+                    
+                    <div class="asset-node s-on machine-state-on draggable"
+                            style="left: 90.0%; margin-top: 8.0%;"
+                            data-asset-id="134"
+                            data-asset-sid="hm-vdb-door-01"
+                            data-state="on"
+                            data-name="Dispatch Bay Door"
+                            data-icon="door"
+                            data-desc="Main dispatch roller shutter - truck access"
+                            data-anomalies="7">
+                        <span class="state-pip"></span>
+                        
+                        <span class="anomaly-badge">7</span>
+                        
+                        <span class="node-icon"></span>
+                        <span class="node-name">Dispatch Bay Door</span>
+                        <span class="node-state">on</span>
+                        
+                    </div>
+                    
+                
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+    <div class="asset-menu" id="assetMenu">
+        <a href="#" id="menuTimeline"><span class="menu-icon">📊</span> Timeline</a>
+        <a href="#" id="menuConfigure"><span class="menu-icon">⚙️</span> Configure</a>
+        <a href="#" id="menuZones"><span class="menu-icon">📐</span> View Zones</a>
+    </div>
+
+    <!-- Tooltip -->
+    <div class="asset-tooltip" id="assetTooltip">
+        <div class="tt-header">
+            <span class="tt-icon" id="ttIcon"></span>
+            <span class="tt-name" id="ttName"></span>
+        </div>
+        <div class="tt-row">
+            <span class="tt-label">Status</span>
+            <span class="tt-val" id="ttState"></span>
+        </div>
+        <div class="tt-row">
+            <span class="tt-label">Last Event</span>
+            <span class="tt-val" id="ttTime" style="color: var(--text-muted); font-weight: 500;"></span>
+        </div>
+        <div class="tt-row" id="ttAnomalyRow" style="display:none;">
+            <span class="tt-label">Anomalies 24h</span>
+            <span class="tt-val" id="ttAnomalies" style="color: var(--danger);"></span>
+        </div>
+        <div class="tt-desc" id="ttDesc"></div>
+        <div class="tt-wo" id="ttWorkItems" style="display:none; margin-top:0.35rem; padding-top:0.35rem; border-top:1px solid var(--border);">
+            <div style="font-size:0.6rem;font-weight:600;color:#8b5cf6;margin-bottom:0.2rem;">📋 Production Jobs</div>
+            <div id="ttWorkItemsList" style="font-size:0.65rem;"></div>
+        </div>
+    </div>
+
+    <!-- Drawer Toggle (always visible on right edge) -->
+    <button class="drawer-toggle" id="drawerToggle" onclick="toggleDrawer()">
+        <span class="drawer-icon">▶</span>
+        PANELS
+    </button>
+
+    <!-- ===== SIDEBAR DRAWER ===== -->
+    <aside class="sidebar" id="sidebarDrawer">
+        
+        <button class="drawer-close" onclick="toggleDrawer()" title="Close panel">✕</button>
+        <!-- Tabs -->
+        <div class="drawer-tabs">
+            <button class="drawer-tab" data-panel="panelEdges" onclick="switchDrawerTab(this)">
+                Edges <span class="tab-count">4</span>
+            </button>
+            <button class="drawer-tab" data-panel="panelAssets" onclick="switchDrawerTab(this)">
+                Assets <span class="tab-count">12</span>
+            </button>
+            <button class="drawer-tab active" data-panel="panelProduction" onclick="switchDrawerTab(this)">
+                Prod <span class="tab-count">4</span>
+            </button>
+            <button class="drawer-tab" data-panel="panelFeed" onclick="switchDrawerTab(this)">
+                Feed <span class="tab-count alert">50</span>
+            </button>
+            <button class="drawer-tab" data-panel="panelFinance" onclick="switchDrawerTab(this)">
+                Finance
+            </button>
+            
+        </div>
+        
+        <!-- Panel: Edge Devices -->
+        <div class="drawer-panel" id="panelEdges">
+            <div class="sb-section" style="flex:1;overflow-y:auto;">
+                <div class="sb-header">
+                    Edge Devices
+                    <span class="count-badge">4</span>
+                </div>
+                <div class="edge-cards">
+                    
+                    <div class="edge-card">
+                        <span class="edge-pip online"></span>
+                        <div class="edge-info">
+                            <div class="edge-name">Production Floor Cam</div>
+                            <div class="edge-meta">
+                                CPU 30%
+                                 · v2.4.1
+                            </div>
+                        </div>
+                        <span class="edge-status-label online">online</span>
+                    </div>
+                    
+                    <div class="edge-card">
+                        <span class="edge-pip offline"></span>
+                        <div class="edge-info">
+                            <div class="edge-name">Oven Bay Cam</div>
+                            <div class="edge-meta">
+                                CPU 23%
+                                 · v2.4.1
+                            </div>
+                        </div>
+                        <span class="edge-status-label offline">offline</span>
+                    </div>
+                    
+                    <div class="edge-card">
+                        <span class="edge-pip online"></span>
+                        <div class="edge-info">
+                            <div class="edge-name">Dispatch &amp; QC Cam</div>
+                            <div class="edge-meta">
+                                CPU 28%
+                                 · v2.4.1
+                            </div>
+                        </div>
+                        <span class="edge-status-label online">online</span>
+                    </div>
+                    
+                    <div class="edge-card">
+                        <span class="edge-pip online"></span>
+                        <div class="edge-info">
+                            <div class="edge-name">Security Gate Cam</div>
+                            <div class="edge-meta">
+                                CPU 37%
+                                 · v2.3.9
+                            </div>
+                        </div>
+                        <span class="edge-status-label online">online</span>
+                    </div>
+                    
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: Assets -->
+        <div class="drawer-panel" id="panelAssets">
+            <div class="sb-section" style="flex:1;overflow-y:auto;">
+                <div class="sb-header">
+                    Assets
+                    <span class="count-badge">12 total</span>
+                </div>
+                <div class="asset-list-compact" style="max-height:none;">
+                    
+                    <div class="asset-row" onclick="highlightAsset(123)">
+                        <span class="row-icon" data-icon="press"></span>
+                        <span class="row-name">Casting Bay #1</span>
+                        <span class="row-state idle">idle</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(124)">
+                        <span class="row-icon" data-icon="press"></span>
+                        <span class="row-name">Casting Bay #2</span>
+                        <span class="row-state alert">alert</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(125)">
+                        <span class="row-icon" data-icon="oven"></span>
+                        <span class="row-name">Curing Oven #1</span>
+                        <span class="row-state idle">idle</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(126)">
+                        <span class="row-icon" data-icon="oven"></span>
+                        <span class="row-name">Curing Oven #2</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(127)">
+                        <span class="row-icon" data-icon="lathe"></span>
+                        <span class="row-name">Lathe #1</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(128)">
+                        <span class="row-icon" data-icon="lathe"></span>
+                        <span class="row-name">Lathe #2</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(129)">
+                        <span class="row-icon" data-icon="machine"></span>
+                        <span class="row-name">Ribbing Machine</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(130)">
+                        <span class="row-icon" data-icon="machine"></span>
+                        <span class="row-name">Sanding Station #1</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(131)">
+                        <span class="row-icon" data-icon="machine"></span>
+                        <span class="row-name">Sanding Station #2</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(132)">
+                        <span class="row-icon" data-icon="conveyor"></span>
+                        <span class="row-name">Flow Line</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(133)">
+                        <span class="row-icon" data-icon="sensor"></span>
+                        <span class="row-name">QC Inspection Table</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                    <div class="asset-row" onclick="highlightAsset(134)">
+                        <span class="row-icon" data-icon="door"></span>
+                        <span class="row-name">Dispatch Bay Door</span>
+                        <span class="row-state on">on</span>
+                    </div>
+                    
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: Production -->
+        <div class="drawer-panel active" id="panelProduction">
+            <div class="prod-section">
+                <div class="sb-header">
+                    📋 Production Day View
+                    <span class="count-badge">4 orders</span>
+                </div>
+
+                <!-- ── Daily Summary Cards ── -->
+                <div class="prod-day-cards">
+                    <div class="prod-day-card">
+                        <div class="pdc-val planned">1720</div>
+                        <div class="pdc-lbl">Planned Today</div>
+                        <div class="pdc-sub">4 orders · 10 machines</div>
+                    </div>
+                    <div class="prod-day-card">
+                        <div class="pdc-val finished">519</div>
+                        <div class="pdc-lbl">Finished Today</div>
+                        <div class="pdc-sub">1201 remaining</div>
+                    </div>
+                    <div class="prod-day-card">
+                        <div class="pdc-val quality">96.1%</div>
+                        <div class="pdc-lbl">Quality Pass</div>
+                        <div class="pdc-sub">519 inspected</div>
+                    </div>
+                    <div class="prod-day-card">
+                        <div class="pdc-val tracking">0</div>
+                        <div class="pdc-lbl">Items Tracked</div>
+                        <div class="pdc-sub">Finance-ready IDs</div>
+                    </div>
+                </div>
+
+                <!-- ── Machine Day Plan ── -->
+                <div class="prod-section-head">
+                    <span class="toggle-icon" onclick="toggleProdSection('machineSection', this)">▼</span>
+                    Machine Plan — Drill Down
+                </div>
+                <div id="machineSection">
+                
+                <table class="machine-plan-table">
+                    <thead>
+                        <tr>
+                            <th>Machine</th>
+                            <th>Planned</th>
+                            <th>Done</th>
+                            <th>Progress</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Lathe #1</td>
+                            <td>344</td>
+                            <td>82</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:23.837209302325583%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub1')">3 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub1">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">OD Turning &amp; Profile <span style="color:var(--text-dim)">(PU-75-500-TURN)</span></td>
+                                <td>62/120</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM001-TURN</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Precision OD Grind <span style="color:var(--text-dim)">(PU-60-300-GRIND)</span></td>
+                                <td>0/200</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM003-GRND</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Strip Old Rubber <span style="color:var(--text-dim)">(RC-150-1200-STRIP)</span></td>
+                                <td>20/24</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM004-STRP</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Casting Bay #1</td>
+                            <td>320</td>
+                            <td>95</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:29.6875%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub2')">2 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub2">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">PU Casting - 75x500 Nip Roller <span style="color:var(--text-dim)">(PU-75-500)</span></td>
+                                <td>95/120</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM001-CAST</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">PU Casting - 60x300 Guide <span style="color:var(--text-dim)">(PU-60-300)</span></td>
+                                <td>0/200</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM003-CAST</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Curing Oven #1</td>
+                            <td>320</td>
+                            <td>80</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:25.0%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub3')">2 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub3">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">PU Curing - 180C / 4hr <span style="color:var(--text-dim)">(PU-75-500-CURE)</span></td>
+                                <td>80/120</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM001-CURE</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">PU Curing - 180C / 3hr <span style="color:var(--text-dim)">(PU-60-300-CURE)</span></td>
+                                <td>0/200</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM003-CURE</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Sanding Station #1</td>
+                            <td>144</td>
+                            <td>48</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:33.33333333333333%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub4')">2 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub4">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Finish Sanding 320 grit <span style="color:var(--text-dim)">(PU-75-500-SAND)</span></td>
+                                <td>48/120</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM001-SAND</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Final Polish 400 grit <span style="color:var(--text-dim)">(RC-150-1200-SAND)</span></td>
+                                <td>0/24</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM004-PLSH</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">QC Inspection Table</td>
+                            <td>120</td>
+                            <td>35</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:29.166666666666668%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub5')">1 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub5">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">QC Hardness &amp; OD Check <span style="color:var(--text-dim)">(PU-75-500-QC)</span></td>
+                                <td>35/120</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM001-QC01</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Casting Bay #2</td>
+                            <td>104</td>
+                            <td>74</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:71.15384615384616%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub6')">2 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub6">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Rubber Casting - 100x800 Feed <span style="color:var(--text-dim)">(RB-100-800)</span></td>
+                                <td>60/80</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM002-CAST</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Re-Cast Rubber Sleeve <span style="color:var(--text-dim)">(RC-150-1200-CAST)</span></td>
+                                <td>14/24</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM004-RSLV</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Curing Oven #2</td>
+                            <td>104</td>
+                            <td>53</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:50.96153846153846%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub7')">2 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub7">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Rubber Curing - 150C / 6hr <span style="color:var(--text-dim)">(RB-100-800-CURE)</span></td>
+                                <td>45/80</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM002-CURE</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Cure Sleeve - 150C <span style="color:var(--text-dim)">(RC-150-1200-CURE)</span></td>
+                                <td>8/24</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM004-CURE</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Lathe #2</td>
+                            <td>104</td>
+                            <td>22</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:21.153846153846153%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub8')">2 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub8">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">OD Turning - Crowned <span style="color:var(--text-dim)">(RB-100-800-TURN)</span></td>
+                                <td>18/80</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM002-TURN</span></td>
+                            </tr>
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Crown Profile Turn <span style="color:var(--text-dim)">(RC-150-1200-TURN)</span></td>
+                                <td>4/24</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM004-CRWN</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Ribbing Machine</td>
+                            <td>80</td>
+                            <td>30</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:37.5%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub9')">1 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub9">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Helical Rib Cut <span style="color:var(--text-dim)">(RB-100-800-RIB)</span></td>
+                                <td>30/80</td>
+                                <td><span class="q-badge passed">passed</span></td>
+                                <td><span class="mp-trk">TRK-HM002-HRIB</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                        <tr>
+                            <td class="mp-name">Sanding Station #2</td>
+                            <td>80</td>
+                            <td>0</td>
+                            <td>
+                                <div class="mp-bar">
+                                    <div class="mp-bar-fill" style="width:0.0%"></div>
+                                </div>
+                            </td>
+                            <td><span class="mp-detail-toggle" onclick="toggleMachineSub('mpSub10')">1 items ▾</span></td>
+                        </tr>
+                        <tbody class="mp-sub-rows" id="mpSub10">
+                        
+                            <tr class="mp-sub-row">
+                                <td colspan="2">Finish Sand 240 grit <span style="color:var(--text-dim)">(RB-100-800-SAND)</span></td>
+                                <td>0/80</td>
+                                <td><span class="q-badge pending">pending</span></td>
+                                <td><span class="mp-trk">TRK-HM002-SAND</span></td>
+                            </tr>
+                        
+                        </tbody>
+                    
+                    </tbody>
+                </table>
+                
+                </div>
+
+                <!-- ── Quality Report ── -->
+                <div class="prod-section-head">
+                    <span class="toggle-icon" onclick="toggleProdSection('qualitySection', this)">▼</span>
+                    Quality Report
+                </div>
+                <div id="qualitySection">
+                
+                <div class="quality-bar-wrap">
+                    <div class="quality-bar">
+                        <div class="qb-pass" style="width:74.373795761079%"></div>
+                        <div class="qb-fail" style="width:1.5414258188824663%"></div>
+                        <div class="qb-rework" style="width:2.312138728323699%"></div>
+                        <div class="qb-pending" style="width:21.772639691714836%"></div>
+                    </div>
+                    <div class="quality-legend">
+                        <span class="ql-pass">Passed 386</span>
+                        <span class="ql-fail">Failed 8</span>
+                        <span class="ql-rework">Rework 12</span>
+                        <span class="ql-pending">Pending 113</span>
+                    </div>
+                </div>
+                
+                </div>
+
+                <!-- ── Tracking IDs — Finance System ── -->
+                <div class="prod-section-head">
+                    <span class="toggle-icon" onclick="toggleProdSection('trackingSection', this)">▼</span>
+                    Tracking IDs — Finance
+                </div>
+                <div id="trackingSection">
+                
+                <table class="tracking-table">
+                    <thead>
+                        <tr>
+                            <th>Tracking ID</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>QC</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM001-CAST</td>
+                            <td class="trk-product">PU Casting - 75x500 Nip Roller<br><span class="trk-code">PU-75-500</span></td>
+                            <td>95/120 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM001-CURE</td>
+                            <td class="trk-product">PU Curing - 180C / 4hr<br><span class="trk-code">PU-75-500-CURE</span></td>
+                            <td>80/120 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM001-TURN</td>
+                            <td class="trk-product">OD Turning &amp; Profile<br><span class="trk-code">PU-75-500-TURN</span></td>
+                            <td>62/120 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM001-SAND</td>
+                            <td class="trk-product">Finish Sanding 320 grit<br><span class="trk-code">PU-75-500-SAND</span></td>
+                            <td>48/120 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM001-QC01</td>
+                            <td class="trk-product">QC Hardness &amp; OD Check<br><span class="trk-code">PU-75-500-QC</span></td>
+                            <td>35/120 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                    
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM002-CAST</td>
+                            <td class="trk-product">Rubber Casting - 100x800 Feed<br><span class="trk-code">RB-100-800</span></td>
+                            <td>60/80 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM002-CURE</td>
+                            <td class="trk-product">Rubber Curing - 150C / 6hr<br><span class="trk-code">RB-100-800-CURE</span></td>
+                            <td>45/80 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM002-HRIB</td>
+                            <td class="trk-product">Helical Rib Cut<br><span class="trk-code">RB-100-800-RIB</span></td>
+                            <td>30/80 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM002-TURN</td>
+                            <td class="trk-product">OD Turning - Crowned<br><span class="trk-code">RB-100-800-TURN</span></td>
+                            <td>18/80 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM002-SAND</td>
+                            <td class="trk-product">Finish Sand 240 grit<br><span class="trk-code">RB-100-800-SAND</span></td>
+                            <td>0/80 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                    
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM003-CAST</td>
+                            <td class="trk-product">PU Casting - 60x300 Guide<br><span class="trk-code">PU-60-300</span></td>
+                            <td>0/200 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM003-CURE</td>
+                            <td class="trk-product">PU Curing - 180C / 3hr<br><span class="trk-code">PU-60-300-CURE</span></td>
+                            <td>0/200 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM003-GRND</td>
+                            <td class="trk-product">Precision OD Grind<br><span class="trk-code">PU-60-300-GRIND</span></td>
+                            <td>0/200 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                    
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM004-STRP</td>
+                            <td class="trk-product">Strip Old Rubber<br><span class="trk-code">RC-150-1200-STRIP</span></td>
+                            <td>20/24 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM004-RSLV</td>
+                            <td class="trk-product">Re-Cast Rubber Sleeve<br><span class="trk-code">RC-150-1200-CAST</span></td>
+                            <td>14/24 pcs</td>
+                            <td><span class="q-badge passed">passed</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM004-CURE</td>
+                            <td class="trk-product">Cure Sleeve - 150C<br><span class="trk-code">RC-150-1200-CURE</span></td>
+                            <td>8/24 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM004-CRWN</td>
+                            <td class="trk-product">Crown Profile Turn<br><span class="trk-code">RC-150-1200-TURN</span></td>
+                            <td>4/24 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                        <tr>
+                            <td class="trk-id">TRK-HM004-PLSH</td>
+                            <td class="trk-product">Final Polish 400 grit<br><span class="trk-code">RC-150-1200-SAND</span></td>
+                            <td>0/24 pcs</td>
+                            <td><span class="q-badge pending">pending</span></td>
+                        </tr>
+                        
+                    
+                    </tbody>
+                </table>
+                
+                </div>
+
+                <!-- ── Work Orders ── -->
+                <div class="prod-section-head">
+                    <span class="toggle-icon" onclick="toggleProdSection('woSection', this)">▼</span>
+                    Work Orders
+                </div>
+                <div id="woSection">
+                
+                <div class="wo-list" style="max-height:none;">
+                    
+                    <div class="wo-card" onclick="toggleWoCard(this)" data-wo-id="WO-HM-001">
+                        <div class="wo-card-header">
+                            <span class="wo-card-title">PU Rollers 75x500 - Sappi Tugela</span>
+                            <span class="wo-priority high">high</span>
+                        </div>
+                        <div class="wo-progress-bar"><div class="wo-progress-fill" style="width:53.3%"></div></div>
+                        <div class="wo-items-list">
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-cast-01')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">PU Casting - 75x500 Nip Roller</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">95/120 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-oven-01')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">PU Curing - 180C / 4hr</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">80/120 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-lathe-01')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">OD Turning &amp; Profile</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">62/120 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-sand-01')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Finish Sanding 320 grit</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">48/120 pcs</span>
+                            </div>
+                            
+                            
+                            <div class="wo-item-row" >+1 more items</div>
+                            
+                        </div>
+                        <div class="wo-meta">
+                            <span>0/5 done</span>
+                            <span>Due: Feb 16, 16:18</span>
+                        </div>
+                        <!-- Expandable detail section -->
+                        <div class="wo-detail">
+                            
+                            <div class="wo-detail-desc">120x polyurethane nip rollers 75mm OD x 500mm face for Sappi Tugela paper mill. Shore 85A, smooth finish.</div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Order ID</span>
+                                <span class="wo-detail-val">WO-HM-001</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Status</span>
+                                <span class="wo-detail-val">In Progress</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Created</span>
+                                <span class="wo-detail-val">Feb 16, 08:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Due Date</span>
+                                <span class="wo-detail-val">Feb 16, 16:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Progress</span>
+                                <span class="wo-detail-val">53.3%</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Items</span>
+                                <span class="wo-detail-val">0 of 5 complete</span>
+                            </div>
+                            <div class="wo-detail-actions">
+                                <button class="wo-detail-btn primary" onclick="event.stopPropagation(); viewFullOrder('WO-HM-001')">📋 Full Details</button>
+                                <button class="wo-detail-btn" onclick="event.stopPropagation(); exportWoFinance('WO-HM-001')">💰 Finance</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="wo-card" onclick="toggleWoCard(this)" data-wo-id="WO-HM-002">
+                        <div class="wo-card-header">
+                            <span class="wo-card-title">Rubber Rollers 100x800 - ArcelorMittal</span>
+                            <span class="wo-priority normal">normal</span>
+                        </div>
+                        <div class="wo-progress-bar"><div class="wo-progress-fill" style="width:38.2%"></div></div>
+                        <div class="wo-items-list">
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-cast-02')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Rubber Casting - 100x800 Feed</span>
+                                
+                                <span class="wo-item-machine">02</span>
+                                
+                                <span class="wo-item-qty">60/80 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-oven-02')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Rubber Curing - 150C / 6hr</span>
+                                
+                                <span class="wo-item-machine">02</span>
+                                
+                                <span class="wo-item-qty">45/80 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-rib-01')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Helical Rib Cut</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">30/80 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-lathe-02')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">OD Turning - Crowned</span>
+                                
+                                <span class="wo-item-machine">02</span>
+                                
+                                <span class="wo-item-qty">18/80 pcs</span>
+                            </div>
+                            
+                            
+                            <div class="wo-item-row" >+1 more items</div>
+                            
+                        </div>
+                        <div class="wo-meta">
+                            <span>0/5 done</span>
+                            <span>Due: Feb 17, 00:18</span>
+                        </div>
+                        <!-- Expandable detail section -->
+                        <div class="wo-detail">
+                            
+                            <div class="wo-detail-desc">80x rubber feed rollers 100mm OD x 800mm face for ArcelorMittal Vanderbijlpark. Ribbed pattern, Shore 65A.</div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Order ID</span>
+                                <span class="wo-detail-val">WO-HM-002</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Status</span>
+                                <span class="wo-detail-val">In Progress</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Created</span>
+                                <span class="wo-detail-val">Feb 16, 08:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Due Date</span>
+                                <span class="wo-detail-val">Feb 17, 00:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Progress</span>
+                                <span class="wo-detail-val">38.2%</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Items</span>
+                                <span class="wo-detail-val">0 of 5 complete</span>
+                            </div>
+                            <div class="wo-detail-actions">
+                                <button class="wo-detail-btn primary" onclick="event.stopPropagation(); viewFullOrder('WO-HM-002')">📋 Full Details</button>
+                                <button class="wo-detail-btn" onclick="event.stopPropagation(); exportWoFinance('WO-HM-002')">💰 Finance</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="wo-card" onclick="toggleWoCard(this)" data-wo-id="WO-HM-003">
+                        <div class="wo-card-header">
+                            <span class="wo-card-title">PU Conveyor Rollers 60x300 - Anglo American</span>
+                            <span class="wo-priority urgent">urgent</span>
+                        </div>
+                        <div class="wo-progress-bar"><div class="wo-progress-fill" style="width:0.0%"></div></div>
+                        <div class="wo-items-list">
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-cast-01')">
+                                <span class="wo-item-status queued"></span>
+                                <span class="wo-item-product">PU Casting - 60x300 Guide</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">0/200 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-oven-01')">
+                                <span class="wo-item-status queued"></span>
+                                <span class="wo-item-product">PU Curing - 180C / 3hr</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">0/200 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-lathe-01')">
+                                <span class="wo-item-status queued"></span>
+                                <span class="wo-item-product">Precision OD Grind</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">0/200 pcs</span>
+                            </div>
+                            
+                            
+                        </div>
+                        <div class="wo-meta">
+                            <span>0/3 done</span>
+                            <span>Due: Feb 17, 08:18</span>
+                        </div>
+                        <!-- Expandable detail section -->
+                        <div class="wo-detail">
+                            
+                            <div class="wo-detail-desc">200x polyurethane conveyor guide rollers 60mm OD x 300mm. Shore 92A, precision ground.</div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Order ID</span>
+                                <span class="wo-detail-val">WO-HM-003</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Status</span>
+                                <span class="wo-detail-val">Pending</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Created</span>
+                                <span class="wo-detail-val">Feb 16, 08:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Due Date</span>
+                                <span class="wo-detail-val">Feb 17, 08:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Progress</span>
+                                <span class="wo-detail-val">0.0%</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Items</span>
+                                <span class="wo-detail-val">0 of 3 complete</span>
+                            </div>
+                            <div class="wo-detail-actions">
+                                <button class="wo-detail-btn primary" onclick="event.stopPropagation(); viewFullOrder('WO-HM-003')">📋 Full Details</button>
+                                <button class="wo-detail-btn" onclick="event.stopPropagation(); exportWoFinance('WO-HM-003')">💰 Finance</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="wo-card" onclick="toggleWoCard(this)" data-wo-id="WO-HM-004">
+                        <div class="wo-card-header">
+                            <span class="wo-card-title">Rubber Sleeve Re-Cover - Mondi</span>
+                            <span class="wo-priority high">high</span>
+                        </div>
+                        <div class="wo-progress-bar"><div class="wo-progress-fill" style="width:38.3%"></div></div>
+                        <div class="wo-items-list">
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-lathe-01')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Strip Old Rubber</span>
+                                
+                                <span class="wo-item-machine">01</span>
+                                
+                                <span class="wo-item-qty">20/24 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-cast-02')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Re-Cast Rubber Sleeve</span>
+                                
+                                <span class="wo-item-machine">02</span>
+                                
+                                <span class="wo-item-qty">14/24 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-oven-02')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Cure Sleeve - 150C</span>
+                                
+                                <span class="wo-item-machine">02</span>
+                                
+                                <span class="wo-item-qty">8/24 pcs</span>
+                            </div>
+                            
+                            <div class="wo-item-row clickable" onclick="event.stopPropagation(); navigateToAsset('hm-vdb-lathe-02')">
+                                <span class="wo-item-status in_progress"></span>
+                                <span class="wo-item-product">Crown Profile Turn</span>
+                                
+                                <span class="wo-item-machine">02</span>
+                                
+                                <span class="wo-item-qty">4/24 pcs</span>
+                            </div>
+                            
+                            
+                            <div class="wo-item-row">+1 more items</div>
+                            
+                        </div>
+                        <div class="wo-meta">
+                            <span>0/5 done</span>
+                            <span>Due: Feb 16, 12:18</span>
+                        </div>
+                        <!-- Expandable detail section -->
+                        <div class="wo-detail">
+                            
+                            <div class="wo-detail-desc">Re-cover 24x existing steel cores with new rubber sleeves 150mm OD x 1200mm. Shore 55A, crowned profile.</div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Order ID</span>
+                                <span class="wo-detail-val">WO-HM-004</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Status</span>
+                                <span class="wo-detail-val">In Progress</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Created</span>
+                                <span class="wo-detail-val">Feb 16, 08:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Due Date</span>
+                                <span class="wo-detail-val">Feb 16, 12:18</span>
+                            </div>
+                            
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Progress</span>
+                                <span class="wo-detail-val">38.3%</span>
+                            </div>
+                            <div class="wo-detail-row">
+                                <span class="wo-detail-label">Items</span>
+                                <span class="wo-detail-val">0 of 5 complete</span>
+                            </div>
+                            <div class="wo-detail-actions">
+                                <button class="wo-detail-btn primary" onclick="event.stopPropagation(); viewFullOrder('WO-HM-004')">📋 Full Details</button>
+                                <button class="wo-detail-btn" onclick="event.stopPropagation(); exportWoFinance('WO-HM-004')">💰 Finance</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: Finance -->
+        <div class="drawer-panel" id="panelFinance">
+            <div class="finance-panel">
+                <div class="sb-header">
+                    💰 Finance Overview
+                </div>
+
+                <!-- Summary cards -->
+                <div class="fin-summary" id="finSummary">
+                    <div class="fin-card">
+                        <div class="fin-val revenue" id="finRevenue">--</div>
+                        <div class="fin-lbl">Est. Revenue</div>
+                    </div>
+                    <div class="fin-card">
+                        <div class="fin-val cost" id="finCost">--</div>
+                        <div class="fin-lbl">Prod. Cost</div>
+                    </div>
+                    <div class="fin-card">
+                        <div class="fin-val profit" id="finMargin">--</div>
+                        <div class="fin-lbl">Est. Margin</div>
+                    </div>
+                    <div class="fin-card">
+                        <div class="fin-val pending" id="finPending">4</div>
+                        <div class="fin-lbl">Active Orders</div>
+                    </div>
+                </div>
+
+                <!-- Work Order costings -->
+                <div class="fin-section-head">📋 Work Order Costings</div>
+                <div id="finWoList">
+                    
+                    <div class="fin-wo-row" onclick="switchToProductionTab('WO-HM-001')">
+                        <span style="font-size:0.6rem;color:var(--text-dim);">📋</span>
+                        <span class="fin-wo-title">PU Rollers 75x500 - Sappi Tugela</span>
+                        <span class="wo-priority high" style="font-size:0.45rem;">high</span>
+                        <span class="fin-wo-amount" style="color:var(--success);">53.3%</span>
+                    </div>
+                    
+                    <div class="fin-wo-row" onclick="switchToProductionTab('WO-HM-002')">
+                        <span style="font-size:0.6rem;color:var(--text-dim);">📋</span>
+                        <span class="fin-wo-title">Rubber Rollers 100x800 - ArcelorMittal</span>
+                        <span class="wo-priority normal" style="font-size:0.45rem;">normal</span>
+                        <span class="fin-wo-amount" style="color:var(--success);">38.2%</span>
+                    </div>
+                    
+                    <div class="fin-wo-row" onclick="switchToProductionTab('WO-HM-003')">
+                        <span style="font-size:0.6rem;color:var(--text-dim);">📋</span>
+                        <span class="fin-wo-title">PU Conveyor Rollers 60x300 - Anglo American</span>
+                        <span class="wo-priority urgent" style="font-size:0.45rem;">urgent</span>
+                        <span class="fin-wo-amount" style="color:var(--success);">0.0%</span>
+                    </div>
+                    
+                    <div class="fin-wo-row" onclick="switchToProductionTab('WO-HM-004')">
+                        <span style="font-size:0.6rem;color:var(--text-dim);">📋</span>
+                        <span class="fin-wo-title">Rubber Sleeve Re-Cover - Mondi</span>
+                        <span class="wo-priority high" style="font-size:0.45rem;">high</span>
+                        <span class="fin-wo-amount" style="color:var(--success);">38.3%</span>
+                    </div>
+                    
+                    
+                </div>
+
+                <!-- Integration Section -->
+                <div class="fin-section-head">🔗 Financial Integration</div>
+                <div class="fin-integration">
+                    <div class="fin-int-header">
+                        <span class="fin-int-title">🏦 ERP / Accounting</span>
+                        <span class="fin-int-status pending" id="finIntStatus">Setup Required</span>
+                    </div>
+                    <div class="fin-int-desc">
+                        Connect your financial system (Sage, Xero, SAP, Syspro) to sync work order costs, production output, and generate invoices automatically.
+                    </div>
+                    <button class="fin-connect-btn" onclick="window.location.href='/integrations'">
+                        🔗 Open Integration Hub
+                    </button>
+                </div>
+
+                <div class="fin-integration" style="margin-top:0.5rem;">
+                    <div class="fin-int-header">
+                        <span class="fin-int-title">📊 Cost Tracking</span>
+                        <span class="fin-int-status connected">Active</span>
+                    </div>
+                    <div class="fin-int-desc">
+                        Production costs are being tracked from work orders. Machine utilisation, material usage, and labour hours feed into per-unit costing.
+                    </div>
+                </div>
+
+                <div class="fin-integration" style="margin-top:0.5rem;">
+                    <div class="fin-int-header">
+                        <span class="fin-int-title">📦 Inventory Sync</span>
+                        <span class="fin-int-status disconnected">Not Connected</span>
+                    </div>
+                    <div class="fin-int-desc">
+                        Link inventory management to track raw materials consumed per work order and finished goods produced.
+                    </div>
+                    <button class="fin-connect-btn" onclick="window.location.href='/integrations'">
+                        🔗 Connect via Integration Hub
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: Live Feed -->
+        <div class="drawer-panel" id="panelFeed">
+            <div class="feed-section" style="flex:1;">
+                <div class="sb-header">
+                    Live Feed
+                    <span class="count-badge" style="color: var(--danger); border-color: rgba(239,68,68,0.3);">
+                        50 alerts
+                    </span>
+                </div>
+                <div class="feed-list" id="feedList">
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev high"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">fire flare detected</div>
+                            <div class="feed-meta">
+                                <span>07:15:04</span>
+                                
+                                <span class="zone-tag">QC Table</span>
+                                
+                                <span class="feed-sev-label high">HIGH</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">object on floor</div>
+                            <div class="feed-meta">
+                                <span>07:14:58</span>
+                                
+                                <span class="zone-tag">Ribbing Machine</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">conveyor jam</div>
+                            <div class="feed-meta">
+                                <span>07:13:39</span>
+                                
+                                <span class="zone-tag">Flow Line</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">vibration anomaly</div>
+                            <div class="feed-meta">
+                                <span>07:11:32</span>
+                                
+                                <span class="zone-tag">Sanding Station 1</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev low"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">door open extended</div>
+                            <div class="feed-meta">
+                                <span>07:11:30</span>
+                                
+                                <span class="zone-tag">Sanding Station 1</span>
+                                
+                                <span class="feed-sev-label low">LOW</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">vibration anomaly</div>
+                            <div class="feed-meta">
+                                <span>07:08:33</span>
+                                
+                                <span class="zone-tag">Lathe 2</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev low"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">product defect</div>
+                            <div class="feed-meta">
+                                <span>07:08:22</span>
+                                
+                                <span class="zone-tag">Casting Bay 1</span>
+                                
+                                <span class="feed-sev-label low">LOW</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">vibration anomaly</div>
+                            <div class="feed-meta">
+                                <span>07:05:52</span>
+                                
+                                <span class="zone-tag">Lathe 1</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">conveyor jam</div>
+                            <div class="feed-meta">
+                                <span>07:05:29</span>
+                                
+                                <span class="zone-tag">Lathe 1</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">person loitering</div>
+                            <div class="feed-meta">
+                                <span>07:04:50</span>
+                                
+                                <span class="zone-tag">Ribbing Machine</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev low"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">product defect</div>
+                            <div class="feed-meta">
+                                <span>07:04:32</span>
+                                
+                                <span class="zone-tag">Dispatch Door</span>
+                                
+                                <span class="feed-sev-label low">LOW</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">conveyor jam</div>
+                            <div class="feed-meta">
+                                <span>07:04:24</span>
+                                
+                                <span class="zone-tag">Curing Oven 1</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">conveyor jam</div>
+                            <div class="feed-meta">
+                                <span>07:03:34</span>
+                                
+                                <span class="zone-tag">Lathe 1</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">person loitering</div>
+                            <div class="feed-meta">
+                                <span>07:03:13</span>
+                                
+                                <span class="zone-tag">Lathe 1</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">object on floor</div>
+                            <div class="feed-meta">
+                                <span>07:03:04</span>
+                                
+                                <span class="zone-tag">Lathe 2</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">object on floor</div>
+                            <div class="feed-meta">
+                                <span>07:02:26</span>
+                                
+                                <span class="zone-tag">Dispatch Door</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev low"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">motion detected</div>
+                            <div class="feed-meta">
+                                <span>07:02:23</span>
+                                
+                                <span class="zone-tag">Dispatch Door</span>
+                                
+                                <span class="feed-sev-label low">LOW</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev high"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">temperature anomaly</div>
+                            <div class="feed-meta">
+                                <span>07:02:10</span>
+                                
+                                <span class="zone-tag">Sanding Station 2</span>
+                                
+                                <span class="feed-sev-label high">HIGH</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">conveyor jam</div>
+                            <div class="feed-meta">
+                                <span>07:01:54</span>
+                                
+                                <span class="zone-tag">Ribbing Machine</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="feed-item">
+                        <div class="feed-sev medium"></div>
+                        <div class="feed-body">
+                            <div class="feed-type">person loitering</div>
+                            <div class="feed-meta">
+                                <span>07:01:18</span>
+                                
+                                <span class="zone-tag">Sanding Station 2</span>
+                                
+                                <span class="feed-sev-label medium">MEDIUM</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+                
+                <div class="feed-footer">
+                    <a href="/events">+30 more - View all</a>
+                </div>
+                
+            </div>
+        </div>
+
+    </aside>
+
+    <!-- PIN Entry Modal -->
+    <div class="pin-overlay hidden" id="pinOverlay">
+        <div class="pin-modal">
+            <h3>🔐 Enter Admin PIN</h3>
+            <p>Unlock the factory floor to move assets and edit layout</p>
+            <input type="password" class="pin-input" id="pinInput" maxlength="4" placeholder="••••" autocomplete="off">
+            <div class="pin-error" id="pinError"></div>
+            <div class="pin-actions">
+                <button class="myCancelBtn" onclick="closePinModal()">Cancel</button>
+                <button class="myOkBtn" onclick="submitPin()">Unlock</button>
+            </div>
+        </div>
+    </div>
+
+    </div>
+</div>
+@code {
+    private bool _scriptLoaded = false;
+    bool _isFloorLocked = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Load the JS file only for this page
+                await JS.InvokeVoidAsync("loadScriptOnce", "js/DashboardFH.js");
+                _scriptLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                System.Console.Error.WriteLine($"Script load failed: {ex.Message}");
+            }
+            
+        }
+    }
+    
+    private async Task togAlertFilter()
+    {
+        if (_scriptLoaded)
+        {
+            await JS.InvokeVoidAsync("toggleAlertFilter");
+        }
+    }
+
+    private async Task togZones()
+    {
+        if (_scriptLoaded)
+        {
+            await JS.InvokeVoidAsync("toggleZones");
+        }
+    }
+    
+    private async Task togFloorLock()
+    {
+        if (_scriptLoaded)
+        {
+            await JS.InvokeVoidAsync("toggleFloorLock");
+        }
+    }
+}

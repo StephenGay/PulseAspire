@@ -390,12 +390,12 @@ namespace Pulse.Web.Services
                 ApiEndpoints.Security.Login, model, ct);
         }
 
-        public async Task<AuthenticationToken?> UserRegisterAsync(
+        public async Task<UserRoleDto?> UserRegisterAsync(
             RegisterModel model,
             CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(model);
-            return await PostAsync<RegisterModel, AuthenticationToken>(
+            return await PostAsync<RegisterModel, UserRoleDto>(
                 ApiEndpoints.Security.Register, model, ct);
         }
 
@@ -432,12 +432,12 @@ namespace Pulse.Web.Services
 
         #region User Endpoints
 
-        public async Task<UserFavouriteQry?> SaveFavouriteQueryAsync(
-            UserFavouriteQry query,
+        public async Task<UserFavouriteQuery?> SaveFavouriteQueryAsync(
+            UserFavouriteQuery query,
             CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(query);
-            return await PostAsync<UserFavouriteQry, UserFavouriteQry>(
+            return await PostAsync<UserFavouriteQuery, UserFavouriteQuery>(
                 ApiEndpoints.User.Favourites.SavedQueries.Add, query, ct);
         }
 

@@ -18,5 +18,6 @@ public class RegisterModel
 
     public string? UserName { get; set; }
 
+    [Required(ErrorMessage = "Full name is required")]
     public string? FullName { get; set; }
 }

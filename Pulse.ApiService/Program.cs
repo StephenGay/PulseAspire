@@ -9,13 +9,15 @@ using Pulse.ApiService.Endpoints;
 using Pulse.ApiService.Hubs;
 using Pulse.ApiService.Middleware;
 using Pulse.ApiService.Security;
+using Pulse.ApiService.Services;
 using Pulse.Models;
+using Pulse.Models.CustomComponents;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
 using Scalar.AspNetCore;
+using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
-using System.IdentityModel.Tokens.Jwt;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -136,6 +138,12 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<PresenceService>();
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
 
+// Email Configuration
+var emailConfig = builder.Configuration.GetSection("EmailConfiguration");
+builder.Services.Configure<EmailConfiguration>(emailConfig);
+builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
 #endregion
 
 #region JSON Configuration
@@ -159,6 +167,9 @@ builder.Services.AddOpenApi();
 #endregion
 
 var app = builder.Build();
+
+// Authentication & Authorization
+app.UseAuthentication();
 
 #region Middleware Pipeline
 
@@ -186,17 +197,16 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseHsts();
+    app.UseHttpsRedirection();
 }
 
-app.UseHttpsRedirection();
+
 
 // CORS before routing
 app.UseCors("AllowBlazor");
 
 app.UseRouting();
 
-// Authentication & Authorization
-app.UseAuthentication();
 app.UseAuthorization();
 
 // WebSockets for SignalR

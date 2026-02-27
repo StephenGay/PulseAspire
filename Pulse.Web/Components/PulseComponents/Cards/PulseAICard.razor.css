@@ -1,0 +1,75 @@
+﻿.pulseAI-card-root {
+    border-radius: 8px;
+    width: fit-content;
+    overflow: hidden;
+    background: var(--neutral-layer-1);
+}
+
+    .pulseAI-card-root .card-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--neutral-stroke-2);
+        background-color: var(--neutral-layer-2);
+    }
+
+    .pulseAI-card-root .card-icon {
+        flex-shrink: 0;
+    }
+
+    .pulseAI-card-root .card-title-area {
+        flex: 1;
+    }
+}
+
+.pulseAI-card-root .card-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--neutral-foreground-rest);
+}
+
+.pulseAI-card-root .card-subtitle {
+    font-size: 0.875rem;
+    color: var(--neutral-foreground-hint);
+    margin-top: 4px;
+}
+
+.pulseAI-card-root .card-header-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.pulseAI-card-root .card-body {
+    padding: 20px;
+    min-height: 80px;
+}
+
+.pulseAI-card-root .card-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 16px 20px;
+    border-top: 1px solid var(--neutral-stroke-2);
+    background-color: var(--neutral-layer-floating);
+}
+
+/* Custom shadow levels matching Fluent feel */
+.shadow-none {
+    box-shadow: none;
+}
+
+.shadow-small {
+    box-shadow: var(--shadow-small);
+}
+/* or hard-code: 0 2px 4px rgba(0,0,0,0.1) */
+.shadow-medium {
+    box-shadow: var(--shadow-medium);
+}
+/* Fluent's default-ish: 0 4px 8px rgba(0,0,0,0.12) */
+.shadow-large {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.8); /* var(--shadow-large); */
+}
+/* 0 8px 16px rgba(0,0,0,0.14) */

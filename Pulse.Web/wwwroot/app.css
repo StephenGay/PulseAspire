@@ -11,18 +11,35 @@ html, body {
 
 :root {
     --pulse-dark-colour: #365b66; /*#660000;*/ /*#365b66;*/
+    --pulse-dark-t25-colour: #5a7a89;
     --pulse-dark-t50-colour: #5a7a89;
+    --pulse-dark-t75-colour: #5a7a89;
     --pulse-light-colour: #bcd1d4; /*#d9d9d9;*/ /*#bcd1d4;*/
     --pulse-light-2-colour: #a0b0b3;
     --pulse-theme-bg: url(../images/backgrounds/HMBG.png);
+    /* My Accent Button */
+    /* From the Theme */
+    --pulse-accent-btn-theme-bg: var(--pulse-dark-t75-colour);
+    --pulse-accent-btn-theme-colour: white;
+    /* Used to switch colours while running */
+    --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
+    --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-colour);
+    /* My Ok Button Variables */
+    --pulse-ok-btn-bg: var(--success);
+    --pulse-ok-btn-colour: rgb(255,255,255);
+    /* My Cancel Button Variables */
+    --pulse-cancel-btn-bg: var(--error);
+    --pulse-cancel-btn-colour: rgb(255,255,255);
     /* Mode Toggle Button */
-    --pulse-mode-btn-on-bg: #1D722A;
+    --pulse-mode-btn-on-bg: #9900FF;
+    /*#1D722A;*/
     --pulse-mode-btn-on-item-colour: white;
     --pulse-mode-btn-off-bg: white;
     --pulse-mode-btn-off-item-colour: #9900FF;
-    --pulse-mode-btn-bg: #1D722A;
+    --pulse-mode-btn-bg: #9900FF;
+    /*#1D722A;*/
     --pulse-mode-btn-item-colour: white;
-    --datagrid-hover-color: var(--pulse-dark-colour);
+    --datagrid-hover-color: var(--pulse-light-colour);
     --bs-info: #9900FF !important;
     --bs-info-rgb: 153, 0, 255 !important;
 }
@@ -62,10 +79,69 @@ html, body {
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
     }
 
+.myAccentBtn {
+    --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
+    --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-colour);
+    border: 1px solid var(--pulse-accent-btn-colour);
+    background-color: var(--pulse-accent-btn-bg);
+    color: var(--pulse-accent-btn-colour);
+    /*border: 1px solid white;*/
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+
+    .myAccentBtn:hover {
+        --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-colour);
+        --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-bg);
+        border: 1px solid var(--pulse-accent-btn-colour);
+        background-color: var(--pulse-accent-btn-bg);
+        color: var(--pulse-accent-btn-colour);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    }
+
+.myOkBtn {
+    --pulse-ok-btn-bg: var(--success);
+    --pulse-ok-btn-colour: rgb(255,255,255);
+    border: 1px solid var(--pulse-ok-btn-colour);
+    background-color: var(--pulse-ok-btn-bg);
+    color: var(--pulse-ok-btn-colour);
+    /*border: 1px solid white;*/
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+
+    .myOkBtn:hover {
+        --pulse-ok-btn-bg: rgb(255,255,255);
+        --pulse-ok-btn-colour: var(--success);
+        border: 1px solid var(--pulse-ok-btn-colour);
+        background-color: var(--pulse-ok-btn-bg);
+        color: var(--pulse-ok-btn-colour);
+        /*border: 1px solid var(--pulse-dark-colour);*/
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    }
+
+.myCancelBtn {
+    --pulse-cancel-btn-bg: var(--error);
+    --pulse-ok-btn-colour: rgb(255,255,255);
+    border: 1px solid var(--pulse-cancel-btn-colour);
+    background-color: var(--pulse-cancel-btn-bg);
+    color: var(--pulse-cancel-btn-colour);
+    /*border: 1px solid white;*/
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+
+    .myCancelBtn:hover {
+        --pulse-cancel-btn-bg: rgb(255,255,255);
+        --pulse-cancel-btn-colour: var(--error);
+        border: 2px solid var(--pulse-cancel-btn-colour);
+        background-color: var(--pulse-cancel-btn-bg);
+        color: var(--pulse-cancel-btn-colour);
+        /*border: 1px solid var(--pulse-dark-colour);*/
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    }
+
 .myModeBtnOn {
     --pulse-mode-btn-bg: var(--pulse-mode-btn-on-bg);
     --pulse-mode-btn-item-colour: var(--pulse-mode-btn-on-item-colour);
-    border: 2px solid white; /* var(--pulse-mode-btn-on-bg);*/
+    border: 1px solid white; /* var(--pulse-mode-btn-on-bg);*/
     /*border-radius:1px;*/
 }
 
@@ -95,7 +171,7 @@ html, body {
 }
 
 .paginator {
-    background-color: var(--pulse-dark-colour) !important;
+    background-color: var(--pulse-dark-t75-colour) !important;
     color: var(--pulse-light-colour);
 }
 .zone-toprow {
@@ -136,8 +212,8 @@ a, .btn-link {
 }
 
 .fdgrselected {
-    background-color: var(--pulse-light-colour) !important; /* blue !important;*/
-    color: var(--pulse-dark-colour) !important; /* white  !important;*/
+    background-color: var(--pulse-dark-t50-colour) !important; /* blue !important;*/
+    color: white !important; /* var(--pulse-dark-colour) !important;*/
 }
 
 /*.bb-dg-row-highlight {
@@ -157,11 +233,11 @@ a, .btn-link {
     /* border-top: 1px solid rgb(54,91,102) !important;*/
 }
 
-    .fdgrunselected :hover {
+    /*.fdgrunselected :hover {
         cursor: pointer;
         background-color: var(--pulse-dark-colour) !important;
         color: var(--pulse-light-colour) !important;
-    }
+    }*/
 .table-virtualize-demo {
     /*height: auto;*/
     margin: 15px;

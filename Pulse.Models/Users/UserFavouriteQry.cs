@@ -14,10 +14,10 @@ namespace Pulse.Models.Users
         [Required]
         public int Id { get; set; }
         [Required]
-        public int UserId { get; set; }
+        public string UserId { get; set; }
         [Required]
         public int QueryId { get; set; }
-        public User? User { get; set; }
+
         public AiQuery? AiQuery { get; set; }
 
     }

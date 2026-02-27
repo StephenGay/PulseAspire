@@ -47,8 +47,8 @@
     .ccontent {
         flex: 1; /* This magic makes it grow to fill the space */
         background: rgba(255,255,255,0.5);
-        margin: 10px;
-        padding:10px;
+        /* margin: 10px;
+        padding:10px; */
         border-radius: 10px;
         overflow: auto;
     }
@@ -85,8 +85,8 @@
                
                 
                 <FluentSearch @bind-value="srchName" Autofocus="true" Immediate="true" style="justify-content:center; width:100%; margin-top:10px; margin-bottom:10px; border: 1px solid var(--pulse-dark-colour)" Placeholder="Search For Customer"></FluentSearch>
-                <FluentButton Appearance="Appearance.Accent" Disabled="@(selClient != null ? false : true)" OnClick="btnSelectClick">
-                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" />
+                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" IconStart="@(new Icons.Filled.Size16.Play().WithColor("var(--pulse-accent-btn-colour)"))" Disabled="@(selClient != null ? false : true)" OnClick="btnSelectClick">
+                    @* <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size16.Play())" Slot="start" Style="fill:white;" /> *@
                     Select
                 </FluentButton>
             </FluentStack>

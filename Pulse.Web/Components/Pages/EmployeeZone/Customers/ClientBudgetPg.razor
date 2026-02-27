@@ -32,21 +32,23 @@
         {
             
         
-        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
+            <div  class="divShadow">
                 <FluentDataGrid TGridItem="ClientBudgets" Items="@_client.clientBudgets.AsQueryable()"
                         RowSize="DataGridRowSize.Medium"
-                        Style="background-color: white"
+                                    Style="grid-template-columns: 1.2fr 1.5fr 1fr 1.5fr 1.5fr;background-color: white"
                         AutoFit="false"
                         GenerateHeader="GenerateHeaderOption.Sticky">
 
-            @* <PropertyColumn Property="@(context => context.ProductionPlanItemID)" Title="ID" Align="Align.Center" Sortable="false" /> *@
-            <PropertyColumn Property="@(context => context.PeriodID)" Title="Period ID" Align="Align.Center" Sortable="false" />
-            <PropertyColumn Property="@(context => context.period.Month)" Title="Month" Align="Align.Center" Sortable="false" />
-            <PropertyColumn Property="@(context => context.period.CalendarYear)" Title="Cal Year" Align="Align.Center" Sortable="false" />
-            <PropertyColumn Property="@(context => context.BudgetedSales)" Title="Budget" Format="#,##0.00" Align="Align.Center" Sortable="false" />
-            <PropertyColumn Property="@(context => context.AIForecast)" Title="AI Forecast" Format="#,##0.00" Align="Align.Center" Sortable="false" />
-        </FluentDataGrid>
-    </Animation>
+                @* <PropertyColumn Property="@(context => context.ProductionPlanItemID)" Title="ID" Align="Align.Center" Sortable="false" /> *@
+                <PropertyColumn Property="@(context => context.PeriodID)" Title="Period ID" Align="Align.Center" Sortable="false" />
+                <PropertyColumn Property="@(context => context.period.Month)" Title="Month" Align="Align.Center" Sortable="false" />
+                <PropertyColumn Property="@(context => context.period.CalendarYear)" Title="Cal Year" Align="Align.Center" Sortable="false" />
+                <PropertyColumn Property="@(context => context.BudgetedSales)" Title="Budget" Format="#,##0.00" Align="Align.Center" Sortable="false" />
+                <PropertyColumn Property="@(context => context.AIForecast)" Title="AI Forecast" Format="#,##0.00" Align="Align.Center" Sortable="false" />
+                </FluentDataGrid>
+            </div>
+        @* </Animation> *@
         }
         </FluentStack>
     </div>

@@ -62,7 +62,7 @@
                 @foreach (var msg in filteredMessages.OrderByDescending(m => m.SentAt))
                 {
                     var isSelected = selectedMessage?.Id == msg.Id;
-                        <div style="@($"padding: 8px; margin: 4px 0; border-radius: 6px; cursor: pointer; background-color: {(isSelected ? "var(--pulse-dark-colour)" : "transparent")}; {(isSelected ? "color: white;" : "")}")"
+                <div style="@($"padding: 8px; margin: 4px 0; border-radius: 6px; border: 1px solid var(--pulse-dark-t25-colour); cursor: pointer; background-color: {(isSelected ? "var(--pulse-dark-colour)" : "transparent")}; {(isSelected ? "color: white;" : "")}")"
                          @onclick="() => SelectMessage(msg)">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <FluentLabel Style="@(isSelected ? "color: white; font-weight: 600;" : "font-weight: 600; color: var(--neutral-foreground-rest);")" Typo="Typography.Body">
@@ -70,7 +70,7 @@
                             </FluentLabel>
                         </div>
                         <div style="font-size: 12px; margin-top: 4px; @(isSelected ? "color: rgba(255,255,255,0.8);" : "color: var(--neutral-foreground-hint);")" title="@msg.Content">
-                            @(msg.Content?.Length > 50 ? msg.Content.Substring(0, 50) + "..." : msg.Content)
+                         @(msg.Content?.Length > 50 ? msg.Content.Substring(0, 50) + "..." : msg.Content)
                         </div>
                         <div style="font-size: 11px; margin-top: 2px; @(isSelected ? "color: rgba(255,255,255,0.7);" : "color: var(--neutral-foreground-hint);")" title="@msg.SentAt">
                             @msg.SentAt.ToString()
@@ -98,10 +98,10 @@
                         
                         <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
                                 <FluentSpacer />
-                            <FluentButton Appearance="Appearance.Accent" @onclick="() => OpenReplyDialog(selectedMessage)" aria-label="Reply to message">
+                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => OpenReplyDialog(selectedMessage)" aria-label="Reply to message">
                                 Reply
                             </FluentButton>
-                            <FluentButton Appearance=@(selectedMessage.Delivered == true ? Appearance.Outline : Appearance.Accent) @onclick="ArchiveMsg" Disabled=@(selectedMessage.Delivered == true ? true : false) aria-label="Archive message">
+                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="ArchiveMsg" Disabled=@(selectedMessage.Delivered == true ? true : false) aria-label="Archive message">
                                 Archive
                             </FluentButton>
                             @* <FluentButton Appearance="Appearance.Outline" @onclick="() => OpenNewMessageDialog()" aria-label="Compose new message">

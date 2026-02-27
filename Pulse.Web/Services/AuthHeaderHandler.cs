@@ -1,5 +1,4 @@
 ﻿// BlazorUI/Services/AuthHeaderHandler.cs
-using System.Text;
 using System.Net.Http.Headers;
 
 namespace Pulse.Web.Services
@@ -22,14 +21,25 @@ namespace Pulse.Web.Services
             if (!string.IsNullOrEmpty(token))
             {
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-                _logger.LogDebug("JWT token attached to {Method} {RequestUri}", request.Method, request.RequestUri?.PathAndQuery);
+                _logger.LogInformation("✓ JWT token attached to {Method} {Path} - Token length: {Length}", 
+                    request.Method, request.RequestUri?.PathAndQuery, token.Length);
             }
             else
             {
-                _logger.LogWarning("No JWT token found in token holder for {RequestUri}", request.RequestUri?.PathAndQuery);
+                _logger.LogWarning("✗ NO JWT token in holder for {Method} {Path}", 
+                    request.Method, request.RequestUri?.PathAndQuery);
             }
 
-            return await base.SendAsync(request, cancellationToken);
+            var response = await base.SendAsync(request, cancellationToken);
+            
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                _logger.LogError("✗ 401 Unauthorized on {Method} {Path} - Token was: {TokenStatus}", 
+                    request.Method, request.RequestUri?.PathAndQuery, 
+                    string.IsNullOrEmpty(token) ? "MISSING" : "PRESENT");
+            }
+
+            return response;
         }
     }
 }

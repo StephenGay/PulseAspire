@@ -1,0 +1,86 @@
+﻿@* FluentCard.razor *@
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<div class="pulseAI-card-root divShadow">
+    <FluentCard @attributes="AdditionalAttributes"
+                Style="@($"width: {Width}; height: {Height};{Style}")"
+                Class="@Class">
+
+        @* Header *@
+        @if (!string.IsNullOrWhiteSpace(Title) || Header != null || Icon != null)
+        {
+            <div class="card-header">
+                @if (Icon != null)
+                {
+                    <FluentIcon Value="@Icon" Width="24px" Height="24px" Class="card-icon" />
+                }
+
+                <div class="card-title-area">
+                    @if (!string.IsNullOrWhiteSpace(Title))
+                    {
+                        <h3 class="card-title">@Title</h3>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(Subtitle))
+                    {
+                        <div class="card-subtitle">@Subtitle</div>
+                    }
+
+                    @Header
+                </div>
+
+                @if (HeaderActions != null)
+                {
+                    <div class="card-header-actions">
+                        @HeaderActions
+                    </div>
+                }
+            </div>
+        }
+
+        @* Main Content (ChildContent) *@
+        <div class="card-body">
+            @ChildContent
+        </div>
+
+        @* Footer (optional) *@
+        @if (Footer != null || ShowDefaultFooter)
+        {
+            <div class="card-footer">
+                @if (ShowDefaultFooter)
+                {
+                    <FluentButton Appearance="Appearance.Accent" OnClick="OnSave">Save</FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" OnClick="OnCancel">Cancel</FluentButton>
+                }
+
+                @Footer
+            </div>
+        }
+
+    </FluentCard>
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public RenderFragment? Header { get; set; }
+    [Parameter] public RenderFragment? HeaderActions { get; set; }
+    [Parameter] public RenderFragment? Footer { get; set; }
+
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public string? Subtitle { get; set; }
+    [Parameter] public Icon? Icon { get; set; }           // e.g. Icons.Filled.Size24.Warning
+
+    [Parameter] public string? Width { get; set; } = "100%";    // e.g. "380px", "min(90vw, 500px)"
+    [Parameter] public string? Height { get; set; } = "fit-content";
+
+    [Parameter] public bool ShowDefaultFooter { get; set; }
+    [Parameter] public EventCallback OnSave { get; set; }
+    [Parameter] public EventCallback OnCancel { get; set; }
+
+    [Parameter(CaptureUnmatchedValues = true)]
+    public IDictionary<string, object>? AdditionalAttributes { get; set; }
+
+    // For CSS class/style passthrough
+    [Parameter] public string? Class { get; set; }
+    [Parameter] public string? Style { get; set; }
+}

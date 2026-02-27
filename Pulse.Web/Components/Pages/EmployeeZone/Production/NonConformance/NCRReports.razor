@@ -1,0 +1,34 @@
+﻿@page "/EmployeeZone/Production/NonConformance/NCRReports"
+
+@rendermode InteractiveServer
+
+<style>
+    .cparent {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.5);
+        margin: 10px;
+        /* padding: 10px; */
+        border-radius: 10px;
+        overflow: auto;
+    }
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    }
+</style>
+
+<div class="cparent">
+    <div class="ccontent">
+        <iframe title="NCR Reports" width="100%" height="100%" src="https://app.powerbi.com/reportEmbed?reportId=e7add334-b55d-4f82-a9ba-592a39313068&autoAuth=true&ctid=9b9817e1-ad63-474f-b033-b2c31630da88" frameborder="0" allowFullScreen="true"></iframe>
+    </div>
+</div>
+
+@code {
+
+}

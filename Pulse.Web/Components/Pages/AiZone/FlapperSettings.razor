@@ -28,7 +28,7 @@ else
         }
     </select>
     <FluentSpacer />
-            <FluentButton OnClick="UpdateModel">Update</FluentButton>
+            <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size16.Save().WithColor("--pulse-ok-btn-colour"))" style="margin-right:10px" OnClick="UpdateModel">Update</FluentButton>
     </FluentStack>
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="5" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="85%" Style="margin-bottom: 40px">
         <FluentSlider Min="1" Max="10" Step="1" @bind-Value=flapper.MaxRecursionDepth Label="Max Recursion Depth">

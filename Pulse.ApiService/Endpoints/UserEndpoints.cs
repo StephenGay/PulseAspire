@@ -16,10 +16,96 @@ namespace Pulse.ApiService.Endpoints
         {
             var group = routes.MapGroup(BasePath).WithTags("User Endpoints");
 
-            group.MapGet("/Favourites/SavedQueries/GetById/{UserId}", async (int UserId, PulseDbContext dbContext) =>
+            
+
+            group.MapGet("/Favourites/Queries/GetByUserId/{UserId}", async (string UserId, PulseDbContext dbContext) =>
             {
 
-                var favQrys = await dbContext.UserFavouriteQueries
+                var favQrys = await dbContext.UserFaveQueries
+                    .AsNoTracking()
+                    .Where(a => a.UserId == UserId)
+                    .ToListAsync();
+                if (favQrys == null) { favQrys = new List<UserFavouriteQuery>(); }
+                return Results.Ok(favQrys);
+            });
+
+            
+
+            group.MapPost("/Favourites/Queries/Add/",async (UserFavouriteQuery qry, PulseDbContext dbContext) =>
+            {
+                dbContext.UserFaveQueries.Add(qry);
+                await dbContext.SaveChangesAsync();
+                return Results.Created($"/User/Favourites/Queries/Add/{qry.Id}", qry);
+            });
+
+            group.MapDelete("/Favourites/Queries/Delete/{id}", async (int id, PulseDbContext dbContext) =>
+            {
+                var item = await dbContext.UserFaveQueries.FindAsync(id);
+                if (item == null)
+                {
+                    return Results.NotFound($"Item with ID {id} not found.");
+                }
+                dbContext.UserFaveQueries.Remove(item);
+                await dbContext.SaveChangesAsync();
+                return Results.Ok($"Item with ID {id} has been deleted.");
+            });
+
+            
+
+            group.MapGet("/Settings/GetSettings/{UserId}", async (string UserId, PulseDbContext db) =>
+            {
+                var settings = await db.AspNetUserSettings
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.UserId == UserId);
+                if (settings == null)
+                {
+                    settings = new ApplicationUserSettings
+                    {
+                        UserId = UserId,
+                        PreferredUserName = "User",
+                        AIHasVoice = false,
+                        AIVoiceID = null,
+                        UserTheme = "pulse"
+                    };
+                }
+                return Results.Ok(settings);
+            })
+                .WithName("GetUserSettings");
+
+            group.MapPut("/Settings/Update", async (ApplicationUserSettings updatedUserSettings, PulseDbContext db) =>
+            {
+                var item = await db.AspNetUserSettings
+                    .FirstOrDefaultAsync(p => p.UserId == updatedUserSettings.UserId);
+                if (item == null)
+                {
+                    item = new ApplicationUserSettings
+                    {
+                        UserId = updatedUserSettings.UserId,
+                        PreferredUserName = updatedUserSettings.PreferredUserName,
+                        AIHasVoice = updatedUserSettings.AIHasVoice,
+                        AIVoiceID = updatedUserSettings.AIVoiceID,
+                        UserTheme = updatedUserSettings.UserTheme
+                    };
+                    db.AspNetUserSettings.Add(item);
+                    //return Results.NotFound($"No Settings found for User ID {UserId}");
+                }
+                else
+                {
+                    item.PreferredUserName = updatedUserSettings.PreferredUserName;
+                    item.AIHasVoice = updatedUserSettings.AIHasVoice;
+                    item.AIVoiceID = updatedUserSettings.AIVoiceID;
+                    item.UserTheme = updatedUserSettings.UserTheme;
+                }
+                await db.SaveChangesAsync();
+                return Results.Ok();
+            })
+                .WithName("UpdateAppUserSettings");
+
+            #region Broken - Keeping till sure to remove
+            group.MapGet("/Favourites/SavedQueries/GetById/{UserId}", async (string UserId, PulseDbContext dbContext) =>
+            {
+
+                var favQrys = await dbContext.UserFavouriteQuery
                     .AsNoTracking()
                     .Where(a => a.UserId == UserId)
                     .ToListAsync();
@@ -27,53 +113,25 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(favQrys);
             });
 
-            group.MapPost("/Favourites/SavedQueries/Add/", async (UserFavouriteQry qry, PulseDbContext dbContext) =>
-            {
-                dbContext.UserFavouriteQueries.Add(qry);
-                await dbContext.SaveChangesAsync();
-                return Results.Created($"/User/Favourites/SavedQueries/Add/{qry.Id}", qry);
-            });
-
             group.MapDelete("/Favourites/SavedQueries/Delete/{id}", async (int id, PulseDbContext dbContext) =>
             {
-                var item = await dbContext.UserFavouriteQueries.FindAsync(id);
+                var item = await dbContext.UserFavouriteQuery.FindAsync(id);
                 if (item == null)
                 {
                     return Results.NotFound($"Item with ID {id} not found.");
                 }
-                dbContext.UserFavouriteQueries.Remove(item);
+                dbContext.UserFavouriteQuery.Remove(item);
                 await dbContext.SaveChangesAsync();
                 return Results.Ok($"Item with ID {id} has been deleted.");
             });
 
-            group.MapPut("/{UserId}/UpdateSettings", async (int UserId, User updatedUser, PulseDbContext db) =>
+            group.MapPost("/Favourites/SavedQueries/Add/", async (UserFavouriteQry qry, PulseDbContext dbContext) =>
             {
-                var item = await db.UserSettingsMaster
-                    .FirstOrDefaultAsync(p => p.UserId == UserId);
-                if (item == null)
-                {
-                    item = new UserSettings
-                    {
-                        UserId = UserId,
-                        AIDefaultPref = updatedUser.UserSettings.AIDefaultPref,
-                        AIHasVoice = updatedUser.UserSettings.AIHasVoice,
-                        AIVoiceID = updatedUser.UserSettings.AIVoiceID,
-                        UserTheme = updatedUser.UserSettings.UserTheme
-                    };
-                    db.UserSettingsMaster.Add(item);
-                    //return Results.NotFound($"No Settings found for User ID {UserId}");
-                }
-                else 
-                { 
-                    item.AIDefaultPref = updatedUser.UserSettings.AIDefaultPref;
-                    item.AIHasVoice = updatedUser.UserSettings.AIHasVoice;
-                    item.AIVoiceID = updatedUser.UserSettings.AIVoiceID;
-                    item.UserTheme = updatedUser.UserSettings.UserTheme;
-                }
-                await db.SaveChangesAsync();
-                return Results.Ok();
-            })
-                .WithName("UpdateUserSettings");
+                dbContext.UserFavouriteQuery.Add(qry);
+                await dbContext.SaveChangesAsync();
+                return Results.Created($"/User/Favourites/SavedQueries/Add/{qry.Id}", qry);
+            });
+            #endregion
         }
     }
 }

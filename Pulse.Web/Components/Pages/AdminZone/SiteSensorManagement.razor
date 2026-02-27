@@ -1,0 +1,620 @@
+﻿@page "/AdminZone/SiteSensorManagement"
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<style>
+    /* .cparent {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    } */
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        background: rgba(255,255,255,0.9);
+        margin: 10px;
+        /* padding: 10px; */
+        border-radius: 10px;
+        overflow: auto;
+    }
+    /* .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: lightgray;
+    } */
+
+    :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --primary-light: #3b82f6;
+    --bg: #0f172a;
+    --bg-card: #1e293b;
+    --bg-hover: #334155;
+    --bg-input: #0f172a;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --border: #334155;
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #3b82f6;
+}
+
+</style>
+
+@* <div class="cparent"> *@
+    <div class="ccontent">
+        <div class="page-header">
+            <div>
+                <h1>📡 Sensors & Edge Devices</h1>
+                <div class="subtitle">Manage edge devices, cameras, and sensor points connected to Vereeniging Plant</div>
+            </div>
+            <div class="header-actions">
+            <button class="myAccentBtn" style="height:50px;padding-left:10px;padding-right:10px;border-radius:10px" onclick="startNetworkScan()" id="scanBtn">
+                    <span>🔍</span> Scan Network
+                </button>
+            <button class="myAccentBtn" style="height:50px;padding-left:10px;padding-right:10px;border-radius:10px" onclick="openAddSensorModal()">
+                <span>+</span> Add Sensor
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="sensor-stats">
+            <div class="stat-card divShadow">
+                <div class="stat-icon">🖥️</div>
+                <div class="stat-value" id="stat-edges">4</div>
+                <div class="stat-label">Edge Devices</div>
+            </div>
+            <div class="stat-card divShadow">
+                <div class="stat-icon">📡</div>
+                <div class="stat-value" id="stat-sensors">9</div>
+                <div class="stat-label">Sensor Points</div>
+            </div>
+            <div class="stat-card divShadow">
+                <div class="stat-icon">🟢</div>
+                <div class="stat-value" id="stat-active">2</div>
+                <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-card divShadow">
+                <div class="stat-icon">🆕</div>
+                <div class="stat-value" id="stat-discovered">7</div>
+                <div class="stat-label">Discovered</div>
+            </div>
+        </div>
+
+        <!-- Network Scan Panel -->
+        <div class="scan-panel divShadow" id="scanPanel">
+            <h3>🌐 Local Network Scanner</h3>
+            <p>Scan your local network to automatically discover cameras, RTSP streams, ONVIF devices, and other sensor points. The scan runs in your browser and probes common ports.</p>
+            <div class="quick-add">
+                <div class="quick-chip" @onclick="@(() => openAddSensor("camera"))">
+                    <span class="qc-icon">📷</span> IP Camera
+                </div>
+                <div class="quick-chip" @onclick="@(() => openAddSensor("rtsp"))">
+                    <span class="qc-icon">📹</span> RTSP Stream
+                </div>
+                <div class="quick-chip" @onclick="@(() => openAddSensor("usb"))">
+                    <span class="qc-icon">🔌</span> USB Camera
+                </div>
+                <div class="quick-chip" @onclick="@(() => openAddSensor("mqtt"))">
+                    <span class="qc-icon">📊</span> MQTT Sensor
+                </div>
+                <div class="quick-chip" @onclick="@(() => openAddSensor("http"))">
+                    <span class="qc-icon">🌐</span> HTTP Endpoint
+                </div>
+                <div class="quick-chip" @onclick="@(() => openAddSensor("audio"))">
+                    <span class="qc-icon">🎤</span> Audio Input
+                </div>
+            </div>
+            <div class="scan-progress" id="scanProgress">
+                <div class="scan-bar"><div class="scan-bar-fill" id="scanBarFill"></div></div>
+                <div class="scan-log" id="scanLog"></div>
+            </div>
+        </div>
+
+        <!-- Edge Devices -->
+        <div class="section-title">
+            🖥️ Edge Devices <span class="count">4</span>
+        </div>
+        
+        <div class="edge-grid">
+            
+            <div class="edge-card">
+                <div class="edge-card-header">
+                    <div>
+                        <div class="edge-name">Production Floor Cam</div>
+                        <div class="edge-id">hm-vdb-floor-cam</div>
+                    </div>
+                    <div class="edge-status">
+                        <span class="pip pip-online"></span>
+                        online
+                    </div>
+                </div>
+                <div class="edge-meta">
+                    <dt>📍 Main Hall - Overhead Gantry</dt>
+                    <dt>⏱️ 10d uptime</dt>
+                    <dt>🔧 v2.4.1</dt>
+                    <dt>🧠 CPU 32%</dt>
+                </div>
+                
+                <span class="edge-sensor-count">0 sensors</span>
+            </div>
+            
+        <div class="edge-card">
+                <div class="edge-card-header">
+                    <div>
+                        <div class="edge-name">Oven Bay Cam</div>
+                        <div class="edge-id">hm-vdb-oven-cam</div>
+                    </div>
+                    <div class="edge-status">
+                        <span class="pip pip-online"></span>
+                        online
+                    </div>
+                </div>
+                <div class="edge-meta">
+                    <dt>📍 Curing Oven Bay - Ceiling Mount</dt>
+                    <dt>⏱️ 10d uptime</dt>
+                    <dt>🔧 v2.4.1</dt>
+                    <dt>🧠 CPU 44%</dt>
+                </div>
+                
+                <span class="edge-sensor-count">0 sensors</span>
+            </div>
+            
+        <div class="edge-card">
+                <div class="edge-card-header">
+                    <div>
+                        <div class="edge-name">Dispatch &amp; QC Cam</div>
+                        <div class="edge-id">hm-vdb-dispatch-cam</div>
+                    </div>
+                    <div class="edge-status">
+                        <span class="pip pip-online"></span>
+                        online
+                    </div>
+                </div>
+                <div class="edge-meta">
+                    <dt>📍 Dispatch Bay - Wall Mount</dt>
+                    <dt>⏱️ 5d uptime</dt>
+                    <dt>🔧 v2.4.1</dt>
+                    <dt>🧠 CPU 22%</dt>
+                </div>
+                
+                <span class="edge-sensor-count">0 sensors</span>
+            </div>
+            
+        <div class="edge-card">
+                <div class="edge-card-header">
+                    <div>
+                        <div class="edge-name">Security Gate Cam</div>
+                        <div class="edge-id">hm-vdb-gate-cam</div>
+                    </div>
+                    <div class="edge-status">
+                        <span class="pip pip-online"></span>
+                        online
+                    </div>
+                </div>
+                <div class="edge-meta">
+                    <dt>📍 Main Gate - Pole Mount</dt>
+                    <dt>⏱️ 2d uptime</dt>
+                    <dt>🔧 v2.3.9</dt>
+                    <dt>🧠 CPU 27%</dt>
+                </div>
+                
+                <span class="edge-sensor-count">0 sensors</span>
+            </div>
+            
+        </div>
+        
+
+        <!-- All Sensor Points -->
+        <div class="section-title">
+            📡 Sensor Points <span class="count">9</span>
+        </div>
+        
+        <div class="sensor-grid">
+            
+            <div class="sensor-card active">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-camera">camera</span>
+                    <span class="edge-status">
+                        <span class="pip pip-online"></span>
+                        active
+                    </span>
+                </div>
+                <div class="sensor-name">Production Floor Cam</div>
+                <div class="sensor-url">rtsp://192.168.1.201:554/live</div>
+                <div class="sensor-url">192.168.1.201:554</div>
+                <div class="sensor-detail">
+                    <span>Axis P3265-V</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">video</span><span class="sensor-cap">audio</span><span class="sensor-cap">motion</span><span class="sensor-cap">analytics</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="testSensor('scan9-f987597c')">🔄 Test</button>
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-f987597c')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-f987597c')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-camera">camera</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">Loading Bay Cam</div>
+                <div class="sensor-url">rtsp://192.168.1.202:554/stream1</div>
+                <div class="sensor-url">192.168.1.202:554</div>
+                <div class="sensor-detail">
+                    <span>Hikvision DS-2CD2347G2</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">video</span><span class="sensor-cap">motion</span><span class="sensor-cap">night_vision</span>
+                </div>
+                
+                    <div class="sensor-actions">
+                    <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-57b94f4c')">✓ Activate</button>
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-57b94f4c')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-57b94f4c')" title="Remove">🗑️</button>
+                    @* <button class="btn btn-success btn-sm" onclick="activateSensor('scan9-57b94f4c')">✓ Activate</button>
+                    <button class="btn btn-outline btn-sm" onclick="editSensor('scan9-57b94f4c')">✏️ Edit</button>
+                    <button class="btn btn-danger btn-sm btn-icon" onclick="removeSensor('scan9-57b94f4c')" title="Remove">🗑️</button> *@
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-rtsp">rtsp</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">Yard Cam (4G)</div>
+                <div class="sensor-url">rtsp://192.168.1.210:8554/yard</div>
+                <div class="sensor-url">192.168.1.210:8554</div>
+                <div class="sensor-detail">
+                    <span>Reolink Go Plus</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">video</span><span class="sensor-cap">motion</span><span class="sensor-cap">4g_cellular</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-a5c6139b')">✓ Activate</button>
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-a5c6139b')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-a5c6139b')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-mqtt">mqtt</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">CNC Temperature Probe</div>
+                <div class="sensor-url">mqtt://192.168.1.215:1883/factory/cnc/temp</div>
+                <div class="sensor-url">192.168.1.215:1883</div>
+                <div class="sensor-detail">
+                    <span>Shelly Plus H&amp;T</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">temperature</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-f64b181e')">✓ Activate</button>
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-f64b181e')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-f64b181e')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-mqtt">mqtt</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">Compressor Vibration</div>
+                <div class="sensor-url">mqtt://192.168.1.216:1883/factory/compressor/vib</div>
+                <div class="sensor-url">192.168.1.216:1883</div>
+                <div class="sensor-detail">
+                    <span>Omega iSens Vibration</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">vibration</span><span class="sensor-cap">frequency</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-17bc562a')">✓ Activate</button>
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-17bc562a')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-17bc562a')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-http">http</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">PLC Data Gateway</div>
+                <div class="sensor-url">http://192.168.1.220:8080/api/plc</div>
+                <div class="sensor-url">192.168.1.220:8080</div>
+                <div class="sensor-detail">
+                    <span>Siemens S7-1200 Gateway</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">plc_data</span><span class="sensor-cap">counters</span><span class="sensor-cap">io_status</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-39ba2d47')">✓ Activate</button>
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-39ba2d47')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-39ba2d47')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-http">http</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">Power Meter</div>
+                <div class="sensor-url">http://192.168.1.225/api/energy</div>
+                <div class="sensor-url">192.168.1.225:80</div>
+                <div class="sensor-detail">
+                    <span>Schneider PM5110</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">power</span><span class="sensor-cap">energy</span><span class="sensor-cap">voltage</span><span class="sensor-cap">current</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-9314a300')">✓ Activate</button>
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-9314a300')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-9314a300')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card discovered">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-audio">audio</span>
+                    <span class="edge-status">
+                        <span class="pip pip-unknown"></span>
+                        discovered
+                    </span>
+                </div>
+                <div class="sensor-name">Machine Bay Mic</div>
+                
+                <div class="sensor-url">192.168.1.230</div>
+                <div class="sensor-detail">
+                    <span>ImpalaEdge Audio Sentinel</span>
+                    <span>via network_scan</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">audio</span><span class="sensor-cap">machine_sound</span><span class="sensor-cap">anomaly_detection</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                <button class="myOkBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="activateSensor('scan9-e3801ed6')">✓ Activate</button>
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-e3801ed6')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-e3801ed6')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+            <div class="sensor-card active">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <span class="sensor-type-badge badge-camera">camera</span>
+                    <span class="edge-status">
+                        <span class="pip pip-online"></span>
+                        active
+                    </span>
+                </div>
+                <div class="sensor-name">This Device (Browser Edge)</div>
+                <div class="sensor-url">navigator.mediaDevices (webcam)</div>
+                
+                <div class="sensor-detail">
+                    <span>Browser WebRTC getUserMedia</span>
+                    <span>via browser</span>
+                    
+                </div>
+                
+                <div style="margin-top: 0.5rem;">
+                    <span class="sensor-cap">video</span><span class="sensor-cap">audio</span><span class="sensor-cap">browser_edge</span>
+                </div>
+                
+                <div class="sensor-actions">
+                    
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="testSensor('scan9-browser-65b2f7')">🔄 Test</button>
+                    
+                <button class="myAccentBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="editSensor('scan9-browser-65b2f7')">✏️ Edit</button>
+                <button class="myCancelBtn" style="height:30px;padding-left:10px;padding-right:10px;border-radius:5px;" onclick="removeSensor('scan9-browser-65b2f7')" title="Remove">🗑️</button>
+                </div>
+            </div>
+            
+        </div>
+        
+    
+    </div>
+@* </div> *@
+
+<!-- ===== ADD SENSOR MODAL ===== -->
+    <div class="modal-overlay" id="addSensorModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add Sensor</h3>
+                <button class="modal-close" onclick="closeAddSensorModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addSensorForm" onsubmit="submitSensor(event)">
+                    <div class="form-group">
+                        <label>Sensor Type</label>
+                        <select class="form-control" id="sensorType" onchange="updateSensorForm()">
+                            <option value="camera">📷 IP Camera</option>
+                            <option value="rtsp">📹 RTSP Stream</option>
+                            <option value="usb">🔌 USB Camera</option>
+                            <option value="mqtt">📊 MQTT Sensor</option>
+                            <option value="http">🌐 HTTP Endpoint</option>
+                            <option value="audio">🎤 Audio Input</option>
+                            <option value="onvif">🎥 ONVIF Camera</option>
+                            <option value="gpio">⚡ GPIO Sensor</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" class="form-control" id="sensorName" placeholder="e.g. Front Gate Camera" required>
+                    </div>
+                    <div class="form-group" id="grpIp">
+                        <label>IP Address</label>
+                        <input type="text" class="form-control" id="sensorIp" placeholder="192.168.1.100">
+                    </div>
+                    <div class="form-group" id="grpPort">
+                        <label>Port</label>
+                        <input type="number" class="form-control" id="sensorPort" placeholder="554">
+                    </div>
+                    <div class="form-group" id="grpUrl">
+                        <label>URL / Stream Path</label>
+                        <input type="text" class="form-control" id="sensorUrl" placeholder="rtsp://192.168.1.100:554/stream">
+                        <div class="form-hint" id="urlHint">Full connection URL for the sensor</div>
+                    </div>
+                    <div class="form-group" id="grpEdge">
+                        <label>Link to Edge Device (optional)</label>
+                        <select class="form-control" id="sensorEdge">
+                            <option value="">— None (standalone) —</option>
+                            
+                            <option value="hm-vdb-floor-cam">Production Floor Cam</option>
+                            
+                            <option value="hm-vdb-oven-cam">Oven Bay Cam</option>
+                            
+                            <option value="hm-vdb-dispatch-cam">Dispatch &amp; QC Cam</option>
+                            
+                            <option value="hm-vdb-gate-cam">Security Gate Cam</option>
+                            
+                        </select>
+                        <div class="form-hint">Which edge device should process this sensor's feed</div>
+                    </div>
+                    <div class="form-group">
+                        <label>Zone / Description (optional)</label>
+                        <input type="text" class="form-control" id="sensorZone" placeholder="e.g. Main entrance, Kraal area">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeAddSensorModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="submitSensor(event)">Add Sensor</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== SETUP GUIDE MODAL ===== -->
+    <div class="modal-overlay" id="setupGuideModal">
+        <div class="modal" style="width: 560px;">
+            <div class="modal-header">
+                <h3>📖 Edge Device Setup</h3>
+                <button class="modal-close" onclick="document.getElementById('setupGuideModal').classList.remove('open')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="color: var(--text-muted); margin-bottom: 1rem;">Connect an edge device to start processing sensor data with AI.</p>
+                <div style="background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-radius: 0.375rem; padding: 1rem; margin-bottom: 1rem;">
+                    <strong>Account Code:</strong> <code>HM8R-3F7K</code>
+                </div>
+                <div style="background: #0d1117; border: 1px solid var(--border); border-radius: 0.375rem; padding: 1rem; font-family: monospace; font-size: 0.85rem; overflow-x: auto;">
+<span style="color: var(--text-dim);"># On your Raspberry Pi / edge device:</span>
+pip install batchdrone-edge
+batchdrone-edge --account HM8R-3F7K --url https://batchdrone.com
+                </div>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 1rem;">The edge device will auto-discover connected cameras and sensors, then begin streaming AI insights to this dashboard.</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="toast" id="toast"></div>
+
+@code {
+    private bool _scriptLoaded = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                // Load the JS file only for this page
+                await JS.InvokeVoidAsync("loadScriptOnce", "js/SiteSensorManagement.js");
+                _scriptLoaded = true;
+            }
+            catch (Exception ex)
+            {
+                System.Console.Error.WriteLine($"Script load failed: {ex.Message}");
+            }
+            
+        }
+    }
+    
+    private async Task openAddSensor(string sensorType)
+    {
+        await JS.InvokeVoidAsync("openAddSensorModal",sensorType);
+    }
+
+}

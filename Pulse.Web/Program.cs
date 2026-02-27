@@ -98,6 +98,8 @@ builder.Services.AddScoped<CircuitHandler, CircuitIdService>();
 #endregion
 
 #region UI Frameworks & Tools
+builder.Services.AddSingleton<IPulseToastService, PulseToastService>();
+
 builder.Services.AddBootstrapBlazor(options =>
 {
     options.ToastDelay = 6000;

@@ -37,7 +37,7 @@
 
 @code 
 {
-    private User? u;
+    // private User? u;
     #region AppBar Icons
 
     private static Icon DashboardIcon(bool active = false) =>
@@ -53,9 +53,9 @@
                : new Icons.Regular.Size24.Settings().WithColor("#365b66");
 
     #endregion
-    protected override async Task OnInitializedAsync()
-    {
-        u = await DataTransferService.GetgvUser();
+    // protected override async Task OnInitializedAsync()
+    // {
+    //     u = await DataTransferService.GetgvUser();
 
-    }
+    // }
 }

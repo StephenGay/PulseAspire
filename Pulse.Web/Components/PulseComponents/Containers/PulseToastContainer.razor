@@ -1,0 +1,44 @@
+﻿@using Pulse.Web.Components.PulseComponents.Cards
+@using Pulse.Web.Services
+@implements IAsyncDisposable
+@inject IPulseToastService PulseToastService
+@rendermode InteractiveServer
+<div class="pulse-toast-container">
+    @foreach (var msg in _activeMessages)
+    {
+        <PulseToast Message="msg" OnClose="() => RemoveToast(msg.Id)" />
+    }
+</div>
+
+@code {
+    private List<PulseToastMessage> _activeMessages = new();
+
+    protected override void OnInitialized()
+    {
+        PulseToastService.OnShow += HandleToastShow;
+    }
+
+    private void HandleToastShow(PulseToastMessage msg)
+    {
+        _ = InvokeAsync(async () =>
+        {
+            _activeMessages.Add(msg);
+            StateHasChanged();
+
+            // Auto-dismiss after delay
+            await Task.Delay(msg.AutoHideMs);
+            RemoveToast(msg.Id);
+        });
+    }
+
+    private void RemoveToast(Guid id)
+    {
+        _activeMessages.RemoveAll(m => m.Id == id);
+        StateHasChanged();
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        PulseToastService.OnShow -= HandleToastShow;
+    }
+}

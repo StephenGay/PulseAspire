@@ -59,7 +59,15 @@
             private const string Prefix = $"{ApiPrefix}/User";
 
             public const string Profile = $"{Prefix}/profile";
-            public const string Settings = $"{Prefix}/settings";
+
+            public static class Settings
+            {
+                private const string SettingsPrefix = $"{Prefix}/Settings";
+
+                public static string GetSettings(string userId) => $"{SettingsPrefix}/GetSettings/{userId}";
+                public const string Update = $"{SettingsPrefix}/Update";
+            }
+            
 
             public static class Favourites
             {
@@ -67,8 +75,9 @@
 
                 public static class SavedQueries
                 {
-                    private const string QueriesPrefix = $"{FavouritePrefix}/SavedQueries";
+                    private const string QueriesPrefix = $"{FavouritePrefix}/Queries";
 
+                    public static string GetUserFavourites(string userId) => $"{QueriesPrefix}/GetByUserId/{userId}";
                     public const string Add = $"{QueriesPrefix}/Add";
 
                     /// <summary>
@@ -87,6 +96,7 @@
         public static class Divisions
         {
             private const string Prefix = $"{ApiPrefix}/Divisions";
+            public const string GetActive = $"{Prefix}/GetActive";
 
             public static class Equipment
             {

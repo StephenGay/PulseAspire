@@ -293,7 +293,7 @@ else
     private string _AssistWith = string.Empty;
     private IDialogReference? _dialog;
     Period? period;
-    private User? u;
+    // private User? u;
     bool? canceled;
 
     #region AppBar Icons
@@ -326,7 +326,7 @@ else
 
     protected override async Task OnInitializedAsync()
     {
-        u = await dataTrf.GetgvUser();
+        // u = await dataTrf.GetgvUser();
         period = await dataTrf.GetgvCurrentPeriod();
         
         await GetClientInfo();
@@ -550,6 +550,8 @@ else
 
                 Sales History:
                 {dataText}
+
+                IMPORTANT: Your summary must be less than 450 characters as I want to save it to the client profile. If it is too long, please shorten it and try again.
                 """;
         await ProcessRequest(prompt);
     }
