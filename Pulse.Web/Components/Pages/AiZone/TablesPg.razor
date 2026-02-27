@@ -118,7 +118,9 @@
             else
             {
                 @* <FluentButton Appearance="Appearance.Accent" class="btnShadow" Style="border: 1px solid white;height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="ResultsGoBack">Back</FluentButton> *@
-                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:36px" IconStart="@(new Icons.Filled.Size24.Backspace().WithColor("var(--pulse-accent-btn-colour)"))" Title="Back To Tables" OnClick="ResultsGoBack"></FluentButton>
+                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:50px; width:50px;" Title="Back To Tables" OnClick="ResultsGoBack">
+                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Backspace().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
+                </FluentButton>
                 <FluentSpacer />
                 if (rows.Any())
                 { 
@@ -170,33 +172,45 @@
                        
                         @* </Animation> *@
                     <FluentSpacer />
-                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
-                        <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentTable().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                      class="btnShadow"
-                                      BackgroundColor="rgba(0,104,0,1)"
-                                      Color="rgba(255,255,255,1)"
-                                      Style="border: 1px solid white;height:36px"
-                                      OnClick="ExportToExcelAsync">
-                                      <strong>XLSX</strong>
-                                  </FluentButton>
-                        <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                      class="btnShadow"
-                                      BackgroundColor="rgba(255,0,0,0.4)"
-                                          Style="border: 1px solid white;height:36px"
-                                      Color="rgba(255,255,255,1)"
-                                      Loading="@pdfLoading"
-                                      OnClick="ExportToPdf">
-                            <strong>PDF</strong>
-                        </FluentButton>
-                        <FluentButton IconStart="@(new Icons.Filled.Size24.ArrowDownload().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                            BackgroundColor="rgba(0,0,0,1)"
-                            class="btnShadow"
-                                          Style="border: 1px solid white;height:36px"
-                            Color="rgba(255,255,255,1)">
-                            @* OnClick="ExportHtmlFile"> *@
-                            <strong>HTML</strong>
-                        </FluentButton>
-                    </Animation>
+                    <FluentButton Id="btnTablesDownload" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:50px; width:50px;" Title="Download" OnClick="() => showDownloadMenu = !showDownloadMenu">
+                        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ArrowDownload().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
+                    </FluentButton>
+                    <FluentPopover Style="width: 200px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.Left" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnTablesDownload" @bind-Open="showDownloadMenu">
+                        @* <Header>Download</Header> *@
+                        <Body>
+                            <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="25">
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentTable().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                class="btnShadow"
+                                                BackgroundColor="rgba(0,104,0,1)"
+                                                Color="rgba(255,255,255,1)"
+                                                Style="border: 1px solid white;height:50px;width:80%"
+                                                OnClick="ExportToExcelAsync">
+                                        <strong>XLSX</strong>
+                                </FluentButton>
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                class="btnShadow"
+                                                BackgroundColor="rgba(255,0,0,0.4)"
+                                                    Style="border: 1px solid white;height:50px;width:80%"
+                                                Color="rgba(255,255,255,1)"
+                                                Loading="@pdfLoading"
+                                                OnClick="ExportToPdf">
+                                    <strong>PDF</strong>
+                                </FluentButton>
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                BackgroundColor="rgba(0,0,0,1)"
+                                                class="btnShadow"
+                                                                Style="border: 1px solid white;height:50px;width:80%"
+                                                Color="rgba(255,255,255,1)">
+                                                @* OnClick="ExportHtmlFile"> *@
+                                    <strong>HTML</strong>
+                                </FluentButton>
+                            </FluentStack>
+                        </Body>
+                    </FluentPopover>
+
+                    @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
+                        
+                    </Animation> *@
                  } 
             }
         </FluentStack>
@@ -450,6 +464,7 @@
     private string txtQ = string.Empty;
     private bool isCorrect = true;
     private bool togChat = false;
+    private bool showDownloadMenu = false;
     private bool myFave = false;
     private bool viewBox = true;
     private bool retryBtn = false;

@@ -955,27 +955,27 @@
         showResultsPanel = false;
     }
 
-    private async Task SendToast(string tType, string tTitle, string tContent)
+    private async Task SendToast(string tType, string tTitle, string tContent, string tAI = "Ali")
     {
 
-        await GlobalAI.AISpeak(tContent,"Ali");
+        await GlobalAI.AISpeak(tContent,tAI);
 
         switch (tType)
         {
             case "Success":
-                PulseToastService.ShowSuccess(tContent,tTitle);
+                PulseToastService.ShowSuccess(tContent,tAI,tTitle);
                 return;
             case "Information":
-                PulseToastService.ShowInfo(tContent,tTitle);
+                PulseToastService.ShowInformation(tContent,tAI,tTitle);
                 return;
             case "Error":
-                PulseToastService.ShowError(tContent,tTitle);
+                PulseToastService.ShowError(tContent,tAI,tTitle);
                 return;
             case "Warning":
-                PulseToastService.ShowWarning(tContent,tTitle);
+                PulseToastService.ShowWarning(tContent,tAI,tTitle);
                 return;
             default:
-                PulseToastService.ShowWarning(tContent,tTitle);
+                PulseToastService.ShowWarning(tContent,tAI,tTitle);
                 return;
         }
 

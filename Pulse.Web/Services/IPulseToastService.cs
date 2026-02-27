@@ -7,7 +7,7 @@ public interface IPulseToastService
     event Action<PulseToastMessage>? OnShow;
 
     void ShowSuccess(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000);
-    void ShowInfo(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000);
+    void ShowInformation(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000);
     void ShowWarning(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 8000);
     void ShowError(string message, string AiEmoji  = "PulseAI", string? title = null, int autoHideMs = 8000);
     void Show(PulseToastMessage message);
@@ -27,7 +27,7 @@ public class PulseToastMessage
 public enum ToastLevel
 {
     Success,
-    Info,
+    Information,
     Warning,
     Error
 }

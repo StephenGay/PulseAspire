@@ -1,10 +1,10 @@
 .pulse-toast {
     position: fixed;
-    bottom: 20px;
+    bottom: var(--toast-bottom, 20px);
     right: 20px;
     min-width: 300px;
     max-width: 500px;
-    padding: 16px;
+    padding: 8px;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     background: white;
@@ -18,7 +18,7 @@
     background-color: #f0fdf4;
 }
 
-.pulse-toast-info {
+.pulse-toast-information {
     border-left: 4px solid #3b82f6;
     background-color: #f0f9ff;
 }
@@ -35,31 +35,43 @@
 
 .pulse-toast-content {
     display: flex;
-    gap: 16px;
+    flex-direction: column;
+    gap: 12px;
     width: 100%;
-    align-items: flex-start;
 }
 
 .pulse-toast-emoji {
     flex-shrink: 0;
-    width: 64px;
-    height: 64px;
+    width: 48px;
+    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 48px;
+    font-size: 36px;
+    margin-left: auto;
 }
 
 .pulse-toast-body {
     flex: 1;
     min-width: 0;
+    width: 100%;
+}
+
+.pulse-toast-message-container {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    justify-content: space-between;
 }
 
 .pulse-toast-header {
     display: flex;
     align-items: center;
+    width: 100%;
     gap: 8px;
-    margin-bottom: 4px;
+    padding-bottom: 4px;
+    margin-bottom: 0px;
+    justify-content: start; /* space-between; */
 }
 
 .pulse-toast-icon {
@@ -68,16 +80,43 @@
     font-weight: bold;
 }
 
+.pulse-toast-close {
+    margin-left: auto;
+}
+
+.pulse-toast-success .pulse-toast-header {
+    border-bottom: 2px solid #22c55e;
+    
+}
+
 .pulse-toast-success .pulse-toast-icon {
     color: #22c55e;
 }
 
-.pulse-toast-info .pulse-toast-icon {
+.pulse-toast-information .pulse-toast-header {
+    border-bottom: 2px solid #3b82f6;
+    /*padding-bottom: 8px;
+    margin-bottom: 8px;*/
+}
+
+.pulse-toast-information .pulse-toast-icon {
     color: #3b82f6;
+}
+
+.pulse-toast-warning .pulse-toast-header {
+    border-bottom: 2px solid #f59e0b;
+    /*padding-bottom: 8px;
+    margin-bottom: 8px;*/
 }
 
 .pulse-toast-warning .pulse-toast-icon {
     color: #f59e0b;
+}
+
+.pulse-toast-error .pulse-toast-header {
+    border-bottom: 2px solid #ef4444;
+    /*padding-bottom: 8px;
+    margin-bottom: 8px;*/
 }
 
 .pulse-toast-error .pulse-toast-icon {
@@ -95,7 +134,7 @@
     color: #6b7280;
     font-size: 14px;
     line-height: 1.4;
-    margin-top: 4px;
+    margin-top: 0px;
 }
 
 .pulse-toast-close {

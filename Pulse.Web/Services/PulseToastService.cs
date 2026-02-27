@@ -11,8 +11,8 @@ public class PulseToastService : IPulseToastService
     public void ShowSuccess(string message, string aiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000)
         => Show(new PulseToastMessage { Level = ToastLevel.Success, AiEmoji = aiEmoji, Message = message, Title = title ?? "Success", AutoHideMs = autoHideMs });
 
-    public void ShowInfo(string message, string aiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000)
-        => Show(new PulseToastMessage { Level = ToastLevel.Info, AiEmoji = aiEmoji, Message = message, Title = title ?? "Information", AutoHideMs = autoHideMs });
+    public void ShowInformation(string message, string aiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000)
+        => Show(new PulseToastMessage { Level = ToastLevel.Information, AiEmoji = aiEmoji, Message = message, Title = title ?? "Information", AutoHideMs = autoHideMs });
 
     public void ShowWarning(string message, string aiEmoji  = "PulseAI", string? title = null, int autoHideMs = 8000)
         => Show(new PulseToastMessage { Level = ToastLevel.Warning, AiEmoji = aiEmoji, Message = message, Title = title ?? "Warning", AutoHideMs = autoHideMs });
