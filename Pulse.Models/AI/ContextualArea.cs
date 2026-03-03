@@ -15,6 +15,8 @@ namespace Pulse.Models.AI
         [MaxLength(100)]
         public string AreaDescription { get; set; }
 
-        public ICollection<ContextualPrompt> ContextualPrompts { get; set; }
+        public string? AreaAiPrompt { get; set; }
+        public string? ExpectedRequestDataFormat { get; set; }
+        public ICollection<ContextualPrompt>? ContextualPrompts { get; set; }
     }
 }

@@ -25,6 +25,10 @@ namespace Pulse.Models.PulseContext.Maps
                    .IsRequired()
                    .HasMaxLength(100);
 
+            builder.Property(ca => ca.AreaAiPrompt);
+
+            builder.Property(ca => ca.ExpectedRequestDataFormat);
+
             // Relationships
             builder.HasMany(ca => ca.ContextualPrompts)
                    .WithOne(cp => cp.ContextualArea) // assumes ContextualPrompt has navigation property

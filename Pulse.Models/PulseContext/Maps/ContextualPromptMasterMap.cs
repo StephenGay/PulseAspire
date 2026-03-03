@@ -30,8 +30,8 @@ namespace Pulse.Models.PulseContext.Maps
                    .IsRequired()
                    .HasMaxLength(2000);
 
-            builder.Property(cp => cp.UserId)
-                   .IsRequired();
+            builder.Property(cp => cp.ApplicationUserId)
+                   .HasMaxLength(450);
 
             builder.Property(cp => cp.Likes)
                    .IsRequired()

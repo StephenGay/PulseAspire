@@ -27,6 +27,7 @@
 @inject SpeechSynthesis SpeechSynthesis
 @inject NavigationManager Navigation
 @inject IJSRuntime JSRuntime
+@inject AuthService _authService
 @inject IHttpClientFactory HttpClientFactory
 @inject Global_AI_Functions GlobalAI
 @implements IDisposable
@@ -806,7 +807,7 @@
             ContextualPromptTitle = custTitle,
             ContextualPromptDescription = custDesc,
             Prompt = txtQ,
-            UserId = u.UserID,
+            ApplicationUserId = _authService.aspireUserId,
             Likes = 0
         };
         await pApiClient.SaveCustomPromptAsync(newPrompt);

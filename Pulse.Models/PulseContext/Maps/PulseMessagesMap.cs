@@ -28,11 +28,17 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(m => m.RecipientUserId)
                    .HasMaxLength(450);
 
+            builder.Property(m => m.RecipientUserName)
+                   .HasMaxLength(256);
+
             builder.Property(m => m.SenderUserId)
                    .HasMaxLength(450);
 
             builder.Property(m => m.SenderUserName)
                    .HasMaxLength(256);
+
+            builder.Property(m => m.Subject)
+                   .HasMaxLength(200);
 
             // Role
             builder.Property(m => m.Role)

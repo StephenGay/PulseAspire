@@ -21,7 +21,7 @@ public class PulseToastMessage
     public string? Title { get; set; }
     public string Message { get; set; } = string.Empty;
     public string AiEmoji { get; set; } = "PulseAI";
-    public int AutoHideMs { get; set; } = 5000000;
+    public int AutoHideMs { get; set; } = 5000;
     public bool IsHtml { get; set; } = false;
     public DateTime Created { get; } = DateTime.UtcNow;
 }

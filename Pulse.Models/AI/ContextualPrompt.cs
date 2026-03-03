@@ -21,12 +21,12 @@ namespace Pulse.Models.AI
         [Required]
         [MaxLength(2000)]
         public string Prompt { get; set; }
-        [Required]
-        public int UserId { get; set; }
+        [MaxLength(450)]
+        public string ApplicationUserId { get; set; }
         [Required]
         [DefaultValue(0)]
         public int Likes { get; set; }= 0;
 
-        public ContextualArea ContextualArea { get; set; }
+        public ContextualArea? ContextualArea { get; set; }
     }
 }

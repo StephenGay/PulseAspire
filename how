@@ -1,0 +1,85 @@
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{0}: checkout: moving from recovered-work to Dev-Master
+[33m7f50796[m[33m ([m[1;32mrecovered-work[m[33m)[m refs/heads/recovered-work@{0}: branch: Created from 7f50796
+[33m7f50796[m[33m ([m[1;32mrecovered-work[m[33m)[m HEAD@{1}: checkout: moving from Dev-Master to recovered-work
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{2}: checkout: moving from ContainerTest to Dev-Master
+[33m7a34d2b[m[33m ([m[1;31morigin/ContainerTest[m[33m, [m[1;32mContainerTest[m[33m)[m HEAD@{3}: checkout: moving from Dev-Master to ContainerTest
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{4}: checkout: moving from ContainerTest to Dev-Master
+[33m7a34d2b[m[33m ([m[1;31morigin/ContainerTest[m[33m, [m[1;32mContainerTest[m[33m)[m HEAD@{5}: checkout: moving from Dev-Master to ContainerTest
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{6}: checkout: moving from master to Dev-Master
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{7}: checkout: moving from ContainerTest to master
+[33m7a34d2b[m[33m ([m[1;31morigin/ContainerTest[m[33m, [m[1;32mContainerTest[m[33m)[m refs/remotes/origin/ContainerTest@{0}: update by push
+[33m7a34d2b[m[33m ([m[1;31morigin/ContainerTest[m[33m, [m[1;32mContainerTest[m[33m)[m refs/heads/ContainerTest@{0}: commit: WIP Container Test 030326-1
+[33m7a34d2b[m[33m ([m[1;31morigin/ContainerTest[m[33m, [m[1;32mContainerTest[m[33m)[m HEAD@{8}: commit: WIP Container Test 030326-1
+[33m7f50796[m[33m ([m[1;32mrecovered-work[m[33m)[m HEAD@{9}: checkout: moving from Dev-Master to ContainerTest
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m refs/heads/Dev-Master@{0}: branch: Created from master
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{10}: checkout: moving from ContainerTest to Dev-Master
+[33m7f50796[m[33m ([m[1;32mrecovered-work[m[33m)[m refs/remotes/origin/ContainerTest@{1}: update by push
+[33m7f50796[m[33m ([m[1;32mrecovered-work[m[33m)[m refs/heads/ContainerTest@{1}: commit: Container WIP 270226
+[33m7f50796[m[33m ([m[1;32mrecovered-work[m[33m)[m HEAD@{11}: commit: Container WIP 270226
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m refs/heads/ContainerTest@{2}: branch: Created from master
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{12}: checkout: moving from master to ContainerTest
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m refs/heads/master@{0}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Fast-forward
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m refs/remotes/origin/master@{0}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: fast-forward
+[33mf0223fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mDev-Master[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m, [m[1;32mmaster[m[33m)[m HEAD@{13}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Fast-forward
+[33m5cc0564[m HEAD@{14}: checkout: moving from master to master
+[33m5cc0564[m HEAD@{15}: checkout: moving from master to master
+[33m5cc0564[m refs/remotes/origin/master@{1}: update by push
+[33m5cc0564[m refs/heads/master@{1}: commit: WIP BU 270226
+[33m5cc0564[m HEAD@{16}: commit: WIP BU 270226
+[33m27eb3ee[m refs/remotes/origin/master@{2}: update by push
+[33m27eb3ee[m refs/heads/master@{2}: commit: WIP BU 090226
+[33m27eb3ee[m HEAD@{17}: commit: WIP BU 090226
+[33m9365595[m refs/remotes/origin/master@{3}: update by push
+[33m9365595[m refs/heads/master@{3}: commit: WIP 280126
+[33m9365595[m HEAD@{18}: commit: WIP 280126
+[33md35751e[m refs/remotes/origin/master@{4}: update by push
+[33md35751e[m refs/heads/master@{4}: commit: WIP BU 270126
+[33md35751e[m HEAD@{19}: commit: WIP BU 270126
+[33m4c7f3d8[m refs/remotes/origin/master@{5}: update by push
+[33m4c7f3d8[m refs/heads/master@{5}: commit: WIP 250126
+[33m4c7f3d8[m HEAD@{20}: commit: WIP 250126
+[33m3a4dd7c[m refs/remotes/origin/master@{6}: update by push
+[33m3a4dd7c[m refs/heads/master@{6}: commit: Backup WIP 240126
+[33m3a4dd7c[m HEAD@{21}: commit: Backup WIP 240126
+[33m470e154[m refs/remotes/origin/master@{7}: update by push
+[33m470e154[m refs/heads/master@{7}: commit: WIP Backup 230126
+[33m470e154[m HEAD@{22}: commit: WIP Backup 230126
+[33mf74725b[m refs/remotes/origin/master@{8}: update by push
+[33mf74725b[m refs/heads/master@{8}: commit: 010126 WIP Backup
+[33mf74725b[m HEAD@{23}: commit: 010126 WIP Backup
+[33m4f68ebf[m refs/remotes/origin/master@{9}: update by push
+[33m4f68ebf[m refs/heads/master@{9}: commit: Backup211225
+[33m4f68ebf[m HEAD@{24}: commit: Backup211225
+[33m68517e5[m refs/remotes/origin/master@{10}: update by push
+[33m68517e5[m refs/heads/master@{10}: commit: backup271125
+[33m68517e5[m HEAD@{25}: commit: backup271125
+[33mfca8370[m refs/remotes/origin/master@{11}: update by push
+[33mfca8370[m refs/heads/master@{11}: commit: Updated Production Planning, Backup before adding Internal Security instead of Entra
+[33mfca8370[m HEAD@{26}: commit: Updated Production Planning, Backup before adding Internal Security instead of Entra
+[33m8018609[m refs/remotes/origin/master@{12}: update by push
+[33m8018609[m refs/heads/master@{12}: commit: making backup of Production Planning Calendar
+[33m8018609[m HEAD@{27}: commit: making backup of Production Planning Calendar
+[33m62c70c6[m refs/remotes/origin/master@{13}: update by push
+[33m62c70c6[m refs/heads/master@{13}: commit: Added models / tables for Equipment / Work Centres / Production Plan items. Added calendar and events (still Wip). Added WIP analysis contextual AI. Added Division end points to API. Added Login to Divisions. Removed unneccasary cards from Client Dashboard - now only show when relevant, eg. when client has WIP / Clients account is overdue. Can't think of anything else right now - too tired :)
+[33m62c70c6[m HEAD@{28}: commit: Added models / tables for Equipment / Work Centres / Production Plan items. Added calendar and events (still Wip). Added WIP analysis contextual AI. Added Division end points to API. Added Login to Divisions. Removed unneccasary cards from Client Dashboard - now only show when relevant, eg. when client has WIP / Clients account is overdue. Can't think of anything else right now - too tired :)
+[33mdf05900[m refs/remotes/origin/master@{14}: update by push
+[33mdf05900[m refs/heads/master@{14}: commit: Progressed initial mechanics for contextual AI, feature working as expected - a lot of scope to make more powerful. Added and testing voice input and output. Added models and data for Roller Specifications, Rollers and Works Orders. These will change - want to do overhaul of these but need data to test how the AI performs with predictions on roll turn around times and cost / selling price fluctuations. Happy with results where history allocated correctly - need to do more work on cleaning data to get full benefit. Added export to Html & Pdf - Excel coming soon. Modified models to use ICollections<> and new HashSet<> in place of List<> for improved performance and stability with Entity Framework Core
+[33mdf05900[m HEAD@{29}: commit: Progressed initial mechanics for contextual AI, feature working as expected - a lot of scope to make more powerful. Added and testing voice input and output. Added models and data for Roller Specifications, Rollers and Works Orders. These will change - want to do overhaul of these but need data to test how the AI performs with predictions on roll turn around times and cost / selling price fluctuations. Happy with results where history allocated correctly - need to do more work on cleaning data to get full benefit. Added export to Html & Pdf - Excel coming soon. Modified models to use ICollections<> and new HashSet<> in place of List<> for improved performance and stability with Entity Framework Core
+[33m9ed2657[m refs/remotes/origin/master@{15}: update by push
+[33m9ed2657[m refs/heads/master@{15}: commit: Added Favourite saved queries, introduced Bootstrap Blazer to test replacing some Fluent UI components that have limited capabilities or reliability concerns. Introduced pilot system, placing prebuilt prompts in more contextual areas
+[33m9ed2657[m HEAD@{30}: commit: Added Favourite saved queries, introduced Bootstrap Blazer to test replacing some Fluent UI components that have limited capabilities or reliability concerns. Introduced pilot system, placing prebuilt prompts in more contextual areas
+[33m79fcc05[m refs/remotes/origin/master@{16}: update by push
+[33m79fcc05[m refs/heads/master@{16}: commit: WIP Update 241025
+[33m79fcc05[m HEAD@{31}: commit: WIP Update 241025
+[33m5bf84ec[m refs/remotes/origin/master@{17}: update by push
+[33m5bf84ec[m refs/heads/master@{17}: commit: Backing up before implementing web search capability for AI models
+[33m5bf84ec[m HEAD@{32}: commit: Backing up before implementing web search capability for AI models
+[33m53f65fd[m refs/remotes/origin/master@{18}: update by push
+[33m53f65fd[m refs/heads/master@{18}: commit: End of Weekend Update
+[33m53f65fd[m HEAD@{33}: commit: End of Weekend Update
+[33meb00988[m refs/remotes/origin/HEAD@{0}: fetch
+[33meb00988[m refs/remotes/origin/master@{19}: update by push
+[33meb00988[m refs/heads/master@{19}: commit: Add project files.
+[33meb00988[m HEAD@{34}: commit: Add project files.
+[33m8fbabfd[m refs/heads/master@{20}: commit (initial): Add .gitattributes and .gitignore.
+[33m8fbabfd[m HEAD@{35}: commit (initial): Add .gitattributes and .gitignore.
