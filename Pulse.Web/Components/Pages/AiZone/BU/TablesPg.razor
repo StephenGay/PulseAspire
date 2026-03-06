@@ -32,7 +32,6 @@
 @inject AccentBaseColor AccentBaseColor
 @inject SpeechSynthesis SpeechSynthesis
 @inject IHttpClientFactory HttpClientFactory
-@inject IWebHostEnvironment Env
 @implements IDisposable
 @rendermode InteractiveServer
 @layout MasterLayout
@@ -97,16 +96,16 @@
             {
                 <FluentButton class=@(!viewBox ? "myModeBtnOff" : "tblsOn")
                                   BackgroundColor="white"
-                              Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
+                              Style="border: 2px solid ;height:40px;margin-left:10px" 
                                   OnClick="() => viewBox = !viewBox" >
                     @if (tables != null)
                     {
-                        @(tables.emoji.ToMarkup("45px"))
+                        @(tables.emoji.ToMarkup("32px"))
                     }
                 </FluentButton>
                 @* <FluentSpacer /> *@
                 <FluentButton class=@(!SavedQueryMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size32.DatabaseSearch().WithColor("var(--pulse-mode-btn-item-colour)"))"
-                              Style="height:50px;width:50px;margin-right:20px" OnClick="ToggleSavedQryMode">
+                              Style="height:40px;margin-right:20px" OnClick="ToggleSavedQryMode">
                 @* <FluentButton class=@(!SavedQueryMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor=@(!SavedQueryMode ? "white" : "#1D722A") IconStart="@(new Icons.Filled.Size32.DatabaseSearch().WithColor((SavedQueryMode ? "white" : "#9900FF")))"
                               Style="border: 2px solid;height:40px;margin-right:20px" OnClick="ToggleSavedQryMode"> *@
                     @* Saved Queries *@
@@ -338,9 +337,11 @@
 
                                             <TemplateColumn Context="gridContext" Align="Align.Center">
                                                 <HeaderCellTitleTemplate >
-                                                    <FluentButton class="col-sort-button"  BackgroundColor=@(myFave ? "green" : "#bcd1d4") Color=@(myFave ? "white" : "black") Style="border: 1px solid black;width:100%;height:100%" Title="Filter Favourites" OnClick="ToggleFavourites">
-                                                        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20.Star().WithColor("yellow"))" /> 
-                                                    </FluentButton>
+                                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+                                                            <FluentButton  BackgroundColor=@(myFave ? "green" : "#bcd1d4") Color=@(myFave ? "white" : "black") Style="border: 1px solid black;width:100%;height:100%" OnClick="ToggleFavourites">
+                                                                <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20.Star().WithColor("yellow"))" Width="36px" /> 
+                                                        </FluentButton>
+                                                    </FluentStack> 
                                             </HeaderCellTitleTemplate>
                                 
                                             <ChildContent>
@@ -1054,36 +1055,12 @@
             StateHasChanged();
         }
     }
-
-    private async Task<(string? Schema, string? Examples, string? Error)> GetSchemaAndExamplesAsync(CancellationToken ct)
-    {
-        try
-        {
-            var schemaText = await pAI.GetDetailedSchemaAsync(ct);
-            if (string.IsNullOrEmpty(schemaText))
-            {
-                return (null, null, "Error: Unable to retrieve database schema information.");
-            }
-
-            var examples = await pAI.GetAiExamplesAsync(ct);
-            return (schemaText, examples, null);
-        }
-        catch (OperationCanceledException)
-        {
-            return (null, null, "Request cancelled.");
-        }
-        catch (Exception ex)
-        {
-            return (null, null, $"Error during setup: {ex.Message}");
-        }
-    }
-
     private async Task ExportToExcelAsync()
     {
         if (!rows.Any()) return;
 
         using var workbook = new XLWorkbook();
-        var worksheet = workbook.Worksheets.Add("PulseData");
+        var worksheet = workbook.Worksheets.Add("QueryResults");
 
         // Add headers
         for (int i = 0; i < columns.Count; i++)
@@ -1100,26 +1077,13 @@
                 worksheet.Cell(r + 2, c + 1).Value = value?.ToString() ?? string.Empty;
             }
         }
-        var tbl = worksheet.Range(worksheet.Cell(1, 1), worksheet.Cell(rows.Count+1, columns.Count)).CreateTable("tblData");
-        tbl.Theme = XLTableTheme.TableStyleLight16;
-
-        worksheet.Columns(1, columns.Count).AdjustToContents();
-        worksheet.Row(1).InsertRowsAbove(3);
-        worksheet.Row(1).Height = 25;
-        worksheet.Row(2).Height = 25;
-        worksheet.Range("A1:A2").Merge();
-
-        var imgPath = Path.Combine(Env.WebRootPath,"Images/AI/Tables.jpg");
-        var picTbls = worksheet.AddPicture(imgPath)
-                        .MoveTo(worksheet.Cell("A1"))
-                        .WithSize(50, 50);
 
         using var stream = new MemoryStream();
         workbook.SaveAs(stream);
         var content = stream.ToArray();
         var base64 = Convert.ToBase64String(content);
 
-        await JSRuntime.InvokeVoidAsync("downloadExcel", "Pulse_Export_From_Tables.xlsx", base64);
+        await JSRuntime.InvokeVoidAsync("downloadExcel", "query_results.xlsx", base64);
     }
 
     private async Task ExecuteSql()

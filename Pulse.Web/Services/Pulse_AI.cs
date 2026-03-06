@@ -31,7 +31,15 @@ public sealed class Pulse_AI(
         public const string Examples = "pulse_ai_examples";
     }
 
-    
+    private static class ToolNames
+    {
+        public const string ExecuteSql = "execute_sql";
+        public const string WebSearch = "web_search";
+        public const string WebFetch = "web_fetch";
+        public const string ExecuteActionSql = "execute_action_sql";
+
+        public static readonly HashSet<string> All = [ExecuteSql, WebSearch, WebFetch, ExecuteActionSql];
+    }
 
     private static class ApiRoutes
     {
@@ -65,7 +73,7 @@ public sealed class Pulse_AI(
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
     };
 
-     #endregion
+    #endregion
 
     #region SQL Validation
 
@@ -269,9 +277,9 @@ public sealed class Pulse_AI(
             return "Query cancelled.";
         }
 
-        if ( queryLoop >= MaxTotalQueryAttempts)
+        if (queryLoop >= MaxTotalQueryAttempts)
         {
-            return "Query exceeded maximum loop attempts. Please rephrase.";
+            return "Error: Query exceeded maximum loop attempts.";
         }
 
         try
@@ -300,10 +308,10 @@ public sealed class Pulse_AI(
     /// <summary>
     /// Streaming chat with tool support.
     /// </summary>
-    public async IAsyncEnumerable<string> StreamFlapperChat(
+    public async IAsyncEnumerable<string> StreamChatWithOllamaAsync(
         List<OllamaMessage> messages,
-        Flapper flapper,
-        bool AdminMode,
+        string model,
+        bool enableSearch = true,
         [EnumeratorCancellation] CancellationToken ct = default,
         QueryContext? context = null,
         int queryLoop = 0)
@@ -312,13 +320,13 @@ public sealed class Pulse_AI(
 
         if (context.CancelQuery)
         {
-            yield return "Info: The Query has been cancelled.";
+            yield return "Query cancelled.";
             yield break;
         }
 
-        if (!AdminMode && queryLoop >= flapper.MaxRecursionDepth)
+        if (queryLoop >= MaxTotalQueryAttempts)
         {
-            yield return "Info: I reached the maximum loop limit.<br />Try simplyfying the query and try again.";
+            yield return "Error: Maximum loop attempts exceeded.";
             yield break;
         }
 
@@ -334,23 +342,16 @@ public sealed class Pulse_AI(
         var allMessages = new List<OllamaMessage> { systemMessage };
         allMessages.AddRange(messages);
 
-        var tools = BuildToolsList(true);
+        var tools = BuildToolsList(enableSearch);
         var request = new
         {
-            model = flapper.Model,
+            model,
             messages = allMessages.ToArray(),
             tools = tools.ToArray(),
-            think = flapper.Think,
+            think = "high",
             keep_alive = "30m",
             stream = true,
-            options = new
-            {
-                temperature = flapper.Options.Temperature,
-                num_ctx = flapper.Options.NumCtx,
-                repeat_penalty = flapper.Options.RepeatPenalty,
-                frequency_penalty = flapper.Options.FrequencyPenalty,
-                presence_penalty = flapper.Options.PresencePenalty
-            }
+            options = new { temperature = 0.0, num_ctx = 32000 }
         };
 
         _logger.LogInformation("Starting chat stream (loop {Loop})", queryLoop);
@@ -381,9 +382,9 @@ public sealed class Pulse_AI(
                 if (!inThinking)
                 {
                     inThinking = true;
-                    yield return "__THINKING__**Thinking:**\n";
+                    yield return "\n**Thinking:**\n";
                 }
-                yield return $"__THINKING__{chunk.Thinking}";
+                yield return chunk.Thinking;
                 hasContent = true;
             }
 
@@ -392,8 +393,9 @@ public sealed class Pulse_AI(
                 if (inThinking)
                 {
                     inThinking = false;
+                    yield return "\n**Response:**\n";
                 }
-                yield return $"__FINAL_ANSWER__{chunk.Content}";
+                yield return chunk.Content;
                 hasContent = true;
             }
 
@@ -411,18 +413,18 @@ public sealed class Pulse_AI(
         // Handle tool calls after streaming completes
         if (accumulatedToolCalls.Count > 0)
         {
-            yield return "__THINKING__\n*Processing tool calls...*\n";
+            yield return "\n*Processing tool calls...*\n";
 
             var toolError = await HandleToolCallsSafeAsync(accumulatedToolCalls, messages, context, ct);
             if (toolError != null)
             {
-                yield return "__THINKING__toolError";
+                yield return toolError;
                 yield break;
             }
 
             // Recursive streaming for tool results
-            await foreach (var recursiveChunk in StreamFlapperChat(
-                messages, flapper, AdminMode, ct, context, queryLoop + 1))
+            await foreach (var recursiveChunk in StreamChatWithOllamaAsync(
+                messages, model, enableSearch, ct, context, queryLoop + 1))
             {
                 yield return recursiveChunk;
             }
@@ -431,7 +433,7 @@ public sealed class Pulse_AI(
 
         if (!hasContent)
         {
-            yield return "Error: No response from Ollama.";
+            yield return "No response from Ollama.";
         }
     }
 
@@ -446,7 +448,7 @@ public sealed class Pulse_AI(
             var schemaText = await GetDetailedSchemaAsync(ct);
             if (string.IsNullOrEmpty(schemaText))
             {
-                return (null, null, "Error: The database Schema was unavailable.<br />Please tr again.");
+                return (null, null, "Error: Schema unavailable");
             }
 
             var examples = await GetAiExamplesAsync(ct);
@@ -454,12 +456,12 @@ public sealed class Pulse_AI(
         }
         catch (OperationCanceledException)
         {
-            return (null, null, "Error: The Request was cancelled.");
+            return (null, null, "Request cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to prepare stream context");
-            return (null, null, $"Error: There was an error loading the stream context.");
+            return (null, null, $"Error loading context: {ex.Message}");
         }
     }
 
@@ -479,12 +481,12 @@ public sealed class Pulse_AI(
         }
         catch (OperationCanceledException)
         {
-            return (null, "Error: The Request was cancelled.");
+            return (null, "Request cancelled.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to create chat stream");
-            return (null, $"Error: There was an error creating the stream.");
+            return (null, $"Stream error: {ex.Message}");
         }
     }
 
@@ -497,9 +499,9 @@ public sealed class Pulse_AI(
         [EnumeratorCancellation] CancellationToken ct)
     {
         var enumerator = _ollamaService.ChatStreamAsync(ApiRoutes.Chat, request, ct).GetAsyncEnumerator(ct);
-        
+
         string? pendingError = null;
-        
+
         try
         {
             while (true)
