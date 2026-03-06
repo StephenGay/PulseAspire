@@ -696,11 +696,7 @@
         flapper = await dtrf.GetgvFlapper();
 
         // check if this is a retry, we don't want to add the query again to the history if so as it was already added when the query was first submitted
-        if (!fromRetryBtn)
-        {
-            chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
-        }
-        fromRetryBtn = false;
+
 
         cts = new CancellationTokenSource();
 
@@ -724,9 +720,44 @@
     private async Task FlapperChatStream(CancellationToken cToken = default)
     {
 
+        Company c = await dtrf.GetgvCompany();
+        List<OllamaMessage> newMsgs = new List<OllamaMessage>();
+
+        if (!fromRetryBtn)
+        {
+            newMsgs.Add(new OllamaMessage { Role = "user", Content = query });
+        }
+        else
+        {
+            var lastMsg = $@"""This is a repeat of the last query as there was either an error or the user was not satisfied with the response. 
+                            Query: {query}""";
+            newMsgs.Add(new OllamaMessage { Role = "user", Content = lastMsg });
+        }
+        fromRetryBtn = false;
+
+
         try
         {
-            await foreach (var chunk in pAI.StreamFlapperChat(chatHistory,flapper,AdminMode, cToken))
+            var systemMessageData = new SystemMessageData
+            {
+                DbStructure = AiPrompts.GetDatabaseStructure(),
+                DbSchema = await pAI.GetDetailedSchemaAsync(cToken),
+                DbExamples = await pAI.GetAiExamplesAsync(cToken),
+                CompanyName = c.CompanyName,
+                CompanyInformation = AiPrompts.GetTempCoInfo(),
+                SqlGuidelines = AiPrompts.GetSqlGuidelines(),
+                UserName = _authService.aspireFullName,
+                Tools = AiPrompts.GetToolsGuidelines(AdminMode),
+                ConversationHistory = chatHistory,
+                UserQuery = txtQ
+            };
+
+            flapperSystemPrompt = flapper?.BuildSystemMessage(systemMessageData);
+
+            chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
+            var messages = new List<OllamaMessage>();
+
+            await foreach (var chunk in FlapperStream(newMsgs, cToken))
             {
                 if (string.IsNullOrEmpty(chunk)) continue;
                 if(chunk.StartsWith("Error:"))
@@ -736,13 +767,7 @@
                     await GlobalAI.AISpeak(flapperAnswer, "Flapper");
                     return;
                 }
-                if (chunk.StartsWith("Info:"))
-                {
-                    flapperAnswer = chunk.Substring("Info:".Length);
-                    PulseToastService.ShowToast("Information", flapperAnswer, true, true, "Flapper");
-                    await GlobalAI.AISpeak(flapperAnswer, "Flapper");
-                    return;
-                }
+
                 // Check for thinking marker
                 if (chunk.StartsWith("__THINKING__"))
                 {
@@ -775,6 +800,238 @@
         }
     }
 
+    private async IAsyncEnumerable<string> FlapperStream(
+        List<OllamaMessage> newMessages,
+        [EnumeratorCancellation] CancellationToken ct = default,
+        int qryLoop = 0,
+        bool inThinking = false,
+        int failedAttempts = 0)
+    {
+
+        if (!AdminMode && qryLoop >= flapper.MaxRecursionDepth) // MAX_RECURSION_DEPTH)
+        {
+            yield return $"Error: I have reached the maximum recursion limit.<br />Try breaking the query into smaller steps.";
+            yield break;
+        }
+
+        if (!AdminMode && failedAttempts >= flapper.MaxFailedAttempts) // MAX_FAILED_ATTEMPTS)
+        {
+            yield return $"Error: The failed attempts limit has been reached.<br />Please rephrase or try a different query.";
+            yield break;
+        }
+
+        var tools = BuildFlapperTools();
+        var currMsgs = new List<OllamaMessage>();
+
+        currMsgs.Add(new OllamaMessage { Role = "system", Content = flapperSystemPrompt });
+        currMsgs.AddRange(newMessages);
+
+        var ollamaRequest = new
+        {
+            model = flapper!.Model,
+            messages = currMsgs.ToArray(),
+            tools = tools.ToArray(),
+            think = flapper.Think,
+            keep_alive = "30m",
+            stream = true,
+            options = new
+            {
+                temperature = flapper.Options.Temperature,
+                num_ctx = flapper.Options.NumCtx,
+                repeat_penalty = flapper.Options.RepeatPenalty,
+                frequency_penalty = flapper.Options.FrequencyPenalty,
+                presence_penalty = flapper.Options.PresencePenalty
+            }
+        };
+        
+        var accumulatedMessage = new OllamaMessage { Role = "assistant" };
+        bool hasYieldedContent = false;
+        string? pendingError = null;
+
+        // Get the stream - handle initialization errors
+        HttpResponseMessage? response = null;
+        try
+        {
+            response = await ollamaClient!.PostAsJsonAsync("/api/chat", ollamaRequest, ct);
+            response.EnsureSuccessStatusCode();
+        }
+        catch (OperationCanceledException)
+        {
+            pendingError = "Request cancelled.";
+        }
+        catch (Exception ex)
+        {
+            pendingError = $"Error connecting to Ollama: {ex.Message}";
+        }
+
+        // Yield initialization error outside catch
+        if (pendingError != null)
+        {
+            yield return pendingError;
+            yield break;
+        }
+
+        Stream? contentStream = null;
+        try
+        {
+            contentStream = await response.Content.ReadAsStreamAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            pendingError = $"Error reading response: {ex.Message}";
+        }
+
+        if (pendingError != null)
+        {
+            yield return pendingError;
+            yield break;
+        }
+
+        using var reader = new StreamReader(contentStream!);
+
+        // Process stream line by line
+        while (true)
+        {
+            string? line = null;
+            bool readerDone = false;
+
+            try
+            {
+                line = await reader.ReadLineAsync(ct);
+                readerDone = line == null;
+            }
+            catch (OperationCanceledException)
+            {
+                pendingError = "Request cancelled.";
+                break;
+            }
+            catch (Exception ex)
+            {
+                pendingError = $"Stream error: {ex.Message}";
+                break;
+            }
+
+            if (readerDone) break;
+            if (string.IsNullOrWhiteSpace(line)) continue;
+
+            OllamaChatChunk? chunk = null;
+            try
+            {
+                chunk = JsonSerializer.Deserialize<OllamaChatChunk>(line, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch (JsonException ex)
+            {
+                pendingError = $"Failed to parse response: {ex.Message}";
+                break;
+            }
+
+            if (chunk == null) continue;
+
+            // Accumulate tool calls first
+            if (chunk.Message?.ToolCalls != null)
+            {
+                accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
+                accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
+            }
+
+            // Handle thinking content
+            if (!string.IsNullOrEmpty(chunk.Message?.Thinking))
+            {
+                accumulatedMessage.Thinking = (accumulatedMessage.Thinking ?? string.Empty) + chunk.Message.Thinking;
+                if (!inThinking)
+                {
+                    inThinking = true;
+                    // flapperThinking += $"Thinking:\n";
+                    yield return "__THINKING__Thinking:\n";
+                }
+                // flapperThinking += chunk.Message.Thinking;
+                hasYieldedContent = true;
+                yield return $"__THINKING__{chunk.Message.Thinking}";
+                // StateHasChanged();
+                // await Task.Delay(5, ct);
+                
+            }
+
+
+
+            // Handle answer content - ONLY if no tool calls are present
+            if (!string.IsNullOrEmpty(chunk.Message?.Content))
+            {
+                accumulatedMessage.Content = (accumulatedMessage.Content ?? string.Empty) + chunk.Message.Content;
+
+                if (accumulatedMessage.ToolCalls == null || accumulatedMessage.ToolCalls.Count == 0)
+                {
+                    if (inThinking)
+                    {
+                        inThinking = false;
+                        // flapperAnswer += "Answer:\n";
+                        yield return "__FINAL_ANSWER__Answer:\n";
+                    }
+                    hasYieldedContent = true;
+                    // flapperAnswer += chunk.Message.Content;
+                    // StateHasChanged();
+                    // await Task.Delay(5, ct);
+                    yield return $"__FINAL_ANSWER__{chunk.Message.Content}";
+                }
+            }
+
+            // Only break when Done=true, regardless of content type
+            // Ollama sends thinking first, then content, both with Done=false except the last chunk
+            if (chunk.Done)
+            {
+                // ✅ ALWAYS add the assistant message to history
+                accumulatedMessage.Role = "assistant";
+                currMsgs.Add(accumulatedMessage);
+
+                if (accumulatedMessage.ToolCalls is { Count: > 0 })
+                {
+                    if (!hasYieldedContent)
+                    {
+                        // flapperThinking += "Analyzing query and preparing tools...\n";
+                        yield return "__THINKING__Analyzing query and preparing tools...\n";
+                    }
+                    else
+                    {
+                        // flapperThinking += "\nTool calls detected. Processing...\n";
+                        yield return "__THINKING__\nTool calls detected. Processing...\n";
+                    }
+                    // StateHasChanged();
+                    // await Task.Delay(5, ct);
+
+                    // Process tool calls (they'll add results to newMessages)
+                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, currMsgs, ct);
+                    if (toolError != null)
+                    {
+                        yield return $"Error: {toolError}";
+                        yield break;
+                    }
+
+                    // Recursive call with updated history (WITHOUT system message)
+                    await foreach (var recursiveChunk in FlapperStream(
+                        currMsgs, ct, qryLoop + 1, inThinking, failedAttempts))
+                    {
+                        yield return recursiveChunk;
+                    }
+                }
+                break;
+            }
+        }
+
+        // Yield any pending error outside the loop
+        if (pendingError != null)
+        {
+            yield return pendingError;
+            yield break;
+        }
+
+        if (!hasYieldedContent && accumulatedMessage.ToolCalls is not { Count: > 0 })
+        {
+            yield return "Error: No response from Ollama.";
+        }
+        chatHistory.Add(accumulatedMessage);
+        // ✅ DON'T yield final accumulated answer here!
+        // We already yielded individual chunks, so accumulating and yielding the whole thing causes duplication
+    }
 #endregion
 
 #region Flapper Chat Non-Stream
@@ -784,7 +1041,11 @@
 
         try
         {
-            
+            if (!fromRetryBtn)
+            {
+                chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
+            }
+            fromRetryBtn = false;
             flapperAnswer = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, cToken);
 
             if (string.IsNullOrEmpty(flapperAnswer))

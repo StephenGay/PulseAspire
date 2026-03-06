@@ -23,6 +23,8 @@ namespace Pulse.Models.AI.AIds
         public int MaxRecursionDepth { get; set; } = 5;
         public int MaxFailedAttempts { get; set; } = 2;
 
+        public int MaxToolRetries { get; set; } = 5; 
+
         [JsonPropertyName("options")]
         public OllamaOptions Options { get; set; } = new OllamaOptions
             { Temperature = 0.0,
@@ -39,6 +41,17 @@ namespace Pulse.Models.AI.AIds
 
         public string BuildSystemMessage(SystemMessageData systemMessageData)
         {
+            
+            if (systemMessageData.ConversationHistory != null && systemMessageData.ConversationHistory.Count > 0)          
+            {
+                var conversationHistoryString = new StringBuilder();
+                conversationHistoryString.AppendLine("Here is the conversation history between you and the user so far, You can use this information to provide context for the current query:");
+                foreach (var message in systemMessageData.ConversationHistory)
+                {
+                    conversationHistoryString.AppendLine($"{message.Role}: {message.Content}");
+                }
+                systemMessageData.CompanyInformation += $"\n\nConversation History:\n{conversationHistoryString.ToString()}";
+            }
             var systemMessage = $"""
                 You are Flapper, a powerful AI used in Pulse Aspire, a software solution. Your role is to have
                 intelligent conversations with users, providing feedback / advice / suggestions on any messages
@@ -78,9 +91,14 @@ namespace Pulse.Models.AI.AIds
     
                 You should use these tools judiciously, only when necessary to provide a more complete and accurate response to the user.
 
-                The user has presented you with this message: {systemMessageData.UserQuery}
+                Streaming Response: When responding to the user, you should generate your response in a streaming fashion, providing users with a more dynamic and engaging conversational experience. 
+                This means that you should start generating your response as soon as you have enough information to provide a helpful answer, rather than waiting until you have a complete response before 
+                sending anything back to the user. This will allow users to see your thought process in real-time and provide them with a more interactive and engaging experience. Use the Thinking field
+                to indicate when you are still processing information or generating a response, and update it as needed to provide users with insight into your thought process. When you have generated a 
+                response, switch to the Content field.
 
-                Use all your skills and get back to them!
+                Here is the current user query requiring a response, as well as any work you have done so far:
+                
                 """;
 
             // - "ask_user": a tool that allows you to ask the user for additional information or clarification. You can use this tool to gather more details about the user's question or to clarify any ambiguities in their request.

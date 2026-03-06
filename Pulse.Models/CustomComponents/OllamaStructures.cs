@@ -8,6 +8,15 @@ using System.Threading.Tasks;
 
 namespace Pulse.Models.CustomComponents
 {
+    public static class ToolNames
+    {
+        public const string ExecuteSql = "execute_sql";
+        public const string WebSearch = "web_search";
+        public const string WebFetch = "web_fetch";
+        public const string ExecuteActionSql = "execute_action_sql";
+
+        public static readonly HashSet<string> All = [ExecuteSql, WebSearch, WebFetch, ExecuteActionSql];
+    }
     public class OllamaChatResponse
     {
         [JsonPropertyName("model")]
