@@ -91,9 +91,18 @@
 
         #endregion
 
-        #region Division Endpoints
+        #region Company Endpoints
 
-        public static class Divisions
+        public static class Companies
+        {
+            private const string Prefix = $"{ApiPrefix}/Companies";
+            public static string GetById(int companyId) => $"{Prefix}/GetById/{companyId}";
+        }
+        #endregion
+
+            #region Division Endpoints
+
+            public static class Divisions
         {
             private const string Prefix = $"{ApiPrefix}/Divisions";
             public const string GetActive = $"{Prefix}/GetActive";

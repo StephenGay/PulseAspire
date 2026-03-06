@@ -1,6 +1,8 @@
 ﻿
+using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Pulse.Models.AI.AIds;
+using Pulse.Models.Api;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
@@ -19,6 +21,7 @@ namespace Pulse.Web.Services
         public Customer gv_client { get; set; }
         //public User gv_user { get; set; }
         public ApplicationUserSettings gvUserSettings { get; set; }
+        public Company gv_Company { get; set; }
         public Period gv_Current_Period {  get; set; }
         public Tables gv_Tables { get; set; }
         public Flapper gv_Flapper { get; set; }
@@ -216,7 +219,15 @@ namespace Pulse.Web.Services
             gv_Selected_Division = div;
             await Task.CompletedTask;
         }
-
+        public async Task SetgvCompany(Company company)
+        {
+            gv_Company = company;
+            await Task.CompletedTask;
+        }
+        public async Task<Company> GetgvCompany()
+        {
+            return await Task.FromResult(gv_Company);
+        }
         public async Task<Division> GetgvSelectedDivision()
         {
             return await Task.FromResult(gv_Selected_Division);
@@ -224,6 +235,7 @@ namespace Pulse.Web.Services
         public async Task SetgvSelectedDivisionWIP(List<WorkInProgressDto> wip)
         {
             gv_Selected_Division_WIP = wip;
+            
             await Task.CompletedTask;
         }
 
@@ -262,6 +274,8 @@ namespace Pulse.Web.Services
         public Task<ClientCurrentStats> GetgvSelectedClientStats();
         public Task SetgvSelectedDivision(Division div);
         public Task<Division> GetgvSelectedDivision();
+        public Task SetgvCompany(Company company);
+        public Task<Company> GetgvCompany();
         public Task<ShowAiIcon> GetgvShowAI();
         public Task SetgvShowAI(ShowAiIcon showAiIcon);
         public Task<Period> GetgvCurrentPeriod();

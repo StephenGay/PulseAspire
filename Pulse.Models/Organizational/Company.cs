@@ -17,6 +17,7 @@ namespace Pulse.Models.Organizational
         [Required]
         [MaxLength(100)]
         public required string CompanyName { get; set; }
+        public string? CompanyOperations { get; set; } = null;
         public bool IsActive { get; set; } = true;
         public ICollection<Division>? Divisions { get; set; } = new HashSet<Division>();
         public ICollection<Customer>? Customers { get; set; } = new HashSet<Customer>();

@@ -64,10 +64,13 @@
     <None Update="Components\Pages\AdminZone\SiteSensorManagement.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Components\Pages\AiZone\FlapperPg.razor.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Components\Pages\AiZone\TablesPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Components\Pages\AiZone\FlapperPg.razor.css">
+    <None Update="Components\Pages\AiZone\FlapperOldPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\EmployeeZone\Customers\ClientSales.razor.css">

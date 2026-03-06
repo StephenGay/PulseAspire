@@ -21,6 +21,13 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetAllCompanies")
                 .Produces<List<Company>>(StatusCodes.Status200OK);
 
+            group.MapGet("/GetById/{companyid}", async (int companyid, PulseDbContext db) =>
+                await db.CompanyMaster
+                .Where(d => d.CompanyID == companyid)
+                .FirstAsync())
+                .WithName("GetCompanyById")
+                .Produces<Company>(StatusCodes.Status200OK);
+
             group.MapGet("/{companyid}/CurrentPeriod/{mnth}/{yr}", async (int CompanyId,string mnth, string yr, PulseDbContext db) =>
             {
                 var curPer = db.PeriodMaster

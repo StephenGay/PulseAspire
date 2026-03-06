@@ -101,6 +101,8 @@ catch (Exception ex)
         string m = DateTime.Now.ToString("MMMM");
         string y = DateTime.Now.Year.ToString();
         Period cur = await pApiClient.GetAsync<Period>($"/Companies/{div.CompanyID}/CurrentPeriod/{m}/{y}");
+        Company company = await pApiClient.GetAsync<Company>(ApiEndpoints.Companies.GetById(div.CompanyID));
+        await dTrf.SetgvCompany(company);
         await dTrf.SetgvCurrentPeriod(cur);
         Navigation.NavigateTo("/EmployeeZone");
     }

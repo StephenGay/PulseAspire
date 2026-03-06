@@ -14,6 +14,33 @@ public class AiPromptService
         _logger = logger;
     }
 
+    public string GetDatabaseStructure()
+    {
+        return """
+            **IMPORTANT NOTES REGARDING DATABASE STRUCTURE:**
+            
+            1. Database Type: SQL Server 2022
+            2. Access Method: Standard SQL queries (no T-SQL, SQLite, MySQL, or PostgreSQL syntax)
+
+            """;
+    }
+
+    public string GetTempCoInfo() {         return """
+            **H&M ROLLERS BUSINESS CONTEXT:**
+            
+            - We manufacture and sell rubber and polyurethane covers for industrial rollers
+            - We cater to various industries (paper, steel, food processing, printing, textiles, etc.)
+            - Our customers are companies that use our roller coverings on their rollers in their production processes
+            - We have multiple company divisions and operate in multiple regions
+            - In addition to roller coverings, we also provide related services like roller maintenance, repair, and consulting
+            - We have an engineering Team that can build new roller shells as well as repair and maintain existing rollers
+            - We have a division that produces custom compounds for roller coverings based on customer specifications
+            - We have a division that supplies thermal spray coatings for rollers in high-temperature applications
+            - Sales are tracked by customer and time period
+            - Production orders are tracked with detailed specifications and stages
+            """;
+    }
+
     /// <summary>
     /// Gets the system prompt for database schema understanding.
     /// Includes business context, filtering rules, and best practices.
@@ -83,9 +110,6 @@ public class AiPromptService
             """;
     }
 
-    /// <summary>
-    /// Gets best practices for SQL generation.
-    /// </summary>
     public string GetSqlGenerationGuidelines()
     {
         return """
@@ -166,6 +190,136 @@ public class AiPromptService
             ❌ MySQL syntax like AUTO_INCREMENT, backticks (WRONG DATABASE)
             ❌ PostgreSQL syntax like serial, ::text (WRONG DATABASE)
             """;
+    }
+    /// <summary>
+    /// Gets best practices for SQL generation.
+    /// </summary>
+    public string GetSqlGuidelines()
+    {
+        return """
+            **SQL GENERATION BEST PRACTICES (STANDARD SQL ONLY)**
+
+            ⚠️ **CRITICAL DATABASE**: Standard SQL (NOT T-SQL, SQLite, MySQL, or PostgreSQL)
+            ❌ FORBIDDEN: T-SQL functions (CONVERT, GETDATE, DATEDIFF, STRING_AGG, DECLARE)
+            ❌ FORBIDDEN: sqlite_master, PRAGMA, AUTOINCREMENT, ROWID, etc.
+            ❌ FORBIDDEN: MySQL backticks, PostgreSQL serial types
+            ✅ REQUIRED: Use ANSI standard SQL only
+
+            Query Structure:
+            ━━━━━━━━━━━━
+            • Always use explicit column names (never SELECT *)
+            • Use meaningful table aliases (c for customer, wo for orders, ps for stage)
+            • Order columns in business-logical order (ID, Name, Amount, Date)
+            • Use AS clauses for derived or calculated columns
+            • Keep queries readable with proper formatting
+
+            Filtering Rules:
+            ━━━━━━━━━━━━━
+            • For date ranges, use standard date functions (not hardcoded dates)
+            • Use appropriate operators: =, <>, >, <, >=, <=, IN, BETWEEN, LIKE
+            • Text searches: LIKE '%text%' for substring matching
+            • Null handling: IS NULL or IS NOT NULL (not = NULL)
+
+            Join Strategy:
+            ━━━━━━━━━━━━
+            • INNER JOIN - for required relationships (must exist)
+            • LEFT JOIN - for optional relationships (can be missing)
+            • Avoid RIGHT JOIN and FULL OUTER JOIN (use LEFT instead)
+            • Start with main entity, then related entities
+            • Always specify join conditions explicitly
+            • Group related joins together
+
+            Aggregation Patterns:
+            ━━━━━━━━━━━━━━━━
+            • Include GROUP BY for all non-aggregated columns
+            • Use COUNT(*), SUM(amount), AVG(value), MIN(date), MAX(amount)
+            • HAVING clause to filter aggregate results
+            • Show record counts to indicate data volume
+            • Example: COUNT(DISTINCT CustomerID) for unique customers
+
+            Sorting & Limiting:
+            ━━━━━━━━━━━━━━━
+            • Add meaningful ORDER BY clauses
+            • DESC for largest values or most recent dates
+            • TOP N for limiting results (use WHERE for better performance)
+            • OFFSET/FETCH for pagination
+
+            Performance Considerations:
+            ━━━━━━━━━━━━━━━━━━━━
+            • Use WHERE to filter early (before aggregation)
+            • Avoid functions on columns in WHERE clause (affects indexes)
+            • Use BETWEEN for date ranges (more efficient than > AND <)
+            • Include only needed columns (not extra columns)
+            • Consider adding indexes if query might be slow
+
+            Standard SQL Functions:
+            ━━━━━━━━━━━━━━━━━━━━━━
+            • Use CAST() for type conversions
+            • CURRENT_DATE for current date
+            • DATE_DIFF() or equivalent for date calculations
+            • GROUP_CONCAT() for string concatenation (or database equivalent)
+            • CASE WHEN for conditional logic
+            • Aggregate functions: COUNT, SUM, AVG, MIN, MAX
+
+            COMMON MISTAKES TO AVOID:
+            ━━━━━━━━━━━━━━━━━━━━━
+            ❌ SELECT * (always specify columns)
+            ❌ Ambiguous column names (use table.column format)
+            ❌ Missing GROUP BY with aggregates (causes errors)
+            ❌ Confusing INNER vs LEFT JOIN (wrong result sets)
+            ❌ Hardcoded dates (use GETDATE(), DATEADD, etc.)
+            ❌ Missing DISTINCT when counting unique values
+            ❌ Wrong datetime comparisons (remember DATETIME includes time portion)
+            ❌ **SQLite syntax like sqlite_master, PRAGMA, ROWID, AUTOINCREMENT (WRONG DATABASE)**
+            ❌ MySQL syntax like AUTO_INCREMENT, backticks (WRONG DATABASE)
+            ❌ PostgreSQL syntax like serial, ::text (WRONG DATABASE)
+            """;
+    }
+
+    public string GetToolsGuidelines(bool adminMode = false)
+    {
+        var adminNote = adminMode ? """
+            
+            Occasionally, you may be asked to add new data to the database or update existing records. In these cases, you can generate appropriate 
+            INSERT, UPDATE, or DELETE SQL queries. However, you should only execute these action queries if the user explicitly requests data modification 
+            or if you determine it's necessary to fulfill their request. Always confirm with the user before executing any action SQL queries, and provide 
+            a summary of the changes that will be made.
+
+            """ : "";
+        var actionTool = adminMode ? """
+            4. execute_action_sql - Execute UPDATE, DELETE and INSERT SQL queries against the database.
+                Use this tool when the user explicitly asks for data modification or when you determine it's necessary to fulfill their request.
+                Always confirm with the user before executing any action SQL queries, and provide a summary of the changes that will be made.
+            
+            """ : "";
+            
+        var guidelines = $"""
+            {adminNote}
+            **TOOL USAGE GUIDELINES:**
+            
+            1. execute_sql
+               - Use for SELECT statement database queries
+               - Input: Valid SQL query string
+               - Output: Query results or error message
+               - Important: If you get a SQL error, do NOT retry the same query. Instead, generate a new valid SQL query to fix the error.
+               - If you get no results, consider if the answer could be found externally and use web_search if appropriate.
+            
+            2. web_search
+               - Use for general knowledge questions or when database has no relevant data
+               - Input: Search query string
+               - Output: List of relevant web results with titles and snippets
+            
+            3. web_fetch
+               - Use to get detailed content from specific URLs found in web_search results
+               - Input: URL string
+               - Output: Full text content of the webpage
+            
+            { actionTool}
+            Important:
+            • Your goal is to ANSWER the user's question with data/results, not to just show them SQL code.
+            • Always analyze tool results and adjust your approach accordingly.
+            """;
+        return guidelines;
     }
 
     /// <summary>
