@@ -382,9 +382,9 @@ public sealed class Pulse_AI(
                 if (!inThinking)
                 {
                     inThinking = true;
-                    yield return "\n**Thinking:**\n";
+                    yield return "__THINKING__**Thinking:**\n";
                 }
-                yield return chunk.Thinking;
+                yield return $"__THINKING__{chunk.Thinking}";
                 hasContent = true;
             }
 
@@ -393,9 +393,9 @@ public sealed class Pulse_AI(
                 if (inThinking)
                 {
                     inThinking = false;
-                    yield return "\n**Response:**\n";
+                    yield return "__FINAL_ANSWER__**Response:**\n";
                 }
-                yield return chunk.Content;
+                yield return $"__FINAL_ANSWER__{chunk.Content}";
                 hasContent = true;
             }
 

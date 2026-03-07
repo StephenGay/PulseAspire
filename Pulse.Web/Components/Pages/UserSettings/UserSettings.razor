@@ -20,7 +20,7 @@
         display: flex;
         flex-direction: column; /* Stack children vertically */
         height: 100%; /* Or whatever height your parent should be, like 100% */
-        width:100%;
+        width: 100%;
     }
 
     .cheader, .cfooter {
@@ -43,67 +43,61 @@
 <div class="cparent">
     <div class="ccontent">
         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-        <h2>My Setup</h2>
-        <FluentSpacer />
+            <h2>My Setup</h2>
+            <FluentSpacer />
             <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" IconStart="@(new Icons.Filled.Size28.Save().WithColor("var(--pulse-accent-btn-colour)"))" Style="height: 50px; border-radius: 10px;" OnClick="onClickSave">Update</FluentButton>
             @* <FluentButton BackgroundColor="var(--pulse-dark-t75-colour)" IconStart="@(new Icons.Filled.Size28.Save().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" Color="rgba(255,255,255,1)" Style="height: 50px; border-radius: 10px; border: 1px solid var(--pulse-light-colour)" class="btnShadow" OnClick="onClickSave">Update</FluentButton> *@
         </FluentStack>
         <hr />
         @if (uSettings != null)
         {
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="30">
-                <FluentCard AreaRestricted="false" Class="divShadow" Style="background-color: var(--pulse-light-colour)">
-                    <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
-                        <h2 style="margin: 0; color: white;">Theme</h2>
-                    </FluentHeader>
-                @* <h4>Theme</h4> *@
-                @* <FluentDesignTheme @bind-Mode="@currentMode"
-                                   @bind-OfficeColor="@currentOfficeColor"
-                                   @bind-CustomColor="@currentCustomColor"
-                                   StorageName="themePulse" /> *@
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" style="padding-left:32px;padding-right:32px;">
-                        <FluentSelect @bind-Value="@pTheme" TOption="string" Style="border: 1px solid var(--pulse-dark-colour)" Label="Select A Theme">
-                            <FluentOption Value="HM" >H&amp;M Rollers</FluentOption>
-                            <FluentOption Value="pulse">Pulse</FluentOption>
-                            <FluentOption Value="ocean">Ocean</FluentOption>
-                            <FluentOption Value="space">Space</FluentOption>
-                        </FluentSelect>
-                    </FluentStack>
-                </FluentCard>
-                <FluentCard AreaRestricted="false" Class="divShadow" Style="background-color: var(--pulse-light-colour)">
+            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="30" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Wrap="true">
+                <FluentCard AreaRestricted="false" Class="divShadow" Style="background-color: var(--pulse-light-colour);width:fit-content">
                     <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
                         <h2 style="margin: 0; color: white;">AI Settings</h2>
                     </FluentHeader>
-            @* <hr>
-            <h4>AI Settings</h4> *@
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" style="padding-left:32px;padding-right:32px;">
+                    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center">
                         <FluentCheckbox @bind-Value="@uSettings.AIHasVoice" Label="Add A Voice To My AI" />
-                        <FluentSpacer />
+                        @* <FluentSpacer /> *@
                         <FluentTextField @bind-Value="@uSettings.PreferredUserName"
                                          Label="What should I call you?"
                                          Required="true"
-                                         Style="border: 1px solid var(--pulse-dark-colour)"              />
-                        <FluentSpacer />
+                                         Style="border: 1px solid var(--pulse-dark-colour)" />
+                        @* <FluentSpacer /> *@
                         <FluentSelect TOption="SpeechSynthesisVoice" Items="Voices" OptionValue="@(v => v.VoiceIdentity.ToString())"
-                        Disabled="!uSettings.AIHasVoice"
-                        Appearance="Appearance.Outline"
-                        OptionText="@(v => v.Name)"
-                        Placeholder="Make A Selection..."
-                        Label="AI Voice"
-                        Height="500px"
-                        Style="border: 1px solid var(--pulse-dark-colour)"
-                        @bind-SelectedOption="@_voice"
-                        @bind-Value="@uSettings.AIVoiceID" />
+                                      Disabled="!uSettings.AIHasVoice"
+                                      Appearance="Appearance.Outline"
+                                      OptionText="@(v => v.Name)"
+                                      Placeholder="Make A Selection..."
+                                      Label="AI Voice"
+                                      Height="500px"
+                                      Style="border: 1px solid var(--pulse-dark-colour)"
+                                      @bind-SelectedOption="@_voice"
+                                      @bind-Value="@uSettings.AIVoiceID" />
                         <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" IconStart="@(new Icons.Filled.Size20.PersonSoundSpatial().WithColor("var(--pulse-accent-btn-colour)"))" style="margin-left:10px" @onclick="onClickSpeak"></FluentButton>
                     </FluentStack>
                 </FluentCard>
-            @* <hr> *@
+                <FluentCard AreaRestricted="false" Class="divShadow" Style="background-color: var(--pulse-light-colour);width:fit-content">
+                    <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+                        <h2 style="margin: 0; color: white;">Theme</h2>
+                    </FluentHeader>
+                    @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" style="padding-left:32px;padding-right:32px;"> *@
+                    <FluentSelect @bind-Value="@pTheme" TOption="string" Style="border: 1px solid var(--pulse-dark-colour)" Label="Select A Theme">
+                        <FluentOption Value="HM">H&amp;M Rollers</FluentOption>
+                        <FluentOption Value="pulse">Pulse</FluentOption>
+                        <FluentOption Value="ocean">Ocean</FluentOption>
+                        <FluentOption Value="space">Space</FluentOption>
+                    </FluentSelect>
+                    @* </FluentStack> *@
+                </FluentCard>
+                
+                @* <hr> *@
             </FluentStack>
         }
-    </div>      
+    </div>
 </div>
 
-@code 
+@code
 {
     IEnumerable<SpeechSynthesisVoice> Voices;
     private SpeechSynthesisVoice? _voice;
@@ -224,7 +218,7 @@
         bool saved = await pApi.PutAsync<ApplicationUserSettings>(ApiEndpoints.User.Settings.Update, uSettings);
         await dt.SetgvUserSettings(uSettings);
 
-        if(uSettings.AIHasVoice && _voice != null)
+        if (uSettings.AIHasVoice && _voice != null)
         {
             await dt.SetgvUserAIVoice(_voice);
         }
@@ -236,10 +230,10 @@
     async Task onClickSpeak()
     {
         var utterancet = new SpeechSynthesisUtterance
-            {
-                Text = "Hi there, it would be an honour, to be the voice behind your Pulse AI.",
-                Voice = _voice // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
-            };
+        {
+            Text = "Hi there, it would be an honour, to be the voice behind your Pulse AI.",
+            Voice = _voice // this.Voices.FirstOrDefault(v => v.Name.Contains("Haruka"))
+        };
         await this.SpeechSynthesis.SpeakAsync(utterancet); // 👈 Speak with "Haruka"'s voice!
     }
     // private async Task aiSpeak(string sTxt, SpeechSynthesisVoice v)

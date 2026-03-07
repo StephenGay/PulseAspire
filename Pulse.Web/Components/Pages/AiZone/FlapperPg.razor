@@ -677,7 +677,7 @@
             if (stream)
             {
                 // ✅ Streaming enabled: consume chunks, display thinking, and extract final answer
-                await foreach (var chunk in StreamChatWithFlapperAsync(chatHistory, true, cts.Token))
+                await foreach (var chunk in pAI.StreamChatWithOllamaAsync(chatHistory,flapper.Model, true, cts.Token))
                 {
                     if (string.IsNullOrEmpty(chunk)) continue;
 
