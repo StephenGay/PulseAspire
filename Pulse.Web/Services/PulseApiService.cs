@@ -390,12 +390,12 @@ namespace Pulse.Web.Services
                 ApiEndpoints.Security.Login, model, ct);
         }
 
-        public async Task<UserRoleDto?> UserRegisterAsync(
+        public async Task<ApplicationUserDto?> UserRegisterAsync(
             RegisterModel model,
             CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(model);
-            return await PostAsync<RegisterModel, UserRoleDto>(
+            return await PostAsync<RegisterModel, ApplicationUserDto>(
                 ApiEndpoints.Security.Register, model, ct);
         }
 

@@ -24,7 +24,7 @@
 
 <div class="ccontent">
 
-    @if (isNewUserMode)
+    @if (pgMode == "New")
     {
         <!-- Create New User Section -->
         <FluentCard>
@@ -98,6 +98,139 @@
             </FluentStack>
         </FluentCard> 
     }
+    else if (pgMode == "Edit" || pgMode="New")
+    {
+        <!-- Edit User Section -->
+        <FluentCard>
+            <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+                <h2 style="margin: 0; color: white;">@(pgMode == "Edit" ? "Edit User" : "New User")</h2>
+            </FluentHeader>
+
+            <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
+                <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                <!-- User Registration Form -->
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                    <FluentLabel Typo="Typography.H6" Style="width:100px">User ID :</FluentLabel>
+                    <FluentTextField @bind-Value="editUser.Id"
+                                     ReadOnly="true"
+                                     Style="width:300px"
+                                      />
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                    <FluentLabel Typo="Typography.H6" Style="width:100px">Full Name :</FluentLabel>
+                    <FluentTextField @bind-Value="editUser.FullName"
+                                     Placeholder="User Name and Surname"
+                                     Required="true"
+                                     Style="width:300px"
+                                      />
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                    <FluentLabel Typo="Typography.H6" Style="width:100px">E-Mail :</FluentLabel>
+                    <FluentTextField @bind-Value="editUser.Email"
+                                        Type="InputType.Email"
+                                        Placeholder="Enter User's Email Address"
+                                        Required="true"
+                                         Style="width:300px" />
+                   
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                    <FluentLabel Typo="Typography.H6" Style="width:100px">Phone :</FluentLabel>
+                    <FluentTextField @bind-Value="editUser.PhoneNumber"
+                                        Placeholder="Enter User's Phone Number"
+                                        Style="width:300px" />
+                </FluentStack>
+                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                    <FluentLabel Typo="Typography.H6" Style="width:100px">Require Pwd Change :</FluentLabel>
+                    <FluentSwitch @bind-Value="editUser.RequirePwdChange" />
+                </FluentStack>
+                    <!-- Action Buttons -->
+                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                        <FluentButton Class="myOkBtn"
+                                      BackgroundColor="var(--pulse-ok-btn-bg)"
+                                      Color="var(--pulse-ok-btn-colour)"
+                                      @onclick="UpdateUserAsync"
+                                      Disabled="@(isUpdatingUser || !IsEditFormValid())">
+                            @(isCreatingUser ? "Updating..." : "Update User")
+                        </FluentButton>
+
+                        <FluentButton Class="myCancelBtn"
+                                      BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                      Color="var(--pulse-cancel-btn-colour)"
+                                      @onclick="ResetForm"
+                                      Disabled="@isCreatingUser">
+                            Cancel
+                        </FluentButton>
+                    </FluentStack>
+
+                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                        @if (editUser.EmailConfirmed)
+                        {
+                            <FluentIcon Value="@(new Icons.Filled.Size32.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
+                        }
+                        else
+                        {
+                            <FluentIcon Value="@(new Icons.Filled.Size32.DismissCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" />
+                        }
+                        <FluentLabel Typo="Typography.H6">E-Mail Confirmed</FluentLabel>
+                    </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                        @if (editUser.TwoFactorEnabled)
+                        {
+                            <FluentIcon Value="@(new Icons.Filled.Size32.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
+                        }
+                        else
+                        {
+                            <FluentIcon Value="@(new Icons.Filled.Size32.DismissCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" />
+                        }
+                        <FluentLabel Typo="Typography.H6">Two Factor Authentication Enabled</FluentLabel>
+                    </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                        @if (editUser.RequirePwdChange)
+                        {
+                            <FluentIcon Value="@(new Icons.Filled.Size32.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
+                        }
+                        else
+                        {
+                            <FluentIcon Value="@(new Icons.Filled.Size32.DismissCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" />
+                        }
+                        <FluentLabel Typo="Typography.H6">Password Change Requested</FluentLabel>
+                    </FluentStack>
+                    
+                    @* <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                        <FluentNumberField @bind-Value="editUser.AccessFailedCount"
+                                         Label="Login Failed Count"
+                                         ReadOnly="true" />
+                        <FluentSwitch @bind-Value="editUser.LockoutEnabled"
+                                      Label="Account Locked"
+                                      Style="align-self: center;" />
+                        @* <FluentTextField @bind-Value="editUser.LockoutEnd"
+                                          Label="Lockout End"
+                                          Style="align-self: center;" /> 
+                    </FluentStack> *@
+                    
+                </FluentStack>
+                @* Type="InputType.Password" *@
+                <!-- Messages -->
+                @if (!string.IsNullOrEmpty(successMessage))
+                {
+                    <FluentMessageBar Severity="MessageSeverity.Success"
+                                      OnDismiss="() => successMessage = string.Empty">
+                        @successMessage
+                    </FluentMessageBar>
+                }
+
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <FluentMessageBar Severity="MessageSeverity.Error"
+                                      OnDismiss="() => errorMessage = string.Empty">
+                        @errorMessage
+                    </FluentMessageBar>
+                }
+
+                
+            </FluentStack>
+        </FluentCard>
+    }
     else
     {
 
@@ -144,8 +277,8 @@
                     </FluentStack>
 
                     <!-- Users Data Grid -->
-                    <FluentDataGrid Items="@(filteredUsers?.AsQueryable() ?? new List<UserRoleDto>().AsQueryable())"
-                    TItem="UserRoleDto"
+                    <FluentDataGrid Items="@(filteredUsers?.AsQueryable() ?? new List<ApplicationUserDto>().AsQueryable())"
+                    TItem="ApplicationUserDto"
                     ResizableColumns="true"
                     Style="width:100%"
                     Pagination="@pagination">
@@ -205,12 +338,14 @@
 @code {
     private RegisterModel newUser = new();
     private string confirmPassword = string.Empty;
-    private List<UserRoleDto> users = new();
-    private List<UserRoleDto> filteredUsers = new();
+    private List<ApplicationUserDto> users = new();
+    private List<ApplicationUserDto> filteredUsers = new();
+    private ApplicationUserDto? editUser;
     private string filterEmail = string.Empty;
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
     private bool isCreatingUser = false;
+    private string pgMode = "List";
     private bool isNewUserMode = false;
     private bool isLoadingUsers = false;
     private PaginationState pagination = new PaginationState { ItemsPerPage = 10 };
@@ -226,7 +361,7 @@
         {
             isLoadingUsers = true;
             errorMessage = string.Empty;
-            var apiResponse = await ApiService.GetAsync<ApiResponse<List<UserRoleDto>>>("/Security/users");
+            var apiResponse = await ApiService.GetAsync<ApiResponse<List<ApplicationUserDto>>>("/Security/users");
             users = apiResponse?.Data ?? new();
             filteredUsers = users.ToList();
             Logger.LogInformation("Loaded {Count} users", users.Count);
@@ -254,30 +389,19 @@
             return;
         }
 
-        if (newUser.Password != confirmPassword)
-        {
-            errorMessage = "Passwords do not match.";
-            return;
-        }
-
-        if (newUser.Password.Length < 8)
-        {
-            errorMessage = "Password must be at least 8 characters long.";
-            return;
-        }
-
         try
         {
-            isCreatingUser = true;
-            newUser.UserName = newUser.Email;
-            var result = await ApiService.UserRegisterAsync(newUser);
+            isSavingUser = true;
+            editUser.UserName = editUser.Email;
+            var result = await ApiService.UserRegisterAsync(editUser);
 
             if (result != null)
             {
-                successMessage = $"User '{newUser.Email}' created successfully.";
+                successMessage = $"User '{editUser.Email}' created successfully.";
                 ResetForm();
                 await LoadUsersAsync();
-                Logger.LogInformation("User created: {Email}", newUser.Email);
+                Logger.LogInformation("User created: {Email}", editUser.Email);
+                pgMode = "List";
             }
             else
             {
@@ -303,8 +427,10 @@
     private async Task AddNewUser()
     {
         ResetForm();
-        isNewUserMode = true;
-        StateHasChanged();
+        editUser = new ApplicationUserDto { Id = "(New)", RequirePwdChange = true };
+        pgMode = "New";
+        //isNewUserMode = true;
+        // StateHasChanged();
     }
 
     private async Task DeleteUserAsync(string userId)
@@ -325,9 +451,12 @@
         }
     }
 
-    private void EditUser(UserRoleDto user)
+    private void EditUser(ApplicationUserDto user)
     {
         // TODO: Implement edit functionality (could open a dialog)
+        editUser = user;
+        pgMode = "Edit";
+
         Logger.LogInformation("Edit user: {Email}", user.Email);
     }
 
@@ -362,11 +491,8 @@
 
     private bool IsFormValid()
     {
-        return !string.IsNullOrWhiteSpace(newUser.Email) &&
-               !string.IsNullOrWhiteSpace(newUser.FullName) &&
-               !string.IsNullOrWhiteSpace(newUser.Password) &&
-               !string.IsNullOrWhiteSpace(confirmPassword) &&
-               newUser.Password.Length >= 8;
+        return !string.IsNullOrWhiteSpace(editUser.Email) &&
+               !string.IsNullOrWhiteSpace(editUser.FullName);
     }
 
     private async Task<bool> ConfirmAsync(string message)
