@@ -16,6 +16,7 @@
 
             public const string Login = $"{Prefix}/login";
             public const string Register = $"{Prefix}/register";
+            public const string UpdateUser = $"{Prefix}/UpdateUser";
             public const string Logout = $"{Prefix}/logout";
             public const string RefreshToken = $"{Prefix}/refresh-token";
             public const string CreateRole = $"{Prefix}/roles";

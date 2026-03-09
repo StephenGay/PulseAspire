@@ -143,6 +143,7 @@ var emailConfig = builder.Configuration.GetSection("EmailConfiguration");
 builder.Services.Configure<EmailConfiguration>(emailConfig);
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPasswordGeneratorService, PasswordGeneratorService>();
 
 #endregion
 
