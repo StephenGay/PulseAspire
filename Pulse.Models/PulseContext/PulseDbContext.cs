@@ -19,6 +19,7 @@ using Pulse.Models.Production;
 using Pulse.Models.AI;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Production.NonConformance;
+using Pulse.Models.Permissions;
 
 namespace Pulse.Models.PulseContext
 {
@@ -71,6 +72,9 @@ namespace Pulse.Models.PulseContext
         public DbSet<ApplicationUserSettings> AspNetUserSettings { get; set; }
         public DbSet<UserFavouriteQuery> UserFaveQueries { get; set; }
         public DbSet<NonConformanceReport> NonConformanceReports { get; set; }
+        public DbSet<Permission> AspNetPermissions { get; set; }
+        public DbSet<RolePermission> AspNetRolePermissions { get; set; }
+        public DbSet<PermissionCategory> AspNetPermissionCategories { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -121,6 +125,9 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new ApplicationUserSettingsMap());
             modelBuilder.ApplyConfiguration(new UserFaveQueryMap());
             modelBuilder.ApplyConfiguration(new NonConformanceReportMap());
+            modelBuilder.ApplyConfiguration(new AspNetPermissionConfigurationMap());
+            modelBuilder.ApplyConfiguration(new AspNetRolePermissionConfigurationMap());  
+            modelBuilder.ApplyConfiguration(new AspNetPermissionCategoryConfigurationMap());
 
             base.OnModelCreating(modelBuilder);
         }

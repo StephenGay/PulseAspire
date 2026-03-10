@@ -267,7 +267,7 @@
     private async Task LoadMessagesAsync()
     {
         // Wait a moment for MasterLayout to load messages via SignalR and save to DataTransferService
-        await Task.Delay(500);
+        await Task.Delay(1500);
         messages = await dataTrf.GetgvUserMessages();
         await InvokeAsync(StateHasChanged);
     }

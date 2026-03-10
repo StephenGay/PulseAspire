@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260309083041_AddPermissionsSystem")]
+    partial class AddPermissionsSystem
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1428,9 +1431,7 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("CreatedDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1444,202 +1445,7 @@ namespace Pulse.ApiService.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Category");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("AspNetPermissions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Id = 1,
-                            Category = "User Management",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "View list of users and their details",
-                            Name = "Users:View"
-                        },
-                        new
-                        {
-                            Id = 2,
-                            Category = "User Management",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create new user accounts",
-                            Name = "Users:Create"
-                        },
-                        new
-                        {
-                            Id = 3,
-                            Category = "User Management",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Edit existing user profiles and roles",
-                            Name = "Users:Edit"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Category = "User Management",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Delete user accounts",
-                            Name = "Users:Delete"
-                        },
-                        new
-                        {
-                            Id = 5,
-                            Category = "User Management",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Force password reset for any user",
-                            Name = "Users:ResetPassword"
-                        },
-                        new
-                        {
-                            Id = 6,
-                            Category = "Role & Permissions",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "View all roles and their assigned permissions",
-                            Name = "Roles:View"
-                        },
-                        new
-                        {
-                            Id = 7,
-                            Category = "Role & Permissions",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Create new roles",
-                            Name = "Roles:Create"
-                        },
-                        new
-                        {
-                            Id = 8,
-                            Category = "Role & Permissions",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Edit role names and assign/remove permissions",
-                            Name = "Roles:Edit"
-                        },
-                        new
-                        {
-                            Id = 9,
-                            Category = "Role & Permissions",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Delete roles (only if not in use)",
-                            Name = "Roles:Delete"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            Category = "Role & Permissions",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Full access to view/create/edit/delete permissions",
-                            Name = "Permissions:Manage"
-                        },
-                        new
-                        {
-                            Id = 11,
-                            Category = "System Settings",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "View application configuration and system settings",
-                            Name = "Settings:View"
-                        },
-                        new
-                        {
-                            Id = 12,
-                            Category = "System Settings",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Modify global application settings",
-                            Name = "Settings:Edit"
-                        },
-                        new
-                        {
-                            Id = 13,
-                            Category = "Reports & Analytics",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Access and generate reports and dashboards",
-                            Name = "Reports:View"
-                        },
-                        new
-                        {
-                            Id = 14,
-                            Category = "Reports & Analytics",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "Export reports to PDF, CSV, Excel",
-                            Name = "Reports:Export"
-                        },
-                        new
-                        {
-                            Id = 15,
-                            Category = "Audit & Logging",
-                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "View audit logs and user activity history",
-                            Name = "Audit:View"
-                        });
-                });
-
-            modelBuilder.Entity("Pulse.Models.Permissions.PermissionCategory", b =>
-                {
-                    b.Property<string>("Category")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.HasKey("Category");
-
-                    b.HasIndex("Category")
-                        .IsUnique();
-
-                    b.ToTable("AspNetPermissionCategories", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            Category = "User Management"
-                        },
-                        new
-                        {
-                            Category = "Group Management"
-                        },
-                        new
-                        {
-                            Category = "Company Management"
-                        },
-                        new
-                        {
-                            Category = "Division Management"
-                        },
-                        new
-                        {
-                            Category = "Inventory"
-                        },
-                        new
-                        {
-                            Category = "Pulse AI"
-                        },
-                        new
-                        {
-                            Category = "Production"
-                        },
-                        new
-                        {
-                            Category = "Notifications"
-                        },
-                        new
-                        {
-                            Category = "Technical"
-                        },
-                        new
-                        {
-                            Category = "Audit & Logging"
-                        },
-                        new
-                        {
-                            Category = "Reports & Analytics"
-                        },
-                        new
-                        {
-                            Category = "System Settings"
-                        },
-                        new
-                        {
-                            Category = "Role & Permissions"
-                        });
+                    b.ToTable("Permissions");
                 });
 
             modelBuilder.Entity("Pulse.Models.Permissions.RolePermission", b =>
@@ -1651,26 +1457,20 @@ namespace Pulse.ApiService.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<DateTime>("AssignedDate")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("PermissionId")
                         .HasColumnType("int");
 
                     b.Property<string>("RoleId")
                         .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
                     b.HasIndex("PermissionId");
 
-                    b.HasIndex("RoleId", "PermissionId")
-                        .IsUnique();
-
-                    b.ToTable("AspNetRolePermissions", (string)null);
+                    b.ToTable("RolePermissions");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
@@ -2879,17 +2679,6 @@ namespace Pulse.ApiService.Migrations
                         .IsRequired();
 
                     b.Navigation("Company");
-                });
-
-            modelBuilder.Entity("Pulse.Models.Permissions.Permission", b =>
-                {
-                    b.HasOne("Pulse.Models.Permissions.PermissionCategory", "CategoryNavigation")
-                        .WithMany()
-                        .HasForeignKey("Category")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("CategoryNavigation");
                 });
 
             modelBuilder.Entity("Pulse.Models.Permissions.RolePermission", b =>

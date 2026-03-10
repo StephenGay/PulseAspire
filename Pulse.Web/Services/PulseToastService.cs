@@ -4,6 +4,7 @@ namespace Pulse.Web.Services;
 
 public class PulseToastService : IPulseToastService
 {
+    
     private readonly ConcurrentQueue<PulseToastMessage> _messages = new();
 
     public event Action<PulseToastMessage>? OnShow;
@@ -22,6 +23,7 @@ public class PulseToastService : IPulseToastService
     
     public void ShowToast(string tType, string message, bool isHtml = false, bool autoHide = true, string AiEmoji = "PulseAI", string? title = null)
     {
+        
         ToastLevel level = ToastLevel.Information; // default
         int defaultAutoHideMs = 5000;
 

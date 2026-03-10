@@ -25,6 +25,35 @@
             public const string RemoveRole = $"{Prefix}/remove-role";
             public const string GetRoles = $"{Prefix}/roles";
             public const string ChangePassword = $"{Prefix}/change-password";
+
+            public static class Permissions
+            {
+                private const string PermissionsPrefix = $"{Prefix}/permissions";
+                public const string GetAll = $"{PermissionsPrefix}/GetAll";
+                public const string Create = $"{PermissionsPrefix}/Create";
+                //public const string Update = $"{PermissionsPrefix}/Update";
+                //public const string Delete = $"{PermissionsPrefix}/Delete";
+                public static string GetByRoleID(int roleId) => $"{PermissionsPrefix}/GetByRole/{roleId}";
+                public const string AssignToRole = $"{PermissionsPrefix}/AssignToRole";
+                public static string RemoveFromRole(int roleId, int permissionId) => $"{PermissionsPrefix}/RemoveFromRole/{roleId}/{permissionId}";
+                public static string GetByCategory(string category) => $"{PermissionsPrefix}/GetByCategory/{Uri.EscapeDataString(category)}";
+
+                public static class Categories
+                {
+                    private const string CategoriesPrefix = $"{PermissionsPrefix}/categories";
+                    public const string GetAll = $"{CategoriesPrefix}/GetAll";
+                    public const string Create = $"{CategoriesPrefix}/Create";
+                    //public const string Update = $"{CategoriesPrefix}/Update";
+                    //public const string Delete = $"{CategoriesPrefix}/Delete";
+                }
+            }
+
+            public static class Roles
+            {
+                private const string RolesPrefix = $"{Prefix}/Roles";
+                public const string GetAll = $"{RolesPrefix}/GetAll";
+
+            }
         }
 
         #endregion
