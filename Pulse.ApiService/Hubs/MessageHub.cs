@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;

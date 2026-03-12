@@ -1,8 +1,9 @@
+using Microsoft.Extensions.Options;
+using Pulse.Models.Communication;
 using System.Net;
 using System.Net.Mail;
 using System.Net.Security;
-using Microsoft.Extensions.Options;
-using Pulse.Models.CustomComponents;
+using System.Reflection;
 
 namespace Pulse.ApiService.Services;
 
@@ -55,19 +56,29 @@ public class EmailService : IEmailService
                 Credentials = new NetworkCredential(_emailConfig.SmtpUsername, _emailConfig.SmtpPassword)
             };
 
-            // Configure SSL/TLS certificate validation if needed
-            if (_emailConfig.EnableSsl)
+            var type = client.GetType();
+            var flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var field = type.GetField("clientDomain", flags)         // .NET Framework / older .NET
+                     ?? type.GetField("_clientDomain", flags);       // sometimes different name
+
+            if (field != null)
             {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
-                ServicePointManager.ServerCertificateValidationCallback =
-                    (object sender, System.Security.Cryptography.X509Certificates.X509Certificate certificate,
-                     System.Security.Cryptography.X509Certificates.X509Chain chain,
-                     SslPolicyErrors sslPolicyErrors) => true;
+                field.SetValue(client, "whitelightning.local");     // or "dev.pulse.local" or your real domain
             }
+            // Fix EHLO hostname issue - use a valid FQDN
+            //try
+            //{
+            //    client.TargetName = $"SMTP:{_emailConfig.SmtpServer}";
+            //}
+            //catch
+            //{
+            //    // Fallback if TargetName is not available
+            //    _logger.LogWarning("Could not set TargetName property on SmtpClient");
+            //}
 
             var mailMessage = new MailMessage
             {
-                From = new MailAddress(_emailConfig.FromEmail, _emailConfig.FromName),
+                From = new MailAddress(_emailConfig.FromEmail, _emailConfig.FromName, System.Text.Encoding.UTF8),
                 Subject = subject,
                 Body = htmlBody,
                 IsBodyHtml = true,
@@ -81,6 +92,7 @@ public class EmailService : IEmailService
                 recipientEmail, _emailConfig.SmtpServer, _emailConfig.SmtpPort);
 
             await client.SendMailAsync(mailMessage);
+            //client.Send(mailMessage);
             mailMessage.Dispose();
 
             _logger.LogInformation("Email sent successfully to {RecipientEmail} with subject '{Subject}'", recipientEmail, subject);
@@ -88,13 +100,12 @@ public class EmailService : IEmailService
         }
         catch (SmtpException ex)
         {
-            _logger.LogError(ex, "SMTP error sending email to {RecipientEmail}. Status: {StatusCode}, Message: {Message}",
-                recipientEmail, ex.StatusCode, ex.Message);
+            _logger.LogError(ex, "SMTP error sending email to {RecipientEmail}. Status: {StatusCode}", recipientEmail, ex.StatusCode);
             return false;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send email to {RecipientEmail} with subject '{Subject}'", recipientEmail, subject);
+            _logger.LogError(ex, "Failed to send email to {RecipientEmail}", recipientEmail);
             return false;
         }
     }
@@ -134,10 +145,12 @@ public class EmailService : IEmailService
                 Credentials = new NetworkCredential(_emailConfig.SmtpUsername, _emailConfig.SmtpPassword)
             };
 
-            if (_emailConfig.EnableSsl)
-            {
-                ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
-            }
+            //if (_emailConfig.EnableSsl)
+            //{
+            //    var servicePoint = ServicePointManager.FindServicePoint(
+            //        new Uri($"smtp://{_emailConfig.SmtpServer}:{_emailConfig.SmtpPort}"));
+            //    servicePoint.SecurityProtocol = SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13;
+            //}
 
             var subject = $"Report: {reportName}";
             var htmlBody = _templateService.GetGenericNotificationTemplate(

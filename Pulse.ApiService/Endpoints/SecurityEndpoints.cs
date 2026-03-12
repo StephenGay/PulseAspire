@@ -57,6 +57,16 @@ namespace Pulse.ApiService.Endpoints
                         return Results.Unauthorized();
                     }
 
+                    if(user.RequirePwdChange)
+                    {
+                        logger.LogInformation("User {Email} requires password change", model.Email);
+                        return Results.Conflict(new ApiResponse
+                        {
+                            Success = false,
+                            Message = "Password change required",
+                            StatusCode = 409
+                        });
+                    }
                     // Fetch user roles
                     var roles = await userManager.GetRolesAsync(user);
                     logger.LogInformation("User {Email} logged in with roles: {Roles}", model.Email, string.Join(", ", roles));
@@ -91,6 +101,7 @@ namespace Pulse.ApiService.Endpoints
             //.WithOpenApi()
             .Produces<ApiResponse<AuthenticationToken>>(StatusCodes.Status200OK)
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse>(StatusCodes.Status409Conflict)
             .Produces(StatusCodes.Status401Unauthorized)
             .Produces(StatusCodes.Status500InternalServerError);
 
@@ -144,7 +155,11 @@ namespace Pulse.ApiService.Endpoints
             .Produces<ApiResponse>(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status500InternalServerError);
 
-            group.MapPost("/register", async (UserManager<ApplicationUser> userManager, [FromBody] RegisterModel model, ILoggerFactory loggerFactory) =>
+            group.MapPost("/register", async (
+                            UserManager<ApplicationUser> userManager, 
+                            [FromBody] ApplicationUserDto model,
+                            IPasswordGeneratorService passwordGeneratorService,
+                            ILoggerFactory loggerFactory) =>
             {
                 var logger = loggerFactory.CreateLogger("Register");
 
@@ -155,16 +170,16 @@ namespace Pulse.ApiService.Endpoints
                 }
 
                 // Validate input
-                if (string.IsNullOrWhiteSpace(model?.Email) || string.IsNullOrWhiteSpace(model?.Password))
-                {
-                    logger.LogWarning("Registration attempt with missing email or password");
-                    return Results.BadRequest(new ApiResponse
-                    {
-                        Success = false,
-                        Message = "Email and password are required",
-                        StatusCode = 400
-                    });
-                }
+                //if (string.IsNullOrWhiteSpace(model?.Email) || string.IsNullOrWhiteSpace(model?.Password))
+                //{
+                //    logger.LogWarning("Registration attempt with missing email or password");
+                //    return Results.BadRequest(new ApiResponse
+                //    {
+                //        Success = false,
+                //        Message = "Email and password are required",
+                //        StatusCode = 400
+                //    });
+                //}
 
                 // Check if user already exists
                 var existingUser = await userManager.FindByEmailAsync(model.Email);
@@ -181,30 +196,30 @@ namespace Pulse.ApiService.Endpoints
 
                 try
                 {
+                    var generatedPassword = passwordGeneratorService.GenerateRandomPassword();
                     // Create the new user
                     var user = new ApplicationUser
                     {
                         UserName = model.UserName ?? model.Email,
                         Email = model.Email,
-                        FullName = model.FullName ?? model.Email
+                        FullName = model.FullName ?? model.Email,
+                        RequirePwdChange = true,  // Force password change on first login    
+                        PhoneNumber = model.PhoneNumber
                     };
 
-                    var result = await userManager.CreateAsync(user, model.Password);
+                    var result = await userManager.CreateAsync(user, generatedPassword);
 
                     if (result.Succeeded)
                     {
                         logger.LogInformation("User registered successfully: {Email}", model.Email);
-                        return Results.Ok(new ApiResponse<UserRoleDto>
+                        var newUser = await userManager.FindByEmailAsync(model.Email);
+                        model.Id = newUser.Id;
+
+                        return Results.Ok(new ApiResponse<ApplicationUserDto>
                         {
                             Success = true,
-                            Data = new UserRoleDto
-                            {
-                                Id = user.Id,
-                                Email = user.Email,
-                                UserName = user.UserName ?? user.Email,
-                                FullName = user.FullName ?? user.Email
-                            },
                             Message = "User registered successfully",
+                            Data = model,
                             StatusCode = 200
                         });
                     }
@@ -226,9 +241,69 @@ namespace Pulse.ApiService.Endpoints
             })
             .AllowAnonymous()
             .WithName("Register")
-            .Produces<ApiResponse<UserRoleDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<ApplicationUserDto>>(StatusCodes.Status200OK)
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/UpdateUser", async (ApplicationUserDto model, UserManager<ApplicationUser> userManager, ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("UpdateUser");
+
+                try
+                {
+                    var user = await userManager.FindByIdAsync(model.Id);
+                    if (user == null)
+                    {
+                        logger.LogWarning("Update attempt for non-existent user ID: {UserId}", model.Id);
+                        return Results.NotFound();
+                    }
+
+                    user.FullName = model.FullName ?? user.FullName;
+                    if(model.PhoneNumber != user.PhoneNumber) {
+                        user.PhoneNumber = model.PhoneNumber ?? user.PhoneNumber;
+                        user.PhoneNumberConfirmed = false; // Require reconfirmation if phone number changes
+                    }
+                    if (model.Email != user.Email)
+                    {
+                        user.EmailConfirmed = false; // Require reconfirmation if email changes
+                        user.Email = model.Email ?? user.Email;
+                        user.NormalizedEmail = model.Email?.ToUpper() ?? user.NormalizedEmail;
+                    }
+                    user.RequirePwdChange = model.RequirePwdChange;
+
+                    var result = await userManager.UpdateAsync(user);
+
+                    if(!result.Succeeded)
+                    {
+                        logger.LogWarning("Failed to update user {Email}: {Errors}", model.Email, string.Join(", ", result.Errors.Select(e => e.Description)));
+                        return Results.BadRequest(new ApiResponse
+                        {
+                            Success = false,
+                            Message = "Failed to update user",
+                            Errors = result.Errors.ToDictionary(e => "user", e => new[] { e.Description }),
+                            StatusCode = 400
+                        });
+                    }
+
+                    logger.LogInformation("User updated successfully: {Email}", user.Email);
+                    return Results.Ok(new ApiResponse
+                    {
+                        Success = true,
+                        Message = "User updated successfully",
+                        StatusCode = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Unexpected error during update for {Email}", model.Email);
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+                .RequireAuthorization("Admin")
+                .WithName("UpdateUser")
+                .Produces<ApiResponse>(StatusCodes.Status200OK)
+                .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+                .Produces(StatusCodes.Status500InternalServerError);
 
             group.MapPost("/forgot-password", async (
                 [FromBody] ForgotPasswordModel model,
@@ -269,7 +344,7 @@ namespace Pulse.ApiService.Endpoints
 
                     var emailSent = await emailService.SendPasswordResetAsync(
                         user.Email!,
-                        user.UserName ?? "User",
+                        user.FullName ?? "User",
                         resetLink);
 
                     if (!emailSent)
@@ -301,6 +376,54 @@ namespace Pulse.ApiService.Endpoints
             .WithName("ForgotPassword")
             .Produces<ApiResponse>(StatusCodes.Status200OK)
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/SendWelcomeEmail", async (
+                [FromBody] ApplicationUserDto model,
+                UserManager<ApplicationUser> userManager,
+                IEmailService emailService,
+                IConfiguration configuration,
+                ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("SendWelcomeEmail");
+
+                try
+                {
+                    var user = await userManager.FindByEmailAsync(model.Email);
+                    if (user == null)
+                    {
+                        logger.LogWarning("Welcome Message attempted for non-existent user: {Email}", model.Email);
+                        return Results.NotFound(new ApiResponse
+                        {
+                            Success = false,
+                            Message = "User not found",
+                            StatusCode = 404
+                        });
+                    }
+
+                    var appBaseUrl = configuration["AppBaseUrl"] ?? "https://localhost:7219";
+                    await emailService.SendWelcomeAsync(user.Email, user.FullName, appBaseUrl);
+
+                    logger.LogInformation("Welcome message sent to {Email}", user.Email);
+                    return Results.Ok(new ApiResponse
+                    {
+                        Success = true,
+                        Message = "Welcome message sent successfully",
+                        StatusCode = 200
+                    });
+                    //}
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error sending Welcome message to {Email}", model?.Email);
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+            .RequireAuthorization("Admin")
+            .WithName("SendWelcome")
+            .Produces<ApiResponse>(StatusCodes.Status200OK)
+            .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse>(StatusCodes.Status404NotFound)
             .Produces(StatusCodes.Status500InternalServerError);
 
             group.MapPost("/reset-password", async (
@@ -352,16 +475,23 @@ namespace Pulse.ApiService.Endpoints
                         });
                     }
 
-                    // Send confirmation email
-                    await emailService.SendPasswordChangedNotificationAsync(user.Email!, user.UserName ?? "User");
+                     //  Remove password change flag
 
-                    logger.LogInformation("Password reset successfully for {Email}", user.Email);
-                    return Results.Ok(new ApiResponse
-                    {
-                        Success = true,
-                        Message = "Password reset successfully",
-                        StatusCode = 200
-                    });
+                    //if (result.Succeeded)
+                    //{
+                        user.RequirePwdChange = false;
+                        await userManager.UpdateAsync(user);
+                        // Send confirmation email
+                        await emailService.SendPasswordChangedNotificationAsync(user.Email!, user.FullName ?? "User");
+
+                        logger.LogInformation("Password reset successfully for {Email}", user.Email);
+                        return Results.Ok(new ApiResponse
+                        {
+                            Success = true,
+                            Message = "Password reset successfully",
+                            StatusCode = 200
+                        });
+                    //}
                 }
                 catch (Exception ex)
                 {
@@ -504,6 +634,59 @@ namespace Pulse.ApiService.Endpoints
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapGet("/users/GetByID/{userID}", async (string userID, UserManager<ApplicationUser> userManager, ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("GetUserByID");
+
+                if (userManager == null)
+                {
+                    logger.LogError("UserManager service is not available");
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+
+                try
+                {
+                    var user = await userManager.FindByIdAsync(userID);
+                    //if(user == null)
+                    //{
+
+                    //}
+                    var roles = await userManager.GetRolesAsync(user);
+                    var appUser = new ApplicationUserDto
+                    {
+                        Id = user.Id,
+                        Email = user.Email,
+                        UserName = user.UserName,
+                        EmailConfirmed = user.EmailConfirmed,
+                        PhoneNumber = user.PhoneNumber,
+                        TwoFactorEnabled = user.TwoFactorEnabled,
+                        LockoutEnd = user.LockoutEnd,
+                        LockoutEnabled = user.LockoutEnabled,
+                        AccessFailedCount = user.AccessFailedCount,
+                        FullName = user.FullName,
+                        RequirePwdChange = user.RequirePwdChange,
+                        Roles = roles.ToList()
+                    };
+
+                    return Results.Ok(new ApiResponse<ApplicationUserDto>
+                    {
+                        Success = true,
+                        Data = appUser,
+                        Message = "User Profile Retrieved",
+                        StatusCode = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error retrieving users");
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+            .RequireAuthorization("Admin")
+            .WithName("GetUserById")
+            .Produces < ApiResponse<ApplicationUserDto>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status500InternalServerError);
+
             // GET USERS ENDPOINT
             group.MapGet("/users", async (UserManager<ApplicationUser> userManager, ILoggerFactory loggerFactory) =>
             {
@@ -518,22 +701,35 @@ namespace Pulse.ApiService.Endpoints
                 try
                 {
                     var users = await userManager.Users.ToListAsync();
-                    var userDtos = new List<UserRoleDto>();
+                    var userDtos = new List<ApplicationUserDto>();
 
                     foreach (var user in users)
                     {
                         var roles = await userManager.GetRolesAsync(user);
-                        userDtos.Add(new UserRoleDto
+                        userDtos.Add(new ApplicationUserDto
                         {
                             Id = user.Id,
-                            Email = user.Email ?? string.Empty,
-                            UserName = user.UserName ?? string.Empty,
-                            FullName = user.FullName ?? string.Empty,
+                            Email = user.Email,
+                            UserName = user.UserName,
+                            EmailConfirmed = user.EmailConfirmed,
+                            PhoneNumber = user.PhoneNumber,
+                            TwoFactorEnabled = user.TwoFactorEnabled,
+                            LockoutEnd = user.LockoutEnd,
+                            LockoutEnabled = user.LockoutEnabled,
+                            AccessFailedCount = user.AccessFailedCount,
+                            FullName = user.FullName,
+                            RequirePwdChange = user.RequirePwdChange,
                             Roles = roles.ToList()
+                            //Id = user.Id,
+                            //Email = user.Email ?? string.Empty,
+                            //UserName = user.UserName ?? string.Empty,
+                            //FullName = user.FullName ?? string.Empty,
+
+                            //Roles = roles.ToList()
                         });
                     }
 
-                    return Results.Ok(new ApiResponse<List<UserRoleDto>>
+                    return Results.Ok(new ApiResponse<List<ApplicationUserDto>>
                     {
                         Success = true,
                         Data = userDtos,
@@ -549,7 +745,7 @@ namespace Pulse.ApiService.Endpoints
             })
             .RequireAuthorization("Admin")
             .WithName("GetUsers")
-            .Produces<ApiResponse<List<UserRoleDto>>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<List<ApplicationUserDto>>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status500InternalServerError);
 
             // ASSIGN ROLE ENDPOINT

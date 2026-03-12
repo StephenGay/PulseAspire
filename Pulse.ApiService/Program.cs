@@ -6,12 +6,13 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
+using Pulse.ApiService.Endpoints.Security;
 using Pulse.ApiService.Hubs;
 using Pulse.ApiService.Middleware;
 using Pulse.ApiService.Security;
 using Pulse.ApiService.Services;
 using Pulse.Models;
-using Pulse.Models.CustomComponents;
+using Pulse.Models.Communication;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
 using Scalar.AspNetCore;
@@ -143,6 +144,7 @@ var emailConfig = builder.Configuration.GetSection("EmailConfiguration");
 builder.Services.Configure<EmailConfiguration>(emailConfig);
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IPasswordGeneratorService, PasswordGeneratorService>();
 
 #endregion
 
@@ -224,6 +226,8 @@ app.MapDefaultEndpoints();
 app.MapCustomerEndpoints();
 app.MapAiEndpoints();
 app.MapSecurityEndpoints();
+app.MapPermissionEndpoints();
+app.MapRoleEndpoints();
 app.MapUserEndpoints();
 app.MapUtilitiesEndpoints();
 app.MapDivisionEndpoints();

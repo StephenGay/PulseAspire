@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI.AIds
+@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Organizational
 @using Pulse.Models.Users
@@ -39,8 +40,8 @@
 <style>
     .drawer {
         --bb-drawer-body-padding: 0 !important;
-        top: 56px !important;
-        height: calc(100vh - 112px) !important;
+        /* top: 56px !important; */
+        height: calc(100vh - 56px) !important;
         z-index: 999 !important;
     }
 
@@ -126,6 +127,11 @@
                 </FluentStack>
              </div>
             <Drawer Placement="Placement.Left" @bind-IsOpen="@ShowMsgCentre" IsBackdrop="true" @OnCloseAsync="() => ShowMsgCentre=false" AllowResize="true" width="100%" style="overflow-x:hidden">
+                    <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                                  IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => ShowMsgCentre=false">
+                        Close
+                    </FluentButton>
+                    
                 <UserMsgCentre OnCloseDrawer="(closeDrawer) => ShowMsgCentre = closeDrawer" />
             </Drawer>
         </div>

@@ -219,6 +219,73 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("ContextualPromptMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Communication.PulseMessage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)")
+                        .HasDefaultValue("HTML");
+
+                    b.Property<bool?>("Delivered")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("RecipientUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("RecipientUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasDefaultValue("user");
+
+                    b.Property<string>("SenderUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("SenderUserName")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<DateTime?>("SentAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RecipientUserId");
+
+                    b.HasIndex("SenderUserId");
+
+                    b.HasIndex("SentAt");
+
+                    b.ToTable("PulseMessages", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
                 {
                     b.Property<string>("CompoundCode")
@@ -389,73 +456,6 @@ namespace Pulse.ApiService.Migrations
                     b.HasKey("PolymerName");
 
                     b.ToTable("PolymerMaster", (string)null);
-                });
-
-            modelBuilder.Entity("Pulse.Models.CustomComponents.PulseMessage", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)")
-                        .HasDefaultValue("HTML");
-
-                    b.Property<bool?>("Delivered")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("RecipientUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("RecipientUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasDefaultValue("user");
-
-                    b.Property<string>("SenderUserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("SenderUserName")
-                        .HasMaxLength(256)
-                        .HasColumnType("nvarchar(256)");
-
-                    b.Property<DateTime?>("SentAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<string>("Subject")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("RecipientUserId");
-
-                    b.HasIndex("SenderUserId");
-
-                    b.HasIndex("SentAt");
-
-                    b.ToTable("PulseMessages", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Models.Customers.ClientBudgets", b =>
@@ -1414,6 +1414,265 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("RepresentativeMaster", (string)null);
                 });
 
+            modelBuilder.Entity("Pulse.Models.Permissions.Permission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Category")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("CreatedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Category");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("AspNetPermissions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Category = "User Management",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View list of users and their details",
+                            Name = "Users:View"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Category = "User Management",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create new user accounts",
+                            Name = "Users:Create"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Category = "User Management",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Edit existing user profiles and roles",
+                            Name = "Users:Edit"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Category = "User Management",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete user accounts",
+                            Name = "Users:Delete"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Category = "User Management",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Force password reset for any user",
+                            Name = "Users:ResetPassword"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Category = "Role & Permissions",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View all roles and their assigned permissions",
+                            Name = "Roles:View"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Category = "Role & Permissions",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Create new roles",
+                            Name = "Roles:Create"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Category = "Role & Permissions",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Edit role names and assign/remove permissions",
+                            Name = "Roles:Edit"
+                        },
+                        new
+                        {
+                            Id = 9,
+                            Category = "Role & Permissions",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Delete roles (only if not in use)",
+                            Name = "Roles:Delete"
+                        },
+                        new
+                        {
+                            Id = 10,
+                            Category = "Role & Permissions",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Full access to view/create/edit/delete permissions",
+                            Name = "Permissions:Manage"
+                        },
+                        new
+                        {
+                            Id = 11,
+                            Category = "System Settings",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View application configuration and system settings",
+                            Name = "Settings:View"
+                        },
+                        new
+                        {
+                            Id = 12,
+                            Category = "System Settings",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Modify global application settings",
+                            Name = "Settings:Edit"
+                        },
+                        new
+                        {
+                            Id = 13,
+                            Category = "Reports & Analytics",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Access and generate reports and dashboards",
+                            Name = "Reports:View"
+                        },
+                        new
+                        {
+                            Id = 14,
+                            Category = "Reports & Analytics",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "Export reports to PDF, CSV, Excel",
+                            Name = "Reports:Export"
+                        },
+                        new
+                        {
+                            Id = 15,
+                            Category = "Audit & Logging",
+                            CreatedDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Description = "View audit logs and user activity history",
+                            Name = "Audit:View"
+                        });
+                });
+
+            modelBuilder.Entity("Pulse.Models.Permissions.PermissionCategory", b =>
+                {
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Category");
+
+                    b.HasIndex("Category")
+                        .IsUnique();
+
+                    b.ToTable("AspNetPermissionCategories", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Category = "User Management"
+                        },
+                        new
+                        {
+                            Category = "Group Management"
+                        },
+                        new
+                        {
+                            Category = "Company Management"
+                        },
+                        new
+                        {
+                            Category = "Division Management"
+                        },
+                        new
+                        {
+                            Category = "Inventory"
+                        },
+                        new
+                        {
+                            Category = "Pulse AI"
+                        },
+                        new
+                        {
+                            Category = "Production"
+                        },
+                        new
+                        {
+                            Category = "Notifications"
+                        },
+                        new
+                        {
+                            Category = "Technical"
+                        },
+                        new
+                        {
+                            Category = "Audit & Logging"
+                        },
+                        new
+                        {
+                            Category = "Reports & Analytics"
+                        },
+                        new
+                        {
+                            Category = "System Settings"
+                        },
+                        new
+                        {
+                            Category = "Role & Permissions"
+                        });
+                });
+
+            modelBuilder.Entity("Pulse.Models.Permissions.RolePermission", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AssignedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RoleId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("RoleId", "PermissionId")
+                        .IsUnique();
+
+                    b.ToTable("AspNetRolePermissions", (string)null);
+                });
+
             modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
                 {
                     b.Property<string>("EquipmentItemID")
@@ -1476,6 +1735,45 @@ namespace Pulse.ApiService.Migrations
                     b.HasIndex("EquipmentCategoryID");
 
                     b.ToTable("EquipmentItems", (string)null);
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.Layout.FactoryZone", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DivisionId")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("nvarchar(5)");
+
+                    b.Property<double>("Height")
+                        .HasColumnType("float");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<double>("Width")
+                        .HasColumnType("float");
+
+                    b.Property<double>("X")
+                        .HasColumnType("float");
+
+                    b.Property<double>("Y")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("FactoryZones");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.NonConformance.NonConformanceReport", b =>
@@ -2126,6 +2424,9 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("PresenceStatus")
                         .HasColumnType("int");
 
+                    b.Property<bool>("RequirePwdChange")
+                        .HasColumnType("bit");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("nvarchar(max)");
 
@@ -2619,6 +2920,28 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Company");
                 });
 
+            modelBuilder.Entity("Pulse.Models.Permissions.Permission", b =>
+                {
+                    b.HasOne("Pulse.Models.Permissions.PermissionCategory", "CategoryNavigation")
+                        .WithMany()
+                        .HasForeignKey("Category")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CategoryNavigation");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Permissions.RolePermission", b =>
+                {
+                    b.HasOne("Pulse.Models.Permissions.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+                });
+
             modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
                 {
                     b.HasOne("Pulse.Models.Production.EquipmentItem", "EquipmentItem")
@@ -2953,6 +3276,11 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Organizational.SalesRepresentative", b =>
                 {
                     b.Navigation("Customers");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Permissions.Permission", b =>
+                {
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.EquipmentItem", b =>

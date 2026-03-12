@@ -236,6 +236,45 @@ namespace Pulse.Web.Services
             }
         }
 
+        public async Task<T?> DeleteAsync<T>(string requestUri, CancellationToken ct = default)
+            where T : class
+        {
+            ArgumentException.ThrowIfNullOrEmpty(requestUri);
+
+            try
+            {
+                _logger.LogDebug("DELETE request to {RequestUri}", requestUri);
+                var response = await _httpClient.DeleteAsync(requestUri, ct);
+
+                var content = await response.Content.ReadAsStringAsync(ct);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("DELETE request failed with {StatusCode}: {Content}",
+                        response.StatusCode, content[..Math.Min(500, content.Length)]);
+                    throw new PulseApiException(
+                        $"DELETE request failed: {response.StatusCode}",
+                        requestUri,
+                        response.StatusCode);
+                }
+
+                if (string.IsNullOrWhiteSpace(content))
+                {
+                    return null;
+                }
+
+                return JsonSerializer.Deserialize<T>(content, _jsonOptions);
+            }
+            catch (HttpRequestException ex)
+            {
+                throw new PulseApiException(
+                    $"DELETE request failed to {requestUri}",
+                    requestUri,
+                    ex.StatusCode,
+                    innerException: ex);
+            }
+        }
+
         public async Task<bool> PatchAsync<TRequest>(
             string requestUri,
             TRequest payload,
@@ -390,15 +429,23 @@ namespace Pulse.Web.Services
                 ApiEndpoints.Security.Login, model, ct);
         }
 
-        public async Task<UserRoleDto?> UserRegisterAsync(
-            RegisterModel model,
+        public async Task<ApiResponse<ApplicationUserDto>?> UserRegisterAsync(
+            ApplicationUserDto model,
             CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(model);
-            return await PostAsync<RegisterModel, UserRoleDto>(
+            return await PostAsync<ApplicationUserDto, ApiResponse<ApplicationUserDto>>(
                 ApiEndpoints.Security.Register, model, ct);
         }
 
+        public async Task<ApiResponse?> EditUserAsync(
+            ApplicationUserDto model,
+            CancellationToken ct = default)
+        {
+            ArgumentNullException.ThrowIfNull(model);
+            return await PostAsync<ApplicationUserDto, ApiResponse>(
+                ApiEndpoints.Security.UpdateUser, model, ct);
+        }
         public async Task<string?> AddNewRoleAsync(
             string roleName,
             CancellationToken ct = default)

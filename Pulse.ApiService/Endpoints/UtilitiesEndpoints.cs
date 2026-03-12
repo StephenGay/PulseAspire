@@ -1,4 +1,7 @@
 ﻿
+using Pulse.ApiService.Services;
+using Pulse.Models.Api;
+using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
@@ -19,6 +22,28 @@ namespace Pulse.ApiService.Endpoints
             })
             .WithName("HealthCheck")
             .Produces(StatusCodes.Status200OK);
+
+            group.MapPost("/SendEmail", async (EMailMessage msg, IEmailService emailService) =>
+            {
+                try
+                {
+                    bool res = await emailService.SendEmailAsync(msg.ToEMailAddress, msg.ToEMailName, msg.Subject, msg.HtmlBody);
+                    if (res)
+                    {
+                        return Results.Ok(new ApiResponse
+                        {
+                            Success = true,
+                            Message = "EMail sent successfully",
+                            StatusCode = 200
+                        });
+                    }
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+                catch (Exception ex)
+                {
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            });
 
             group.MapPost("/pdf/export", async (PdfRequest request, CancellationToken ct) =>
             {

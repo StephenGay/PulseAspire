@@ -7,6 +7,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 @using Pulse.Models.AI.AIds
+@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
 @using Pulse.Models.Users
@@ -677,7 +678,7 @@
             if (stream)
             {
                 // ✅ Streaming enabled: consume chunks, display thinking, and extract final answer
-                await foreach (var chunk in StreamChatWithFlapperAsync(chatHistory, true, cts.Token))
+                await foreach (var chunk in pAI.StreamChatWithOllamaAsync(chatHistory,flapper.Model, true, cts.Token))
                 {
                     if (string.IsNullOrEmpty(chunk)) continue;
 

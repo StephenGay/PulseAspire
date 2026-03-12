@@ -1,0 +1,91 @@
+﻿@page "/EmployeeZone/Production/Setup/Factory/FactoryLayout/FactoryLayout"
+@using Pulse.Models.Api
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production.Layout
+@using Pulse.Web.Services
+
+@inject PulseApiService ApiService
+@inject DataTransferService dTrf
+@inject IMouseService MouseService
+@rendermode InteractiveServer
+
+<FluentCard style="width:100%; max-width:1200px; margin:20px auto;">
+    <FluentToolbar>
+        <FluentButton Appearance="Appearance.Accent" OnClick="AddNewZone">+ Add Zone</FluentButton>
+        <FluentButton OnClick="SaveLayout">Save to Database</FluentButton>
+        <FluentButton OnClick="LoadLayout">Load</FluentButton>
+        <FluentSwitch @bind-Value="SnapToGrid">Snap to Grid (10px)</FluentSwitch>
+    </FluentToolbar>
+
+    <div style="position: relative; width: 100%; min-height: 700px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;"
+         @onmousemove="HandleMouseMove" @onmouseup="HandleMouseUp" @onmouseleave="HandleMouseUp">
+
+        <svg width="100%" height="100%" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet"
+             style="background: white; display: block; user-select: none;">
+            
+            @foreach (var zone in Zones)
+            {
+                <DraggableZone Zone="zone" OnPositionChanged="UpdateZonePosition" SnapToGrid="SnapToGrid" />
+            }
+            
+            <!-- Optional background grid lines -->
+            @if (SnapToGrid)
+            {
+                <!-- draw light grid lines here if you want visual grid -->
+            }
+        </svg>
+    </div>
+</FluentCard>
+
+@code {
+    private List<FactoryZone> Zones = new();
+    private bool SnapToGrid = true;
+    private FactoryZone? DraggingZone; // handled inside DraggableZone but you can expose if needed
+    private Division? d;
+
+    protected override async Task OnInitializedAsync()
+    {
+        d = await dTrf.GetgvSelectedDivision();
+        var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID));
+        Zones = response?.Data ?? new();
+    }
+
+    private void AddNewZone()
+    {
+        var newZone = new FactoryZone 
+        { 
+            Name = $"Zone {Zones.Count + 1}",
+            DivisionId = d?.DivisionID,
+            X = 100 + Zones.Count * 20, 
+            Y = 100 + Zones.Count * 20 
+        };
+        Zones.Add(newZone);
+    }
+
+    private void UpdateZonePosition(FactoryZone updated)
+    {
+        var existing = Zones.First(z => z.Id == updated.Id);
+        existing.X = updated.X;
+        existing.Y = updated.Y;
+        // Width/Height can be bound too if you add resize later
+        StateHasChanged();
+    }
+
+    private async Task SaveLayout() => await ApiService.PostAsync<List<FactoryZone>,ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.SaveLayout(d.DivisionID), Zones);
+    private async Task LoadLayout() => Zones = await ApiService.GetAsync<List<FactoryZone>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID));
+
+    // Global mouse handlers (see DraggableZone below)
+    private void HandleMouseMove(MouseEventArgs e)
+    { 
+        MouseService.FireMove(e);
+    }
+
+    private void HandleMouseUp(MouseEventArgs e)
+    {
+        MouseService.FireUp(e);
+    }
+    private void HandleMouseLeave(MouseEventArgs e)
+    {
+        MouseService.FireUp(e);
+    }
+}

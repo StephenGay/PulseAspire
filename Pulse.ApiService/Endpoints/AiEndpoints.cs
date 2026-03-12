@@ -112,6 +112,16 @@ namespace Pulse.ApiService.Endpoints
                 var prompt = await dbContext.ContextualPromptMaster
                     .AsNoTracking()
                     .Where(a => a.ContextualPromptId == promptid)
+                    .Select(a => new ContextualPrompt
+                    {
+                        ContextualPromptId = a.ContextualPromptId,
+                        ContextualAreaId = a.ContextualAreaId,
+                        ContextualPromptTitle = a.ContextualPromptTitle ?? string.Empty,
+                        ContextualPromptDescription = a.ContextualPromptDescription ?? string.Empty,
+                        Prompt = a.Prompt ?? string.Empty,
+                        ApplicationUserId = a.ApplicationUserId ?? string.Empty,
+                        Likes = a.Likes
+                    })
                     .FirstOrDefaultAsync();
                 return Results.Ok(prompt);
             });
@@ -128,6 +138,16 @@ namespace Pulse.ApiService.Endpoints
                 var prompts = await dbContext.ContextualPromptMaster
                     .AsNoTracking()
                     .Where(a => a.ContextualAreaId == areaid)
+                    .Select(a => new ContextualPrompt
+                    {
+                        ContextualPromptId = a.ContextualPromptId,
+                        ContextualAreaId = a.ContextualAreaId,
+                        ContextualPromptTitle = a.ContextualPromptTitle ?? string.Empty,
+                        ContextualPromptDescription = a.ContextualPromptDescription ?? string.Empty,
+                        Prompt = a.Prompt ?? string.Empty,
+                        ApplicationUserId = a.ApplicationUserId ?? string.Empty,
+                        Likes = a.Likes
+                    })
                     .ToListAsync();
                 return Results.Ok(prompts);
             });

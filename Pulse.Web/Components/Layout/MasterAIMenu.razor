@@ -3,6 +3,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI
 @using Pulse.Models.AI.AIds
+@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
 @using Pulse.Models.Misc
@@ -196,14 +197,14 @@
                 {
                     if (IsOpen || OpenFlapper || OpenTables)
                     {
-                        <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;" 
-                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))"></FluentButton>
+                        
                     }
                     else
                     {
                         <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showAli" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuAliBtn" Style="height:40px" Disabled="!showAi.showAli" class="btnShadow" BackgroundColor="var(--pulse-light-colour)" OnClick="btnOpenAIMenu">
-                                @(mAli.emoji.ToMarkup("40px"))
+                            <FluentButton Id="mnuAliBtn" Style="height:40px;width:62px;margin-right:30px" Disabled="!showAi.showAli" class="btnShadow" BackgroundColor="white" OnClick="btnOpenAIMenu">
+                                @* @(mAli.emoji.ToMarkup("40px")) *@
+                                <img src="Images/AI/Ali.jpg" alt="Ali" style="height:40px;width:40px" />
                             </FluentButton>
                         </Animation>
                         <FluentTooltip Anchor="mnuAliBtn" HideTooltipOnCursorLeave="true" Style="background-color:burlywood" AutoUpdateMode="AutoUpdateMode.Auto" Delay=100>
@@ -215,8 +216,9 @@
                         </FluentTooltip>
 
                         <Animation Effect="@Effect.HeartBeat" Enabled="@showAi.showTables" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuTablesBtn" Style="height:40px" class="btnShadow" BackgroundColor="var(--pulse-light-colour)" OnClick="btnChooseTables">
-                                @(mTables.emoji.ToMarkup("40px"))
+                            <FluentButton Id="mnuTablesBtn" Style="height:40px;width:62px;margin-right:30px" class="btnShadow" BackgroundColor="white" OnClick="btnChooseTables">
+                                @* @(mTables.emoji.ToMarkup("40px")) *@
+                                <img src="Images/AI/Tables.jpg" alt="Tables" style="height:40px;width:40px;align-content:center" />
                             </FluentButton>
                             <FluentTooltip Anchor="mnuTablesBtn" HideTooltipOnCursorLeave="true" AutoUpdateMode="AutoUpdateMode.Anchor" Delay=100>
                                 <strong>Tables:</strong><br />
@@ -230,8 +232,9 @@
                         
 
                         <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showFlapper" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuFlapperBtn" Style="height:40px" class="btnShadow" BackgroundColor="var(--pulse-light-colour)" OnClick="btnChooseFlapper">
-                                @(mFlapper.emoji.ToMarkup("40px"))
+                            <FluentButton Id="mnuFlapperBtn" Style="height:40px;width:62px;margin-right:30px" class="btnShadow" BackgroundColor="white" OnClick="btnChooseFlapper">
+                                @* @(mFlapper.emoji.ToMarkup("40px")) *@
+                                <img src="Images/AI/Flapper.jpg" alt="Flapper" style="height:40px;width:40px" />
                             </FluentButton>
                             <FluentTooltip Anchor="mnuFlapperBtn" HideTooltipOnCursorLeave="true" Delay=100>
                                 <strong>Flapper:</strong><br />
@@ -260,6 +263,12 @@
 
     </FluentStack>
           <Drawer Placement="Placement.Right" @bind-IsOpen="@IsOpen" IsBackdrop="true" @OnCloseAsync="() => IsOpen=false" AllowResize="true" width="100%" style="overflow-x:hidden">
+              <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
+             <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;" 
+                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => IsOpen=false">
+            </FluentButton>
+
+         </div>
         <div class="dparent">
             <div class="dheader" Style="border-bottom: 1px solid black">
                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
@@ -384,145 +393,16 @@
             </div>
         </div>
 
-        @* <div style="display: flex;flex-direction: column;overflow:hidden;height:100%;padding:5px;background-color:rgba(188,209,212,0.8)">
-
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-bottom: 0px;">
-                
-                    <FluentSpacer />
-                    
-            </FluentStack>
         
-            
-            
-            <FluentGrid Style="flex: 1">
-                <FluentGridItem xs="12" sm="12" md="6" lg="4" xl="3" xxl="2" Style="height:100%">
-                    <div class="d-flex justify-content-start align-items-stretch flex-column myContentDiv" style="height: 95%; margin:10px;overflow-x:hidden">
-                        
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
-                        
-                                <img src="Images/AI/Ali.png" style="height:96px;width:96px" />
-                                <FluentSpacer />
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
-                                    <FluentLabel Typo="Typography.H4">DATA ANALYSIS</FluentLabel>
-                                    <FluentLabel Typo="Typography.Body">by Ali</FluentLabel>
-                                </FluentStack>
-                        </FluentStack>
-                        
-                        <StackItem class="flex-grow-1" >
-                            
-                                <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
-                                <HeaderTemplate>
-                                    @custTitle
-                                    
-                                </HeaderTemplate>
-                                <BodyTemplate>
-                                    <FluentTextArea rows="10" style="width:100%; height:100%" @bind-Value="txtQ" ReadOnly="!isEditMode" PlaceHolder="Ask a question or select a prompt..." />
-                                </BodyTemplate>
-                                <FooterTemplate>
-                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;">
-                                        @if (!Saving)
-                                        {
-                                            @if (this._isListening)
-                                            {
-                                                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                                    <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" Title="Turn Off Microphone" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="OnClickStop"></FluentButton>
-                                                </Animation>
-                                            }
-                                            else
-                                            {
-                                                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                                    <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" Title="Turn On Microphone" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="StartRecClick"></FluentButton>
-                                                </Animation>
-                                            }
-                                            
-                                            <FluentSpacer />
-                                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                          IconStart="@(new Icons.Filled.Size24.ChatAdd().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                          Title="New Prompt"
-                                                          Style="height:50px;width:50px" OnClick="@NewPrompt"></FluentButton>
-                                                <FluentSpacer />
-                                            @if (showSave)
-                                            {
-                                                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                                    IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                                    Style="height:50px;width:50px" 
-                                                                    OnClick="() => {Saving = true; showSave = false;}"></FluentButton>
-                                                <FluentSpacer />
-                                            }
-                                            else if (!isEditMode)
-                                            {
-                                                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                          IconStart="@(new Icons.Filled.Size24.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                          Title="Edit Prompt"
-                                                          Style="height:50px;width:50px" OnClick="@EditPrompt"></FluentButton>
-                                                <FluentSpacer />
-                                            }
-                                        }
-                                        <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-ok-btn-colour"))"
-                                                    Disabled="@string.IsNullOrEmpty(txtQ)" Style="height:50px;width:50px" OnClick="@btnAskAIClick"></FluentButton>
-                                    </FluentStack>
-                                </FooterTemplate>
-                            </Card>
-                            
-                            @if (_isListening)
-                            {
-                                <div>
-                                    @foreach (var result in this._results)
-                                    {
-                                        txtQ = @result.Items![0].Transcript;
-                                    }
-                                </div>
-                            }
-                                    
-                            @if (Saving)
-                            {
-                                <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
-                                    <FluentTextField @bind-Value=custTitle style="margin-bottom:5px;width:100%" Required="true" Label="Title" Placeholder="Enter A Prompt Title"></FluentTextField>
-                                    <FluentTextField @bind-Value=custDesc Required="true" style="margin-bottom:5px;width:100%" Label="Description" Placeholder="Enter A Short Description"></FluentTextField>
-                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Style="margin-top:15px;margin-bottom:15px;">
-                                        <FluentButton Class="myCancelBtn" 
-                                            BackgroundColor="var(--pulse-cancel-btn-bg)"
-                                            Color="var(--pulse-cancel-btn-colour)"
-                                            Style="height:40px;"
-                                            IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-ok-btn-colour"))"
-                                            OnClick="() => {Saving = false; showSave = true;}">
-                                            Cancel
-                                        </FluentButton>
-                                        <FluentSpacer />
-                                        <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
-                                                              Style="height:40px;" OnClick="saveQry">Save Prompt</FluentButton>
-                                    </FluentStack>
-                                </div>
-                            }
-                            
-                        </StackItem>
-                    </div>
-                </FluentGridItem>
-                <FluentGridItem >
-                    <div class="d-flex justify-content-start align-items-stretch flex-column myContentDiv" style="padding:20px; height: 95%; margin:10px; overflow-x:hidden">
-                        <FluentGrid >
-                            @if (ContextPrompts != null)
-                            {
-                                @foreach (var prompt in ContextPrompts)
-                                {
-                                    <FluentGridItem xs="12" sm="12" md="12" lg="4" xl="3" >
-                                        <FluentButton  BackgroundColor="var(--pulse-dark-t50-colour)" Class="btnShadow" Style="height:fit-content" OnClick="() => CopyCommunityPrompt(prompt)">
-                                            <div style="width:100%;background-color: rgba(0,0,0,0)">
-                                                <FluentLabel Typo="Typography.Body" Style="white-space:nowrap; color: white;padding:3px"> @prompt.ContextualPromptTitle </FluentLabel>
-                                                <FluentTextArea rows="2" Cols="75" style="height:100%;margin-bottom:15px" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea> 
-                                            </div>
-                                        </FluentButton>
-                                    </FluentGridItem>
-                                }
-                            }
-                        </FluentGrid>
-                    </div>
-                </FluentGridItem>
-            </FluentGrid>
-        </div> *@
     </Drawer>
 
-    <Drawer Id="ResultsPanel" Placement="Placement.Bottom" @bind-IsOpen="@showResultsPanel" width="100%" Height="calc(100vh - 112px)"  AllowResize="true">
+    <Drawer Id="ResultsPanel" Placement="Placement.Bottom" @bind-IsOpen="@showResultsPanel" width="100%" Height="calc(100vh - 56px)"  AllowResize="true">
+        <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
+             <FluentButton BackgroundColor="rgba(188,209,212,1)" Disabled="true" Style="border: 1px solid red;height:40px;" 
+                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => IsOpen=false">
+            </FluentButton>
+
+         </div>
         <div style="display: flex;flex-direction: column;overflow:hidden;height:100%;padding:5px;background-color:rgba(188,209,212,0.8)">
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding: 5px;min-height:50px">
                 <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
@@ -569,11 +449,22 @@
         
 
      <Drawer Placement="Placement.Right" @bind-IsOpen="@OpenFlapper" IsBackdrop="true" @OnCloseAsync="() => OpenFlapper=false" AllowResize="true" width="100%" style="overflow-x:hidden">
+         <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
+             <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;margin-top:8px" 
+                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenFlapper=false">
+            </FluentButton>
 
+         </div>
                 <FlapperPg />
 
     </Drawer>
         <Drawer Placement="Placement.Right" @bind-IsOpen="@OpenTables" IsBackdrop="true" @OnCloseAsync="() => OpenTables=false" AllowResize="true" width="100%" style="overflow-x:hidden">
+            <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; justify-content:end">
+             <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;" 
+                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenTables=false">
+            </FluentButton>
+
+         </div>
                 <TablesPg />
         </Drawer>
             
@@ -791,7 +682,7 @@
                 return;
             case "Admin":
                 adminSel = true;
-                Navigation.NavigateTo("/AdminZone/RoleManagementPg");
+                Navigation.NavigateTo("/AdminZone/AdminDashboard");
                 return;
 
         }

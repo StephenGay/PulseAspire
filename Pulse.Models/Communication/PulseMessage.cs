@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
-namespace Pulse.Models.CustomComponents
+namespace Pulse.Models.Communication
 {
     public class PulseMessage
     {

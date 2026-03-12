@@ -16,6 +16,7 @@
 
             public const string Login = $"{Prefix}/login";
             public const string Register = $"{Prefix}/register";
+            public const string UpdateUser = $"{Prefix}/UpdateUser";
             public const string Logout = $"{Prefix}/logout";
             public const string RefreshToken = $"{Prefix}/refresh-token";
             public const string CreateRole = $"{Prefix}/roles";
@@ -24,6 +25,36 @@
             public const string RemoveRole = $"{Prefix}/remove-role";
             public const string GetRoles = $"{Prefix}/roles";
             public const string ChangePassword = $"{Prefix}/change-password";
+
+            public static class Permissions
+            {
+                private const string PermissionsPrefix = $"{Prefix}/permissions";
+                public const string GetAll = $"{PermissionsPrefix}/GetAll";
+                public const string Create = $"{PermissionsPrefix}/Create";
+                public const string Update = $"{PermissionsPrefix}/Update";
+                //public const string Delete = $"{PermissionsPrefix}/Delete";
+                public static string GetByRoleID(string roleId) => $"{PermissionsPrefix}/GetByRole/{roleId}";
+                public static string GetAssignedRoles(int permissionId) => $"{PermissionsPrefix}/GetAssignedRoles/{permissionId}";
+                public const string AssignToRole = $"{PermissionsPrefix}/AssignToRole";
+                public static string RemoveFromRole(string roleId, int permissionId) => $"{PermissionsPrefix}/RemoveFromRole/{roleId}/{permissionId}";
+                public static string GetByCategory(string category) => $"{PermissionsPrefix}/GetByCategory/{Uri.EscapeDataString(category)}";
+
+                public static class Categories
+                {
+                    private const string CategoriesPrefix = $"{PermissionsPrefix}/categories";
+                    public const string GetAll = $"{CategoriesPrefix}/GetAll";
+                    public const string Create = $"{CategoriesPrefix}/Create";
+                    //public const string Update = $"{CategoriesPrefix}/Update";
+                    //public const string Delete = $"{CategoriesPrefix}/Delete";
+                }
+            }
+
+            public static class Roles
+            {
+                private const string RolesPrefix = $"{Prefix}/Roles";
+                public const string GetAll = $"{RolesPrefix}/GetAll";
+
+            }
         }
 
         #endregion
@@ -59,6 +90,7 @@
             private const string Prefix = $"{ApiPrefix}/User";
 
             public const string Profile = $"{Prefix}/profile";
+            public const string SendWelcomeEmail = $"{ApiPrefix}/Security/SendWelcomeEmail";
 
             public static class Settings
             {
@@ -107,7 +139,34 @@
             private const string Prefix = $"{ApiPrefix}/Divisions";
             public const string GetActive = $"{Prefix}/GetActive";
 
-            public static class Equipment
+            public static class WithDivisionID
+            {
+                private const string WithDivisionIDPrefix = $"{Prefix}/WithDivisionID";
+
+                public static class Factory
+                {
+                    private const string FactorySuffix = "/Factory";
+                    public static class WorkCentres
+                    {
+                        private const string WorkCentreSuffix = $"{FactorySuffix}/WorkCentres";
+                        public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/GetAll";
+                    }
+
+                    public static class FactoryLayout
+                    {
+                        private const string FactoryLayoutSuffix = $"{FactorySuffix}/FactoryLayout";
+                        public static string SaveLayout(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{FactoryLayoutSuffix}/SaveLayout";
+
+                        public static class Zones
+                        {
+                            private const string ZonesSuffix = $"{FactoryLayoutSuffix}/Zones";
+                            public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/GetAll";
+                        }
+                    }
+                }
+            }
+
+                public static class Equipment
             {
                 private const string EquipmentPrefix = $"{Prefix}/Equipment";
 
@@ -221,6 +280,17 @@
             public const string Health = $"{Prefix}/health";
         }
 
+        #endregion
+
+        #region Utilities Endpoints
+
+        public static class Utilities
+        {
+            private const string Prefix = $"{ApiPrefix}/Utilities";
+            public const string SendEmail = $"{Prefix}/SendEmail";
+            public const string ExportPdf = $"{Prefix}/pdf/export";
+
+        }
         #endregion
     }
 }
