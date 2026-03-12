@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore; 
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Models.PulseContext.Maps;
@@ -17,9 +17,9 @@ using Pulse.Models.Compounds;
 using Pulse.Models.Users;
 using Pulse.Models.Production;
 using Pulse.Models.AI;
-using Pulse.Models.CustomComponents;
 using Pulse.Models.Production.NonConformance;
 using Pulse.Models.Permissions;
+using Pulse.Models.Communication;
 
 namespace Pulse.Models.PulseContext
 {

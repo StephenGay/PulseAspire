@@ -95,61 +95,61 @@
 
         @if (pgMode != "List")
         {
-            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color:var(--pulse-light-colour)" class="@GetAnimationClass()">
+            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-dark-t25-colour);" class="@GetAnimationClass()">
                 <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
                     <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
                     <!-- User Registration Form -->
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
-                        <FluentLabel Typo="Typography.H6" Style="width:110px">User ID</FluentLabel>
-                        <FluentLabel Typo="Typography.Body" Style="width:stretch">@(pgMode == "(New)" ? "New" : @editUser?.Id) </FluentLabel>
-                        @* <FluentTextField @bind-Value="editUser.Id"
-                                         ReadOnly="true"
-                                         Style="width:stretch"
-                                          /> *@
-                    </FluentStack>
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
-                        <FluentLabel Typo="Typography.H6" Style="width:110px">Full Name</FluentLabel>
-                        @if(pgMode == "View")
+                        @if(pgMode != "View")
                         {
-                            <FluentLabel Typo="Typography.Body" Style="width:stretch">@editUser?.FullName</FluentLabel>
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                                <FluentLabel Typo="Typography.H6" Style="width:110px">User ID</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Style="width:stretch">@(pgMode == "(New)" ? "New" : @editUser?.Id) </FluentLabel>
+                            </FluentStack>
                         }
-                        else
-                        {
-                            <FluentTextField @bind-Value="editUser.FullName"
-                                    Placeholder="User Name and Surname"
-                                    Required="true"
-                                    Style="width:stretch"
-                                    />    
-                        }
-                    </FluentStack>
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
-                        <FluentLabel Typo="Typography.H6" Style="width:110px">E-Mail</FluentLabel>
-                            @if (pgMode == "View")
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
+                            @if(pgMode == "View")
                             {
-                                <FluentLabel Typo="Typography.Body" Style="width:stretch">@editUser?.Email</FluentLabel>
+                                <FluentLabel Typo="Typography.H4" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.FullName</FluentLabel>
                             }
                             else
                             {
+                                <FluentLabel Typo="Typography.H6" Style="width:110px">Full Name</FluentLabel>
+                                <FluentTextField @bind-Value="editUser.FullName"
+                                        Placeholder="User Name and Surname"
+                                        Required="true"
+                                        Style="width:stretch"
+                                        />    
+                            }
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
+                        
+                            @if (pgMode == "View")
+                            {
+                                <FluentLabel Typo="Typography.H6" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.Email</FluentLabel>
+                            }
+                            else
+                            {
+                                <FluentLabel Typo="Typography.H6" Style="width:110px">E-Mail</FluentLabel>
                                 <FluentTextField @bind-Value="editUser.Email"
                                 Type="InputType.Email"
                                 Placeholder="Enter User's Email Address"
                                 Required="true"
                                 Style="width:stretch" />
                             }
-                    </FluentStack>
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
-                        <FluentLabel Typo="Typography.H6" Style="width:110px">Phone</FluentLabel>
-                        @if (pgMode == "View")
-                            {
-                                <FluentLabel Typo="Typography.Body" Style="width:stretch">@editUser?.PhoneNumber</FluentLabel>
-                            }
-                            else
-                            {
-                                <FluentTextField @bind-Value="editUser.PhoneNumber"
-                                                    Placeholder="Enter User's Phone Number"
-                                                    Style="width:stretch" />
-                            }
-                    </FluentStack>
+                        </FluentStack>
+                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
+                            @if (pgMode == "View")
+                                {
+                                    <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.PhoneNumber</FluentLabel>
+                                }
+                                else
+                                {
+                                    <FluentLabel Typo="Typography.H6" Style="width:110px">Phone</FluentLabel>
+                                    <FluentTextField @bind-Value="editUser.PhoneNumber"
+                                                        Placeholder="Enter User's Phone Number"
+                                                        Style="width:stretch" />
+                                }
+                        </FluentStack>
                     <FluentStack Orientation="Orientation.Horizontal" Style="margin-top:10px;border-top:1px solid var(--pulse-dark-colour);border-bottom:1px solid var(--pulse-dark-colour);padding-top:5px;padding-bottom:5px" VerticalAlignment="VerticalAlignment.Center">
                             <div style="width:50%">
                                 <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
@@ -203,13 +203,13 @@
                         </FluentStack>
                        
                     <!-- Action Buttons -->
-                    <FluentStack Orientation="Orientation.Horizontal" Style="margin-top:10px;">
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" HorizontalGap="30" Style="margin-top:10px;">
                             @if(pgMode == "View")
                             {
                                 <FluentButton Class="myAccentBtn"
                                               BackgroundColor="var(--pulse-accent-btn-bg)"
                                               Color="var(--pulse-accent-btn-colour)"
-                                              onclick="@(() => SwitchPageMode("Edit"))"
+                                              onclick="EditUserDetails"
                                               IconStart="@(new Icons.Filled.Size24.Edit().WithColor("--pulse-accent-btn-colour"))"
                                               Style="height:40px"
                                               >
@@ -359,9 +359,9 @@
                             <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
                                 <FluentButton Appearance="Appearance.Lightweight"
                                 Size="ButtonSize.Small"
-                                @onclick="() => EditUser(user)"
-                                Title="Edit user details">
-                                    Edit
+                                @onclick="() => ViewUser(user)"
+                                Title="View user details">
+                                    View
                                 </FluentButton>
 
                                 <FluentButton Appearance="Appearance.Lightweight"
@@ -369,7 +369,7 @@
                                 Size="ButtonSize.Small"
                                 @onclick="() => DeleteUserAsync(user.Id)"
                                 Title="Delete user">
-                                    Delete
+                                    DeActivate
                                 </FluentButton>
                             </FluentStack>
                         </TemplateColumn>
@@ -395,6 +395,7 @@
     private List<ApplicationUserDto> users = new();
     private List<ApplicationUserDto> filteredUsers = new();
     private ApplicationUserDto? editUser;
+    private ApplicationUserDto? editCancelledUser;
     private string filterEmail = string.Empty;
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
@@ -410,6 +411,18 @@
     protected override async Task OnInitializedAsync()
     {
         await LoadUsersAsync();
+    }
+
+    private async Task EditUserDetails()
+    {
+        editCancelledUser = new ApplicationUserDto
+            {
+                Id = editUser.Id,
+                FullName = editUser.FullName,
+                Email = editUser.Email,
+                PhoneNumber = editUser.PhoneNumber
+            };
+        await SwitchPageMode("Edit");
     }
 
     private async Task LoadUsersAsync()
@@ -482,10 +495,12 @@
                 pgMode = "Edit";
                 break;
             case "List":
+                ResetForm();
                 pgTitle = "Manage Users";
                 pgMode = "List";
                 break;
         }
+        StateHasChanged();
     }
 
     #region Animations
@@ -623,7 +638,7 @@
         }
     }
 
-    private void EditUser(ApplicationUserDto user)
+    private void ViewUser(ApplicationUserDto user)
     {
         // TODO: Implement edit functionality (could open a dialog)
         editUser = user;
@@ -655,9 +670,27 @@
 
     private void CancelClick()
     {
-        ResetForm();
-        pgMode = "List";
+        if(pgMode == "Edit")
+        {
+            if(editUser.Id == editCancelledUser.Id)
+            {
+                editUser.FullName = editCancelledUser.FullName;
+                editUser.Email = editCancelledUser.Email;
+                editUser.PhoneNumber = editCancelledUser.PhoneNumber;
+                SwitchPageMode("View");
+            }
+            else
+            {
+                editCancelledUser = null;
+                SwitchPageMode("List");
+            }
+        }
+        else
+        {
+            SwitchPageMode("List");    
+        }
     }
+
     private void ResetForm()
     {
         editUser = new();

@@ -12,7 +12,7 @@ using Pulse.ApiService.Middleware;
 using Pulse.ApiService.Security;
 using Pulse.ApiService.Services;
 using Pulse.Models;
-using Pulse.Models.CustomComponents;
+using Pulse.Models.Communication;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
 using Scalar.AspNetCore;

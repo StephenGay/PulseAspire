@@ -16,22 +16,36 @@
 <style>
     .permission-grid {
         display: grid;
+        grid-auto-flow: column;
         grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        /* grid-auto-rows: 1fr; */
         gap: 12px;
         margin: 16px 0;
+        overflow-x: auto;
+        overflow-y: hidden;
     }
 
+    .equal-height-fluent-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: var(--neutral-layer-1);
+    border: 1px solid var(--neutral-stroke-1);
+    border-radius: 4px;
+    padding: 12px;
+    box-sizing: border-box;
+}
     .permission-card {
         border: 1px solid #e0e0e0;
         border-radius: 8px;
         padding: 12px;
         background: white;
-        /* transition: box-shadow 0.2s ease; */
+        transition: box-shadow 0.2s ease;
     }
 
-    /* .permission-card:hover {
+    .permission-card:hover {
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    } */
+    }
 
     .permission-item {
         padding: 8px;
@@ -54,15 +68,42 @@
         border-radius: 4px;
         padding: 12px;
     }
+
+    .selected-permission {
+                
+                border:2px double var(--pulse-dark-colour);
+                background-color:  var(--pulse-dark-t25-colour);
+                /* animation: selected-item-pulse 2s infinite; */
+            }
+    @@keyframes selected-item-pulse {
+                0%, 100% {
+                    box-shadow: 0 0 0 0 var(--pulse-dark-t25-colour);
+                }
+
+                50% {
+                    box-shadow: 0 0 15px 8px var(--pulse-dark-t25-colour);
+                }
+            }
+    @@media (max-width: 768px) {
+        .permission-grid {
+            grid-auto-flow: row;
+            grid-auto-columns: 1fr;
+            max-height: none;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+    }
 </style>
 
 <div style="flex: 1; background: rgba(255,255,255,0.5); margin: 10px; padding: 10px; border-radius: 10px; overflow: auto;">
     <FluentCard>
         <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
-            <h2 style="margin: 0; color: white;">Permission Categories @selectedCategory</h2>
+            <h2 style="margin: 0; color: white;">
+                <FluentIcon Value="@(new Icons.Filled.Size24.PlayCircle().WithColor("white"))" Style="margin-right: 8px;" OnClick="NavigatePermissions" />
+                @tabTitle</h2>
         </FluentHeader>
 
-        @if (!string.IsNullOrEmpty(successMessage))
+        @* @if (!string.IsNullOrEmpty(successMessage))
         {
             <FluentMessageBar Severity="MessageSeverity.Success" 
                             OnDismiss="() => successMessage = string.Empty"
@@ -78,52 +119,102 @@
                             Style="margin-bottom: 16px;">
                 @errorMessage
             </FluentMessageBar>
-        }
+        } *@
 
         @* <FluentTabs ActiveTabId="@activeTab"> *@
-            @if(activeTab == "tbCategory")
-            {
-                
+        @if (activeTab == "tbOverview")
+        {
+            <div Id="tbOverview">
+                @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 16px;"> *@
+                    
+
+                    @if (isLoadingPermissions)
+                    {
+                        <FluentProgressRing></FluentProgressRing>
+                        <p>Loading permissions...</p>
+                    }
+                    else if (permissions?.Any() == true)
+                    {
+                        <div style="margin-top: 16px;width:stretch">
+                            <h4>All Permissions (@permissions.Count)</h4>
+                            </div>
+                            <div class="permission-grid">
+                                @foreach (var categoryGroup in permissions.GroupBy(p => p.Category))
+                                {
+                                    <div>
+                                        <h5 style="margin: 0 0 12px 0; color: var(--pulse-dark-colour);">@categoryGroup.Key</h5>
+                                        @foreach (var perm in categoryGroup)
+                                        {
+                                            <div class="permission-card divShadow" style=" margin-bottom:10px">
+                                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                                    <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@perm.Name</FluentLabel>
+                                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@perm.Description</FluentLabel>
+                                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
+                                                </FluentStack>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+                            </div>
+                        
+                    }
+                    else
+                    {
+                        <FluentMessageBar Severity="MessageSeverity.Warning">
+                            No permissions found. Create one to get started!
+                        </FluentMessageBar>
+                    }
+                @* </FluentStack> *@
+            </div>
+        }
+        else if(activeTab == "tbCategory")
+        {
             <div Id="tbCategory">
                 <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;background-color: var(--pulse-light-2-colour); flex-wrap: wrap;border: 1px solid var(--pulse-dark-colour);border-radius:10px;padding:10px;">
-                        @if (addMode)
-                        {
-                            <FluentTextField @bind-Value="newCategory"
-                                        Immediate="true"
-                                        Placeholder="Add A New Category (e.g., Admin)"
-                                        Required="true"
-                                        Class="divShadow"
-                                        Style="flex: 1; min-width: 200px;" />
-                            <FluentButton Class="myOkBtn"
-                                      BackgroundColor="var(--pulse-ok-btn-bg)"
-                                      Color="var(--pulse-ok-btn-colour)"
-                                      @onclick="SaveNewCategory"
-                                      IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
-                                      Style="height:40px"
-                                      Disabled="@(string.IsNullOrEmpty(newCategory))">
-                                    Save
-                            </FluentButton>
-                            }
-                            else if(!string.IsNullOrEmpty(selectedCategory))
-                            {
-                                <FluentButton Class="myCancelBtn"
+                    @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;background-color: var(--pulse-light-2-colour); flex-wrap: wrap;border: 1px solid var(--pulse-dark-colour);border-radius:10px;padding:10px;"> *@
+                    @if (addMode)
+                    {
+                        <div class="divShadow" style="min-width: 200px;max-width:800px;width:95%;border-radius:10px;padding:10px;margin-left:auto;margin-right:auto">
+                            <FluentStack Orientation="Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
+                                <FluentTextField @bind-Value="newCategory"
+                                    Immediate="true"
+                                    Placeholder="Add A New Category (e.g., Admin)"
+                                    Required="true"
+                                    Label="Category Name"
+                                    Style="width:stretch; min-width: 200px;" />
+                                    <div style="width:stretch;text-align:center">
+                                        <FluentButton Class="myOkBtn"
+                                                    BackgroundColor="var(--pulse-ok-btn-bg)"
+                                                    Color="var(--pulse-ok-btn-colour)"
+                                                    @onclick="SaveNewCategory"
+                                                    IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                    Style="height:40px;margin:10px;"
+                                                    Disabled="@(string.IsNullOrEmpty(newCategory))">
+                                                Save
+                                        </FluentButton>
+                                    </div>
+                            </FluentStack>
+                        </div>
+                    }
+                        
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                        <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)"  style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { addMode= !addMode ; selectedCategory = string.Empty;})">
+                            <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
+                        </FluentButton>
+                        <FluentButton Class="myCancelBtn"
                                     BackgroundColor="var(--pulse-cancel-btn-bg)"
                                     Color="var(--pulse-cancel-btn-colour)"
                                     IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
-                                    Style="height:40px"
+                                    Disabled ="string.IsNullOrEmpty(selectedCategory)"
+                                    style="height:50px;width:200px"
                                     @onclick="DeleteCategoryClick">
                                     Delete
-                                </FluentButton>
-                                <FluentLabel class="divShadow" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="align-items:center;padding-top:10px;padding-bottom:10px;height:100%;flex: 1;color:var(--pulse-dark-colour);background-color:white;">@selectedCategory</FluentLabel>
-                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:40px;" Color="var(--pulse-accent-btn-colour)" OnClick="ViewCatPermissions">Permissions</FluentButton>
-                            }
-                            else
-                            {    
-                                <FluentLabel class="divShadow" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="align-items:center;padding-top:10px;padding-bottom:10px;height:100%;flex: 1;color:var(--pulse-dark-colour);background-color:white;">Select a category to view permissions or create a new category.</FluentLabel>
-                            }
-
+                        </FluentButton>
+                        <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Disabled ="string.IsNullOrEmpty(selectedCategory)"  style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="ViewCatPermissions">Permissions</FluentButton>
                     </FluentStack>
+                       
+
+                    @* </FluentStack> *@
                      @if (isLoadingCategories)
                     {
                         <FluentProgressRing></FluentProgressRing>
@@ -132,11 +223,6 @@
                     else
                     {
                         <FluentGrid style="width:stretch" Justify="JustifyContent.Center">
-                            <FluentGridItem xs="12" sm="6" md="4" lg="2" >
-                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="width:80%;height:50px;margin-left:10%" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { addMode= !addMode ; selectedCategory = string.Empty;})">
-                                   <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
-                                </FluentButton>
-                                </FluentGridItem>
                             @foreach (var cat in categories)
                             {
                                 <FluentGridItem xs="12" sm="6" md="4" lg="2" >
@@ -149,40 +235,58 @@
             </div>
             }else if(activeTab == "permissions")
             {
-            <div Id="permissions">
-                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="width:80%;height:50px;margin-left:10%" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { addMode= !addMode ; selectedCategory = string.Empty;})">
-                    <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
-                </FluentButton>
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; flex-wrap: wrap;">
-                        <FluentTextField @bind-Value="newPermissionName"
-                                        Placeholder="Permission name (e.g., View Users)"
-                                        Label="Permission Name"
-                                        Required="true"
-                                        Style="flex: 1; min-width: 200px;" />
-                        <FluentTextField @bind-Value="newPermissionDesc"
-                                        Placeholder="Description"
-                                        Label="Description"
-                                        Style="flex: 1; min-width: 200px;" />
-                    </FluentStack>
+                <div Id="permissions">
+                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
 
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
-                        <div style="min-width: 200px;">
-                            <FluentLabel Style="display: block; margin-bottom: 8px;">Category : @selectedCategory</FluentLabel>
-@*                             
- *@                        </div>
-                        <FluentButton @onclick="CreatePermissionAsync"
-                                     Appearance="Appearance.Accent"
-                                     Disabled="@(string.IsNullOrWhiteSpace(newPermissionName) || isCreatingPermission)">
-                            @(isCreatingPermission ? "Creating..." : "Create Permission")
-                        </FluentButton>
-                    </FluentStack>
-                           
+                        @if (addEditPermission)
+                        {
+                            <div class="divShadow" style="min-width: 200px;max-width:800px;width:95%;padding:10px;border-radius:10px;margin-left:auto;margin-right:auto">
+                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
+                                    <FluentLabel Typo="Typography.PaneHeader" Style="display: block; margin-bottom: 8px;width:100%">Category : @selectedCategory</FluentLabel>
+                                    <FluentTextField @bind-Value="newPermissionName"
+                                            Placeholder="Permission name (e.g., View Users)"
+                                            Label="Permission Name"
+                                            Required="true"
+                                            Style="flex: 1; min-width: 200px;width:100%;" />
+                                    <FluentTextField @bind-Value="newPermissionDesc"
+                                                    Placeholder="Description"
+                                                    Label="Description"
+                                                    Style="flex: 1; min-width: 200px;width:100%;" />
+                                    <FluentStack Orientation="Orientation.Horizontal" Style="padding: 12px;">
+                                        <FluentButton Class="myCancelBtn"
+                                            BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                            Color="var(--pulse-cancel-btn-colour)"
+                                            IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
+                                            Style="height:40px"
+                                            @onclick="() => { newPermissionName = newPermissionDesc = string.Empty; addEditPermission = false;}">
+                                            Cancel
+                                        </FluentButton>
+                                        <FluentSpacer />
+                                        <FluentButton Class="myOkBtn"
+                                                          Appearance="Appearance.Accent"
+                                                          BackgroundColor="var(--pulse-ok-btn-bg)"
+                                                          Color="var(--pulse-ok-btn-colour)"
+                                                          @onclick="SavePermission"
+                                                          IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                          Style="height:40px"
+                                                          Disabled="@(string.IsNullOrWhiteSpace(newPermissionName) || isSavingPermission)">
+                                            @(isSavingPermission ? "Saving..." : "Save Permission")
+                                        </FluentButton>
+                                    </FluentStack>
+                                </FluentStack>
+                            </div>
+                        }
                         
-                        <FluentButton @onclick="CreatePermissionAsync"
-                                     Appearance="Appearance.Accent"
-                                     Disabled="@(string.IsNullOrWhiteSpace(newPermissionName) || isCreatingPermission)">
-                            @(isCreatingPermission ? "Creating..." : "Create Permission")
+                    }
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                        <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="() => { selectedPermission = null ; addEditPermission = true;}">
+                            <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
+                        </FluentButton>
+                        <FluentButton Class="myAccentBtn" Disabled="@(selectedPermission == null)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="() => { newPermissionName = selectedPermission.Name ; newPermissionDesc = selectedPermission.Description ; ; addEditPermission = true;}">
+                            <FluentIcon Value="@(new Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit
+                        </FluentButton>
+                        <FluentButton Class="myAccentBtn" Disabled="@(selectedPermission == null)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="ViewPermissionRoles">
+                            <FluentIcon Value="@(new Icons.Filled.Size32.People().WithColor("var(--pulse-accent-btn-colour)"))" /> Assignments
                         </FluentButton>
                     </FluentStack>
 
@@ -194,28 +298,22 @@
                     else if (permissions?.Any() == true)
                     {
                         <FluentGrid style="width:stretch" Justify="JustifyContent.Center">
+                        @* <FluentGrid Class="permission-grid"> *@
                             @foreach (var perm in permissions)
                             {
                                 <FluentGridItem xs="12" sm="6" md="4" lg="2" >
-                                     @* <FluentButton  BackgroundColor="var(--pulse-dark-t50-colour)" Class="btnShadow" Style="height:fit-content; border: 2px solid white; border-radius:10px" > *@
-                                        <div Class="btnShadow" Style="height:fit-content; border: 2px solid black; border-radius:10px;width:100%;background-color: white" @onclick="@(() => @selectedCategory = perm.Description)">
-                                            <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255,255,255,1)"  Style="background-color:var(--pulse-dark-colour); padding:5px;font-weight: bold;">@perm.Name</FluentLabel>
-                                        <FluentTextArea ReadOnly="true" Rows="2" Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;" Value="@perm.Description"></FluentTextArea>
-                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
-                                            @* <FluentLabel Typo="Typography.Body" Style="white-space:nowrap; color: white;padding:3px"> @prompt.ContextualPromptTitle </FluentLabel>
-                                            <FluentTextArea rows="2" Cols="75" style="height:100%;margin-bottom:15px" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea>  *@
-                                        </div>
-                                    @* </FluentButton> *@
-                                    @* <FluentButton Appearance="Appearance.Outline" Style="width:90%;height:fit-content;" Class="btnShadow">
-                                @* <div class="permission-card"> *@
-                                    @* <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 5px;padding_bottom:5px;padding-top:5px;padding-left:5px;padding-right:5px;width:100%">
-                                        <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@perm.Name</FluentLabel>
-                                        <FluentTextArea ReadOnly="true" Rows="2" Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;" Value="@perm.Description"></FluentTextArea> *@
-                                        @* <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@perm.Description</FluentLabel> *@
-                                       @*  <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
-                                    </FluentStack> *@
-                                @* </div> *@
-                                @* </FluentButton> *@ 
+                                    <div class="permission-card @(selectedPermission?.Id != perm.Id ? "divShadow" : "selected-permission")" style=" margin-bottom:10px" @onclick="@(() => @selectedPermission = perm)">
+                                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                            <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@perm.Name</FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@perm.Description</FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
+                                        </FluentStack>
+                                    </div>
+                                     
+                                        @* <div Class="btnShadow" Style="height:fit-content;padding-bottom:15px; border: 2px solid black; border-radius:10px;width:100%;background-color: white" @onclick="@(() => @selectedPermission = perm)">
+                                            <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255,255,255,1)"  Style="background-color:var(--pulse-dark-t75-colour); padding:5px;font-weight: bold;">@perm.Name</FluentLabel>
+                                            <span style="padding:5px">@perm.Description</span>
+                                        </div> *@
                                 
                                 </FluentGridItem>
                             }
@@ -248,7 +346,7 @@
                             No permissions found. Create one to get started!
                         </FluentMessageBar>
                     }
-                @* </FluentStack> *@
+                </FluentStack>
             </div>
             } else if(activeTab == "assign")
             {
@@ -261,21 +359,11 @@
                     }
                     else
                     {
-                        <div style="min-width: 300px;">
-                            <FluentLabel Style="display: block; margin-bottom: 8px;">Select Role</FluentLabel>
-                            <select @onchange="OnRoleSelectedAsync" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
-                                <option value="">-- Select a Role --</option>
-                                @foreach (var role in roles)
-                                {
-                                    <option value="@role.Id">@role.Name</option>
-                                }
-                            </select>
-                        </div>
 
-                        @if (!string.IsNullOrEmpty(selectedRoleId) && rolePermissions != null)
+                        @if (selectedPermission != null)
                         {
                             <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
-                                <h4>@rolePermissions.RoleName - Permissions (@rolePermissions.Permissions.Count assigned)</h4>
+                                <h4>@selectedPermission.Name - Assigned Roles (@assignedRoleIds.Count)</h4>
                                 
                                 @if (isLoadingPermissions)
                                 {
@@ -283,31 +371,28 @@
                                 }
                                 else if (permissions?.Any() == true)
                                 {
-                                    <div class="permissions-container">
-                                        @foreach (var categoryGroup in permissions.GroupBy(p => p.Category))
-                                        {
-                                            <div style="margin-bottom: 16px;">
-                                                <h5 style="margin: 0 0 8px 0; color: var(--pulse-dark-colour);">@categoryGroup.Key</h5>
-                                                @foreach (var permission in categoryGroup)
-                                                {
-                                                    var isAssigned = rolePermissions.Permissions.Any(p => p.Id == permission.Id);
-                                                    <div class="permission-item">
-                                                        <input type="checkbox" @onchange="@(async (ChangeEventArgs e) => await TogglePermissionAsync(permission.Id, (bool)e.Value!))" checked="@isAssigned" />
-                                                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 4px; flex: 1;">
-                                                            <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@permission.Name</FluentLabel>
-                                                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@permission.Description</FluentLabel>
-                                                        </FluentStack>
-                                                    </div>
-                                                }
-                                            </div>
-                                        }
-                                    </div>
-                                }
-                                else
-                                {
-                                    <FluentMessageBar Severity="MessageSeverity.Warning">
-                                        No permissions available. Create permissions first.
-                                    </FluentMessageBar>
+                                    @* <div class="permissions-container"> *@
+
+                                        <FluentGrid style="width: stretch;">
+                                            @foreach (var role in roles)
+                                            {
+                                                var isActive = assignedRoleIds.Contains(role.Id.ToString());
+        
+                                                <FluentGridItem  xs="12" sm="6" md="4" lg="2" >
+                                                    <FluentButton Class="@(isActive ? "myModeBtnOn" : "myModeBtnOff")"
+                                                                BackgroundColor="var(--pulse-mode-btn-bg)"
+                                                                Color="var(--pulse-mode-btn-item-colour)"
+                                                                Style="width:80%;height:50px"
+                                                                @onclick="async () => { selectedRole = role; await TogglePermissionAsync(role.Id, !isActive); }">
+    
+                                                            @role.Name
+                
+                                                    </FluentButton>
+                                                </FluentGridItem>
+                                            }
+                                        </FluentGrid>
+                                        
+                                    @* </div> *@
                                 }
                             </FluentStack>
                         }
@@ -323,23 +408,28 @@
     private List<PermissionDto> permissions = new();
     private List<RoleWithIdDto> roles = new();
     private RolePermissionDto? rolePermissions;
+    private List<RolePermission>? permissionRoles;
+    private List<string> assignedRoleIds = new();
     private List<PermissionCategory>? categories;
 
     private string newPermissionName = string.Empty;
     private string newPermissionDesc = string.Empty;
     private string? newCategory;
     private string? selectedCategory;
-    private string selectedRoleId = string.Empty;
-    private string activeTab = "tbCategory";
+    private PermissionDto? selectedPermission;
+    private RoleWithIdDto? selectedRole;
+    private string activeTab = "tbOverview";
+    private string tabTitle = "Permissions Overview";
 
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
     private bool addMode = false;
+    private bool addEditPermission = false;
 
     private bool isLoadingPermissions = true;
     private bool isLoadingRoles = true;
     private bool isLoadingCategories = true;
-    private bool isCreatingPermission = false;
+    private bool isSavingPermission = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -366,6 +456,35 @@
         }
     }
 
+    private async Task NavigatePermissions()
+    {
+        switch(activeTab)
+        {
+            case "tbOverview":
+                activeTab = "tbCategory";
+                tabTitle = "Categories";
+                break;
+            case "tbCategory":
+                activeTab = "tbOverview";
+                tabTitle = "Permissions Overview";
+                selectedCategory= null;
+                break;
+            case "permissions":
+                activeTab = "tbCategory";
+                tabTitle = "Categories";
+                selectedPermission = null;
+                break;
+            case "assign":
+                activeTab = "permissions";
+                tabTitle = $"{selectedCategory} : Permissions";
+                selectedRole = null;
+                break;
+            default:
+                activeTab = "tbOverview";
+                tabTitle = "Permissions Overview";
+                break;
+        }
+    }
     private async Task ViewCatPermissions()
     {
         if(!string.IsNullOrEmpty(selectedCategory))
@@ -373,8 +492,20 @@
             await FilterCategoryPermissions();
             StateHasChanged();
             activeTab = "permissions";
-            }
+            tabTitle = $"{selectedCategory} : Permissions";
         }
+    }
+
+    private async Task ViewPermissionRoles()
+    {
+        if(selectedPermission != null)
+        {
+            await LoadAssignedPermissionRolessAsync();
+            StateHasChanged();
+            activeTab = "assign";
+            tabTitle = $"{selectedPermission.Name} : AssignedRoles";
+        }
+    }
     private async Task DeleteCategoryClick()
     {
         PulseToastService.ShowToast("Information", $"This feature is not yet implemented.");
@@ -405,8 +536,8 @@
         catch (Exception ex)
         {
             PulseToastService.ShowToast("Error", "There was a problem saving the New Category.<br />Please try again.");
-                await GlobalAI.AISpeak("There was a problem saving the New Category.<br />Please try again.", "PulseAI");
-                return;
+            await GlobalAI.AISpeak("There was a problem saving the New Category.<br />Please try again.", "PulseAI");
+            return;
         }
     }
 
@@ -474,17 +605,82 @@
         }
     }
 
+    private async Task SavePermission()
+    {
+        isSavingPermission = true;
+        if(selectedPermission != null)
+        {
+            await EditPermissionAsync();
+        }
+        else
+        {
+            await CreatePermissionAsync();
+        }
+        isSavingPermission = false;
+    }
+
+    private async Task EditPermissionAsync()
+    {
+        if (string.IsNullOrWhiteSpace(newPermissionName))
+        {
+            errorMessage = "A permission name is required.<br />Please enter one and try again";
+            PulseToastService.ShowToast("Warning", errorMessage);
+            await GlobalAI.AISpeak(errorMessage, "PulseAI");
+            return;
+        }
+        PermissionDto updatedPermission = new PermissionDto
+        {
+            Id = selectedPermission.Id,
+            Name = newPermissionName,
+            Description = newPermissionDesc,
+            Category = selectedCategory
+        };
+        try
+        {
+            var result = await ApiService.PostAsync<PermissionDto, ApiResponse<PermissionDto>>(
+                ApiEndpoints.Security.Permissions.Update, updatedPermission);
+
+            if (result?.Success == true)
+            {
+                successMessage = $"The '{updatedPermission.Name}' has been updated.";
+                PulseToastService.ShowToast("Success", successMessage);
+                await GlobalAI.AISpeak(successMessage, "PulseAI");
+
+                newPermissionName = string.Empty;
+                newPermissionDesc = string.Empty;
+
+                addEditPermission = false;
+                await FilterCategoryPermissions();
+                StateHasChanged();
+                Logger.LogInformation("Permission updated: {Name}", updatedPermission.Name);
+            }
+            else
+            {
+                errorMessage = "There was an error updating the permission.";
+                PulseToastService.ShowToast("Error", errorMessage);
+                await GlobalAI.AISpeak(errorMessage, "PulseAI");
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error updating permission");
+            errorMessage = "An error occurred while updating the permission.";
+            PulseToastService.ShowToast("Error", errorMessage);
+            await GlobalAI.AISpeak(errorMessage, "PulseAI");
+        }
+    }
     private async Task CreatePermissionAsync()
     {
         if (string.IsNullOrWhiteSpace(newPermissionName))
         {
-            errorMessage = "Permission name is required.";
+            errorMessage = "A permission name is required.<br />Please enter one and try again";
+            PulseToastService.ShowToast("Warning", errorMessage);
+            await GlobalAI.AISpeak(errorMessage, "PulseAI");
             return;
         }
 
         try
         {
-            isCreatingPermission = true;
             var model = new CreatePermissionModel
             {
                 Name = newPermissionName,
@@ -492,26 +688,28 @@
                 Category = selectedCategory
             };
 
-            var result = await ApiService.PostAsync<CreatePermissionModel, ApiResponse<PermissionDto>>(
-                "/Permissions", model);
+            var result = await ApiService.PostAsync<CreatePermissionModel, ApiResponse<PermissionDto>>(ApiEndpoints.Security.Permissions.Create, model);
 
             if (result?.Success == true)
             {
-                successMessage = $"Permission '{model.Name}' created successfully.";
+                successMessage = $"The '{model.Name}' permission has been created successfully.";
                 PulseToastService.ShowToast("Success", successMessage);
                 await GlobalAI.AISpeak(successMessage, "PulseAI");
-                
+
                 newPermissionName = string.Empty;
                 newPermissionDesc = string.Empty;
                 // newPermissionCategory = "General";
-                
-                await LoadPermissionsAsync();
+
+                addEditPermission = false;
+                await FilterCategoryPermissions();
+                StateHasChanged();
                 Logger.LogInformation("Permission created: {Name}", model.Name);
             }
             else
             {
-                errorMessage = result?.Message ?? "Failed to create permission.";
+                errorMessage = "There was an error creating the permission.";
                 PulseToastService.ShowToast("Error", errorMessage);
+                await GlobalAI.AISpeak(errorMessage, "PulseAI");
             }
         }
         catch (Exception ex)
@@ -519,23 +717,11 @@
             Logger.LogError(ex, "Error creating permission");
             errorMessage = "An error occurred while creating the permission.";
             PulseToastService.ShowToast("Error", errorMessage);
-        }
-        finally
-        {
-            isCreatingPermission = false;
+            await GlobalAI.AISpeak(errorMessage, "PulseAI");
         }
     }
 
-    private async Task OnRoleSelectedAsync(ChangeEventArgs e)
-    {
-        selectedRoleId = e.Value?.ToString() ?? string.Empty;
-        if (!string.IsNullOrEmpty(selectedRoleId))
-        {
-            await LoadRolePermissionsAsync();
-        }
-    }
-
-    private async Task TogglePermissionAsync(int permissionId, bool assign)
+    private async Task TogglePermissionAsync(string roleId, bool assign)
     {
         try
         {
@@ -543,70 +729,112 @@
             {
                 var model = new AssignPermissionModel
                 {
-                    RoleId = selectedRoleId,
-                    PermissionId = permissionId
+                    RoleId = roleId,
+                    PermissionId = selectedPermission.Id
                 };
 
-                var result = await ApiService.PostAsync<AssignPermissionModel, ApiResponse>(
-                    "/Permissions/assign", model);
+                var result = await ApiService.PostAsync<AssignPermissionModel, ApiResponse>( ApiEndpoints.Security.Permissions.AssignToRole, model);
 
                 if (result?.Success == true)
                 {
-                    var permission = permissions.FirstOrDefault(p => p.Id == permissionId);
-                    successMessage = $"Permission '{permission?.Name}' assigned.";
+                    successMessage = $"This permission is now available to the '{selectedRole?.Name}' role.";
+                    PulseToastService.ShowToast("Success", successMessage);
+                    await GlobalAI.AISpeak(successMessage, "PulseAI");
                 }
                 else
                 {
-                    errorMessage = result?.Message ?? "Failed to assign permission.";
+                    errorMessage = "There was an error assigning the permission.";
+                    PulseToastService.ShowToast("Error", errorMessage);
+                    await GlobalAI.AISpeak(errorMessage, "PulseAI");
                 }
             }
             else
             {
-                var result = await ApiService.DeleteAsync<ApiResponse>(
-                    $"/Permissions/remove/{selectedRoleId}/{permissionId}");
+                var result = await ApiService.DeleteAsync<ApiResponse>(ApiEndpoints.Security.Permissions.RemoveFromRole(selectedRole.Id, selectedPermission.Id));
+
 
                 if (result?.Success == true)
                 {
-                    var permission = permissions.FirstOrDefault(p => p.Id == permissionId);
-                    successMessage = $"Permission '{permission?.Name}' removed.";
+                    successMessage = $"This permission has been removed from the '{selectedRole?.Name}' role.";
+                    PulseToastService.ShowToast("Success", successMessage);
+                    await GlobalAI.AISpeak(successMessage, "PulseAI");
+                    
                 }
                 else
                 {
-                    errorMessage = result?.Message ?? "Failed to remove permission.";
+                    errorMessage = "There was an error removing the permission.";
+                    PulseToastService.ShowToast("Error", errorMessage);
+                    await GlobalAI.AISpeak(errorMessage, "PulseAI");
                 }
             }
 
-            await LoadRolePermissionsAsync();
+            await LoadAssignedPermissionRolessAsync();
+            StateHasChanged();
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error toggling permission");
             errorMessage = "An error occurred while updating permissions.";
+            PulseToastService.ShowToast("Error", errorMessage);
+            await GlobalAI.AISpeak(errorMessage, "PulseAI");
         }
     }
 
-    private async Task LoadRolePermissionsAsync()
+    private async Task LoadAssignedPermissionRolessAsync()
     {
-        if (string.IsNullOrEmpty(selectedRoleId))
+        if (selectedPermission == null)
             return;
 
         try
         {
-            isLoadingPermissions = true;
-            var response = await ApiService.GetAsync<ApiResponse<RolePermissionDto>>(
-                ApiEndpoints.Security.Permissions.GetByRoleID(int.Parse(selectedRoleId)));
+            isLoadingRoles = true;
+            var response = await ApiService.GetAsync<ApiResponse<List<RolePermission>>>(
+                ApiEndpoints.Security.Permissions.GetAssignedRoles(selectedPermission.Id));
 
-            rolePermissions = response?.Data;
-            Logger.LogInformation("Loaded permissions for role: {RoleId}", selectedRoleId);
+            permissionRoles = response?.Data;
+            assignedRoleIds = permissionRoles?.Select(rp => rp.RoleId.ToString()).ToList() ?? new List<string>();
+            Logger.LogInformation("Loaded roles permissions for permission: {PermissionId}", selectedPermission.Id);
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Failed to load role permissions");
-            errorMessage = "Failed to load role permissions.";
+            Logger.LogError(ex, "Failed to load permission roles");
+            errorMessage = "Failed to load permission roles.";
         }
         finally
         {
-            isLoadingPermissions = false;
+            isLoadingRoles = false;
         }
+    }
+
+    // private async Task LoadRolePermissionsAsync()
+    // {
+    //     if (string.IsNullOrEmpty(selectedRoleId))
+    //         return;
+
+    //     try
+    //     {
+    //         isLoadingPermissions = true;
+    //         var response = await ApiService.GetAsync<ApiResponse<RolePermissionDto>>(
+    //             ApiEndpoints.Security.Permissions.GetByRoleID(int.Parse(selectedRoleId)));
+
+    //         rolePermissions = response?.Data;
+    //         Logger.LogInformation("Loaded permissions for role: {RoleId}", selectedRoleId);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Logger.LogError(ex, "Failed to load role permissions");
+    //         errorMessage = "Failed to load role permissions.";
+    //     }
+    //     finally
+    //     {
+    //         isLoadingPermissions = false;
+    //     }
+    // }
+
+    private object GetRolePermissionIcon(bool isAssigned)
+    {
+        return isAssigned 
+            ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.CheckmarkCircle() 
+            : new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size24.Circle();
     }
 }

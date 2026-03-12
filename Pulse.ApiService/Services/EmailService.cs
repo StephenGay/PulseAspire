@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Options;
-using Pulse.Models.CustomComponents;
+using Pulse.Models.Communication;
 using System.Net;
 using System.Net.Mail;
 using System.Net.Security;

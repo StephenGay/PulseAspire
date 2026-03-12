@@ -31,6 +31,12 @@ namespace Pulse.ApiService.Endpoints.Security
                 .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
                 .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapPost("/Update", UpdatePermission)
+                .WithName("UpdatePermission")
+                .Produces<ApiResponse<PermissionDto>>(StatusCodes.Status200OK)
+                .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+                .Produces(StatusCodes.Status500InternalServerError);
+
             // Get permissions by category
             group.MapGet("/GetByCategory/{category}", GetPermissionsByCategory)
                 .WithName("GetPermissionsByCategory")
@@ -68,6 +74,11 @@ namespace Pulse.ApiService.Endpoints.Security
                 .WithName("RemovePermissionFromRole")
                 .Produces<ApiResponse>(StatusCodes.Status200OK)
                 .Produces<ApiResponse>(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapGet("/GetAssignedRoles/{permissionId}", GetAssignedRoles)
+                .WithName("GetAssignedRoles")
+                .Produces<ApiResponse<List<RolePermission>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
             // Get all roles with IDs
@@ -276,6 +287,65 @@ namespace Pulse.ApiService.Endpoints.Security
             }
         }
 
+        private static async Task<IResult> UpdatePermission(
+            [FromBody] PermissionDto model,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("UpdatePermission");
+            if (string.IsNullOrWhiteSpace(model?.Name))
+            {
+                return Results.BadRequest(new ApiResponse
+                {
+                    Success = false,
+                    Message = "Permission name is required",
+                    StatusCode = 400
+                });
+            }
+
+            try
+            {
+                var permission = db.AspNetPermissions.Find(model.Id);
+                if (permission == null)
+                {
+                    return Results.NotFound(new ApiResponse
+                    {
+                        Success = false,
+                        Message = "Permission not found",
+                        StatusCode = 404
+                    });
+                }
+
+                permission.Name = model.Name;
+                permission.Description = model.Description ?? string.Empty;
+                permission.Category = model.Category ?? "General";
+                permission.CreatedDate = DateTime.UtcNow;
+
+                db.AspNetPermissions.Update(permission);
+                await db.SaveChangesAsync();
+
+                logger.LogInformation("Permission updated: {PermissionName}", model.Name);
+
+                return Results.Ok(new ApiResponse<PermissionDto>
+                {
+                    Success = true,
+                    Data = new PermissionDto
+                    {
+                        Id = permission.Id,
+                        Name = permission.Name,
+                        Description = permission.Description,
+                        Category = permission.Category
+                    },
+                    Message = "Permission created successfully",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating permission: {PermissionName}", model.Name);
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
         private static async Task<IResult> GetRolePermissions(
             string roleId,
             RoleManager<IdentityRole> roleManager,
@@ -332,6 +402,40 @@ namespace Pulse.ApiService.Endpoints.Security
             }
         }
 
+        private static async Task<IResult> GetAssignedRoles(
+            string permissionId,
+            RoleManager<IdentityRole> roleManager,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("GetAssignedRoles");
+
+            try
+            {
+                var roles = await db.AspNetRolePermissions
+                    .AsNoTracking()
+                    .Where(rp => rp.PermissionId.ToString() == permissionId)
+                    .ToListAsync();
+   
+                if (roles == null || roles.Count == 0)
+                {
+                    roles = new List<RolePermission>();
+                }
+
+                return Results.Ok(new ApiResponse<List<RolePermission>>
+                {
+                    Success = true,
+                    Data = roles,
+                    Message = $"Retrieved {roles.Count} roles for permission '{permissionId}'",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving roles for permissionId: {PermissionId}", permissionId);
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
         private static async Task<IResult> AssignPermissionToRole(
             [FromBody] AssignPermissionModel model,
             RoleManager<IdentityRole> roleManager,

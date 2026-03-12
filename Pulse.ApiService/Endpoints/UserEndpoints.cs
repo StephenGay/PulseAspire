@@ -1,4 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.UI.Services;
+using Microsoft.EntityFrameworkCore;
+using Pulse.ApiService.Services;
+using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
 using Pulse.Models.Production;
@@ -15,8 +18,6 @@ namespace Pulse.ApiService.Endpoints
         public static void MapUserEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup(BasePath).WithTags("User Endpoints");
-
-            
 
             group.MapGet("/Favourites/Queries/GetByUserId/{UserId}", async (string UserId, PulseDbContext dbContext) =>
             {

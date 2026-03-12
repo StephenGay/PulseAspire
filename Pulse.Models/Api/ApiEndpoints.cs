@@ -31,11 +31,12 @@
                 private const string PermissionsPrefix = $"{Prefix}/permissions";
                 public const string GetAll = $"{PermissionsPrefix}/GetAll";
                 public const string Create = $"{PermissionsPrefix}/Create";
-                //public const string Update = $"{PermissionsPrefix}/Update";
+                public const string Update = $"{PermissionsPrefix}/Update";
                 //public const string Delete = $"{PermissionsPrefix}/Delete";
-                public static string GetByRoleID(int roleId) => $"{PermissionsPrefix}/GetByRole/{roleId}";
+                public static string GetByRoleID(string roleId) => $"{PermissionsPrefix}/GetByRole/{roleId}";
+                public static string GetAssignedRoles(int permissionId) => $"{PermissionsPrefix}/GetAssignedRoles/{permissionId}";
                 public const string AssignToRole = $"{PermissionsPrefix}/AssignToRole";
-                public static string RemoveFromRole(int roleId, int permissionId) => $"{PermissionsPrefix}/RemoveFromRole/{roleId}/{permissionId}";
+                public static string RemoveFromRole(string roleId, int permissionId) => $"{PermissionsPrefix}/RemoveFromRole/{roleId}/{permissionId}";
                 public static string GetByCategory(string category) => $"{PermissionsPrefix}/GetByCategory/{Uri.EscapeDataString(category)}";
 
                 public static class Categories
@@ -251,6 +252,17 @@
             public const string Health = $"{Prefix}/health";
         }
 
+        #endregion
+
+        #region Utilities Endpoints
+
+        public static class Utilities
+        {
+            private const string Prefix = $"{ApiPrefix}/Utilities";
+            public const string SendEmail = $"{Prefix}/SendEmail";
+            public const string ExportPdf = $"{Prefix}/pdf/export";
+
+        }
         #endregion
     }
 }

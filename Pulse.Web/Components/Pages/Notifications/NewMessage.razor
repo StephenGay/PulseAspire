@@ -1,4 +1,5 @@
 ﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 
 @inject MessageHubService MsgHubService
@@ -46,9 +47,10 @@
 
             <!-- Message Body -->
             <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+                <FluentTextField @bind-Value="Content.Subject" Placeholder="Enter A Subject" Label="Subject" Style="width:100%;color:var(--pulse-dark-colour);" />
                 <FluentLabel Typo="Typography.Body">Message</FluentLabel>
                 <FluentTextArea 
-                    Rows="20" 
+                    Rows="17" 
                     @bind-Value="Content.Content"
                     Placeholder="Type your message here..."
                     Style="width:100%;color:var(--pulse-dark-colour); resize: vertical;"

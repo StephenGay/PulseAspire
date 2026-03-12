@@ -19,6 +19,8 @@ namespace Pulse.ApiService.Endpoints.Security
                 .WithName("GetAllRoleDto")
                 .Produces<ApiResponse<List<RoleWithIdDto>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
+
+            
         }
 
         private static async Task<IResult> GetAllRoles(

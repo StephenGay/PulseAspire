@@ -3,7 +3,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Pulse.Models.AI.AIds;
 using Pulse.Models.Api;
-using Pulse.Models.CustomComponents;
+using Pulse.Models.Communication;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Models.Organizational;

@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Pulse.Models.CustomComponents;
+using Pulse.Models.Communication;
 
 namespace Pulse.Models.PulseContext.Maps
 {

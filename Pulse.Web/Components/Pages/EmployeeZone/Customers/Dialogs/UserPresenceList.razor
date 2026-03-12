@@ -6,7 +6,7 @@
 @inject MessageHubService MsgHubService
 @inject ILogger<UserPresenceList> _logger
 
-<div class="presence-list-container" style="background-color: var(--pulse-light-colour)">
+<div class="presence-list-container" style="background-color: var(--pulse-light-2-colour)">
     @* <h3>Online Users</h3> *@
 
     @if (presenceList == null)
@@ -42,7 +42,7 @@
             <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
                 @foreach (var user in GetFilteredUsers())
                 {
-                    <div style="@($"padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; background-color: {(hoveredUserId == user.UserId ? "var(--accent-fill-rest)" : "transparent")}; color: {(hoveredUserId == user.UserId ? "white" : "inherit")};")" 
+                    <div style="@($"padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;width:100%; background-color: {(hoveredUserId == user.UserId ? "var(--accent-fill-rest)" : "transparent")}; color: {(hoveredUserId == user.UserId ? "white" : "inherit")};")" 
                          @onmouseover="@((e) => hoveredUserId = user.UserId)" 
                          @onmouseout="@((e) => hoveredUserId = null)"
                          @onclick="@(() => OnUserClicked(user))">

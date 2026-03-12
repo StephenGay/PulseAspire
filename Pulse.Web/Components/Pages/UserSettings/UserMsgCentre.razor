@@ -7,12 +7,17 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using System.Text.Json
 @using Pulse.Models
+@using Pulse.Models.Api
+@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using System.Security.Claims
 @using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs
 @using Pulse.Web.Components.Pages.Notifications
 @using Pulse.Web.Services
 @attribute [Authorize]
+@inject PulseApiService pApi
+@inject IPulseToastService PulseToastService
+@inject Global_AI_Functions Global_AI
 @inject MessageHubService MsgHubService
 @inject AuthService _authService
 @inject DataTransferService dataTrf
@@ -22,54 +27,18 @@
 @implements IAsyncDisposable
 
 <CascadingValue Value="this">
-    <div style="display: flex; height: 100%; background-color: var(--pulse-light-colour);">
-    <!-- Sidebar - Message List -->
-        <div style="width: 350px; border-right: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-colour);">
-        <!-- Header with Tabs -->
-        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
-                @* Appearance="@(messageFilter == MessageFilter.Archived ? Appearance.Accent : Appearance.Outline)" *@
-                @* Appearance="@(messageFilter == MessageFilter.Active ? Appearance.Accent : Appearance.Outline)" *@
-            <FluentStack Orientation="Orientation.Vertical">
-                
-        
-                <FluentStack Orientation="Orientation.Horizontal" Style="padding-left:10px;padding-right:10px;margin-top:10px">
-                    <FluentButton class=@(fltrPulseAI ? "myModeBtnOn" : "myModeBtnOff")
-                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+    
+    <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important;">
+        <FluentButton Id="btnMsgFilter" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:40px; width:40px;margin-left:10px;margin-top:8px" Title="Filter" OnClick="() => showFilterMenu = !showFilterMenu">
+            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Filter().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
+        </FluentButton>
+        <FluentPopover Style="width: 250px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Right" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnMsgFilter" @bind-Open="showFilterMenu">
+            <Body>
+                <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="25">
+                    <FluentButton class=@(messageFilter == MessageFilter.Active ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
-                                  @onclick="() => { fltrPulseAI = !fltrPulseAI; StateHasChanged(); }"
-                                  Style="height:40px; width:40px">
-                        <FluentEmoji Value="@(new Emojis.SmileysEmotion.Color.Default.Robot())" Width="32px" />
-                    </FluentButton>
-                    <FluentSpacer />
-                    <FluentButton class=@(fltrUsers ? "myModeBtnOn" : "myModeBtnOff")
-                                  BackgroundColor="var(--pulse-mode-btn-bg)"
-                                  Color="var(--pulse-mode-btn-item-colour)"
-                                  @onclick="() => { fltrUsers = !fltrUsers; StateHasChanged(); }"
-                                    Style="height:40px; width:40px">
-                        <FluentEmoji Value="@(new Emojis.PeopleBody.Color.MediumLight.PersonBlondHair())" Width="32px" />
-                    </FluentButton>
-                    <FluentSpacer />
-                    <FluentButton class=@(fltrStreams ? "myModeBtnOn" : "myModeBtnOff")
-                                  BackgroundColor="var(--pulse-mode-btn-bg)"
-                                  Color="var(--pulse-mode-btn-item-colour)"
-                                  @onclick="() => { fltrStreams = !fltrStreams; StateHasChanged(); }"
-                                    Style="height:40px; width:40px">
-                        <FluentEmoji Value="@(new Emojis.Symbols.Color.Default.Information())" Width="32px" />
-                    </FluentButton>
-                    <FluentSpacer />
-                    <FluentButton class=@(fltrNotify ? "myModeBtnOn" : "myModeBtnOff")
-                                  BackgroundColor="var(--pulse-mode-btn-bg)"
-                                  Color="var(--pulse-mode-btn-item-colour)"
-                                  @onclick="() => { fltrNotify = !fltrNotify; StateHasChanged(); }"
-                                    Style="height:40px; width:40px">
-                        <FluentEmoji Value="@(new Emojis.Objects.Color.Default.Bell())" Width="32px" />
-                    </FluentButton>
-                </FluentStack>
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="margin-top:15px" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left">
-                        <FluentButton class=@(messageFilter == MessageFilter.Active ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
-                                      Color="var(--pulse-mode-btn-item-colour)"
-                                      @onclick="() => SetMessageFilter(MessageFilter.Active)"
-                                      Style="flex: 1;">
+                                  @onclick="() => SetMessageFilter(MessageFilter.Active)"
+                                  Style="height:50px;width:80%">
                             Active @if (messages != null) {
                             <span style="font-size: 12px;">(@messages.Count(m => m.Delivered != true))</span>
                         }
@@ -77,20 +46,75 @@
                     <FluentButton class=@(messageFilter == MessageFilter.Archived ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
                                   @onclick="() => SetMessageFilter(MessageFilter.Archived)"
-                                  Style="flex: 1;">
-                        Archived @if (messages != null) {
-                        <span style="font-size: 12px;">(@messages.Count(m => m.Delivered == true))</span>
-                    }
-                </FluentButton>
+                                    Style="height:50px;width:80%">
+                            Archived @if (messages != null) {
+                            <span style="font-size: 12px;">(@messages.Count(m => m.Delivered == true))</span>
+                        }
+                    </FluentButton>
+                    <hr />
+                    <FluentButton class=@(fltrPulseAI ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrPulseAI = !fltrPulseAI; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.SmileysEmotion.Color.Default.Robot())" Width="32px" />
+                        Pulse AI
+                    </FluentButton>
+                    
+                    <FluentButton class=@(fltrUsers ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrUsers = !fltrUsers; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.PeopleBody.Color.MediumLight.PersonBlondHair())" Width="32px" />
+                        Users
+                    </FluentButton>
+                    
+                    <FluentButton class=@(fltrStreams ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrStreams = !fltrStreams; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.Symbols.Color.Default.Information())" Width="32px" />
+                        Activity Streams
+                    </FluentButton>
+                    
+                    <FluentButton class=@(fltrNotify ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrNotify = !fltrNotify; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.Objects.Color.Default.Bell())" Width="32px" />
+                        Notifications
+                    </FluentButton>
+                </FluentStack>
+            </Body>
+        </FluentPopover>
+    </div>
+    <div style="display: flex; height: calc(100vh - 112px); background-color: var(--pulse-light-colour);">
+        
+    <!-- Sidebar - Message List -->
+        <div style="width: 350px; border-right: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);height: calc(100% -112px)">
+        <!-- Header with Tabs -->
+        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
+            <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Messages</FluentLabel>
+@*             <FluentStack Orientation="Orientation.Vertical">
+                
+        
+                <FluentStack Orientation="Orientation.Horizontal" Style="padding-left:10px;padding-right:10px;margin-top:10px">
+                    
+                </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="margin-top:15px" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left">
+                        
             </FluentStack>
             </FluentStack>
-        </div>
+ *@        </div>
 
         <!-- Message List -->
-        <div style="flex: 1; overflow-y: auto; padding: 8px; background-color: var(--pulse-light-colour)">
+        <div style="height:calc(100% - 112px);  border: 1px solid var(--pulse-dark-colour); border-radius:10px; padding: 8px;margin:10px; background-color: white">
             @if (messages == null)
             {
-                <div style="display: flex; justify-content: center; align-items: center; height: 100%;">
+                <div style="overflow: auto; justify-content: center; align-items: center; height: 100%;">
                     <FluentProgressRing />
                 </div>
             }
@@ -102,6 +126,7 @@
             }
             else
             {
+                <div style="height: 100%;overflow-y: auto; justify-content: center;  ">
                 @foreach (var msg in filteredMessages.OrderByDescending(m => m.SentAt))
                 {
                     var isSelected = selectedMessage?.Id == msg.Id;
@@ -120,6 +145,7 @@
                         </div>
                     </div>
                 }
+                </div>
             }
         </div>
     </div>
@@ -127,7 +153,7 @@
     <!-- Main Content Area - Message Detail -->
     <div style="flex: 1; display: flex; flex-direction: column; background-color: var(--pulse-light-colour);">
         <!-- Header Bar -->
-        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider); background-color: var(--neutral-layer-3);">
+        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider); background-color: var(--pulse-light-colour);">
             @if (selectedMessage != null)
             {
                 
@@ -172,10 +198,13 @@
                             <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
                             <FluentLabel>@selectedMessage.RecipientUserName</FluentLabel>
                             <FluentSpacer />
-                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => OpenReplyDialog(selectedMessage)" aria-label="Reply to message">
+                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => OpenReplyDialog(selectedMessage)" aria-label="Reply to message">
                                 Reply
                             </FluentButton>
-                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="ArchiveMsg" Disabled=@(selectedMessage.Delivered == true ? true : false) aria-label="Archive message">
+                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => SendToEmail(selectedMessage)" aria-label="Forward to your E-mail">
+                                @(isSendingEmail ? "Sending..." : "My E-Mail")
+                            </FluentButton>
+                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="ArchiveMsg" Disabled=@(selectedMessage.Delivered == true || isSendingEmail ? true : false) aria-label="Archive message">
                                 Archive
                             </FluentButton>
                         </FluentStack>
@@ -208,7 +237,7 @@
             </div>
 
             <!-- Right Sidebar - User Presence List -->
-<div style="width: 280px; border-left: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-colour);">
+<div style="width: 280px; border-left: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);">
                 <!-- Header -->
                 <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
                     <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Users</FluentLabel>
@@ -235,6 +264,8 @@
     private bool fltrUsers = true;
     private bool fltrStreams = true;
     private bool fltrNotify = true;
+    private bool showFilterMenu = false;
+    private bool isSendingEmail = false;
     private List<UserPresenceDto> presenceList = new();
     private MessageFilter messageFilter = MessageFilter.Active;
 
@@ -286,7 +317,7 @@
         selectedMessage.Delivered = true;
         SetMessageFilter(messageFilter);
     }
-    
+
     private void HandleReceiveMessage(PulseMessage msg)
     {
         if (messages != null)
@@ -341,13 +372,110 @@
             }
         }
     }
+    private string GenerateExportHeader(PulseMessage msgToSend)
+    {
+        var htmlHeader = "<div style=\"display:flex;width: 100% ; padding: 8px; border-bottom: 1px solid hsl(0,100%,20%); justify-content: start; \">";
+
+        switch (msgToSend.Role.ToLower())
+        {
+            case "pulseai":
+                if(msgToSend.SenderUserName.ToLower() == "ali")
+                {
+                    htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Ali.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Analysis By Ali</h3>";
+                }
+                else if(msgToSend.SenderUserName.ToLower() == "flapper")
+                {
+                    htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Flapper.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Conversations With Flapper</h3>";
+                }
+                else if(msgToSend.SenderUserName.ToLower() == "tables")
+                {
+                    htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Tables.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Data Extraction By Tables</h3>";
+                }
+                break;
+            default:
+                break;
+        }
+        htmlHeader += "</div>";
+        return @htmlHeader;
+
+    }
+    private async Task SendToEmail(PulseMessage msgToSend)
+    {
+        bool isSuccess = false;
+        isSendingEmail = true;
+
+        try
+        {
+            var hdr = GenerateExportHeader(msgToSend);
+            var css = GetExportCss();
+            var htmlBodyContent = ParseToHtml(msgToSend.Content);
+            var msghtml = $"{css}{hdr}{htmlBodyContent}";
+
+            EMailMessage emsg = new EMailMessage
+            {
+                ToEMailAddress = _authService.aspireEmail,
+                ToEMailName = _authService.aspireFullName,
+                Subject = msgToSend.Subject ?? "Message From Pulse Aspire",
+                HtmlBody = msghtml
+            };
+
+            var result = await pApi.PostAsync<EMailMessage, ApiResponse>(ApiEndpoints.Utilities.SendEmail, emsg);
+            isSuccess = result?.Success == true;
+
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (isSuccess)
+            {
+                var Msg = "The message was forwarded to your email.";
+                PulseToastService.ShowToast("Success", Msg);
+                await Global_AI.AISpeak(Msg, "PulseAI");
+            }
+            else
+            {
+                var Msg = "There was an error forwarding the message.<br />Please try again.";
+                PulseToastService.ShowToast("Error", Msg);
+                await Global_AI.AISpeak(Msg, "PulseAI");
+            }
+            isSendingEmail = false;
+        }
+    }
+
+    private string GetExportCss()
+    {
+        return @"
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+                h1, h2, h3, h4, h5 { color: #660000; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th { background-color: #660000; color: white; padding: 8px; text-align: left; }
+                td { border: 1px solid #ddd; padding: 8px; }
+                tr:nth-child(even) { background-color: #f1f1f1; }
+                tr:hover { background-color: black; color: white; }
+            </style>";
+    }
 
     private async Task OpenReplyDialog(PulseMessage msgToReplyTo)
     {
+        if(msgToReplyTo.Role.ToLower() == "pulseai")
+        {
+            var m = "I'm sorry, I can't receive replies to messages.";
+            PulseToastService.ShowToast("Information", m, true, true, msgToReplyTo.SenderUserName);
+            await Global_AI.AISpeak(m, msgToReplyTo.SenderUserName);
+            return;
+        }
+
+        var sub = msgToReplyTo.Subject.StartsWith("RE: ") ? msgToReplyTo.Subject : "RE: " + msgToReplyTo.Subject;
+
         PulseMessage replyMsg = new PulseMessage
             {
                 RecipientUserId = msgToReplyTo.SenderUserId,
                 SenderUserId = currentUserId,
+                Subject = sub,
                 SenderUserName = _authService.aspireFullName,
                 Content = ""
             };

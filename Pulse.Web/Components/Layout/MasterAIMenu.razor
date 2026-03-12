@@ -3,6 +3,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI
 @using Pulse.Models.AI.AIds
+@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
 @using Pulse.Models.Misc
@@ -398,7 +399,7 @@
     <Drawer Id="ResultsPanel" Placement="Placement.Bottom" @bind-IsOpen="@showResultsPanel" width="100%" Height="calc(100vh - 56px)"  AllowResize="true">
         <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
              <FluentButton BackgroundColor="rgba(188,209,212,1)" Disabled="true" Style="border: 1px solid red;height:40px;" 
-                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenFlapper=false">
+                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => IsOpen=false">
             </FluentButton>
 
          </div>
