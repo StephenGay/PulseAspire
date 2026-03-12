@@ -1,0 +1,77 @@
+﻿@using Pulse.Models.Production.Layout
+@implements IAsyncDisposable
+
+<!-- DraggableZone.razor -->
+<g transform="translate(@Zone.X, @Zone.Y)"
+       @onmousedown="OnMouseDown"
+       @onmousedown:stopPropagation="true"
+       style="cursor: move; user-select: none;">
+
+    <rect width="@Zone.Width" height="@Zone.Height"
+          fill="@Zone.Color" stroke="#1f2937" stroke-width="2" rx="6" />
+
+    <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 + 6)"
+          text-anchor="middle" fill="white" font-size="14" font-weight="500">
+        @Zone.Name
+    </text>
+</g>
+
+@code {
+    [Parameter] public FactoryZone Zone { get; set; } = null!;
+    [Parameter] public EventCallback<FactoryZone> OnPositionChanged { get; set; }
+    [Parameter] public bool SnapToGrid { get; set; }
+
+    [Inject] private IMouseService MouseService { get; set; } = default!;
+
+    private bool isDragging;
+    private double startX, startY, startZoneX, startZoneY;
+
+    protected override void OnInitialized()
+    {
+        MouseService.OnMove += HandleGlobalMove;
+        MouseService.OnUp += HandleGlobalUp;
+    }
+
+    private void OnMouseDown(MouseEventArgs e)
+    {
+        isDragging = true;
+        startX = e.ClientX;
+        startY = e.ClientY;
+        startZoneX = Zone.X;
+        startZoneY = Zone.Y;
+    }
+
+    private async void HandleGlobalMove(object? sender, MouseEventArgs e)
+    {
+        if (!isDragging) return;
+
+        var dx = e.ClientX - startX;
+        var dy = e.ClientY - startY;
+
+        var newX = startZoneX + dx;
+        var newY = startZoneY + dy;
+
+        if (SnapToGrid)
+        {
+            newX = Math.Round(newX / 10) * 10;
+            newY = Math.Round(newY / 10) * 10;
+        }
+
+        Zone.X = Math.Max(0, newX);
+        Zone.Y = Math.Max(0, newY);
+
+        await OnPositionChanged.InvokeAsync(Zone);
+    }
+
+    private void HandleGlobalUp(object? sender, MouseEventArgs e)
+    {
+        isDragging = false;
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        MouseService.OnMove -= HandleGlobalMove;
+        MouseService.OnUp -= HandleGlobalUp;
+        await ValueTask.CompletedTask;
+    }
+}

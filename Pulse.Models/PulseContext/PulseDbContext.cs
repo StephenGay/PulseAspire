@@ -20,6 +20,7 @@ using Pulse.Models.AI;
 using Pulse.Models.Production.NonConformance;
 using Pulse.Models.Permissions;
 using Pulse.Models.Communication;
+using Pulse.Models.Production.Layout;
 
 namespace Pulse.Models.PulseContext
 {
@@ -75,6 +76,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<Permission> AspNetPermissions { get; set; }
         public DbSet<RolePermission> AspNetRolePermissions { get; set; }
         public DbSet<PermissionCategory> AspNetPermissionCategories { get; set; }
+        public DbSet<FactoryZone> FactoryZones { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

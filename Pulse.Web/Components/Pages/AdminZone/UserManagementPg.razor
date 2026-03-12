@@ -239,16 +239,16 @@
                                 </FluentButton>
                             }
                             
-                        @*             <FluentButton Class="myCancelBtn"
+                                     <FluentButton Class="myCancelBtn"
                                                   BackgroundColor="var(--pulse-cancel-btn-bg)"
                                                   Color="var(--pulse-cancel-btn-colour)"
                                                   IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
                                                   Style="height:40px"
-                                                  @onclick="AniLeft"
-                                                  Disabled="@isSavingUser">
-                                        left
+                                                  @onclick="SendWelcomeEmail"
+                                                  >
+                                        Re-Send Welcome Email
                                     </FluentButton>
-                                    <FluentSpacer />
+                                    @*<FluentSpacer />
                                     <FluentButton Class="myCancelBtn"
                                                   BackgroundColor="var(--pulse-cancel-btn-bg)"
                                                   Color="var(--pulse-cancel-btn-colour)"
@@ -544,6 +544,7 @@
     {
         try
         {
+            editUser.UserName = editUser.Email;
             var result = await ApiService.EditUserAsync(editUser);
             if(result.Success == true)
             {
@@ -576,11 +577,12 @@
                 successMessage = $"User '{editUser.FullName}' created successfully.";
                 editUser = result.Data;
                 // ResetForm();
-                successMessage = $"New user {editUser.FullName} has been created.";
+                successMessage = $"New user {editUser.FullName} has been created.<br />A Welcome message will be sent to their email.";
                 Logger.LogInformation("User created: {FullName}", editUser.FullName);
                 PulseToastService.ShowToast("Success", successMessage);
                 await GlobalAI.AISpeak(successMessage, "PulseAI");
                 await SwitchPageMode("View");
+                await SendWelcomeEmail();
                 return;
                 // pgMode = "List";
             }
@@ -609,6 +611,34 @@
         }
     }
 
+    private async Task SendWelcomeEmail()
+    {
+        bool isSuccess = false;
+        try
+        {
+            var result = await ApiService.PostAsync<ApplicationUserDto, ApiResponse>(ApiEndpoints.User.SendWelcomeEmail, editUser);
+            isSuccess = result?.Success == true;
+        }
+        catch(Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (isSuccess)
+            {
+                var msg = $"A Welcome message has been sent to {editUser.FullName}";
+                PulseToastService.ShowToast("Success", msg);
+                await GlobalAI.AISpeak(msg, "PulseAI");
+            }
+            else
+            {
+                var msg = "There was an error sending the Welcome message.<br />You can use the 'Resend Welcome Message' button to try again.";
+                PulseToastService.ShowToast("Error", msg);
+                await GlobalAI.AISpeak(msg, "PulseAI");
+            }
+        }
+    }
     private async Task AddNewUser()
     {
         ResetForm();

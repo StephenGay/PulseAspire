@@ -1,0 +1,390 @@
+@page "/EmployeeZone/Production/Setup/WorkCentres/WorkCentreManagementPg"
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Organizational
+@using Pulse.Models.Permissions
+@using Pulse.Models.Api
+@using Pulse.Models.Production
+@using Pulse.Web.Services
+
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject PulseApiService ApiService
+@inject ILogger<WorkCentreManagementPg> Logger
+@inject IPulseToastService PulseToastService
+@inject Global_AI_Functions GlobalAI
+@inject DataTransferService dTrf
+
+<style>
+    
+
+    .equal-height-fluent-item {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background-color: var(--neutral-layer-1);
+    border: 1px solid var(--neutral-stroke-1);
+    border-radius: 4px;
+    padding: 12px;
+    box-sizing: border-box;
+}
+    .permission-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
+        background: white;
+        transition: box-shadow 0.2s ease;
+    }
+
+    .permission-card:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .permission-item {
+        padding: 8px;
+        background: #f5f5f5;
+        border-radius: 4px;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .permission-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .permissions-container {
+        max-height: 500px;
+        overflow-y: auto;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        padding: 12px;
+    }
+
+    .selected-wc {
+                
+                border:2px double var(--pulse-dark-colour);
+                background-color:  var(--pulse-dark-t25-colour);
+                /* animation: selected-item-pulse 2s infinite; */
+            }
+    @@keyframes selected-item-pulse {
+                0%, 100% {
+                    box-shadow: 0 0 0 0 var(--pulse-dark-t25-colour);
+                }
+
+                50% {
+                    box-shadow: 0 0 15px 8px var(--pulse-dark-t25-colour);
+                }
+            }
+    @@media (max-width: 768px) {
+        .permission-grid {
+            grid-auto-flow: row;
+            grid-auto-columns: 1fr;
+            max-height: none;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+    }
+</style>
+
+<div style="flex: 1; background: rgba(255,255,255,0.5); height:100%; margin: 10px; padding: 10px; border-radius: 10px; overflow: auto;">
+    
+        <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+            <h2 style="margin: 0; color: white;">
+                Work Centres
+                </h2>
+        </FluentHeader>
+
+       
+        @* @if (activeTab == "tbOverview")
+        { *@
+            <div Id="divWCOverview" style="height:stretch;width:stretch">
+                @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 16px;"> *@
+                    
+
+                    @if (isLoadingWorkCentres)
+                    {
+                        <FluentProgressRing></FluentProgressRing>
+                        <p>Loading work centres...</p>
+                    }
+                    else if (divWorkCentres?.Any() == true)
+                    {
+                        <div style="margin-top: 16px;width:stretch">
+                            <h4>All Work Centres (@divWorkCentres.Count)</h4>
+                        </div>
+                        <FluentGrid>
+                            @foreach (var workCentre in divWorkCentres)
+                            {
+                                <FluentGridItem xs="12" sm="6" md="4" lg="2" >
+                                <div class="permission-card @(selectedWC == workCentre ? "selected-wc" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedWC = workCentre" >
+                                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                        <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@workCentre.WorkCentreName</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @workCentre.WorkCentreId</FluentLabel>
+                                    </FluentStack>
+                                </div>
+                                </FluentGridItem >
+                            }
+                        </FluentGrid>
+                    }
+                    else
+                    {
+                        <FluentMessageBar Severity="MessageSeverity.Warning">
+                            No permissions found. Create one to get started!
+                        </FluentMessageBar>
+                    }
+                @* </FluentStack> *@
+            </div>
+        
+    
+</div>
+
+@code {
+    private List<WorkCentre> workCentres = new();
+    private List<RoleWithIdDto> roles = new();
+    private RolePermissionDto? rolePermissions;
+    private List<RolePermission>? permissionRoles;
+    private List<string> assignedRoleIds = new();
+    private List<PermissionCategory>? categories;
+
+    private string newPermissionName = string.Empty;
+    private string newPermissionDesc = string.Empty;
+    private string? newCategory;
+    private WorkCentre? selectedWC;
+    private PermissionDto? selectedPermission;
+    private RoleWithIdDto? selectedRole;
+    private string activeTab = "tbOverview";
+    private string tabTitle = "Permissions Overview";
+
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool addMode = false;
+    private bool addEditPermission = false;
+
+    private bool isLoadingPermissions = true;
+    private bool isLoadingRoles = true;
+    
+    private bool isSavingPermission = false;
+
+    private List<WorkCentre>? divWorkCentres;
+    private bool isLoadingWorkCentres = true;
+    private Division? d;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await dTrf.SetgvContextArea(0);
+        await LoadDivisionWorkCentres();
+    }
+
+    private async Task LoadDivisionWorkCentres()
+    {
+        isLoadingWorkCentres = true;
+        try{
+                d = await dTrf.GetgvSelectedDivision();
+        
+                divWorkCentres = await ApiService.GetAsync<List<WorkCentre>>($"/Divisions/{d.DivisionID}/GetWorkCentres");
+            var response = await ApiService.GetAsync<ApiResponse<List<WorkCentre>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.WorkCentres.GetAll(d.DivisionID));
+            divWorkCentres = response?.Data ?? new();
+            Logger.LogInformation("Loaded {Count} work centres", divWorkCentres?.Count ?? 0);
+        }
+        catch(Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load work centres");
+            errorMessage = "Failed to load work centres.";
+        }
+        finally
+        {
+            isLoadingWorkCentres = false;
+            StateHasChanged();
+        }
+    }
+
+   
+    
+
+    private async Task ViewPermissionRoles()
+    {
+        if(selectedPermission != null)
+        {
+            await LoadAssignedPermissionRolessAsync();
+            StateHasChanged();
+            activeTab = "assign";
+            tabTitle = $"{selectedPermission.Name} : AssignedRoles";
+        }
+    }
+    private async Task DeleteCategoryClick()
+    {
+        PulseToastService.ShowToast("Information", $"This feature is not yet implemented.");
+        await GlobalAI.AISpeak("I'm sorry, but this feature is still under development.", "PulseAI");
+    }
+
+    private async Task SaveNewCategory()
+    {
+        try
+        {
+            var response = await ApiService.PostAsync<PermissionCategory, ApiResponse<PermissionCategory>>(ApiEndpoints.Security.Permissions.Categories.Create, new PermissionCategory { Category = newCategory });
+            if(response.Success == true)
+            {
+                PulseToastService.ShowToast("Success", $"{newCategory} has been added as a new category.");
+                await GlobalAI.AISpeak($"{newCategory} has been added as a new category. You can start creating permissions for it if you like.", "PulseAI");
+                categories.Add(response.Data);
+                newCategory = string.Empty;
+                StateHasChanged();
+                return;
+            }
+            else
+            {
+                PulseToastService.ShowToast("Error", "There was a problem saving the New Category.<br />Please try again.");
+                await GlobalAI.AISpeak("There was a problem saving the New Category.<br />Please try again.", "PulseAI");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            PulseToastService.ShowToast("Error", "There was a problem saving the New Category.<br />Please try again.");
+            await GlobalAI.AISpeak("There was a problem saving the New Category.<br />Please try again.", "PulseAI");
+            return;
+        }
+    }
+
+    
+   
+    private async Task LoadRolesAsync()
+    {
+        try
+        {
+            isLoadingRoles = true;
+            var response = await ApiService.GetAsync<ApiResponse<List<RoleWithIdDto>>>(ApiEndpoints.Security.Roles.GetAll);
+            roles = response?.Data ?? new();
+            Logger.LogInformation("Loaded {Count} roles", roles.Count);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load roles");
+            errorMessage = "Failed to load roles.";
+        }
+        finally
+        {
+            isLoadingRoles = false;
+        }
+    }
+
+  
+    private async Task TogglePermissionAsync(string roleId, bool assign)
+    {
+        try
+        {
+            if (assign)
+            {
+                var model = new AssignPermissionModel
+                {
+                    RoleId = roleId,
+                    PermissionId = selectedPermission.Id
+                };
+
+                var result = await ApiService.PostAsync<AssignPermissionModel, ApiResponse>( ApiEndpoints.Security.Permissions.AssignToRole, model);
+
+                if (result?.Success == true)
+                {
+                    successMessage = $"This permission is now available to the '{selectedRole?.Name}' role.";
+                    PulseToastService.ShowToast("Success", successMessage);
+                    await GlobalAI.AISpeak(successMessage, "PulseAI");
+                }
+                else
+                {
+                    errorMessage = "There was an error assigning the permission.";
+                    PulseToastService.ShowToast("Error", errorMessage);
+                    await GlobalAI.AISpeak(errorMessage, "PulseAI");
+                }
+            }
+            else
+            {
+                var result = await ApiService.DeleteAsync<ApiResponse>(ApiEndpoints.Security.Permissions.RemoveFromRole(selectedRole.Id, selectedPermission.Id));
+
+
+                if (result?.Success == true)
+                {
+                    successMessage = $"This permission has been removed from the '{selectedRole?.Name}' role.";
+                    PulseToastService.ShowToast("Success", successMessage);
+                    await GlobalAI.AISpeak(successMessage, "PulseAI");
+                    
+                }
+                else
+                {
+                    errorMessage = "There was an error removing the permission.";
+                    PulseToastService.ShowToast("Error", errorMessage);
+                    await GlobalAI.AISpeak(errorMessage, "PulseAI");
+                }
+            }
+
+            await LoadAssignedPermissionRolessAsync();
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error toggling permission");
+            errorMessage = "An error occurred while updating permissions.";
+            PulseToastService.ShowToast("Error", errorMessage);
+            await GlobalAI.AISpeak(errorMessage, "PulseAI");
+        }
+    }
+
+    private async Task LoadAssignedPermissionRolessAsync()
+    {
+        if (selectedPermission == null)
+            return;
+
+        try
+        {
+            isLoadingRoles = true;
+            var response = await ApiService.GetAsync<ApiResponse<List<RolePermission>>>(
+                ApiEndpoints.Security.Permissions.GetAssignedRoles(selectedPermission.Id));
+
+            permissionRoles = response?.Data;
+            assignedRoleIds = permissionRoles?.Select(rp => rp.RoleId.ToString()).ToList() ?? new List<string>();
+            Logger.LogInformation("Loaded roles permissions for permission: {PermissionId}", selectedPermission.Id);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load permission roles");
+            errorMessage = "Failed to load permission roles.";
+        }
+        finally
+        {
+            isLoadingRoles = false;
+        }
+    }
+
+    // private async Task LoadRolePermissionsAsync()
+    // {
+    //     if (string.IsNullOrEmpty(selectedRoleId))
+    //         return;
+
+    //     try
+    //     {
+    //         isLoadingPermissions = true;
+    //         var response = await ApiService.GetAsync<ApiResponse<RolePermissionDto>>(
+    //             ApiEndpoints.Security.Permissions.GetByRoleID(int.Parse(selectedRoleId)));
+
+    //         rolePermissions = response?.Data;
+    //         Logger.LogInformation("Loaded permissions for role: {RoleId}", selectedRoleId);
+    //     }
+    //     catch (Exception ex)
+    //     {
+    //         Logger.LogError(ex, "Failed to load role permissions");
+    //         errorMessage = "Failed to load role permissions.";
+    //     }
+    //     finally
+    //     {
+    //         isLoadingPermissions = false;
+    //     }
+    // }
+
+    private object GetRolePermissionIcon(bool isAssigned)
+    {
+        return isAssigned 
+            ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.CheckmarkCircle() 
+            : new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size24.Circle();
+    }
+}

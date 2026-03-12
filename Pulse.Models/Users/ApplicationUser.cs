@@ -25,6 +25,11 @@ public class ApplicationUser : IdentityUser
     public PresenceStatus PresenceStatus { get; set; } = PresenceStatus.Offline;
 }
 
+//public class ApplicationRole : IdentityRole
+//{
+//    // Add your new field here
+//    public string? Description { get; set; }
+//}
 public class ApplicationUserDto
 {
     public string Id { get; set; } = string.Empty;

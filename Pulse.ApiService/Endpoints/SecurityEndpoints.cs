@@ -378,6 +378,54 @@ namespace Pulse.ApiService.Endpoints
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapPost("/SendWelcomeEmail", async (
+                [FromBody] ApplicationUserDto model,
+                UserManager<ApplicationUser> userManager,
+                IEmailService emailService,
+                IConfiguration configuration,
+                ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("SendWelcomeEmail");
+
+                try
+                {
+                    var user = await userManager.FindByEmailAsync(model.Email);
+                    if (user == null)
+                    {
+                        logger.LogWarning("Welcome Message attempted for non-existent user: {Email}", model.Email);
+                        return Results.NotFound(new ApiResponse
+                        {
+                            Success = false,
+                            Message = "User not found",
+                            StatusCode = 404
+                        });
+                    }
+
+                    var appBaseUrl = configuration["AppBaseUrl"] ?? "https://localhost:7219";
+                    await emailService.SendWelcomeAsync(user.Email, user.FullName, appBaseUrl);
+
+                    logger.LogInformation("Welcome message sent to {Email}", user.Email);
+                    return Results.Ok(new ApiResponse
+                    {
+                        Success = true,
+                        Message = "Welcome message sent successfully",
+                        StatusCode = 200
+                    });
+                    //}
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error sending Welcome message to {Email}", model?.Email);
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+            .RequireAuthorization("Admin")
+            .WithName("SendWelcome")
+            .Produces<ApiResponse>(StatusCodes.Status200OK)
+            .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces<ApiResponse>(StatusCodes.Status404NotFound)
+            .Produces(StatusCodes.Status500InternalServerError);
+
             group.MapPost("/reset-password", async (
                 [FromBody] ResetPasswordModel model,
                 UserManager<ApplicationUser> userManager,

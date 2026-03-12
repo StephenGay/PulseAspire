@@ -71,6 +71,51 @@ html, body {
     background-color: rgba(255,255,255,0.5);
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }
+
+
+
+
+
+
+/*#region Pulse Grids */
+
+.pulse-column-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    /* grid-auto-rows: 1fr; */
+    gap: 12px;
+    margin: 16px 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+.pulse-grid-item{}
+
+.animated-border {
+    padding: 20px 40px;
+    font-size: 1.5rem;
+    color: white;
+    border: 5px solid transparent;
+    border-radius: 12px;
+    background: #111;
+    border-image: linear-gradient(45deg, #ff0057, #ff7b00, #00ffcc, #007bff) 1;
+    animation: border-rotate 4s linear infinite;
+}
+
+@keyframes border-rotate {
+    0% {
+        border-image-source: linear-gradient(0deg, #ff0057, #ff7b00, #00ffcc, #007bff);
+    }
+
+    100% {
+        border-image-source: linear-gradient(360deg, #ff0057, #ff7b00, #00ffcc, #007bff);
+    }
+}
+/*#endregion Pulse Grids */
+
+/*#region Pulse Buttons*/
+
 .btnShadow {
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }
@@ -156,6 +201,87 @@ html, body {
     .myModeBtnOff:hover {
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
     }
+
+/*#endregion Pulse Buttons*/
+
+/*#region Sample Button Hover */
+
+.button-hover {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    color: white;
+    background: transparent;
+    border: 3px solid transparent;
+    border-radius: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+    .button-hover::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        border: 3px solid transparent;
+        border-radius: 8px;
+        background: linear-gradient(90deg, #ff0057, #ff7b00, #00ffcc, #007bff);
+        background-size: 300% 300%;
+        z-index: -1;
+        transition: opacity 0.3s ease;
+        opacity: 0;
+    }
+
+    .button-hover:hover {
+        color: #fff;
+    }
+
+        .button-hover:hover::before {
+            opacity: 1;
+            animation: gradient-move 3s linear infinite;
+        }
+
+@keyframes gradient-move {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    100% {
+        background-position: 100% 50%;
+    }
+}
+
+/*#endregion Sample Button Hover */
+
+/*#region Sample Glow */
+
+.neon-box {
+    padding: 30px 60px;
+    font-size: 1.5rem;
+    color: #fff;
+    border: 4px solid #0ff;
+    border-radius: 12px;
+    box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
+    animation: neon-pulse 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes neon-pulse {
+    from {
+        box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
+        border-color: #0ff;
+    }
+
+    to {
+        box-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff, 0 0 80px #ff00ff;
+        border-color: #ff00ff;
+    }
+}
+
+
+/*#endregion Sample Glow */
+
 
 .div-center-screen {
     display: flex;

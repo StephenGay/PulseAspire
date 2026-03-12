@@ -39,6 +39,7 @@ builder.Services.AddScoped<DataTransferService>();
 builder.Services.AddScoped<Global_AI_Functions>();
 builder.Services.AddScoped<ApiErrorHandler>();
 builder.Services.AddScoped<AiPromptService>();  // ? Centralized AI prompts
+builder.Services.AddSingleton<IMouseService, MouseService>();
 
 #endregion
 

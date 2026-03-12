@@ -90,6 +90,7 @@
             private const string Prefix = $"{ApiPrefix}/User";
 
             public const string Profile = $"{Prefix}/profile";
+            public const string SendWelcomeEmail = $"{ApiPrefix}/Security/SendWelcomeEmail";
 
             public static class Settings
             {
@@ -138,7 +139,34 @@
             private const string Prefix = $"{ApiPrefix}/Divisions";
             public const string GetActive = $"{Prefix}/GetActive";
 
-            public static class Equipment
+            public static class WithDivisionID
+            {
+                private const string WithDivisionIDPrefix = $"{Prefix}/WithDivisionID";
+
+                public static class Factory
+                {
+                    private const string FactorySuffix = "/Factory";
+                    public static class WorkCentres
+                    {
+                        private const string WorkCentreSuffix = $"{FactorySuffix}/WorkCentres";
+                        public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/GetAll";
+                    }
+
+                    public static class FactoryLayout
+                    {
+                        private const string FactoryLayoutSuffix = $"{FactorySuffix}/FactoryLayout";
+                        public static string SaveLayout(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{FactoryLayoutSuffix}/SaveLayout";
+
+                        public static class Zones
+                        {
+                            private const string ZonesSuffix = $"{FactoryLayoutSuffix}/Zones";
+                            public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/GetAll";
+                        }
+                    }
+                }
+            }
+
+                public static class Equipment
             {
                 private const string EquipmentPrefix = $"{Prefix}/Equipment";
 
