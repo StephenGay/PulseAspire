@@ -155,12 +155,12 @@
                     public static class FactoryLayout
                     {
                         private const string FactoryLayoutSuffix = $"{FactorySuffix}/FactoryLayout";
-                        public static string SaveLayout(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{FactoryLayoutSuffix}/SaveLayout";
+                        public static string SaveLayout(string divisionId,string parentId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{FactoryLayoutSuffix}/{Uri.EscapeDataString(parentId)}/SaveLayout";
 
                         public static class Zones
                         {
                             private const string ZonesSuffix = $"{FactoryLayoutSuffix}/Zones";
-                            public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/GetAll";
+                            public static string GetAll(string divisionId, string parentId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/{Uri.EscapeDataString(parentId)}/GetAll";
                         }
                     }
                 }

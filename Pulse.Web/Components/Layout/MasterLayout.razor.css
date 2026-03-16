@@ -11,9 +11,9 @@
 }
 
 .MasterLayoutParent {
-    display: flex;
+    /*display: flex;*/
     width: 100vw;
-    flex-direction: column; /* Stack children vertically */
+    /* flex-direction: column;  */
     height: 100vh; /* Or whatever height your parent should be, like 100% */
     overflow: hidden;
 }
@@ -27,8 +27,9 @@
 
 .MasterLayoutContent {
     width: 100vw;
-    flex: 1; /* This magic makes it grow to fill the space */
-    overflow:hidden;
+    /*flex: 1; */
+    height: calc(100vh - 112px);
+    overflow: hidden;
 }
 
 .MasterLayoutFooter {
@@ -37,7 +38,7 @@
     background: var(--pulse-dark-colour);
 }
 .mbparent {
-    display: flex;
-    flex-direction: column; /* Stack children vertically */
-    height: 100%; /* calc(100% - 56px); /* Or whatever height your parent should be, like 100% */
+    /*display: flex;
+    /*flex-direction: column; /* Stack children vertically */
+    height: calc(100vh - 112px); /* 100%; /* calc(100% - 56px); /* Or whatever height your parent should be, like 100% */
 }

@@ -87,15 +87,15 @@
     }
 </style>
 
-<div class="ccontent">
-    <FluentCard>
-        <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+@* <div class="ccontent">
+    <FluentCard> *@
+        <FluentHeader Style="background-color: var(--pulse-dark-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">@pgTitle</h2>
         </FluentHeader>
 
         @if (pgMode != "List")
         {
-            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-dark-t25-colour);" class="@GetAnimationClass()">
+            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-light-colour);" class="@GetAnimationClass()">
                 <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
                     <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
                     <!-- User Registration Form -->
@@ -109,7 +109,7 @@
                         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
                             @if(pgMode == "View")
                             {
-                                <FluentLabel Typo="Typography.H4" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.FullName</FluentLabel>
+                                <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.FullName</FluentLabel>
                             }
                             else
                             {
@@ -306,6 +306,8 @@
                         <FluentButton Class="myAccentBtn" 
                             BackgroundColor="var(--pulse-accent-btn-bg)"
                             Color="var(--pulse-accent-btn-colour)"
+                            Style="height:50px"
+                            IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size32.AddCircle())"
                             @onclick="AddNewUser">
                             Add New User
                         </FluentButton>
@@ -317,8 +319,7 @@
                     <!-- Filter Section -->
                     <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: center;">
                         <FluentTextField @bind-Value="filterEmail"
-                        Label="Search by Name"
-                        Placeholder="Filter users..."
+                        Placeholder="Search User Name..."
                         @oninput="@((ChangeEventArgs e) => { filterEmail = e.Value?.ToString() ?? string.Empty; ApplyUserFilter(); })"
                         Style="flex: 1;" />
 
@@ -333,7 +334,8 @@
                     <FluentDataGrid Items="@(filteredUsers?.AsQueryable() ?? new List<ApplicationUserDto>().AsQueryable())"
                     TItem="ApplicationUserDto"
                     ResizableColumns="true"
-                    Style="width:100%"
+                    Style="width:100%;background-color:white"
+                    ShowHover="true"
                     Pagination="@pagination">
                         <PropertyColumn Property="@(u => u.FullName)" Title="Full Name" />
                         <PropertyColumn Property="@(u => u.Email)" Title="Email" />
@@ -386,8 +388,8 @@
             }
         
     }
-    </FluentCard>
-</div>
+    @* </FluentCard>
+</div> *@
 
 @code {
     // private RegisterModel newUser = new();

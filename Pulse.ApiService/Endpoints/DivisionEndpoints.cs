@@ -73,12 +73,12 @@ namespace Pulse.ApiService.Endpoints
                 .Produces<List<ProductionStage>>(StatusCodes.Status200OK);
 
             // Get all factory layout zones for a division
-            group.MapGet("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/GetAll", GetAllDivisionFactoryLayoutZones)
+            group.MapGet("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/{parentId}/GetAll", GetAllDivisionFactoryLayoutZones)
                 .WithName("GetAllDivisionFactoryLayoutZones")
                 .Produces<ApiResponse<List<FactoryZone>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
-            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/SaveLayout", SaveFactoryLayout)
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/{parentId}/SaveLayout", SaveFactoryLayout)
                 .WithName("SaveFactoryLayout")
                 .Produces<ApiResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
@@ -537,6 +537,7 @@ namespace Pulse.ApiService.Endpoints
 
         private static async Task<IResult> SaveFactoryLayout(
             string divisionid,
+            string parentId,
             List<FactoryZone> zones,
             PulseDbContext db,
             ILoggerFactory loggerFactory)
@@ -545,14 +546,23 @@ namespace Pulse.ApiService.Endpoints
             try
             {
                 var existing = await db.FactoryZones
-                    .Where(wc => wc.DivisionId == divisionid)
+                    .Where(wc => wc.DivisionId == divisionid && wc.ParentZoneId == parentId)
                     .ToListAsync();
 
-                db.FactoryZones.RemoveRange(existing);
+                //db.FactoryZones.RemoveRange(existing);
 
                 foreach (var zone in zones)
                 {
-                    db.FactoryZones.Add(zone);
+                    var existingZone = existing.FirstOrDefault(e => e.Id == zone.Id);
+                    if (existingZone != null)
+                    {
+                        // Update existing
+                        db.Entry(existingZone).CurrentValues.SetValues(zone);
+                    }
+                    else
+                    {
+                        db.FactoryZones.Add(zone);
+                    }
                 }
                 await db.SaveChangesAsync();
 
@@ -571,6 +581,7 @@ namespace Pulse.ApiService.Endpoints
         }
         private static async Task<IResult> GetAllDivisionFactoryLayoutZones(
             string divisionid,
+            string parentId,
             PulseDbContext db,
             ILoggerFactory loggerFactory)
         {
@@ -580,7 +591,7 @@ namespace Pulse.ApiService.Endpoints
             {
                 var zones = await db.FactoryZones
                     .AsNoTracking()
-                    .Where(wc => wc.DivisionId == divisionid)
+                    .Where(wc => wc.DivisionId == divisionid && wc.ParentZoneId == parentId)
                     .ToListAsync();
 
                 if (zones == null) { zones = new List<FactoryZone>(); }

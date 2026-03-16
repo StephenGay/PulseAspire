@@ -449,15 +449,24 @@
         
 
      <Drawer Placement="Placement.Right" @bind-IsOpen="@OpenFlapper" IsBackdrop="true" @OnCloseAsync="() => OpenFlapper=false" AllowResize="true" width="100%" style="overflow-x:hidden">
-         <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
-             <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;margin-top:8px" 
-                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenFlapper=false">
-            </FluentButton>
-
-         </div>
-                <FlapperPg />
-
+         <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenFlapper=false">
+            Close
+        </FluentButton>
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;margin-left:10px"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => flapperVersion1=!flapperVersion1">
+            Ver
+        </FluentButton>
+        @if (flapperVersion1)
+        {
+             <FlapperPg />
+        }
+        else
+        {
+            <FlapperPg_v2 />
+        }
     </Drawer>
+
         <Drawer Placement="Placement.Right" @bind-IsOpen="@OpenTables" IsBackdrop="true" @OnCloseAsync="() => OpenTables=false" AllowResize="true" width="100%" style="overflow-x:hidden">
             <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; justify-content:end">
              <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;" 
@@ -494,6 +503,7 @@
     private string _AliAnalysis = string.Empty;
     private int useModelVal = 0;
     private string aiModel = "gpt-oss:latest";
+    private bool flapperVersion1 = true;
     private string txtQ = string.Empty;
     //public bool isSales { get; set; }
     public bool showSave = false;

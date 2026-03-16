@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pulse.Models.Production.Layout;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -19,8 +20,10 @@ namespace Pulse.Models.Production
         [DatabaseGenerated(DatabaseGeneratedOption.None)]
         [Key, Column(Order = 1)]
         public int ProductionStageID { get; set; }
-
+        public string? FactoryZoneId { get; set; } = null;
         public EquipmentItem? EquipmentItem { get; set; }
         public ProductionStage? ProductionStage { get; set; }
+        //public FactoryZone? FactoryZone { get; set; }
+
     }
 }

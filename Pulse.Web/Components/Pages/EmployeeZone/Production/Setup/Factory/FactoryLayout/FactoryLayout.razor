@@ -1,6 +1,7 @@
 ﻿@page "/EmployeeZone/Production/Setup/Factory/FactoryLayout/FactoryLayout"
 @using Pulse.Models.Api
 @using Pulse.Models.Organizational
+@using Pulse.Models.Production
 @using Pulse.Models.Production.Layout
 @using Pulse.Web.Services
 
@@ -9,53 +10,318 @@
 @inject IMouseService MouseService
 @rendermode InteractiveServer
 
-<FluentCard style="width:100%; max-width:1200px; margin:20px auto;">
-    <FluentToolbar>
-        <FluentButton Appearance="Appearance.Accent" OnClick="AddNewZone">+ Add Zone</FluentButton>
+<style>
+
+    .wc-card {
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 12px;
+        background: white;
+    }
+
+</style>
+
+<FluentCard style="width:100%; max-width:1920px;margin-left:auto;margin-right:auto;background-color: var(--pulse-light-2-colour)">
+    <FluentToolbar Style="background-color: var(--pulse-light-2-colour)">
+        <FluentButton Appearance="Appearance.Accent" OnClick="() => openWC = true">+ New Zone</FluentButton>
         <FluentButton OnClick="SaveLayout">Save to Database</FluentButton>
         <FluentButton OnClick="LoadLayout">Load</FluentButton>
         <FluentSwitch @bind-Value="SnapToGrid">Snap to Grid (10px)</FluentSwitch>
+        <FluentButton OnClick="ZoomIn">+</FluentButton>
+        <FluentButton OnClick="ZoomOut">-</FluentButton>
+        <FluentButton OnClick="ResetView">Reset</FluentButton>
+        <FluentBadge Appearance="Appearance.Neutral">
+            Zoom: @(zoomLevel.ToString("F2"))×
+        </FluentBadge>
     </FluentToolbar>
 
-    <div style="position: relative; width: 100%; min-height: 700px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;"
-         @onmousemove="HandleMouseMove" @onmouseup="HandleMouseUp" @onmouseleave="HandleMouseUp">
+    <div @ref="layoutContainer" 
+         style="position: relative; width: 100%; min-height: 700px; height:calc(100% - 40px); background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;"
+         @onpointerdown="HandlePointerDown"
+         @onpointermove="HandleMouseMove" 
+         @onpointerup="HandleMouseUp" 
+         @onpointerleave="HandleMouseUp"
+         @onwheel="HandleWheel"
+         @onwheel:preventDefault="true">
 
-        <svg width="100%" height="100%" viewBox="0 0 1200 800" preserveAspectRatio="xMidYMid meet"
+        <svg @ref="svgRef"
+             width="100%" height="100%" 
+             viewBox="@CurrentViewBox"
+             preserveAspectRatio="xMidYMid meet"
+             @onpointerdown="DeselectZoneOnSvgClick"
              style="background: white; display: block; user-select: none;">
             
             @foreach (var zone in Zones)
             {
-                <DraggableZone Zone="zone" OnPositionChanged="UpdateZonePosition" SnapToGrid="SnapToGrid" />
-            }
-            
-            <!-- Optional background grid lines -->
-            @if (SnapToGrid)
-            {
-                <!-- draw light grid lines here if you want visual grid -->
+                <DraggableZone 
+                    Zone="zone" 
+                    OnPositionChanged="UpdateZonePosition" 
+                    OnZoneSelected="SelectZone"
+                    SnapToGrid="SnapToGrid"
+                    IsSelected="@(selectedZone?.Id == zone.Id)"
+                    GetSvgPointFromMouse="ConvertClientToSvgCoordinates" />
             }
         </svg>
     </div>
 </FluentCard>
 
+<Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => openWC=false" AllowResize="true" width="30%" style="overflow-x:hidden">
+    <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px; padding: 16px;">
+        <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
+            <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => openWC=false">
+                Close
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="AddNewZone">+ Add Zone</FluentButton>
+        </FluentStack>
+        @if (isLoadingWCs)
+        {
+            <FluentProgressRing></FluentProgressRing>
+            <p>Loading work centres...</p>
+        }
+        else
+        {
+            if (wcs?.Any() == true)
+            {
+                @foreach (var wc in wcs)
+                {
+                    <div class="wc-card @(selectedWC != wc ? "divShadow" : "animated-border")" @onclick="@(() => @selectedWC = wc)">
+                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                            <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@wc.WorkCentreName</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @wc.WorkCentreId</FluentLabel>
+                        </FluentStack>
+                    </div>
+                }
+            }
+        
+        }
+    </FluentStack>
+</Drawer>
+
 @code {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    private DotNetObjectReference<FactoryLayout>? dotNetRef;
+    private bool isObserving;
+    private ElementReference layoutContainer { get; set; }
+    private ElementReference svgRef { get; set; }
+    // private string CurrentViewBox { get; set; } = "0 0 1200 675";
+    private double zoomLevel = 1.0;
+    private double minZoom = 0.5;
+    private double maxZoom = 5.0;
+    private double panX = 0.0;   // in viewBox units
+    private double panY = 0.0;
+    private bool isPanning;
+    private bool openWC = false;
+    private double startPanMouseX, startPanMouseY, startPanX, startPanY;
+    // We'll measure these once or on resize
+    private double containerWidth = 1200;   // fallback/initial
+    private double containerHeight = 675;   // 16:9 example
+    // private string CurrentViewBox => $"{panX} {panY} {containerWidth / zoomLevel} {containerHeight / zoomLevel}";
+    private string CurrentViewBox =>
+        $"{panX:F1} {panY:F1} {(containerWidth / zoomLevel):F1} {(containerHeight / zoomLevel):F1}";
+
+    private FactoryZone? selectedZone = null;
+    // For smooth feel, you can use doubles everywhere
     private List<FactoryZone> Zones = new();
+    private int layoutLevel = 0;
+    private string layoutParentId = "0";
     private bool SnapToGrid = true;
+    private List<WorkCentre>? wcs;
+    private bool isLoadingWCs = true;
+    private WorkCentre? selectedWC;
     private FactoryZone? DraggingZone; // handled inside DraggableZone but you can expose if needed
     private Division? d;
 
     protected override async Task OnInitializedAsync()
     {
         d = await dTrf.GetgvSelectedDivision();
-        var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID));
+        var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID, layoutParentId));
         Zones = response?.Data ?? new();
+        var wcresponse = await ApiService.GetAsync<ApiResponse<List<WorkCentre>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.WorkCentres.GetAll(d.DivisionID));
+        wcs = wcresponse?.Data ?? new();
+        isLoadingWCs = false;
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            dotNetRef = DotNetObjectReference.Create(this);
+
+            // Start observing
+            await JS.InvokeVoidAsync("observeResize", layoutContainer, dotNetRef);
+
+            // Initial measurement
+            await MeasureAndUpdateViewBoxAsync();
+            await InvokeAsync(StateHasChanged);
+            // isObserving = true;
+        }
+    }
+
+    private void SelectZone(FactoryZone zone)
+    {
+        selectedZone = zone;
+        StateHasChanged();
+    }
+
+    private void DeselectZoneOnSvgClick(PointerEventArgs e)
+    {
+        // Only deselect if left-click (button 0) and not panning (button 1)
+        if (e.Button == 0)
+        {
+            DeselectZone();
+        }
+    }
+
+    private void DeselectZone()
+    {
+        selectedZone = null;
+        StateHasChanged();
+    }
+    [JSInvokable]
+    public async Task OnContainerResized(int width, int height)
+    {
+        containerWidth = width;
+        containerHeight = height;
+        // await UpdateViewBoxAsync(width, height);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task MeasureAndUpdateViewBoxAsync()
+    {
+        if (layoutContainer.Id == null) return;
+
+        var dimensions = await JS.InvokeAsync<ContainerDimensions>("getElementSize", layoutContainer);
+        await UpdateViewBoxAsync((int)dimensions.Width, (int)dimensions.Height);
+    }
+
+    private async Task UpdateViewBoxAsync(int pixelWidth, int pixelHeight)
+    {
+        if (pixelWidth <= 0 || pixelHeight <= 0) return;
+
+        // Option A: 1 viewBox unit = 1 screen pixel (best for precise drag/resize)
+        containerWidth = pixelWidth;
+        containerHeight = pixelHeight;
+
+        // No need to set CurrentViewBox here – it's computed dynamically
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void ZoomIn() => AdjustZoom(1.25);
+    private void ZoomOut() => AdjustZoom(0.8);
+
+    private void AdjustZoom(double factor)
+    {
+        double centerX = panX + (containerWidth / zoomLevel) / 2;
+        double centerY = panY + (containerHeight / zoomLevel) / 2;
+
+        double newZoom = zoomLevel * factor;
+        newZoom = Math.Clamp(newZoom, minZoom, maxZoom);
+
+        panX = centerX - (containerWidth / newZoom) / 2;
+        panY = centerY - (containerHeight / newZoom) / 2;
+        zoomLevel = newZoom;
+
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void ResetView()
+    {
+        zoomLevel = 1.0;
+        panX = 0;
+        panY = 0;
+        StateHasChanged();
+    }
+    public class ContainerDimensions
+    {
+        public double Width { get; set; }
+        public double Height { get; set; }
+    }
+    private async Task HandlePointerDown(PointerEventArgs e)
+    {
+        if (e.Button == 1)  // middle mouse
+        {
+            isPanning = true;
+            startPanMouseX = e.ClientX;
+            startPanMouseY = e.ClientY;
+            startPanX = panX;
+            startPanY = panY;
+
+            // Optional: capture pointer for smooth pan outside
+            await JS.InvokeVoidAsync("blazorSetPointerCapture", svgRef, e.PointerId);
+        }
+    }
+
+    private void HandlePointerMoveGlobal(PointerEventArgs e)
+    {
+        if (!isPanning) return;
+
+        double dxPixels = e.ClientX - startPanMouseX;
+        double dyPixels = e.ClientY - startPanMouseY;
+
+        // Convert pixel delta to viewBox delta (inverse zoom)
+        double dxView = dxPixels / zoomLevel;
+        double dyView = dyPixels / zoomLevel;
+
+        panX = startPanX - dxView;   // minus because dragging right → view moves left
+        panY = startPanY - dyView;
+
+        StateHasChanged();
+    }
+
+    private void HandlePointerUpGlobal(PointerEventArgs e)
+    {
+        isPanning = false;
+    }
+
+    private async Task HandleWheel(WheelEventArgs e)
+    {
+        System.Console.WriteLine($"Wheel delta: {e.DeltaY}, ZoomLevel before: {zoomLevel}");
+        // Get mouse position relative to container (in pixels)
+        var rect = await JS.InvokeAsync<DomRect>("getBoundingClientRect", layoutContainer);
+        double mouseX = e.ClientX - rect.Left;
+        double mouseY = e.ClientY - rect.Top;
+
+        // Convert pixel position to current viewBox coords
+        double viewX = panX + (mouseX / containerWidth) * (containerWidth / zoomLevel);
+        double viewY = panY + (mouseY / containerHeight) * (containerHeight / zoomLevel);
+
+        // Adjust zoom
+        double delta = e.DeltaY < 0 ? 0.1 : -0.1;   // positive delta = zoom out
+        double newZoom = zoomLevel * Math.Pow(1.25, -delta);  // exponential feel, adjust base
+        newZoom = Math.Clamp(newZoom, minZoom, maxZoom);
+
+        // Adjust pan so zoom is centered on mouse
+        double newPanX = viewX - (mouseX / containerWidth) * (containerWidth / newZoom);
+        double newPanY = viewY - (mouseY / containerHeight) * (containerHeight / newZoom);
+
+        zoomLevel = newZoom;
+        panX = newPanX;
+        panY = newPanY;
+        System.Console.WriteLine($"New zoom: {zoomLevel}, New viewBox: {CurrentViewBox}");
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (dotNetRef != null)
+        {
+            dotNetRef.Dispose();
+            dotNetRef = null;
+        }
+        // Optional: call JS to disconnect observer if you stored the cleanup func
+    }
     private void AddNewZone()
     {
         var newZone = new FactoryZone 
         { 
             Name = $"Zone {Zones.Count + 1}",
             DivisionId = d?.DivisionID,
+            ParentZoneId = layoutParentId,
+            Level = layoutLevel,
+            WorkCentreID = selectedWC?.WorkCentreId,
+            Description = selectedWC.WorkCentreName,
             X = 100 + Zones.Count * 20, 
             Y = 100 + Zones.Count * 20 
         };
@@ -67,25 +333,45 @@
         var existing = Zones.First(z => z.Id == updated.Id);
         existing.X = updated.X;
         existing.Y = updated.Y;
-        // Width/Height can be bound too if you add resize later
+        existing.Width = updated.Width;
+        existing.Height = updated.Height;
         StateHasChanged();
     }
 
-    private async Task SaveLayout() => await ApiService.PostAsync<List<FactoryZone>,ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.SaveLayout(d.DivisionID), Zones);
-    private async Task LoadLayout() => Zones = await ApiService.GetAsync<List<FactoryZone>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID));
+    private async Task SaveLayout() => await ApiService.PostAsync<List<FactoryZone>,ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.SaveLayout(d.DivisionID,layoutParentId), Zones);
+    private async Task LoadLayout() => Zones = await ApiService.GetAsync<List<FactoryZone>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID,layoutParentId));
 
-    // Global mouse handlers (see DraggableZone below)
-    private void HandleMouseMove(MouseEventArgs e)
+    // Global mouse handlers
+    private void HandleMouseMove(PointerEventArgs e)
     { 
         MouseService.FireMove(e);
+        HandlePointerMoveGlobal(e);  // Add this
     }
 
-    private void HandleMouseUp(MouseEventArgs e)
+    private void HandleMouseUp(PointerEventArgs e)
     {
         MouseService.FireUp(e);
+        HandlePointerUpGlobal(e);  // Add this
     }
-    private void HandleMouseLeave(MouseEventArgs e)
+
+    private void HandleMouseLeave(PointerEventArgs e)
     {
         MouseService.FireUp(e);
+        HandlePointerUpGlobal(e);  // Add this
+    }
+
+    private async Task<(double SvgX, double SvgY)> ConvertClientToSvgCoordinates(double clientX, double clientY)
+    {
+        var rect = await JS.InvokeAsync<DomRect>("getBoundingClientRect", layoutContainer);
+
+        // Mouse relative to container (0-1 range)
+        double relX = (clientX - rect.Left) / rect.Width;
+        double relY = (clientY - rect.Top) / rect.Height;
+
+        // Convert to current viewBox coords, accounting for pan and zoom
+        double svgX = panX + relX * (containerWidth / zoomLevel);
+        double svgY = panY + relY * (containerHeight / zoomLevel);
+
+        return (svgX, svgY);
     }
 }

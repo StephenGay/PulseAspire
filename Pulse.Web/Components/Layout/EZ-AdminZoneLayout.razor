@@ -14,17 +14,14 @@
 @inherits LayoutComponentBase
 @layout MasterLayout
  
-<style>
-.cparent {
-  display: flex;
-  flex-direction: column; /* Stack children vertically */
-  height: 100%; /*calc(100%-56px); /* Or whatever height your parent should be, like 100% */
-}
-</style>
-@* <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="min-height:100%" >  *@
-    <EZ_AdminNavMenu />
-    @Body
-@* </FluentStack> *@
+<div class="PulseZoneParent">
+    <div class="PulseZoneMenubar">
+        <EZ_AdminNavMenu />
+    </div>
+    <div class="PulseZoneContent">
+        @Body
+    </div>
+</div>
 
 @code{
     [CascadingParameter]

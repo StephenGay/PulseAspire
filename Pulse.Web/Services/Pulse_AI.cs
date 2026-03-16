@@ -215,7 +215,7 @@ public sealed class Pulse_AI(
     /// </summary>
     public async Task<string> AskPulseAIAsync(
         string prompt,
-        string model,
+        string model="gpt-oss:latest",
         CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrEmpty(prompt);
