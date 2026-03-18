@@ -1,0 +1,103 @@
+﻿@* @page "/" *@
+@* @page "/home" *@
+@using Pulse.Web.Components.Layout
+@using Pulse.Web.Components.Pages.Security
+@using Microsoft.FluentUI.AspNetCore.Components
+@layout NoLayout
+
+<style>
+	.div-center-screen {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100vh;
+		width: 100vw;
+		background-color: rgb(0, 0, 0);
+		overflow: hidden;
+	}
+
+	.logo-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0px;
+		width: fit-content;
+	}
+
+	.logo-image {
+		transition: transform 0.8s ease-in-out;
+		 width: auto; 
+		margin-bottom: auto;  /* Initial state */
+	}
+
+	.logo-image.move-up {
+		transform: translateY(-150px);
+		margin-bottom: 0;  /* Final state */
+	}
+
+	.login-wrapper {
+		opacity: 0;
+		transform: scale(0.1);
+		transition: all 1.8s ease-in-out;
+		margin-top: -180px;
+		pointer-events: none; /* ADD THIS */
+		position: absolute; /* ADD THIS */
+		visibility: hidden;
+	}
+
+	.login-wrapper.zoom-in {
+		opacity: 1;
+		transform: scale(1);
+			pointer-events: auto; /* ADD THIS */
+			visibility: visible; /* ADD THIS */
+			position: relative;
+	}
+</style>
+
+<div class="div-center-screen">
+	<div class="logo-container">
+		<!-- Logo that moves up after 5 seconds -->
+@* 		<img src="@(showLogoAnimation ? "images/Logos/PulseAspireLogo852x471.png" : "images/Logos/PulseIntro 852x471.gif")"  *@
+		@* <img src="images/Logos/AspireIntro852x471.gif" *@
+		<img src="@(showLogoAnimation ? "images/Logos/PulseAspireLogo852x471.png" : "images/Logos/PulseIntro 852x471.gif")"
+		
+			 class="img-fluid logo-image @(showLogoAnimation ? "move-up" : "")"
+			alt="Pulse Aspire Logo" />
+	</div>
+		<!-- Login component that zooms in -->
+		<div class="login-wrapper @(showLoginAnimation ? "zoom-in" : "")"> 
+			<Login />
+		</div>
+	
+</div>
+
+@code 
+{
+	private bool showLogoAnimation = false;
+	private bool showLoginAnimation = false;
+	private bool animationComplete = false;
+
+	protected override async Task OnInitializedAsync()
+	{
+		
+	}
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender && !animationComplete)
+		{
+			animationComplete = true; // Prevent running again
+			
+			// Wait 4.5 seconds, then move logo up
+			await Task.Delay(4000);
+			showLogoAnimation = true;
+			
+			// Small delay, then start login zoom
+			await Task.Delay(200);
+			showLoginAnimation = true;
+			
+			// Single StateHasChanged call
+			await InvokeAsync(StateHasChanged);
+		}
+	}
+}

@@ -11,6 +11,7 @@ public interface IEmailService
 {
     Task<bool> SendEmailAsync(string recipientEmail, string recipientName, string subject, string htmlBody);
     Task<bool> SendPasswordResetAsync(string userEmail, string userName, string resetLink);
+    Task<bool> SendForcePasswordResetAsync(string userEmail, string userName, string resetLink);
     Task<bool> SendWelcomeAsync(string userEmail, string userName, string loginUrl);
     Task<bool> SendReportAsync(string recipientEmail, string reportName, byte[] reportContent, string contentType = "application/pdf");
     Task<bool> SendReportReadyNotificationAsync(string recipientEmail, string reportName, string downloadUrl);
@@ -117,9 +118,15 @@ public class EmailService : IEmailService
         return await SendEmailAsync(userEmail, userName, subject, htmlBody);
     }
 
+    public async Task<bool> SendForcePasswordResetAsync(string userEmail, string userName, string resetLink)
+    {
+        var subject = "Password Reset Requested";
+        var htmlBody = _templateService.GetForcePasswordResetTemplate(userName, resetLink);
+        return await SendEmailAsync(userEmail, userName, subject, htmlBody);
+    }
     public async Task<bool> SendWelcomeAsync(string userEmail, string userName, string loginUrl)
     {
-        var subject = "Welcome to Pulse!";
+        var subject = "Welcome to Pulse Aspire!";
         var htmlBody = _templateService.GetWelcomeTemplate(userName, loginUrl);
         return await SendEmailAsync(userEmail, userName, subject, htmlBody);
     }

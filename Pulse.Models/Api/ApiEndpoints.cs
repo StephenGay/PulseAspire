@@ -91,6 +91,7 @@
 
             public const string Profile = $"{Prefix}/profile";
             public const string SendWelcomeEmail = $"{ApiPrefix}/Security/SendWelcomeEmail";
+            public const string SendForcePasswordResetEmail = $"{ApiPrefix}/Security/ForcePasswordReset";
 
             public static class Settings
             {

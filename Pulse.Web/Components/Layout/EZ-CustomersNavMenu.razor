@@ -89,8 +89,12 @@
             @* @if (HasAssists)
             { *@
                 <Animation Effect="@Effect.Shake" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2">
-                <FluentIcon Id="botClientAssist" Value="@(new Icons.Filled.Size32.BotSparkle().WithColor("var(--pulse-dark-colour)"))" OnClick="() => openAssists = true" />
-                <FluentTooltip Anchor="botClientAssist" HideTooltipOnCursorLeave="true" Delay=100>
+                <FluentButton Id="mnuAIBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" OnClick="() => openAssists = true">
+                    @* @(mAli.emoji.ToMarkup("40px")) *@
+                    <img src="Images/AI/PulseAI_Female.jpg" alt="AI" style="height:100%;width:100%" />
+                </FluentButton>
+                @* <FluentIcon Id="botClientAssist" Value="@(new Icons.Filled.Size32.BotSparkle().WithColor("var(--pulse-dark-colour)"))" OnClick="() => openAssists = true" /> *@
+                <FluentTooltip Anchor="mnuAIBtn" HideTooltipOnCursorLeave="true" Delay=100>
                     <strong>Pulse AI:</strong><br />
                     I have some assist functions that may help<br />
                     when using Customer Accounts.<br />

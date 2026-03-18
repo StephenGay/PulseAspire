@@ -31,12 +31,13 @@ html, body {
     --pulse-cancel-btn-bg: var(--error);
     --pulse-cancel-btn-colour: rgb(255,255,255);
     /* Mode Toggle Button */
-    --pulse-mode-btn-on-bg: #9900FF;
+    --pulse-mode-btn-on-bg: #9fdf9f;
+    /*#9900FF;*/
     /*#1D722A;*/
-    --pulse-mode-btn-on-item-colour: white;
+    --pulse-mode-btn-on-item-colour: black; /* white;*/
     --pulse-mode-btn-off-bg: white;
     --pulse-mode-btn-off-item-colour: #9900FF;
-    --pulse-mode-btn-bg: #9900FF;
+    --pulse-mode-btn-bg: #9fdf9f; /* #9900FF;*/
     /*#1D722A;*/
     --pulse-mode-btn-item-colour: white;
     --datagrid-hover-color: var(--pulse-light-colour);
@@ -212,7 +213,7 @@ html, body {
 .myModeBtnOn {
     --pulse-mode-btn-bg: var(--pulse-mode-btn-on-bg);
     --pulse-mode-btn-item-colour: var(--pulse-mode-btn-on-item-colour);
-    border: 1px solid white; /* var(--pulse-mode-btn-on-bg);*/
+    border: 1px solid #206020; /* white;  var(--pulse-mode-btn-on-bg);*/
     /*border-radius:1px;*/
 }
 

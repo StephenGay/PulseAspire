@@ -2,25 +2,95 @@
 @page "/home"
 @using Pulse.Web.Components.Layout
 @using Pulse.Web.Components.Pages.Security
+@using Microsoft.FluentUI.AspNetCore.Components
 @layout NoLayout
 
-<PageTitle>Home</PageTitle>
+<style>
+	.div-center-screen {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		height: 100vh;
+		width: 100vw;
+		background-color: rgb(0, 0, 0);
+		overflow: hidden;
+	}
 
-@* <div class="div-center-screen" style="background-color: rgb(0,0,0);padding-left:20px; padding-right:20px;"> *@
-<div style="background-color: rgb(0,0,0);height:100vh;width:100vw;padding-left:20px; padding-right:20px;text-align:center">
-	<div style="height:50vh;width:fit-content;margin:auto">
+	.logo-container {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 0px;
+		width: fit-content;
+	}
+
+	.logo-image {
+		transition: transform 0.8s ease-in-out;
+		 width: auto; 
+		margin-bottom: auto;  /* Initial state */
+	}
+
+	.logo-image.move-up {
+		transform: translateY(-150px);
+		margin-bottom: 0;  /* Final state */
+	}
+
+	.login-wrapper {
+		opacity: 0;
+		transform: scale(0.1);
+		transition: all 1.8s ease-in-out;
+		margin-top: -180px;
+		pointer-events: none; /* ADD THIS */
+		position: absolute; /* ADD THIS */
+		visibility: hidden;
+	}
+
+	.login-wrapper.zoom-in {
+		opacity: 1;
+		transform: scale(1);
+			pointer-events: auto; /* ADD THIS */
+			visibility: visible; /* ADD THIS */
+			position: relative;
+	}
+</style>
+
+<div class="div-center-screen" style="padding-left:10px;padding-right:10px;">
+	@if (!animationComplete)
+	{
 		<img src="images/Logos/PulseIntro 852x471.gif" class="img-fluid" alt="Pulse Aspire Logo" />
-	</div>
-	<Animation Effect="@Effect.ZoomIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(5)">
-		<div style="height:50vh;width:fit-content;margin-left:auto;margin-right:auto;height:fit-content;">
-		@* <div style="max-width:852px;text-align:center"> *@
+	}
+    else
+	{
+        <Animation Effect="@Effect.ZoomIn" Speed="@TimeSpan.FromSeconds(3)" Delay="@TimeSpan.FromSeconds(1)">
+		<div class="logo-container">
+			@* <img src="images/Logos/PulseAspireLogo610x277.png" class="img-fluid" alt="Pulse Aspire Logo" /> *@
+			<img src="images/AI/PulseAI_508x286_2.gif" class="img-fluid" alt="PulseAI" />
 			<Login />
 		</div>
-	</Animation>
-	
+		</Animation>
+	}
 </div>
 
 @code 
 {
+	private bool showLogoAnimation = false;
+	private bool showLoginAnimation = false;
+	private bool animationComplete = false;
 
+	protected override async Task OnInitializedAsync()
+	{
+		
+	}
+	protected override async Task OnAfterRenderAsync(bool firstRender)
+	{
+		if (firstRender && !animationComplete)
+		{
+			// Wait 4.5 seconds, then move logo up
+			await Task.Delay(5000);
+            animationComplete = true;
+			// Single StateHasChanged call
+			await InvokeAsync(StateHasChanged);
+		}
+	}
 }

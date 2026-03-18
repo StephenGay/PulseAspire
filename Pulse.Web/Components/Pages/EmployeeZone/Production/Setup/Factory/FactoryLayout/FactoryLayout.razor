@@ -6,6 +6,8 @@
 @using Pulse.Web.Services
 
 @inject PulseApiService ApiService
+@inject IPulseToastService PulseToastService
+@inject Global_AI_Functions GlobalAI
 @inject DataTransferService dTrf
 @inject IMouseService MouseService
 @rendermode InteractiveServer
@@ -13,10 +15,28 @@
 <style>
 
     .wc-card {
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
+        width: 80%;
+        border-radius: 10px;
         padding: 12px;
         background: white;
+    }
+    .wc-card-unselected{
+        border: 1px solid var(--pulse-dark-colour);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    }
+    .wc-card-selected {
+        border:2px double var(--pulse-dark-colour);
+        background-color: var(--pulse-light-colour);
+        animation: selected-item-pulse 2s infinite;
+    }
+    @@keyframes selected-item-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 var(--pulse-dark-t25-colour);
+        }
+
+        50% {
+            box-shadow: 0 0 15px 8px var(--pulse-dark-t50-colour);
+        }
     }
 
 </style>
@@ -24,7 +44,7 @@
 <FluentCard style="width:100%; max-width:1920px;margin-left:auto;margin-right:auto;background-color: var(--pulse-light-2-colour)">
     <FluentToolbar Style="background-color: var(--pulse-light-2-colour)">
         <FluentButton Appearance="Appearance.Accent" OnClick="() => openWC = true">+ New Zone</FluentButton>
-        <FluentButton OnClick="SaveLayout">Save to Database</FluentButton>
+        <FluentButton OnClick="SaveLayout">Save Layout</FluentButton>
         <FluentButton OnClick="LoadLayout">Load</FluentButton>
         <FluentSwitch @bind-Value="SnapToGrid">Snap to Grid (10px)</FluentSwitch>
         <FluentButton OnClick="ZoomIn">+</FluentButton>
@@ -65,11 +85,11 @@
     </div>
 </FluentCard>
 
-<Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => openWC=false" AllowResize="true" width="30%" style="overflow-x:hidden">
-    <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px; padding: 16px;">
+<Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => { openWC=false ; selectedWC = null ; }" AllowResize="true" width="15%" style="overflow-x:hidden">
+    <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
         <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
-            <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
-                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => openWC=false">
+            <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px;"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => { openWC=false ; selectedWC = null ; }">
                 Close
             </FluentButton>
             <FluentButton Appearance="Appearance.Accent" OnClick="AddNewZone">+ Add Zone</FluentButton>
@@ -85,7 +105,7 @@
             {
                 @foreach (var wc in wcs)
                 {
-                    <div class="wc-card @(selectedWC != wc ? "divShadow" : "animated-border")" @onclick="@(() => @selectedWC = wc)">
+                    <div class="wc-card @(selectedWC != wc ? "wc-card-unselected" : "wc-card-selected")" @onclick="@(() => @selectedWC = wc)">
                         <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
                             <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@wc.WorkCentreName</FluentLabel>
                             <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @wc.WorkCentreId</FluentLabel>
@@ -326,6 +346,7 @@
             Y = 100 + Zones.Count * 20 
         };
         Zones.Add(newZone);
+        selectedWC = null;
     }
 
     private void UpdateZonePosition(FactoryZone updated)
@@ -338,9 +359,38 @@
         StateHasChanged();
     }
 
-    private async Task SaveLayout() => await ApiService.PostAsync<List<FactoryZone>,ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.SaveLayout(d.DivisionID,layoutParentId), Zones);
-    private async Task LoadLayout() => Zones = await ApiService.GetAsync<List<FactoryZone>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID,layoutParentId));
+    private async Task SaveLayout()
+    {
+        bool isSaved = false;
 
+        try
+        {
+            var response = await ApiService.PostAsync<List<FactoryZone>,ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.SaveLayout(d.DivisionID,layoutParentId), Zones);
+            isSaved = response?.Success ?? false;
+        }
+        catch (Exception ex)
+        {
+            isSaved = false;
+        }
+        finally{
+            if (isSaved)
+            {
+                var sMsg = "The layout has been saved";
+                PulseToastService.ShowToast("Success", sMsg);
+                await GlobalAI.AISpeak(sMsg,"PulseAI");
+            }
+            else
+            {
+                var eMsg = "There was an error saving the layout.<br />Please try again.";
+                PulseToastService.ShowToast("Error", eMsg);
+                await GlobalAI.AISpeak(eMsg,"PulseAI");
+            }
+        }
+    
+
+    }
+        private async Task LoadLayout() => Zones = await ApiService.GetAsync<List<FactoryZone>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID,layoutParentId));
+    
     // Global mouse handlers
     private void HandleMouseMove(PointerEventArgs e)
     { 

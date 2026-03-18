@@ -60,9 +60,10 @@ namespace Pulse.ApiService.Endpoints
                     if(user.RequirePwdChange)
                     {
                         logger.LogInformation("User {Email} requires password change", model.Email);
-                        return Results.Conflict(new ApiResponse
+                        return Results.Ok(new ApiResponse<AuthenticationToken>
                         {
                             Success = false,
+                            Data = null,
                             Message = "Password change required",
                             StatusCode = 409
                         });
@@ -378,6 +379,87 @@ namespace Pulse.ApiService.Endpoints
             .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
             .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapPost("/ForcePasswordReset", async (
+                [FromBody] ApplicationUserDto model,
+                UserManager<ApplicationUser> userManager,
+                IEmailService emailService,
+                IConfiguration configuration,
+                ILoggerFactory loggerFactory) =>
+            {
+                var logger = loggerFactory.CreateLogger("ForcePasswordReset");
+
+                if (string.IsNullOrEmpty(model?.Email))
+                    return Results.BadRequest(new ApiResponse
+                    {
+                        Success = false,
+                        Message = "Email is required",
+                        StatusCode = 400
+                    });
+
+                try
+                {
+                    var user = await userManager.FindByEmailAsync(model.Email);
+
+                    // Always return success for security (don't reveal if email exists)
+                    if (user == null)
+                    {
+                        logger.LogInformation("Force password reset attempt for non-existent email: {Email}", model.Email);
+                        return Results.Ok(new ApiResponse
+                        {
+                            Success = true,
+                            Message = "If an account exists with this email, a password reset link has been sent",
+                            StatusCode = 200
+                        });
+                    }
+
+                    user.RequirePwdChange = true;
+                    await userManager.UpdateAsync(user);
+                    var resetToken = await userManager.GeneratePasswordResetTokenAsync(user);
+                    var appBaseUrl = configuration["AppBaseUrl"] ?? "https://localhost:7219";
+                    var resetLink = $"{appBaseUrl}/reset-password?token={Uri.EscapeDataString(resetToken)}&email={Uri.EscapeDataString(user.Email)}";
+
+                    var emailSent = await emailService.SendForcePasswordResetAsync(
+                        user.Email!,
+                        user.FullName ?? "User",
+                        resetLink);
+
+                     // Ensure the flag is set in the response model
+                    user = await userManager.FindByEmailAsync(model.Email);
+                    model.RequirePwdChange = user.RequirePwdChange;
+
+                    if (!emailSent)
+                    {
+                        logger.LogError("Failed to send force password reset email to {Email}", user.Email);
+                        return Results.Ok(new ApiResponse<ApplicationUserDto>
+                        {
+                            Success = false,
+                            Data = model,
+                            Message = "Failed to send force password reset email",
+                            StatusCode = 200
+                        });
+                    }
+
+                    logger.LogInformation("Force password reset email sent to {Email}", user.Email);
+                    return Results.Ok(new ApiResponse<ApplicationUserDto>
+                    {
+                        Success = true,
+                        Data = model,
+                        Message = "If an account exists with this email, a password reset link has been sent",
+                        StatusCode = 200
+                    });
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error processing force password reset for {Email}", model?.Email);
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+            })
+            .RequireAuthorization("Admin")
+            .WithName("ForcePasswordReset")
+            .Produces<ApiResponse<ApplicationUserDto>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
+            .Produces(StatusCodes.Status500InternalServerError);
+
             group.MapPost("/SendWelcomeEmail", async (
                 [FromBody] ApplicationUserDto model,
                 UserManager<ApplicationUser> userManager,
@@ -480,6 +562,7 @@ namespace Pulse.ApiService.Endpoints
                     //if (result.Succeeded)
                     //{
                         user.RequirePwdChange = false;
+                        user.EmailConfirmed = true;
                         await userManager.UpdateAsync(user);
                         // Send confirmation email
                         await emailService.SendPasswordChangedNotificationAsync(user.Email!, user.FullName ?? "User");

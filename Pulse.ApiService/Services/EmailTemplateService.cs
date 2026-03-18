@@ -6,6 +6,7 @@ namespace Pulse.ApiService.Services;
 public interface IEmailTemplateService
 {
     string GetPasswordResetTemplate(string userName, string resetLink, int expirationHours = 24);
+    string GetForcePasswordResetTemplate(string userName, string resetLink, int expirationHours = 24);
     string GetWelcomeTemplate(string userName, string loginUrl);
     string GetReportReadyTemplate(string reportName, string downloadUrl);
     string GetAccountLockedTemplate(string userName);
@@ -121,6 +122,55 @@ public class EmailTemplateService : IEmailTemplateService
             </html>";
     }
 
+    public string GetForcePasswordResetTemplate(string userName, string resetLink, int expirationHours = 24)
+    {
+        return $@"
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>{BaseStyles}</style>
+            </head>
+            <body>
+                <div class='container'>
+                    <div class='header'>
+                        <h1>🔐 Password Reset Has Been Requested By Admin</h1>
+                    </div>
+                    <div class='content'>
+                        <p>Hello <strong>{HtmlEncode(userName)}</strong>,</p>
+                        <p>You have been requested to reset your password for your Pulse Aspire account.</p>
+                        <p>This is most likely caused by a security concern with your current password.</p>
+                        <br />
+                        <div style='text-align: center;'>
+                            <span style='background-color: #660000;
+                                    color: white;
+                                    padding: 12px 24px;
+                                    text-decoration: none;
+                                    border-radius: 4px;
+                                    margin: 20px 0;
+                                    font-weight: bold;'>
+                                <a href='{HtmlEncode(resetLink)}' style='text-decoration: none;color:white;'>Reset Your Password</a>
+                            </span>
+                        </div>
+
+                        <div class='highlight'>
+                            <strong>⏱️ Link Expiration:</strong> This link will expire in {expirationHours} hours.
+                        </div>
+
+                        <div class='warning'>
+                            <strong>⚠️ Security Note:</strong> Please contact your Administrator if you have any questions or wish to validate the authenticity of this request.
+                        </div>
+
+                        <p>For security reasons, we never share passwords via email.</p>
+
+                        <div class='footer'>
+                            <p>Pulse Aspire | Automated Security Message</p>
+                            <p>If you have questions, contact our support team.</p>
+                        </div>
+                    </div>
+                </div>
+            </body>
+            </html>";
+    }
     public string GetWelcomeTemplate(string userName, string loginUrl)
     {
         return $@"
@@ -139,11 +189,20 @@ public class EmailTemplateService : IEmailTemplateService
                         <p>Your account has been successfully created. Welcome to Pulse Aspire!</p>
 
                         <div style='text-align: center;'>
-                            <a href='{HtmlEncode(loginUrl)}' class='button'>Log In to Your Account</a>
+                            <span style='background-color: #660000;
+                                    color: white;
+                                    padding: 12px 24px;
+                                    text-decoration: none;
+                                    border-radius: 4px;
+                                    margin: 20px 0;
+                                    font-weight: bold;'>
+                                <a href='{HtmlEncode(loginUrl)}' style='text-decoration: none;color:white;'>Create A Password</a>
+                            </span>
                         </div>
 
                         <h3>What's Next?</h3>
                         <ul>
+                            <li>Create your password using the button above</li>
                             <li>Complete your profile information</li>
                             <li>Set up your preferences</li>
                             <li>Explore the dashboard</li>

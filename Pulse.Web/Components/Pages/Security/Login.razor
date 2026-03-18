@@ -32,51 +32,61 @@
     <FluentBodyContent>
         @if (isForgot)
         {
-            <EditForm Model="ForgotModel" OnValidSubmit="HandleForgotAsync">
-                <DataAnnotationsValidator />
+            @if (!string.IsNullOrEmpty(errorForgotMessage))
+            {
+                <FluentMessageBar Intent="MessageIntent.Error"
+                                  Style="margin-bottom: 16px;">
+                    @errorForgotMessage
+                </FluentMessageBar>
+            }
+            @if (!string.IsNullOrEmpty(successForgotMessage))
+            {
+                <FluentMessageBar Intent="MessageIntent.Success"
+                                  Style="margin-bottom: 16px;">
+                    @successForgotMessage
+                </FluentMessageBar>
+            }
+            if (CheckEmail)
+            {
+                <p style="color:white">Reset your password and try login again.</p>
+                <FluentButton 
+                BackgroundColor="#660000"
+                Appearance="Appearance.Accent"
+                OnClick="() => { CheckEmail = false; ChangePasswordRequired = false; isForgot = false; }">
+                    Back To Login
+                </FluentButton>
 
-                <div style="margin-bottom: 16px;">
-                    <FluentTextField @bind-Value="ForgotModel.Email"
-                    Label="Email"
-                    Style="width: 100%;"
-                    Placeholder="Enter your email"
-                    ReadOnly="ChangePasswordRequired" />
-                    <ValidationMessage For="@(() => ForgotModel.Email)" />
-                </div>
-
-                @* <div style="margin-bottom: 16px;">
-                <FluentTextField @bind-Value="Model.Password"
-                                    Label="Password"
-                                    Style="width: 100%;"
-                                    Type="password"
-                                    Placeholder="Enter your password"
-                                    ReadOnly="isLoading" />
-                <ValidationMessage For="@(() => Model.Password)" />
-            </div> *@
-
-                @if (!string.IsNullOrEmpty(errorForgotMessage))
+            }
+            else
+            {
+                if (ChangePasswordRequired)
                 {
-                    <FluentMessageBar Severity="MessageSeverity.Error"
-                    Style="margin-bottom: 16px;">
-                        @errorForgotMessage
-                    </FluentMessageBar>
+                    @* <p style="color:white">A password reset is required for this account.</p> *@
+                    <p style="color:white">If you did not receive an email or the email link has expired, click the button below to resend.</p>
                 }
+                <EditForm Model="ForgotModel" OnValidSubmit="HandleForgotAsync">
+                    <DataAnnotationsValidator />
 
-                <div style="display: flex; justify-content: center; margin-top: 24px; gap: 16px;">
-                    @* <FluentButton Appearance="Appearance.Neutral"
-                            @onclick="HandleRegisterClickAsync"
-                            Disabled="isLoading">
-                Register
-            </FluentButton> *@
+                    <div style="margin-bottom: 16px;">
+                        <FluentTextField @bind-Value="ForgotModel.Email"
+                        Label="Email"
+                        Style="width: 100%;"
+                        Placeholder="Enter your email"
+                        ReadOnly="true" />
+                        <ValidationMessage For="@(() => ForgotModel.Email)" />
+                    </div>
 
-                    <FluentButton Type="Microsoft.FluentUI.AspNetCore.Components.ButtonType.Submit"
-                    BackgroundColor="#660000"
-                    Appearance="Appearance.Accent"
-                    Disabled="isProcessingForgot">
-                        @(isProcessingForgot ? "Sending Reset Email..." : "Reset Password")
-                    </FluentButton>
-                </div>
-            </EditForm>
+                    <div style="display: flex; justify-content: center; margin-top: 24px; gap: 16px;">
+                        <FluentButton Type="Microsoft.FluentUI.AspNetCore.Components.ButtonType.Submit"
+                        BackgroundColor="#660000"
+                        Style="border:1px solid white"
+                        Appearance="Appearance.Accent"
+                        Disabled="isProcessingForgot">
+                            @(isProcessingForgot ? "Sending..." : "Send Reset Email")
+                        </FluentButton>
+                    </div>
+                </EditForm>
+            }
         }
         else
         {
@@ -104,37 +114,27 @@
 
                 @if (!string.IsNullOrEmpty(errorMessage))
                 {
-                    <FluentMessageBar Severity="MessageSeverity.Error"
+                    <FluentMessageBar Intent="MessageIntent.Error"
                     Style="margin-bottom: 16px;">
                         @errorMessage
                     </FluentMessageBar>
                 }
-                @if (!string.IsNullOrEmpty(errorForgotMessage))
-                {
-                    <FluentMessageBar Severity="MessageSeverity.Error"
-                    Style="margin-bottom: 16px;">
-                        @errorForgotMessage
-                    </FluentMessageBar>
-                }
-                @if (!string.IsNullOrEmpty(successForgotMessage))
-                {
-                    <FluentMessageBar Severity="MessageSeverity.Success"
-                    Style="margin-bottom: 16px;">
-                        @successForgotMessage
-                    </FluentMessageBar>
-                }
+                
+                
                 @* <div style="display: flex; justify-content: center; margin-top: 24px; gap: 16px;"> *@
                 <FluentStack Horizontal AlignItems="AlignItems.Center" Gap="8px" Style="width: 100%;">
                     @* <span>Forgot your password?</span> *@
                     <FluentButton BackgroundColor="#660000"
+                    Style="border:1px solid white"
                     Appearance="Appearance.Accent"
-                    @onclick="() => isForgot = true"
+                    @onclick="StartResetProcess"
                     Disabled="isLoading">
                         Forgot Password?
                     </FluentButton>
                     <FluentSpacer />
                     <FluentButton Type="Microsoft.FluentUI.AspNetCore.Components.ButtonType.Submit"
                     BackgroundColor="#660000"
+                    Style="border:1px solid white"
                     Appearance="Appearance.Accent"
                     Disabled="isLoading">
                         @(isLoading ? "Logging in..." : "Login")
@@ -153,6 +153,7 @@
     private string? errorForgotMessage;
     private string? successForgotMessage;
     private bool ChangePasswordRequired = false;
+    private bool CheckEmail = false;
     private bool isLoading = false;
     private string? firstName;
     private bool isForgot = false;
@@ -160,28 +161,46 @@
     private string? pTheme;
     private IEnumerable<SpeechSynthesisVoice>? Voices;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        try
+        if (firstRender)
         {
             Voices = await SpeechSynthesis.GetVoicesAsync();
         }
-        catch (Exception ex)
-        {
-            Logger.LogWarning(ex, "Failed to load speech synthesis voices");
-        }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        // try
+        // {
+        //     Voices = await SpeechSynthesis.GetVoicesAsync();
+        // }
+        // catch (Exception ex)
+        // {
+        //     Logger.LogWarning(ex, "Failed to load speech synthesis voices");
+        // }
     }
 
+    private async Task StartResetProcess()
+    {
+        if (string.IsNullOrEmpty(Model.Email))
+        {
+            errorMessage = "Ënter your Email Address first.";
+            return;
+        }
+        ForgotModel.Email = Model.Email;
+        isForgot = true;
+    }
     private async Task HandleForgotAsync()
     {
         errorForgotMessage = null;
+        successForgotMessage = null;
         isProcessingForgot = true;
         StateHasChanged();
 
         try
         {
             Logger.LogInformation("Attempting to send reset password email for {Email}", ForgotModel.Email);
-            ChangePasswordRequired = true;
+            // ChangePasswordRequired = true;
             // Deserialize to the wrapped response
             var apiResponse = await ApiService.PostAsync<ForgotPasswordModel, ApiResponse>(
                 "/Security/forgot-password", ForgotModel);
@@ -195,13 +214,14 @@
 
             Logger.LogInformation("Password reset request successful for {Email}", ForgotModel.Email);
             successForgotMessage = apiResponse?.Message ?? "Password reset request sent. Please check your email.";
+            CheckEmail = true;
         }
         catch (PulseApiException ex)
         {
             Logger.LogError(ex, "API error during login: {UserMessage}", ex.UserMessage);
             
             // Provide specific error messages based on category
-            errorMessage = ex.Category switch
+            errorForgotMessage = ex.Category switch
             {
                 ErrorCategory.Network => "Unable to connect to server. Check your internet connection.",
                 ErrorCategory.Authentication => "Invalid email or password. Please try again.",
@@ -212,7 +232,7 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Unexpected error during login: {Message}", ex.Message);
-            errorMessage = "An unexpected error occurred. Please try again later.";
+            errorForgotMessage = "An unexpected error occurred. Please try again later.";
         }
         finally
         {
@@ -246,7 +266,7 @@
             }
             if(apiResponse?.StatusCode == 409)
             {
-                errorMessage = "A Password change is required. Please update your password.";
+                errorForgotMessage = "A Password change is required. Please update your password.";
                 Logger.LogWarning("Password change required for user {Email}", Model.Email);
                 ForgotModel.Email = Model.Email;
                 isForgot = true;
