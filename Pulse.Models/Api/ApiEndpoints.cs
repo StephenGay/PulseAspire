@@ -1,4 +1,6 @@
-﻿namespace Pulse.Models.Api
+﻿using Pulse.Models.Production;
+
+namespace Pulse.Models.Api
 {
     /// <summary>
     /// Centralized API endpoint constants for Pulse.ApiService.
@@ -151,6 +153,8 @@
                     {
                         private const string WorkCentreSuffix = $"{FactorySuffix}/WorkCentres";
                         public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/GetAll";
+                        public static string Create(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Create";
+                        public static string Update(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Update";
                     }
 
                     public static class FactoryLayout

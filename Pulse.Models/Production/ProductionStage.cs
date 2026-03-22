@@ -37,6 +37,8 @@ namespace Pulse.Models.Production
         public bool RequiresSignOff { get; set; }
         [DefaultValue(false)]
         public bool RequiresPlanning { get; set; }
+        [DefaultValue(0)]
+        public double ProcessPercentage { get; set; }
         [DefaultValue(true)]
         public bool IsActive { get; set; }
         [MaxLength (50)]

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
@@ -21,6 +22,12 @@ namespace Pulse.Models.Production
         public string DivisionID { get; set; }
         [Required]
         public int BranchID { get; set; }
+        public string? Description { get; set; }
+        [MaxLength(9)]
+        
+        public string? Colour { get; set; } = "#3b82f6";
+        [DefaultValue(true)]
+        public bool IsActive { get; set; } = true;
         public ICollection<WorkCentreFunctions>? WorkCentreFunctions { get; set; }
     }
 }

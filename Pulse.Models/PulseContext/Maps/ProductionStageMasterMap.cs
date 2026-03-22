@@ -45,6 +45,10 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(e => e.IsOptional)
                 .HasDefaultValue(false);
 
+            builder.Property(e => e.ProcessPercentage)
+            .HasPrecision(10, 4)
+            .HasDefaultValue(0.0);
+
             builder.Property(e => e.ResultsPage)
                 .HasMaxLength(200)
                 .IsRequired(false); // Optional as per nullable type

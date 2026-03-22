@@ -89,6 +89,16 @@ namespace Pulse.ApiService.Endpoints
                 .Produces<ApiResponse<List<WorkCentre>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/WorkCentres/Create", CreateDivisionWorkCentre)
+                .WithName("CreateDivisionWorkCentre")
+                .Produces<ApiResponse<WorkCentre>>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/WorkCentres/Update", UpdateDivisionWorkCentre)
+                .WithName("UpdateDivisionWorkCentre")
+                .Produces<ApiResponse<WorkCentre>>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
             group.MapGet(ByDivIdPath + "/GetWorkCentres", async (string divisionId, PulseDbContext db) =>
                 await db.WorkCentreMaster.AsNoTracking()
                 .Where(w => w.DivisionID == divisionId)
@@ -607,6 +617,86 @@ namespace Pulse.ApiService.Endpoints
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error retrieving the divisions factory layout zones");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        private static async Task<IResult> UpdateDivisionWorkCentre(
+            WorkCentre workCentre,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("UpdateDivisionWorkCentre");
+
+            try
+            {
+                var dwc = await db.WorkCentreMaster
+                    .Where(wc => wc.WorkCentreId == workCentre.WorkCentreId)
+                    .FirstOrDefaultAsync();
+
+                if (dwc == null)
+                {
+                    logger.LogError("Error updating the divisions work centre: WorkCentre not found");
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+                
+                // Update the tracked entity properties instead of replacing it
+                dwc.WorkCentreName = workCentre.WorkCentreName;
+                dwc.DivisionID = workCentre.DivisionID;
+                dwc.BranchID = workCentre.BranchID;
+
+                await db.SaveChangesAsync();
+                return Results.Ok(new ApiResponse<WorkCentre>
+                {
+                    Success = true,
+                    Data = dwc,
+                    Message = $"Saved work centre with ID {dwc.WorkCentreId}",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating the divisions work centre");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        private static async Task<IResult> CreateDivisionWorkCentre(
+            WorkCentre workCentre,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("CreateDivisionWorkCentre");
+
+            try
+            {
+                var dwc = await db.WorkCentreMaster
+                    .Where(wc => wc.DivisionID == workCentre.DivisionID)
+                    .OrderByDescending(wc => wc.WorkCentreId)
+                    .FirstOrDefaultAsync();
+
+                if (dwc == null) 
+                { 
+                    var intId = Convert.ToInt32($"{workCentre.BranchID}{workCentre.DivisionID}01");
+                    workCentre.WorkCentreId = intId;
+                }
+                else
+                {
+                    workCentre.WorkCentreId = dwc.WorkCentreId + 1;
+                }
+                await db.WorkCentreMaster.AddAsync(workCentre);
+                await db.SaveChangesAsync();
+                return Results.Ok(new ApiResponse<WorkCentre>
+                {
+                    Success = true,
+                    Data = workCentre,
+                    Message = $"Saved work centre with ID {workCentre.WorkCentreId}",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating the divisions work centre");
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
