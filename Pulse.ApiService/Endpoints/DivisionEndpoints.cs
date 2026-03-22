@@ -73,12 +73,12 @@ namespace Pulse.ApiService.Endpoints
                 .Produces<List<ProductionStage>>(StatusCodes.Status200OK);
 
             // Get all factory layout zones for a division
-            group.MapGet("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/GetAll", GetAllDivisionFactoryLayoutZones)
+            group.MapGet("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/{parentId}/GetAll", GetAllDivisionFactoryLayoutZones)
                 .WithName("GetAllDivisionFactoryLayoutZones")
                 .Produces<ApiResponse<List<FactoryZone>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
-            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/SaveLayout", SaveFactoryLayout)
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/{parentId}/SaveLayout", SaveFactoryLayout)
                 .WithName("SaveFactoryLayout")
                 .Produces<ApiResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
@@ -87,6 +87,16 @@ namespace Pulse.ApiService.Endpoints
             group.MapGet("/WithDivisionID/{divisionid}/Factory/WorkCentres/GetAll", GetAllDivisionWorkCentres)
                 .WithName("GetAllDivisionWorkCentres")
                 .Produces<ApiResponse<List<WorkCentre>>>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/WorkCentres/Create", CreateDivisionWorkCentre)
+                .WithName("CreateDivisionWorkCentre")
+                .Produces<ApiResponse<WorkCentre>>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/WorkCentres/Update", UpdateDivisionWorkCentre)
+                .WithName("UpdateDivisionWorkCentre")
+                .Produces<ApiResponse<WorkCentre>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
             group.MapGet(ByDivIdPath + "/GetWorkCentres", async (string divisionId, PulseDbContext db) =>
@@ -537,6 +547,7 @@ namespace Pulse.ApiService.Endpoints
 
         private static async Task<IResult> SaveFactoryLayout(
             string divisionid,
+            string parentId,
             List<FactoryZone> zones,
             PulseDbContext db,
             ILoggerFactory loggerFactory)
@@ -545,14 +556,23 @@ namespace Pulse.ApiService.Endpoints
             try
             {
                 var existing = await db.FactoryZones
-                    .Where(wc => wc.DivisionId == divisionid)
+                    .Where(wc => wc.DivisionId == divisionid && wc.ParentZoneId == parentId)
                     .ToListAsync();
 
-                db.FactoryZones.RemoveRange(existing);
+                //db.FactoryZones.RemoveRange(existing);
 
                 foreach (var zone in zones)
                 {
-                    db.FactoryZones.Add(zone);
+                    var existingZone = existing.FirstOrDefault(e => e.Id == zone.Id);
+                    if (existingZone != null)
+                    {
+                        // Update existing
+                        db.Entry(existingZone).CurrentValues.SetValues(zone);
+                    }
+                    else
+                    {
+                        db.FactoryZones.Add(zone);
+                    }
                 }
                 await db.SaveChangesAsync();
 
@@ -571,6 +591,7 @@ namespace Pulse.ApiService.Endpoints
         }
         private static async Task<IResult> GetAllDivisionFactoryLayoutZones(
             string divisionid,
+            string parentId,
             PulseDbContext db,
             ILoggerFactory loggerFactory)
         {
@@ -580,7 +601,7 @@ namespace Pulse.ApiService.Endpoints
             {
                 var zones = await db.FactoryZones
                     .AsNoTracking()
-                    .Where(wc => wc.DivisionId == divisionid)
+                    .Where(wc => wc.DivisionId == divisionid && wc.ParentZoneId == parentId)
                     .ToListAsync();
 
                 if (zones == null) { zones = new List<FactoryZone>(); }
@@ -596,6 +617,86 @@ namespace Pulse.ApiService.Endpoints
             catch (Exception ex)
             {
                 logger.LogError(ex, "Error retrieving the divisions factory layout zones");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        private static async Task<IResult> UpdateDivisionWorkCentre(
+            WorkCentre workCentre,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("UpdateDivisionWorkCentre");
+
+            try
+            {
+                var dwc = await db.WorkCentreMaster
+                    .Where(wc => wc.WorkCentreId == workCentre.WorkCentreId)
+                    .FirstOrDefaultAsync();
+
+                if (dwc == null)
+                {
+                    logger.LogError("Error updating the divisions work centre: WorkCentre not found");
+                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
+                }
+                
+                // Update the tracked entity properties instead of replacing it
+                dwc.WorkCentreName = workCentre.WorkCentreName;
+                dwc.DivisionID = workCentre.DivisionID;
+                dwc.BranchID = workCentre.BranchID;
+
+                await db.SaveChangesAsync();
+                return Results.Ok(new ApiResponse<WorkCentre>
+                {
+                    Success = true,
+                    Data = dwc,
+                    Message = $"Saved work centre with ID {dwc.WorkCentreId}",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating the divisions work centre");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
+        private static async Task<IResult> CreateDivisionWorkCentre(
+            WorkCentre workCentre,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("CreateDivisionWorkCentre");
+
+            try
+            {
+                var dwc = await db.WorkCentreMaster
+                    .Where(wc => wc.DivisionID == workCentre.DivisionID)
+                    .OrderByDescending(wc => wc.WorkCentreId)
+                    .FirstOrDefaultAsync();
+
+                if (dwc == null) 
+                { 
+                    var intId = Convert.ToInt32($"{workCentre.BranchID}{workCentre.DivisionID}01");
+                    workCentre.WorkCentreId = intId;
+                }
+                else
+                {
+                    workCentre.WorkCentreId = dwc.WorkCentreId + 1;
+                }
+                await db.WorkCentreMaster.AddAsync(workCentre);
+                await db.SaveChangesAsync();
+                return Results.Ok(new ApiResponse<WorkCentre>
+                {
+                    Success = true,
+                    Data = workCentre,
+                    Message = $"Saved work centre with ID {workCentre.WorkCentreId}",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating the divisions work centre");
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         }

@@ -87,15 +87,15 @@
     }
 </style>
 
-<div class="ccontent">
-    <FluentCard>
-        <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+@* <div class="ccontent">
+    <FluentCard> *@
+        <FluentHeader Style="background-color: var(--pulse-dark-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">@pgTitle</h2>
         </FluentHeader>
 
         @if (pgMode != "List")
         {
-            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-dark-t25-colour);" class="@GetAnimationClass()">
+            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-light-colour);" class="@GetAnimationClass()">
                 <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
                     <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
                     <!-- User Registration Form -->
@@ -109,7 +109,7 @@
                         <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
                             @if(pgMode == "View")
                             {
-                                <FluentLabel Typo="Typography.H4" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.FullName</FluentLabel>
+                                <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.FullName</FluentLabel>
                             }
                             else
                             {
@@ -239,15 +239,7 @@
                                 </FluentButton>
                             }
                             
-                                     <FluentButton Class="myCancelBtn"
-                                                  BackgroundColor="var(--pulse-cancel-btn-bg)"
-                                                  Color="var(--pulse-cancel-btn-colour)"
-                                                  IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
-                                                  Style="height:40px"
-                                                  @onclick="SendWelcomeEmail"
-                                                  >
-                                        Re-Send Welcome Email
-                                    </FluentButton>
+                                     
                                     @*<FluentSpacer />
                                     <FluentButton Class="myCancelBtn"
                                                   BackgroundColor="var(--pulse-cancel-btn-bg)"
@@ -282,10 +274,32 @@
 
                 
             </FluentStack>
+        </div>
+        @if (pgMode == "View" && !isAnimating)
+        {
+            <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-light-colour);">
+                <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="20">
+                    <FluentButton Class="myAccentBtn"
+                    BackgroundColor="var(--pulse-accent-btn-bg)"
+                    Color="var(--pulse-accent-btn-colour)"
+                    IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-accent-btn-colour"))"
+                    Style="height:40px"
+                    @onclick="SendWelcomeEmail"
+                    >
+                        Re-Send Welcome Email
+                    </FluentButton>
+                    <FluentButton Class="myAccentBtn"
+                        BackgroundColor="var(--pulse-accent-btn-bg)"
+                        Color="var(--pulse-accent-btn-colour)"
+                        IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-accent-btn-colour"))"
+                        Style="height:40px"
+                        @onclick="SendForcePasswordResetEmail"
+                        >
+                        Require Password Reset
+                    </FluentButton>
+                </FluentStack>
             </div>
-            
-            
-        
+        }
     }
     else
     {
@@ -306,6 +320,8 @@
                         <FluentButton Class="myAccentBtn" 
                             BackgroundColor="var(--pulse-accent-btn-bg)"
                             Color="var(--pulse-accent-btn-colour)"
+                            Style="height:50px"
+                            IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size32.AddCircle())"
                             @onclick="AddNewUser">
                             Add New User
                         </FluentButton>
@@ -317,8 +333,7 @@
                     <!-- Filter Section -->
                     <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: center;">
                         <FluentTextField @bind-Value="filterEmail"
-                        Label="Search by Name"
-                        Placeholder="Filter users..."
+                        Placeholder="Search User Name..."
                         @oninput="@((ChangeEventArgs e) => { filterEmail = e.Value?.ToString() ?? string.Empty; ApplyUserFilter(); })"
                         Style="flex: 1;" />
 
@@ -333,7 +348,8 @@
                     <FluentDataGrid Items="@(filteredUsers?.AsQueryable() ?? new List<ApplicationUserDto>().AsQueryable())"
                     TItem="ApplicationUserDto"
                     ResizableColumns="true"
-                    Style="width:100%"
+                    Style="width:100%;background-color:white"
+                    ShowHover="true"
                     Pagination="@pagination">
                         <PropertyColumn Property="@(u => u.FullName)" Title="Full Name" />
                         <PropertyColumn Property="@(u => u.Email)" Title="Email" />
@@ -386,8 +402,8 @@
             }
         
     }
-    </FluentCard>
-</div>
+    @* </FluentCard>
+</div> *@
 
 @code {
     // private RegisterModel newUser = new();
@@ -611,6 +627,38 @@
         }
     }
 
+    private async Task SendForcePasswordResetEmail()
+    {
+        bool isSuccess = false;
+        try
+        {
+            var result = await ApiService.PostAsync<ApplicationUserDto, ApiResponse<ApplicationUserDto>>(ApiEndpoints.User.SendForcePasswordResetEmail, editUser);
+            isSuccess = result?.Success == true;
+            editUser = result?.Data ?? editUser;
+            StateHasChanged();
+        }
+        catch(Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (isSuccess)
+            {
+                var msg = $"{editUser.FullName} is now required to change their password.<br />A reset mail has been sent to the user.";
+                PulseToastService.ShowToast("Success", msg,true);
+                msg = $"{editUser.FullName} is now required to change their password the next time they login.<br />I have sent a password reset email to their email account.";
+                await GlobalAI.AISpeak(msg, "PulseAI");
+            }
+            else
+            {
+                var msg = "There was an error sending the Reset message.<br />Please try again.";
+                PulseToastService.ShowToast("Error", msg,true);
+                await GlobalAI.AISpeak(msg, "PulseAI");
+            }
+            await LoadUsersAsync();
+        }
+    }
     private async Task SendWelcomeEmail()
     {
         bool isSuccess = false;

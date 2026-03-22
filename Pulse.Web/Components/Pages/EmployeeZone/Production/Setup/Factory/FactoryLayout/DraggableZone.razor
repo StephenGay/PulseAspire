@@ -3,28 +3,71 @@
 
 <!-- DraggableZone.razor -->
 <g transform="translate(@Zone.X, @Zone.Y)"
-       @onmousedown="OnMouseDown"
-       @onmousedown:stopPropagation="true"
+       @onpointerdown="OnPointerDownWithSelection"
+       @onpointerdown:stopPropagation="true"
        style="cursor: move; user-select: none;">
 
-    <rect width="@Zone.Width" height="@Zone.Height"
-          fill="@Zone.Color" stroke="#1f2937" stroke-width="2" rx="6" />
+    @* <rect width="@Zone.Width" height="@Zone.Height"
+          fill="@Zone.Color" stroke="#1f2937" stroke-width="2" rx="6" /> *@
 
-    <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 + 6)"
+    <rect width="@Zone.Width" height="@Zone.Height"
+          fill="@Zone.Color" fill-opacity="0.7"
+          stroke="#1f2937" stroke-width="2" rx="6" />
+
+    <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 - 8)"
+          text-anchor="middle" fill="white" font-size="14" font-weight="500">
+        @Zone.Description
+    </text>
+
+    <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 + 8)"
           text-anchor="middle" fill="white" font-size="14" font-weight="500">
         @Zone.Name
     </text>
+
+    @if (IsSelected) 
+    {
+        <circle cx="@(Zone.Width)" cy="0" r="6" fill="white" stroke="#2563eb" stroke-width="2"
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.SE))"
+                @onpointerdown:stopPropagation="true"
+                style="cursor: nwse-resize;" />
+        <circle cx="@(Zone.Width)"     cy="@(Zone.Height)"  r="6" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.SW))" @onpointerdown:stopPropagation="true" style="cursor: nesw-resize;" />
+        <circle cx="0"                 cy="@(Zone.Height)"  r="6" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.NE))" @onpointerdown:stopPropagation="true" style="cursor: nesw-resize;" />
+        <circle cx="0"                 cy="0"               r="6" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.NW))" @onpointerdown:stopPropagation="true" style="cursor: nwse-resize;" />
+
+        <!-- Edge handles (midpoints) - optional for finer control -->
+        <circle cx="@(Zone.Width / 2)" cy="0"               r="5" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.N))" @onpointerdown:stopPropagation="true" style="cursor: ns-resize;" />
+        <circle cx="@(Zone.Width / 2)" cy="@(Zone.Height)"  r="5" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.S))" @onpointerdown:stopPropagation="true" style="cursor: ns-resize;" />
+        <circle cx="0"                 cy="@(Zone.Height/2)"r="5" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.W))" @onpointerdown:stopPropagation="true" style="cursor: ew-resize;" />
+        <circle cx="@(Zone.Width)"     cy="@(Zone.Height/2)" r="5" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.E))" @onpointerdown:stopPropagation="true" style="cursor: ew-resize;" />
+    }
 </g>
 
 @code {
     [Parameter] public FactoryZone Zone { get; set; } = null!;
     [Parameter] public EventCallback<FactoryZone> OnPositionChanged { get; set; }
+    [Parameter] public EventCallback<FactoryZone> OnSizeChanged { get; set; }
     [Parameter] public bool SnapToGrid { get; set; }
-
+    [Parameter] public bool IsSelected { get; set; } = true;
+    [Parameter] public ElementReference ContainerRef { get; set; }
+    [Parameter] public EventCallback<FactoryZone> OnZoneSelected { get; set; }
+    [Parameter]
+    public Func<double, double, Task<(double SvgX, double SvgY)>> GetSvgPointFromMouse { get; set; } = default!;
     [Inject] private IMouseService MouseService { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private bool isDragging;
-    private double startX, startY, startZoneX, startZoneY;
+    private bool isResizing;
+    private ResizeHandle activeHandle;
+    private double startX, startY, startZoneX, startZoneY, startWidth, startHeight;
+
+    private enum ResizeHandle { NW, N, NE, E, SE, S, SW, W }
 
     protected override void OnInitialized()
     {
@@ -32,40 +75,132 @@
         MouseService.OnUp += HandleGlobalUp;
     }
 
-    private void OnMouseDown(MouseEventArgs e)
+    private async Task StartResize(PointerEventArgs e, ResizeHandle handle)
     {
+        var (svgX, svgY) = await GetSvgPointFromMouse.Invoke(e.ClientX, e.ClientY);
+
+        isResizing = true;
+        activeHandle = handle;
+        startX = svgX;
+        startY = svgY;
+        startZoneX = Zone.X;
+        startZoneY = Zone.Y;
+        startWidth = Zone.Width;
+        startHeight = Zone.Height;
+    }
+
+    private async Task OnPointerDownWithSelection(PointerEventArgs e)
+    {
+        await OnZoneSelected.InvokeAsync(Zone);
+        await OnPointerDown(e);
+    }
+
+    private async Task OnPointerDown(PointerEventArgs e)
+    {
+        if (e.Button != 0) return;  // only left click
+
+        var (svgX, svgY) = await GetSvgPointFromMouse.Invoke(e.ClientX, e.ClientY);
+
         isDragging = true;
-        startX = e.ClientX;
-        startY = e.ClientY;
+        startX = svgX;
+        startY = svgY;
         startZoneX = Zone.X;
         startZoneY = Zone.Y;
     }
 
-    private async void HandleGlobalMove(object? sender, MouseEventArgs e)
+    private async void HandleGlobalMove(object? sender, PointerEventArgs e)
     {
-        if (!isDragging) return;
+        if (!isDragging && !isResizing) return;
 
-        var dx = e.ClientX - startX;
-        var dy = e.ClientY - startY;
+        var (currentSvgX, currentSvgY) = await GetSvgPointFromMouse.Invoke(e.ClientX, e.ClientY);
+        double dx = currentSvgX - startX;
+        double dy = currentSvgY - startY;
 
-        var newX = startZoneX + dx;
-        var newY = startZoneY + dy;
-
-        if (SnapToGrid)
+        if (isDragging)
         {
-            newX = Math.Round(newX / 10) * 10;
-            newY = Math.Round(newY / 10) * 10;
+            double newX = startZoneX + dx;
+            double newY = startZoneY + dy;
+
+            if (SnapToGrid)
+            {
+                newX = Math.Round(newX / 10) * 10;
+                newY = Math.Round(newY / 10) * 10;
+            }
+
+            Zone.X = Math.Max(0, newX);
+            Zone.Y = Math.Max(0, newY);
+
+            await OnPositionChanged.InvokeAsync(Zone);
         }
+        else if (isResizing)
+        {
+            double newX = startZoneX;
+            double newY = startZoneY;
+            double newW = startWidth;
+            double newH = startHeight;
 
-        Zone.X = Math.Max(0, newX);
-        Zone.Y = Math.Max(0, newY);
+            switch (activeHandle)
+            {
+                case ResizeHandle.SE:
+                    newW = startWidth + dx;
+                    newH = startHeight + dy;
+                    break;
+                case ResizeHandle.SW:
+                    newX = startZoneX + dx;
+                    newW = startWidth - dx;
+                    newH = startHeight + dy;
+                    break;
+                case ResizeHandle.NE:
+                    newY = startZoneY + dy;
+                    newW = startWidth + dx;
+                    newH = startHeight - dy;
+                    break;
+                case ResizeHandle.NW:
+                    newX = startZoneX + dx;
+                    newY = startZoneY + dy;
+                    newW = startWidth - dx;
+                    newH = startHeight - dy;
+                    break;
+                case ResizeHandle.E:
+                    newW = startWidth + dx;
+                    break;
+                case ResizeHandle.W:
+                    newX = startZoneX + dx;
+                    newW = startWidth - dx;
+                    break;
+                case ResizeHandle.S:
+                    newH = startHeight + dy;
+                    break;
+                case ResizeHandle.N:
+                    newY = startZoneY + dy;
+                    newH = startHeight - dy;
+                    break;
+            }
 
-        await OnPositionChanged.InvokeAsync(Zone);
+            if (newW < 40) newW = 40;
+            if (newH < 30) newH = 30;
+
+            if (SnapToGrid)
+            {
+                newX = Math.Round(newX / 10) * 10;
+                newY = Math.Round(newY / 10) * 10;
+                newW = Math.Round(newW / 10) * 10;
+                newH = Math.Round(newH / 10) * 10;
+            }
+
+            Zone.X = newX;
+            Zone.Y = newY;
+            Zone.Width = newW;
+            Zone.Height = newH;
+
+            await OnPositionChanged.InvokeAsync(Zone);
+        }
     }
 
-    private void HandleGlobalUp(object? sender, MouseEventArgs e)
+    private void HandleGlobalUp(object? sender, PointerEventArgs e)
     {
         isDragging = false;
+        isResizing = false;
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()

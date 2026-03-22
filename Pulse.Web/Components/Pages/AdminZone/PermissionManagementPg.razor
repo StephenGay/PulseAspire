@@ -81,7 +81,7 @@
                 }
 
                 50% {
-                    box-shadow: 0 0 15px 8px var(--pulse-dark-t25-colour);
+                    box-shadow: 0 0 15px 8px var(--pulse-dark-t50-colour);
                 }
             }
     @@media (max-width: 768px) {
@@ -95,9 +95,10 @@
     }
 </style>
 
-<div style="flex: 1; background: rgba(255,255,255,0.5); margin: 10px; padding: 10px; border-radius: 10px; overflow: auto;">
-    <FluentCard>
-        <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+@* <div style="flex: 1; background: rgba(255,255,255,0.5); margin: 10px; padding: 10px; border-radius: 10px; overflow: auto;"> *@
+    <div style="flex:1;height:100%;">
+    @* <FluentCard> *@ 
+        <FluentHeader Style="background-color: var(--pulse-dark-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">
                 <FluentIcon Value="@(new Icons.Filled.Size24.PlayCircle().WithColor("white"))" Style="margin-right: 8px;" OnClick="NavigatePermissions" />
                 @tabTitle</h2>
@@ -124,7 +125,7 @@
         @* <FluentTabs ActiveTabId="@activeTab"> *@
         @if (activeTab == "tbOverview")
         {
-            <div Id="tbOverview">
+            @* <div Id="tbOverview" style="height:100%"> *@
                 @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 16px;"> *@
                     
 
@@ -135,14 +136,14 @@
                     }
                     else if (permissions?.Any() == true)
                     {
-                        <div style="margin-top: 16px;width:stretch">
+                        @* <div style="margin-top: 16px;width:stretch">
                             <h4>All Permissions (@permissions.Count)</h4>
-                            </div>
-                            <div class="permission-grid">
+                            </div> *@
+                            <div class="permission-grid" style="height:calc(100% - 50px)">
                                 @foreach (var categoryGroup in permissions.GroupBy(p => p.Category))
                                 {
                                     <div>
-                                        <h5 style="margin: 0 0 12px 0; color: var(--pulse-dark-colour);">@categoryGroup.Key</h5>
+                                        <h5 style="margin: 0 0 12px 0;background-color: var(--pulse-dark-t50-colour); color:white;border-radius:10px;padding:8px;min-width:320px">@categoryGroup.Key</h5>
                                         @foreach (var perm in categoryGroup)
                                         {
                                             <div class="permission-card divShadow" style=" margin-bottom:10px">
@@ -165,7 +166,7 @@
                         </FluentMessageBar>
                     }
                 @* </FluentStack> *@
-            </div>
+            @* </div> *@
         }
         else if(activeTab == "tbCategory")
         {
@@ -401,8 +402,8 @@
             </div>
             }
         @* </FluentTabs> *@
-    </FluentCard>
-</div>
+    @* </FluentCard> *@
+</div> 
 
 @code {
     private List<PermissionDto> permissions = new();

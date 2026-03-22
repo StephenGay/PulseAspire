@@ -11,11 +11,14 @@
 @layout MasterLayout
 
 
-
-@* <FluentStack Orientation="Orientation.Vertical" Width="100%"> *@
-    <Production_Nav_Menu />
-    @Body
-@* </FluentStack> *@
+<div class="PulseZoneParent">
+    <div class="PulseZoneMenubar">
+        <Production_Nav_Menu />
+    </div>
+    <div class="PulseZoneContent">
+        @Body
+    </div>
+</div>
 
 @code{
     private Customer? _customer;

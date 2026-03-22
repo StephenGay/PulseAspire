@@ -1684,6 +1684,9 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int")
                         .HasColumnOrder(1);
 
+                    b.Property<string>("FactoryZoneId")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("EquipmentItemID", "ProductionStageID");
 
                     b.HasIndex("ProductionStageID");
@@ -1745,35 +1748,68 @@ namespace Pulse.ApiService.Migrations
 
                     b.Property<string>("Color")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(9)
+                        .HasColumnType("nvarchar(9)")
+                        .HasDefaultValue("#3b82f6");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("DivisionId")
                         .IsRequired()
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
 
+                    b.Property<string>("EquipmentCapabilityID")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<double>("Height")
-                        .HasColumnType("float");
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 4)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(100.0);
+
+                    b.Property<int>("Level")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("ParentZoneId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Width")
-                        .HasColumnType("float");
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 4)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(150.0);
+
+                    b.Property<int?>("WorkCentreID")
+                        .HasColumnType("int");
 
                     b.Property<double>("X")
-                        .HasColumnType("float");
+                        .HasPrecision(10, 4)
+                        .HasColumnType("float(10)");
 
                     b.Property<double>("Y")
-                        .HasColumnType("float");
+                        .HasPrecision(10, 4)
+                        .HasColumnType("float(10)");
 
                     b.HasKey("Id");
 
-                    b.ToTable("FactoryZones");
+                    b.HasIndex("WorkCentreID");
+
+                    b.ToTable("FactoryZones", (string)null);
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.NonConformance.NonConformanceReport", b =>
@@ -2065,6 +2101,12 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<double>("ProcessPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 4)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(0.0);
+
                     b.Property<string>("ProductionStageName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2112,10 +2154,25 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("BranchID")
                         .HasColumnType("int");
 
+                    b.Property<string>("Colour")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(9)
+                        .HasColumnType("nvarchar(9)")
+                        .HasDefaultValue("#3b82f6");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
+
                     b.Property<string>("DivisionID")
                         .IsRequired()
                         .HasMaxLength(5)
                         .HasColumnType("nvarchar(5)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<string>("WorkCentreName")
                         .IsRequired()
@@ -2977,6 +3034,16 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Division");
 
                     b.Navigation("EquipmentCategory");
+                });
+
+            modelBuilder.Entity("Pulse.Models.Production.Layout.FactoryZone", b =>
+                {
+                    b.HasOne("Pulse.Models.Production.WorkCentre", "WorkCentre")
+                        .WithMany()
+                        .HasForeignKey("WorkCentreID")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("WorkCentre");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.ProductionPlanItem", b =>

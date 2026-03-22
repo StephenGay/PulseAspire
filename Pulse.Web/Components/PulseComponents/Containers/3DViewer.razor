@@ -1,0 +1,41 @@
+﻿@page "/EmployeeZone/Production/Rollers/View3D/{RollerId}"
+@using Pulse.Models.Api
+@using Pulse.Models.Rollers
+@using Pulse.Web.Services
+@rendermode InteractiveServer
+
+@inject PulseApiService ApiService
+@inject IJSRuntime JS
+
+<FluentCard>
+    <div @ref="containerRef" style="width: 100%; height: 800px; background: #1a1a1a; border-radius: 6px;"></div>
+    @if (isLoading)
+    {
+        <FluentProgressRing />
+        <p>Generating 3D model...</p>
+    }
+</FluentCard>
+
+@code {
+    [Parameter]
+    public string RollerId { get; set; }
+
+    private ElementReference containerRef;
+    private bool isLoading = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // var response = await ApiService.GetAsync<ApiResponse<RollerModel3DDto>>(
+            //     ApiEndpoints.RollerModels.Get(RollerId));
+
+            // if (response?.Data != null)
+            // {
+            //     await JS.InvokeVoidAsync("initThreeViewer", containerRef, response.Data);
+            //     isLoading = false;
+            //     StateHasChanged();
+            // }
+        }
+    }
+}

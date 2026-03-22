@@ -34,6 +34,17 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(e => e.BranchID)
                 .IsRequired();
 
+            builder.Property(e => e.Colour)
+            .HasMaxLength(9)                        // #RRGGBBAA
+            .HasDefaultValue("#3b82f6");
+
+            builder.Property(e => e.Description)
+                .IsRequired(false)
+                .HasMaxLength(250);
+
+            builder.Property(e => e.IsActive)
+            .HasDefaultValue(true);
+
             // Relationships
 
             // 1. Division (assuming Division exists in Pulse.Models.Organizational with PK DivisionID string)

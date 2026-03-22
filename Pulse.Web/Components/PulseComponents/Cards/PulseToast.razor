@@ -25,7 +25,14 @@
                     }
                 </div>
                 <div class="pulse-toast-emoji">
-                    @GetEmojiDisplay()
+                    @if (Message.AiEmoji == "PulseAI")
+                    {
+                        <img src="Images/AI/PulseAI_Female.jpg" alt="PulseAI" style="width: 70px; height: 40px; border-radius: 4px;" />
+                    }
+                    else
+                    {
+                        @GetEmojiDisplay()
+                    }
                 </div>
             </div>
         </div>
@@ -52,7 +59,6 @@
         "Tables" => "👨‍💻",
         "Ali" => "🕵️",
         "Flapper" => "👩‍🎓",
-        "PulseAI" => "🤖",
         _ => "🤖"
     };
 

@@ -10,6 +10,18 @@ window.cleanupMenuButton = function (id) {
         // Remove event listeners or cleanup
     }
 };
+//window.blazorSetPointerCapture = (elementRef, pointerId) => {
+//    if (!elementRef) return;
+//    const element = elementRef instanceof Element ? elementRef : elementRef.getBoundingClientRect ? elementRef : null;
+//    if (element && typeof element.setPointerCapture === 'function') {
+//        try {
+//            element.setPointerCapture(pointerId);
+//            console.log('Pointer captured on container');
+//        } catch (err) {
+//            console.warn('setPointerCapture failed:', err);
+//        }
+//    }
+//};
 
 function downloadHTMLFile(filename, content) {
     const blob = new Blob([content], { type: "text/html" });

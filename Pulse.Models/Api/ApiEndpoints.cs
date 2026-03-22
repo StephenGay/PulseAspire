@@ -1,4 +1,6 @@
-﻿namespace Pulse.Models.Api
+﻿using Pulse.Models.Production;
+
+namespace Pulse.Models.Api
 {
     /// <summary>
     /// Centralized API endpoint constants for Pulse.ApiService.
@@ -91,6 +93,7 @@
 
             public const string Profile = $"{Prefix}/profile";
             public const string SendWelcomeEmail = $"{ApiPrefix}/Security/SendWelcomeEmail";
+            public const string SendForcePasswordResetEmail = $"{ApiPrefix}/Security/ForcePasswordReset";
 
             public static class Settings
             {
@@ -150,17 +153,19 @@
                     {
                         private const string WorkCentreSuffix = $"{FactorySuffix}/WorkCentres";
                         public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/GetAll";
+                        public static string Create(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Create";
+                        public static string Update(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Update";
                     }
 
                     public static class FactoryLayout
                     {
                         private const string FactoryLayoutSuffix = $"{FactorySuffix}/FactoryLayout";
-                        public static string SaveLayout(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{FactoryLayoutSuffix}/SaveLayout";
+                        public static string SaveLayout(string divisionId,string parentId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{FactoryLayoutSuffix}/{Uri.EscapeDataString(parentId)}/SaveLayout";
 
                         public static class Zones
                         {
                             private const string ZonesSuffix = $"{FactoryLayoutSuffix}/Zones";
-                            public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/GetAll";
+                            public static string GetAll(string divisionId, string parentId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/{Uri.EscapeDataString(parentId)}/GetAll";
                         }
                     }
                 }

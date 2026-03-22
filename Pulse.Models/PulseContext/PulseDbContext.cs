@@ -130,6 +130,7 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new AspNetPermissionConfigurationMap());
             modelBuilder.ApplyConfiguration(new AspNetRolePermissionConfigurationMap());  
             modelBuilder.ApplyConfiguration(new AspNetPermissionCategoryConfigurationMap());
+            modelBuilder.ApplyConfiguration(new FactoryZoneMap());
 
             base.OnModelCreating(modelBuilder);
         }
