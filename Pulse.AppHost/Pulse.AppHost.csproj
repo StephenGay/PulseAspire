@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-  <Sdk Name="Aspire.AppHost.Sdk" Version="9.5.1" />
+  <Sdk Name="Aspire.AppHost.Sdk" Version="13.2.0" />
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -13,11 +13,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Pulse.ApiService\Pulse.ApiService.csproj" />
     <ProjectReference Include="..\Pulse.Web\Pulse.Web.csproj" />
+    <ProjectReference Include="..\Pulse.DesktopApp\Pulse.DesktopApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.1.0" />
-    <PackageReference Include="Aspire.Hosting.Redis" Version="13.1.0" />
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="13.2.0" />
+    <PackageReference Include="Aspire.Hosting.Redis" Version="13.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
   </ItemGroup>
 
