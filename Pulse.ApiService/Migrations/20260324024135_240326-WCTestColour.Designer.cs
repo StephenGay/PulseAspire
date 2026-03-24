@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260324024135_240326-WCTestColour")]
+    partial class _240326WCTestColour
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1771,11 +1774,6 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("float(10)")
                         .HasDefaultValue(100.0);
 
-                    b.Property<bool>("IsPlotted")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<int>("Level")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -1793,25 +1791,6 @@ namespace Pulse.ApiService.Migrations
                     b.Property<string>("ParentZoneId")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("TargetMaxUnitsPerDay")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(10, 2)
-                        .HasColumnType("float(10)")
-                        .HasDefaultValue(0.0);
-
-                    b.Property<double>("TargetMinUnitsPerDay")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(10, 2)
-                        .HasColumnType("float(10)")
-                        .HasDefaultValue(0.0);
-
-                    b.Property<string>("TextColor")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(9)
-                        .HasColumnType("nvarchar(9)")
-                        .HasDefaultValue("#ffffff");
-
                     b.Property<double>("Width")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(10, 4)
@@ -1822,16 +1801,12 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<double>("X")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(10, 4)
-                        .HasColumnType("float(10)")
-                        .HasDefaultValue(5.0);
+                        .HasColumnType("float(10)");
 
                     b.Property<double>("Y")
-                        .ValueGeneratedOnAdd()
                         .HasPrecision(10, 4)
-                        .HasColumnType("float(10)")
-                        .HasDefaultValue(5.0);
+                        .HasColumnType("float(10)");
 
                     b.HasKey("Id");
 
@@ -2179,11 +2154,6 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("WorkCentreId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("ApplyTargets")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<int>("BranchID")
                         .HasColumnType("int");
 
@@ -2191,7 +2161,7 @@ namespace Pulse.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)")
-                        .HasDefaultValue("#ffffff");
+                        .HasDefaultValue("#3b82f6");
 
                     b.Property<string>("Description")
                         .HasMaxLength(250)
@@ -2207,23 +2177,11 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<double>("TargetMaxUnitsPerDay")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(10, 2)
-                        .HasColumnType("float(10)")
-                        .HasDefaultValue(0.0);
-
-                    b.Property<double>("TargetMinUnitsPerDay")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(10, 2)
-                        .HasColumnType("float(10)")
-                        .HasDefaultValue(0.0);
-
                     b.Property<string>("TextColour")
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)")
-                        .HasDefaultValue("#000000");
+                        .HasDefaultValue("#ffffff");
 
                     b.Property<string>("WorkCentreName")
                         .IsRequired()

@@ -89,6 +89,11 @@ namespace Pulse.ApiService.Endpoints
                 .Produces<ApiResponse<List<WorkCentre>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapGet("/WithDivisionID/{divisionid}/Factory/WorkCentres/{workCentreId}/GetWCZones", GetDivisionWorkCentreZones)
+                .WithName("GetDivisionWorkCentreZones")
+                .Produces<ApiResponse<List<FactoryZone>>>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
             group.MapPost("/WithDivisionID/{divisionid}/Factory/WorkCentres/Create", CreateDivisionWorkCentre)
                 .WithName("CreateDivisionWorkCentre")
                 .Produces<ApiResponse<WorkCentre>>(StatusCodes.Status200OK)
@@ -589,6 +594,38 @@ namespace Pulse.ApiService.Endpoints
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         }
+
+        
+        private static async Task<IResult> GetDivisionWorkCentreZones(
+            string divisionid,
+            int workCentreId,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("GetDivisionWorkCentreZones");
+            try
+            {
+                var zones = await db.FactoryZones
+                    .AsNoTracking()
+                    .Where(wc => wc.DivisionId == divisionid && wc.WorkCentreID == workCentreId)
+                    .ToListAsync();
+
+                if (zones == null) { zones = new List<FactoryZone>(); }
+
+                return Results.Ok(new ApiResponse<List<FactoryZone>>
+                {
+                    Success = true,
+                    Data = zones,
+                    Message = $"Retrieved {zones.Count} factory layout zones",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving the divisions work centre zones");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
         private static async Task<IResult> GetAllDivisionFactoryLayoutZones(
             string divisionid,
             string parentId,
@@ -644,8 +681,30 @@ namespace Pulse.ApiService.Endpoints
                 dwc.WorkCentreName = workCentre.WorkCentreName;
                 dwc.DivisionID = workCentre.DivisionID;
                 dwc.BranchID = workCentre.BranchID;
+                dwc.Colour = workCentre.Colour;
+                dwc.TextColour = workCentre.TextColour;
+                dwc.ApplyTargets = workCentre.ApplyTargets;
+                dwc.TargetMinUnitsPerDay = workCentre.TargetMinUnitsPerDay;
+                dwc.TargetMaxUnitsPerDay = workCentre.TargetMaxUnitsPerDay; 
+                dwc.IsActive = workCentre.IsActive;
 
                 await db.SaveChangesAsync();
+
+                var fzones = await db.FactoryZones
+                    .Where(wc => wc.WorkCentreID == workCentre.WorkCentreId)
+                    .ToListAsync();
+
+                if (fzones != null && fzones.Count > 0)
+                {
+                    foreach(var zone in fzones)
+                    {
+                        zone.Description = dwc.WorkCentreName;
+                        zone.Color = dwc.Colour;
+                        zone.TextColor = dwc.TextColour;
+                    }
+                    await db.SaveChangesAsync();
+                }
+
                 return Results.Ok(new ApiResponse<WorkCentre>
                 {
                     Success = true,

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260324053655_240326-WCTargets")]
+    partial class _240326WCTargets
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1771,7 +1774,7 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("float(10)")
                         .HasDefaultValue(100.0);
 
-                    b.Property<bool>("IsPlotted")
+                    b.Property<bool?>("IsPlotted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -1793,13 +1796,13 @@ namespace Pulse.ApiService.Migrations
                     b.Property<string>("ParentZoneId")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<double>("TargetMaxUnitsPerDay")
+                    b.Property<double?>("TargetMaxUnitsPerDay")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(10, 2)
                         .HasColumnType("float(10)")
                         .HasDefaultValue(0.0);
 
-                    b.Property<double>("TargetMinUnitsPerDay")
+                    b.Property<double?>("TargetMinUnitsPerDay")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(10, 2)
                         .HasColumnType("float(10)")
@@ -2179,7 +2182,7 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("WorkCentreId")
                         .HasColumnType("int");
 
-                    b.Property<bool>("ApplyTargets")
+                    b.Property<bool?>("ApplyTargets")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
@@ -2191,7 +2194,7 @@ namespace Pulse.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)")
-                        .HasDefaultValue("#ffffff");
+                        .HasDefaultValue("#3b82f6");
 
                     b.Property<string>("Description")
                         .HasMaxLength(250)
@@ -2207,13 +2210,13 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<double>("TargetMaxUnitsPerDay")
+                    b.Property<double?>("TargetMaxUnitsPerDay")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(10, 2)
                         .HasColumnType("float(10)")
                         .HasDefaultValue(0.0);
 
-                    b.Property<double>("TargetMinUnitsPerDay")
+                    b.Property<double?>("TargetMinUnitsPerDay")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(10, 2)
                         .HasColumnType("float(10)")
@@ -2223,7 +2226,7 @@ namespace Pulse.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)")
-                        .HasDefaultValue("#000000");
+                        .HasDefaultValue("#ffffff");
 
                     b.Property<string>("WorkCentreName")
                         .IsRequired()

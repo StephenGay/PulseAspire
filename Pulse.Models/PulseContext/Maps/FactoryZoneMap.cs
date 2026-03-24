@@ -71,10 +71,12 @@ public class FactoryZoneMap : IEntityTypeConfiguration<FactoryZone>
 
         // Spatial / layout properties (no special config needed for doubles)
         builder.Property(z => z.X)
-            .HasPrecision(10, 4);                   // reasonable precision for coordinates
+            .HasPrecision(10, 4)
+            .HasDefaultValue(5.0);                   // reasonable precision for coordinates
 
         builder.Property(z => z.Y)
-            .HasPrecision(10, 4);
+            .HasPrecision(10, 4)
+            .HasDefaultValue(5.0);
 
         builder.Property(z => z.Width)
             .HasPrecision(10, 4)
@@ -84,10 +86,28 @@ public class FactoryZoneMap : IEntityTypeConfiguration<FactoryZone>
             .HasPrecision(10, 4)
             .HasDefaultValue(100.0);
 
+        builder.Property(z => z.IsPlotted)
+            .IsRequired()
+            .HasDefaultValue(false);
+
+        builder.Property(z => z.TargetMinUnitsPerDay)
+            .IsRequired()
+            .HasPrecision(10, 2)
+            .HasDefaultValue(0.0);
+
+        builder.Property(z => z.TargetMaxUnitsPerDay)
+            .IsRequired()
+            .HasPrecision(10, 2)
+            .HasDefaultValue(0.0);
+
         // Color - stored as string (hex), max length for safety
         builder.Property(z => z.Color)
             .HasMaxLength(9)                        // #RRGGBBAA
             .HasDefaultValue("#3b82f6");
+
+        builder.Property(z => z.TextColor)
+            .HasMaxLength(9)                        // #RRGGBBAA
+            .HasDefaultValue("#ffffff");
 
         // Notes - optional long text
         builder.Property(z => z.Notes)

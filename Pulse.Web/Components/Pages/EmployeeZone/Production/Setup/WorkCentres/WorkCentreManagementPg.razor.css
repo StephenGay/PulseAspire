@@ -1,0 +1,12 @@
+﻿.editWCSetup {
+    /*margin-left: auto;
+    margin-right: auto;*/
+    background-color: white;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+.viewWCSetup {
+    /*margin-left: 10px;
+    margin-right: 10px;*/
+    background-color: var(--pulse-light-colour);
+    border: 1px solid var(--pulse-dark-colour);
+}

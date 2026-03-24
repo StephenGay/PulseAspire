@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 
@@ -17,11 +18,21 @@ namespace Pulse.Models.Production.Layout
         public string? EquipmentCapabilityID { get; set; }
         [MaxLength(50)]
         public string? Description { get; set; }
-        public double X { get; set; }
-        public double Y { get; set; }
+        [Required]
+        [DefaultValue(false)]
+        public bool IsPlotted { get; set; } = false;
+        [Required]
+        [DefaultValue(0.0)]
+        public double TargetMinUnitsPerDay { get; set; } = 0.0;
+        [Required]
+        [DefaultValue(0.0)]
+        public double TargetMaxUnitsPerDay { get; set; } = 0.0;
+        public double X { get; set; } = 5;
+        public double Y { get; set; } = 5;
         public double Width { get; set; } = 150;
         public double Height { get; set; } = 100;
         public string Color { get; set; } = "#3b82f6"; // Fluent blue by default
+        public string TextColor { get; set; } = "#ffffff"; // Fluent blue by default
         public string? Notes { get; set; }
         public WorkCentre? WorkCentre { get; set; }
         //public EquipmentCapability? equipmentCapability { get; set; }
