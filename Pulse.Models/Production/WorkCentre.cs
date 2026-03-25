@@ -23,9 +23,19 @@ namespace Pulse.Models.Production
         [Required]
         public int BranchID { get; set; }
         public string? Description { get; set; }
+        [Required]
+        [DefaultValue(0)]
+        public bool ApplyTargets { get; set; } = false;
+        [Required]
+        [DefaultValue(0.0)]
+        public double TargetMinUnitsPerDay { get; set; } = 0.0;
+        [Required]
+        [DefaultValue(0.0)]
+        public double TargetMaxUnitsPerDay { get; set; } = 0.0;
         [MaxLength(9)]
         
-        public string? Colour { get; set; } = "#3b82f6";
+        public string? Colour { get; set; } = "#ffffff";
+        public string? TextColour { get; set; } = "#000000";
         [DefaultValue(true)]
         public bool IsActive { get; set; } = true;
         public ICollection<WorkCentreFunctions>? WorkCentreFunctions { get; set; }

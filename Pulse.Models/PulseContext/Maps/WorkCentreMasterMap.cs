@@ -36,7 +36,25 @@ namespace Pulse.Models.PulseContext.Maps
 
             builder.Property(e => e.Colour)
             .HasMaxLength(9)                        // #RRGGBBAA
-            .HasDefaultValue("#3b82f6");
+            .HasDefaultValue("#ffffff");
+
+            builder.Property(e => e.TextColour)
+            .HasMaxLength(9)                        // #RRGGBBAA
+            .HasDefaultValue("#000000");
+
+            builder.Property(e => e.ApplyTargets)
+                .IsRequired()
+                .HasDefaultValue(false);
+
+            builder.Property(e => e.TargetMinUnitsPerDay)
+                .IsRequired()
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0.0);
+
+            builder.Property(e => e.TargetMaxUnitsPerDay)
+                .IsRequired()
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0.0);
 
             builder.Property(e => e.Description)
                 .IsRequired(false)

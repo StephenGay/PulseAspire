@@ -88,7 +88,7 @@ html, body {
 .PulseZoneContent {
     /* flex: 1; */
     /* width: 100%; */
-    height: calc(100vh - 168px);
+    height: calc(100vh - 188px);
     margin: 10px;
     padding: 10px;
     background-color: rgba(255,255,255,0.5);

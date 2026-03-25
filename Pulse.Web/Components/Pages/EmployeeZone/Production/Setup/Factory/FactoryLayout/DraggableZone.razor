@@ -12,15 +12,15 @@
 
     <rect width="@Zone.Width" height="@Zone.Height"
           fill="@Zone.Color" fill-opacity="0.7"
-          stroke="#1f2937" stroke-width="2" rx="6" />
+          stroke="@Zone.TextColor" stroke-width="2" rx="6" />
 
     <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 - 8)"
-          text-anchor="middle" fill="white" font-size="14" font-weight="500">
+          text-anchor="middle" fill="@Zone.TextColor" font-size="14" font-weight="500">
         @Zone.Description
     </text>
 
     <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 + 8)"
-          text-anchor="middle" fill="white" font-size="14" font-weight="500">
+          text-anchor="middle" fill="@Zone.TextColor" font-size="14" font-weight="500">
         @Zone.Name
     </text>
 

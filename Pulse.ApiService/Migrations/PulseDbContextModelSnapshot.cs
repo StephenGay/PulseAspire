@@ -1771,6 +1771,11 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("float(10)")
                         .HasDefaultValue(100.0);
 
+                    b.Property<bool>("IsPlotted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("Level")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -1788,6 +1793,25 @@ namespace Pulse.ApiService.Migrations
                     b.Property<string>("ParentZoneId")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<double>("TargetMaxUnitsPerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<double>("TargetMinUnitsPerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<string>("TextColor")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(9)
+                        .HasColumnType("nvarchar(9)")
+                        .HasDefaultValue("#ffffff");
+
                     b.Property<double>("Width")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(10, 4)
@@ -1798,12 +1822,16 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<double>("X")
+                        .ValueGeneratedOnAdd()
                         .HasPrecision(10, 4)
-                        .HasColumnType("float(10)");
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(5.0);
 
                     b.Property<double>("Y")
+                        .ValueGeneratedOnAdd()
                         .HasPrecision(10, 4)
-                        .HasColumnType("float(10)");
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(5.0);
 
                     b.HasKey("Id");
 
@@ -2151,6 +2179,11 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("WorkCentreId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("ApplyTargets")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<int>("BranchID")
                         .HasColumnType("int");
 
@@ -2158,7 +2191,7 @@ namespace Pulse.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasMaxLength(9)
                         .HasColumnType("nvarchar(9)")
-                        .HasDefaultValue("#3b82f6");
+                        .HasDefaultValue("#ffffff");
 
                     b.Property<string>("Description")
                         .HasMaxLength(250)
@@ -2173,6 +2206,24 @@ namespace Pulse.ApiService.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
+
+                    b.Property<double>("TargetMaxUnitsPerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<double>("TargetMinUnitsPerDay")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(10, 2)
+                        .HasColumnType("float(10)")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<string>("TextColour")
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(9)
+                        .HasColumnType("nvarchar(9)")
+                        .HasDefaultValue("#000000");
 
                     b.Property<string>("WorkCentreName")
                         .IsRequired()

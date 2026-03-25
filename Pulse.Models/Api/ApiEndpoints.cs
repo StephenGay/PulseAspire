@@ -153,6 +153,7 @@ namespace Pulse.Models.Api
                     {
                         private const string WorkCentreSuffix = $"{FactorySuffix}/WorkCentres";
                         public static string GetAll(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/GetAll";
+                        public static string GetWorkCentreZones(string divisionId, int workCentreId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/{workCentreId}/GetWCZones";
                         public static string Create(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Create";
                         public static string Update(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Update";
                     }

@@ -143,7 +143,9 @@
 
     private FactoryZone? selectedZone = null;
     // For smooth feel, you can use doubles everywhere
+    private List<FactoryZone> AllZones = new();
     private List<FactoryZone> Zones = new();
+    private List<FactoryZone> UnplottedZones = new();
     private int layoutLevel = 0;
     private string layoutParentId = "0";
     private bool SnapToGrid = true;
@@ -157,7 +159,9 @@
     {
         d = await dTrf.GetgvSelectedDivision();
         var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID, layoutParentId));
-        Zones = response?.Data ?? new();
+        AllZones = response?.Data ?? new();
+        Zones = AllZones.Where(z => z.IsPlotted).ToList();
+        UnplottedZones = AllZones.Where(z => !z.IsPlotted).ToList();
         var wcresponse = await ApiService.GetAsync<ApiResponse<List<WorkCentre>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.WorkCentres.GetAll(d.DivisionID));
         wcs = wcresponse?.Data ?? new();
         isLoadingWCs = false;

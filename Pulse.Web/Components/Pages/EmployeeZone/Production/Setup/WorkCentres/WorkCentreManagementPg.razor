@@ -5,6 +5,8 @@
 @using Pulse.Models.Permissions
 @using Pulse.Models.Api
 @using Pulse.Models.Production
+@using Pulse.Models.Production.Layout
+@using Pulse.Web.Components.Pages.EmployeeZone.Production.Setup.Factory.FactoryLayout
 @using Pulse.Web.Services
 
 @attribute [Authorize(Roles = "Admin")]
@@ -66,8 +68,8 @@
     .selected-wc {
                 
                 border:2px double var(--pulse-dark-colour);
-                background-color:  var(--pulse-dark-t25-colour);
-                /* animation: selected-item-pulse 2s infinite; */
+                /*background-color:  var(--pulse-dark-t25-colour);*/
+                animation: selected-item-pulse 2s infinite; 
             }
     @@keyframes selected-item-pulse {
                 0%, 100% {
@@ -75,7 +77,7 @@
                 }
 
                 50% {
-                    box-shadow: 0 0 15px 8px var(--pulse-dark-t25-colour);
+                    box-shadow: 0 0 15px 8px var(--pulse-dark-t75-colour);
                 }
             }
     @@media (max-width: 768px) {
@@ -111,73 +113,163 @@
                     }
                     else 
                     {
-                        @if (divWorkCentres?.Any() != true || pgWCMode != "View")
+                        @if (pgWCMode == "ViewAll")
                         {
-                            <div class="divShadow" style="min-width: 200px;max-width:800px;width:95%;border-radius:10px;padding:10px;margin-left:auto;margin-right:auto">
-                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
-                                    <FluentTextField @bind-Value="selectedWC.WorkCentreName"
-                                        Immediate="true"
-                                        Placeholder="Enter a Work Centre Name"
-                                        Required="true"
-                                        Label="Work Centre Name"
-                                        Style="width:stretch; min-width: 200px;" />
-                                    @* <div style="width:stretch;text-align:center"> *@
+                            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:100px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { selectedWC = new WorkCentre(); pgWCMode = "New"; StateHasChanged() ;})">
+                                    <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
+                                </FluentButton>
+                                <FluentButton Class="myAccentBtn" Disabled="@(selectedWC?.WorkCentreId <= 0)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:100px" Color="var(--pulse-accent-btn-colour)" OnClick="ViewWCSetup">
+                                    <FluentIcon Value="@(new Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Setup
+                                </FluentButton>
+                            </FluentStack>
+                        
+                            <FluentGrid Style="margin:10px">
+                                @foreach (var workCentre in divWorkCentres)
+                                {
+                                    <FluentGridItem xs="12" sm="6" md="4" lg="2" >
+                                        <div class="permission-card @(selectedWC == workCentre ? "selected-wc" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedWC = workCentre" >
+                                            <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                                <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @workCentre.WorkCentreId</FluentLabel>
+                                                    <FluentSpacer />
+                                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">Active: @(workCentre.IsActive ? "Yes" : "No")</FluentLabel>
+                                                </FluentStack>
+                                                <div style="height:fit-content;width:100%;background-color: @(workCentre.Colour ?? "#660000");border: 1px solid @(workCentre.TextColour ?? "#ffffff");" >
+                                                    <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="@(workCentre.TextColour ?? "#ffffff")" Style="font-weight: bold;padding:10px 5px;">@workCentre.WorkCentreName</FluentLabel>
+                                                </div>
+                                            </FluentStack>
+                                        
+                                        </div>
+                                    </FluentGridItem >
+                                }
+                            </FluentGrid>
+                            
+                        }
+                        else
+                        {
+                            <div class="pulse-column-grid" >
+                            <div class="@(pgWCMode == "ViewSetup" ? "viewWCSetup" : "editWCSetup")" style="min-width: 200px;max-width:500px;width:95%;border-radius:10px;padding:10px;margin: 10px 0 0 10px;">
+                                <div style="height:fit-content;width:100%;background-color: @(selectedWC.Colour ?? "#ffffff");border: 1px solid @(selectedWC.TextColour ?? "#000000");margin-bottom:5px" >
+                                        <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="@(selectedWC.TextColour ?? "#000000")" Style="font-weight: bold;padding:10px 5px">@selectedWC.WorkCentreName</FluentLabel>
+                                </div>
+                                
+                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 1px; align-items: flex-start;">
+                                    @if(pgWCMode != "ViewSetup")
+                                    {
+                                        <FluentTextField @bind-Value="selectedWC.WorkCentreName"
+                                            Placeholder="Enter a Work Centre Name"
+                                            Required="true"
+                                            Label="Work Centre Name"
+                                            Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px" />
+                                    }
+                                    <FluentTextField @bind-Value="selectedWC.Description"
+                                            Placeholder="@(pgWCMode == "ViewSetup" ? "" : "Enter a Work Centre Description")"
+                                            Required="false"
+                                            Label="Description"
+                                            ReadOnly ="@(pgWCMode == "ViewSetup" ? true : false)"
+                                            Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px;" />
+                                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
+                                        <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="colorPicker" @bind-value="selectedWC.Colour">
+                                        <FluentLabel Typo="Typography.Body">Background Colour</FluentLabel>
+                                    </FluentStack>
+                                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
+                                        <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="textColorPicker" @bind-value="selectedWC.TextColour">
+                                        <FluentLabel Typo="Typography.Body">Text Colour</FluentLabel>
+                                    </FluentStack>
+                                    @if (pgWCMode != "ViewSetup")
+                                    {
+                                        <FluentSwitch @bind-Value="selectedWC.ApplyTargets" ReadOnly="@(pgWCMode == "ViewSetup" ? true : false)" Label="Apply Daily Targets" Style="margin-bottom:5px"/>
+                                        if (selectedWC.ApplyTargets)
+                                        {
+                                            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                                                <FluentSpacer />
+                                                <FluentNumberField @bind-Value="selectedWC.TargetMinUnitsPerDay"
+                                                Required="true"
+                                                Label="Minimum"
+                                                Style="width:100px;text-align:center" />
+                                                <FluentSpacer />
+                                                <FluentNumberField @bind-Value="selectedWC.TargetMaxUnitsPerDay"
+                                                Required="true"
+                                                Label="Maximum"
+                                                Style="width:100px;text-align:center" />
+                                                <FluentSpacer />
+                                            </FluentStack>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (selectedWC.ApplyTargets)
+                                        {
+                                            <FluentLabel Typo="Typography.Body">Target Quantity Per Day : @selectedWC.TargetMinUnitsPerDay TO @selectedWC.TargetMaxUnitsPerDay</FluentLabel>
+                                        }
+                                        else
+                                        {
+                                            <FluentLabel Typo="Typography.Body" Weight="FontWeight.Bolder"><em>Targets Not Implemented For This Work Centre</em></FluentLabel>
+                                        }
+                                    }
                                         <FluentStack Orientation="Orientation.Horizontal" Style="padding: 12px;">
                                             <FluentSpacer />
-                                        <FluentButton Class="myCancelBtn"
-                                            BackgroundColor="var(--pulse-cancel-btn-bg)"
-                                            Color="var(--pulse-cancel-btn-colour)"
-                                            IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
-                                            Style="height:40px"
-                                            onclick="@(() => { selectedWC = new WorkCentre() ; pgWCMode = "View";})">
-                                            Cancel
-                                        </FluentButton>
-                                        <FluentSpacer />
-                                        <FluentButton Class="myOkBtn"
-                                                    BackgroundColor="var(--pulse-ok-btn-bg)"
-                                                    Color="var(--pulse-ok-btn-colour)"
-                                                    @onclick="SaveWorkCentre"
-                                                    IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
-                                                    Style="height:40px;"
-                                                    Disabled="@(string.IsNullOrEmpty(selectedWC?.WorkCentreName))">
-                                                Save
-                                        </FluentButton>
-                                        <FluentSpacer />
+                                            @if (pgWCMode == "ViewSetup")
+                                            {
+                                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:fit-content;padding: 0px 5px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { pgWCMode = "ViewAll";})">
+                                                    <FluentIcon Value="@(new Icons.Filled.Size32.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))" /> All Work Centres
+                                                </FluentButton>
+                                                <FluentSpacer />
+                                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:100px" Color="var(--pulse-accent-btn-colour)" OnClick="EditWCDetails">
+                                                    <FluentIcon Value="@(new Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit
+                                                </FluentButton>
+                                            }
+                                            else
+                                            {
+                                                <FluentButton Class="myCancelBtn"
+                                                        BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                                        Color="var(--pulse-cancel-btn-colour)"
+                                                        IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
+                                                        Style="height:40px"
+                                                        onclick="CancelEditDetails">
+                                                    Cancel
+                                                </FluentButton>
+                                                <FluentSpacer />
+                                                <FluentButton Class="myOkBtn"
+                                                        BackgroundColor="var(--pulse-ok-btn-bg)"
+                                                        Color="var(--pulse-ok-btn-colour)"
+                                                        @onclick="SaveWorkCentre"
+                                                        IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                        Style="height:40px;"
+                                                        Disabled="@(string.IsNullOrEmpty(selectedWC?.WorkCentreName))">
+                                                    Save
+                                                </FluentButton>
+                                            }
+                        
+                                            <FluentSpacer />
                                     @* </div> *@
                                     </FluentStack>
                                 </FluentStack>
                             </div>
+                            <div class="@(!isAddZone  ? "viewWCSetup" : "editWCSetup")" style="min-width: 200px;max-width:500px;width:95%;border-radius:10px;padding:10px;margin: 10px 0 0 10px;">
+                                <FluentDataGrid Items="TopLevelZones.AsQueryable()" 
+                                                TGridItem="FactoryZone" 
+                                                AutoFit="false"
+                                                RowClass="@(context => context == selZone ? "fdgrselected" : "fdgrunselected")"
+                                                SelectionMode="SelectionMode.Single"
+                                                SelectedItem="@selZone"
+                                                OnRowClick="ClickZoneRow"
+                                                >
+                                    <PropertyColumn Title="Zone Name" Width="60%" Property="@(context => context.Name)" />
+                                    <PropertyColumn Title="Min" Width="10%" Property="@(context => context.TargetMinUnitsPerDay)" />
+                                    <PropertyColumn Title="Max" Width="10%" Property="@(context => context.TargetMaxUnitsPerDay)" />
+                                    <PropertyColumn Title="Plotted" Width="auto" Property="@(context => context.IsPlotted)" />
+                                </FluentDataGrid>
+                            </div>   
+                            </div>
+                            
                         }
-                        else
-                        {
-                            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
-                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { selectedWC = new WorkCentre(); pgWCMode = "New"; StateHasChanged() ;})">
-                                    <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
-                                </FluentButton>
-                                <FluentButton Class="myAccentBtn" Disabled="@(pgWCMode !="View" && selectedWC?.WorkCentreId == null)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { pgWCMode = "Edit";})">
-                                    <FluentIcon Value="@(new Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit
-                                </FluentButton>
-                            </FluentStack>
-                        }
-                        <FluentGrid Style="margin:10px">
-                            @foreach (var workCentre in divWorkCentres)
-                            {
-                                <FluentGridItem xs="12" sm="6" md="4" lg="2" >
-                                    <div class="permission-card @(selectedWC == workCentre ? "selected-wc" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedWC = workCentre" >
-                                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
-                                            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
-                                                <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @workCentre.WorkCentreId</FluentLabel>
-                                                <FluentSpacer />
-                                                <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">Active: @(workCentre.IsActive ? "Yes" : "No")</FluentLabel>
-                                            </FluentStack>
-                                            <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@workCentre.WorkCentreName</FluentLabel>
-                                        </FluentStack>
-                                        <div style="height:15px;background-color: @(workCentre.Colour ?? "#660000")" />
-                                    </div>
-                                </FluentGridItem >
-                            }
-                        </FluentGrid>
                     }
+
+
+
+
                     @*else
                     {
                         <FluentMessageBar Severity="MessageSeverity.Warning">
@@ -197,11 +289,17 @@
     private List<RolePermission>? permissionRoles;
     private List<string> assignedRoleIds = new();
     private List<PermissionCategory>? categories;
+    private List<FactoryZone>? AllWorkCentreZones;
+    private List<FactoryZone>? TopLevelZones;
+    private List<FactoryZone>? ZoneEquipment;
+    private FactoryZone? selZone;
+    private string? selectedZone;
 
     private string newPermissionName = string.Empty;
     private string newPermissionDesc = string.Empty;
     private string? newCategory;
     private WorkCentre selectedWC = new WorkCentre();
+    private WorkCentre editedWC = new WorkCentre();
     private PermissionDto? selectedPermission;
     private RoleWithIdDto? selectedRole;
     private string activeTab = "tbOverview";
@@ -209,7 +307,8 @@
 
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
-    private string pgWCMode = "View";
+    private string pgWCMode = "ViewAll";
+    private bool isAddZone = false;
     private bool addEditPermission = false;
 
     private bool isLoadingPermissions = true;
@@ -225,6 +324,74 @@
     {
         await dTrf.SetgvContextArea(0);
         await LoadDivisionWorkCentres();
+    }
+
+    private void  ClickZoneRow(FluentDataGridRow<FactoryZone> item)
+    {
+        selZone = item.Item;
+        StateHasChanged();
+
+    }
+    private async Task ViewWCSetup()
+    {
+        await LoadWorkCentreZones();
+        pgWCMode = "ViewSetup";
+    }
+
+    private async Task LoadWorkCentreZones()
+    {
+        bool isSuccess = false;
+        AllWorkCentreZones = new List<FactoryZone>();
+        TopLevelZones = new List<FactoryZone>();
+        ZoneEquipment = new List<FactoryZone>();
+
+        try
+        {
+            var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.WorkCentres.GetWorkCentreZones(d.DivisionID, selectedWC.WorkCentreId));
+            isSuccess = response?.Success == true;
+            if(isSuccess)
+            {
+                AllWorkCentreZones = response?.Data ?? new List<FactoryZone>();
+                TopLevelZones = AllWorkCentreZones.Where(z => z.Level == 0).ToList();
+                ZoneEquipment = AllWorkCentreZones.Where(z => z.Level > 0).ToList();
+            }
+        }
+        catch(Exception ex)
+        {
+            isSuccess = false;
+            Logger.LogError(ex, "Failed to load work centre zones");
+        }
+        finally
+        {
+            if(!isSuccess)
+            {
+                PulseToastService.ShowToast("Error", "There was a problem loading the Work Centre Zones.<br />Please try again.",true);
+                await GlobalAI.AISpeak("There was a problem loading the Work Centre Zones.<br />Please try again.", "PulseAI");
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task EditWCDetails()
+    {
+        if(selectedWC != null)
+        {
+            editedWC = new WorkCentre
+            {
+                WorkCentreId = selectedWC.WorkCentreId,
+                DivisionID = selectedWC.DivisionID,
+                BranchID = selectedWC.BranchID,
+                WorkCentreName = selectedWC.WorkCentreName,
+                Description = selectedWC.Description,
+                Colour = selectedWC.Colour,
+                TextColour = selectedWC.TextColour,
+                ApplyTargets = selectedWC.ApplyTargets,
+                TargetMinUnitsPerDay = selectedWC.TargetMinUnitsPerDay,
+                TargetMaxUnitsPerDay = selectedWC.TargetMaxUnitsPerDay,
+                IsActive = selectedWC.IsActive
+            };
+            pgWCMode = "EditSetup";
+        }
     }
 
     private async Task LoadDivisionWorkCentres()
@@ -250,14 +417,28 @@
         }
     }
 
-    private async Task ViewPermissionRoles()
+    private async Task CancelEditDetails()
     {
-        if(selectedPermission != null)
+        if(pgWCMode == "NewWC")
         {
-            await LoadAssignedPermissionRolessAsync();
-            StateHasChanged();
-            activeTab = "assign";
-            tabTitle = $"{selectedPermission.Name} : AssignedRoles";
+            selectedWC = new WorkCentre() ;
+            pgWCMode = "ViewAll";
+        }
+        else
+        {
+            selectedWC.ApplyTargets = editedWC.ApplyTargets;
+            selectedWC.BranchID = editedWC.BranchID;
+            selectedWC.Colour = editedWC.Colour;
+            selectedWC.Description = editedWC.Description;
+            selectedWC.DivisionID = editedWC.DivisionID;
+            selectedWC.TextColour = editedWC.TextColour;
+            selectedWC.TargetMaxUnitsPerDay = editedWC.TargetMaxUnitsPerDay;
+            selectedWC.TargetMinUnitsPerDay = editedWC.TargetMinUnitsPerDay;
+            selectedWC.IsActive = editedWC.IsActive;
+            selectedWC.WorkCentreName = editedWC.WorkCentreName;
+            selectedWC.WorkCentreId = editedWC.WorkCentreId;
+            editedWC = new WorkCentre();
+            pgWCMode = "ViewSetup";    
         }
     }
 
@@ -274,17 +455,19 @@
         try
         {
 
-            if (selectedWC.WorkCentreId <= 0)
+            if (editedWC.WorkCentreId <= 0)
             {
-                selectedWC.DivisionID = d.DivisionID;
-                selectedWC.BranchID = d.BranchID;
+                editedWC.DivisionID = d.DivisionID;
+                editedWC.BranchID = d.BranchID;
                 var createResponse = await ApiService.PostAsync<WorkCentre, ApiResponse<WorkCentre>>(ApiEndpoints.Divisions.WithDivisionID.Factory.WorkCentres.Create(d.DivisionID), selectedWC);
                 isSuccess = createResponse?.Success == true;
+                selectedWC = createResponse?.Data ?? new WorkCentre();
             }
             else
             {
                 var createResponse = await ApiService.PostAsync<WorkCentre, ApiResponse<WorkCentre>>(ApiEndpoints.Divisions.WithDivisionID.Factory.WorkCentres.Update(d.DivisionID), selectedWC);
                 isSuccess = createResponse?.Success == true;
+                selectedWC = createResponse?.Data ?? new WorkCentre();
             }
         }
         catch(Exception ex)
@@ -297,8 +480,8 @@
             {
                 PulseToastService.ShowToast("Success", $"The {selectedWC?.WorkCentreName} work centre has been saved.");
                 await GlobalAI.AISpeak($"The {selectedWC?.WorkCentreName} work centre has been saved.", "PulseAI");
-                pgWCMode = "View";
-                selectedWC = new WorkCentre();
+                pgWCMode = "ViewSetup";
+                editedWC = new WorkCentre();
                 await LoadDivisionWorkCentres();
                 StateHasChanged();
             }
@@ -309,144 +492,5 @@
                 await GlobalAI.AISpeak("There was a problem saving the Work Centre.<br />Please try again.", "PulseAI");
             }
         }
-    }
-    
-   
-    private async Task LoadRolesAsync()
-    {
-        try
-        {
-            isLoadingRoles = true;
-            var response = await ApiService.GetAsync<ApiResponse<List<RoleWithIdDto>>>(ApiEndpoints.Security.Roles.GetAll);
-            roles = response?.Data ?? new();
-            Logger.LogInformation("Loaded {Count} roles", roles.Count);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to load roles");
-            errorMessage = "Failed to load roles.";
-        }
-        finally
-        {
-            isLoadingRoles = false;
-        }
-    }
-
-  
-    private async Task TogglePermissionAsync(string roleId, bool assign)
-    {
-        try
-        {
-            if (assign)
-            {
-                var model = new AssignPermissionModel
-                {
-                    RoleId = roleId,
-                    PermissionId = selectedPermission.Id
-                };
-
-                var result = await ApiService.PostAsync<AssignPermissionModel, ApiResponse>( ApiEndpoints.Security.Permissions.AssignToRole, model);
-
-                if (result?.Success == true)
-                {
-                    successMessage = $"This permission is now available to the '{selectedRole?.Name}' role.";
-                    PulseToastService.ShowToast("Success", successMessage);
-                    await GlobalAI.AISpeak(successMessage, "PulseAI");
-                }
-                else
-                {
-                    errorMessage = "There was an error assigning the permission.";
-                    PulseToastService.ShowToast("Error", errorMessage);
-                    await GlobalAI.AISpeak(errorMessage, "PulseAI");
-                }
-            }
-            else
-            {
-                var result = await ApiService.DeleteAsync<ApiResponse>(ApiEndpoints.Security.Permissions.RemoveFromRole(selectedRole.Id, selectedPermission.Id));
-
-
-                if (result?.Success == true)
-                {
-                    successMessage = $"This permission has been removed from the '{selectedRole?.Name}' role.";
-                    PulseToastService.ShowToast("Success", successMessage);
-                    await GlobalAI.AISpeak(successMessage, "PulseAI");
-                    
-                }
-                else
-                {
-                    errorMessage = "There was an error removing the permission.";
-                    PulseToastService.ShowToast("Error", errorMessage);
-                    await GlobalAI.AISpeak(errorMessage, "PulseAI");
-                }
-            }
-
-            await LoadAssignedPermissionRolessAsync();
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error toggling permission");
-            errorMessage = "An error occurred while updating permissions.";
-            PulseToastService.ShowToast("Error", errorMessage);
-            await GlobalAI.AISpeak(errorMessage, "PulseAI");
-        }
-    }
-
-    private async Task LoadAssignedPermissionRolessAsync()
-    {
-        if (selectedPermission == null)
-            return;
-
-        try
-        {
-            isLoadingRoles = true;
-            var response = await ApiService.GetAsync<ApiResponse<List<RolePermission>>>(
-                ApiEndpoints.Security.Permissions.GetAssignedRoles(selectedPermission.Id));
-
-            permissionRoles = response?.Data;
-            assignedRoleIds = permissionRoles?.Select(rp => rp.RoleId.ToString()).ToList() ?? new List<string>();
-            Logger.LogInformation("Loaded roles permissions for permission: {PermissionId}", selectedPermission.Id);
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to load permission roles");
-            errorMessage = "Failed to load permission roles.";
-        }
-        finally
-        {
-            isLoadingRoles = false;
-        }
-    }
-
-    // private async Task LoadRolePermissionsAsync()
-    // {
-    //     if (string.IsNullOrEmpty(selectedRoleId))
-    //         return;
-
-    //     try
-    //     {
-    //         isLoadingPermissions = true;
-    //         var response = await ApiService.GetAsync<ApiResponse<RolePermissionDto>>(
-    //             ApiEndpoints.Security.Permissions.GetByRoleID(int.Parse(selectedRoleId)));
-
-    //         rolePermissions = response?.Data;
-    //         Logger.LogInformation("Loaded permissions for role: {RoleId}", selectedRoleId);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Logger.LogError(ex, "Failed to load role permissions");
-    //         errorMessage = "Failed to load role permissions.";
-    //     }
-    //     finally
-    //     {
-    //         isLoadingPermissions = false;
-    //     }
-    // }
-
-    private object GetRolePermissionIcon(bool isAssigned)
-    {
-        return isAssigned 
-            ? new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.CheckmarkCircle() 
-            : new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size24.Circle();
     }
 }
