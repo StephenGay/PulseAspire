@@ -4,8 +4,15 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:local="clr-namespace:Pulse.MobileApp"
-    Title="Pulse.MobileApp">
+    Title="Pulse">
 
+    <!-- Login Page - shown first -->
+    <ShellContent
+        Title="Login"
+        ContentTemplate="{DataTemplate local:LoginPage}"
+        Route="LoginPage" />
+
+    <!-- Main App - shown after login -->
     <ShellContent
         Title="Home"
         ContentTemplate="{DataTemplate local:MainPage}"

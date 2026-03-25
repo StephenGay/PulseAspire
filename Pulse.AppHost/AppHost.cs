@@ -5,6 +5,7 @@ var cache = builder.AddRedis("cache")
                     .WithRedisCommander();
 
 var PulseApi = builder.AddProject<Projects.Pulse_ApiService>("PulseApi")
+    //.WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health")
     .WithReference(cache);
 

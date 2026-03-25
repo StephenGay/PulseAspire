@@ -74,4 +74,10 @@
 		<ProjectReference Include="..\Pulse.Models\Pulse.Models.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <MauiXaml Update="LoginPage.xaml">
+	    <Generator>MSBuild:Compile</Generator>
+	  </MauiXaml>
+	</ItemGroup>
+
 </Project>
