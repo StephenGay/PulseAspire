@@ -244,10 +244,15 @@
                                 web.
                             </FluentTooltip>
                         </Animation>
+
+                        <FluentButton IconStart="@(isMuted ? new Icons.Filled.Size32.SpeakerMute().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error) : new Icons.Filled.Size32.Speaker2().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" 
+                                                BackgroundColor="rgba(255,255,255,1)"
+                                                Style="height:40px;width:62px;margin-right:15px"
+                                                OnClick="ToggleMute" />
                         
                     }
                 }
-                @* <FluentButton IconStart="@(new Icons.Filled.Size32.Bot().WithColor("#bcd1d4"))" BackgroundColor="rgba(0,0,0,0)" ></FluentButton> *@
+                
         }
         @if (sState == "BUSY")
         {
@@ -536,6 +541,7 @@
     private bool custSel = false;
     private bool prodSel = false;
     private bool adminSel = false;
+    private bool isMuted = false;
     private string? pTheme;
 
     #region AppBar Icons
@@ -598,6 +604,7 @@
         {
             showAi = await dataTrf.GetgvShowAI();
             ContextAreaId = await dataTrf.GetgvContextArea();
+            isMuted = await dataTrf.GetgvIsMuted();
             this._available = await this.SpeechRecognition.IsAvailableAsync();
             if (ContextAreaId > 0)
             {
@@ -613,6 +620,13 @@
             await InvokeAsync(StateHasChanged);
         };
     }
+
+    private async Task ToggleMute()
+    {
+        isMuted = !isMuted;
+        await dataTrf.SetgvIsMuted(isMuted);
+    }
+
     private void btnChooseFlapper()
     {
         showWho = "Flapper";

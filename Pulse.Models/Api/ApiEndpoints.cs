@@ -156,6 +156,7 @@ namespace Pulse.Models.Api
                         public static string GetWorkCentreZones(string divisionId, int workCentreId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/{workCentreId}/GetWCZones";
                         public static string Create(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Create";
                         public static string Update(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{WorkCentreSuffix}/Update";
+                        
                     }
 
                     public static class FactoryLayout
@@ -167,6 +168,9 @@ namespace Pulse.Models.Api
                         {
                             private const string ZonesSuffix = $"{FactoryLayoutSuffix}/Zones";
                             public static string GetAll(string divisionId, string parentId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/{Uri.EscapeDataString(parentId)}/GetAll";
+                            public static string Create(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/Create";
+                            public static string Update(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/Update";
+                            public static string Save(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/Save";
                         }
                     }
                 }

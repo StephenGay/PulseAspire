@@ -1,4 +1,4 @@
-﻿@page "/EmployeeZone/Production/Setup/WorkCentreProductionStages"
+﻿@page "/EmployeeZone/Production/Setup/Old/ProductionStageEquipment"
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
 @using Pulse.Web.Components.Layout
@@ -27,35 +27,36 @@
         height:100% !important;
     }
 </style>
+<div style="width:100%">
 @* <FluentGrid Spacing="@Spacing" OnBreakpointEnter="@OnBreakpointEnterHandler" AdaptiveRendering="true" Justify="@Justification" Style="background-color: var(--neutral-layer-3); padding: 4px; ">
     <FluentGridItem xs="12"> *@
-<FluentDragContainer TItem="ProductionStage" Style="width:100%; height:100%;" OnDropEnd="OnDropStage">
+<FluentDragContainer TItem="EquipmentItem" Style="width:100%; height:100%;" OnDropEnd="OnDropEquip">
         @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style=" border: 1px solid #365b66; margin-bottom:5px ; border-radius:10px; padding: 10px; overflow: hidden;"> *@
 @* <div class="div-center-screen" style="align-items:center; width:100%"> *@
-        <FluentDropZone StopPropagation="true" Data="@filteredPS" TItem="ProductionStage" Class="empty-zone"  Draggable="false" Droppable="true" >
-        <ListView TItem="WorkCentreFunctions" Items="@_allWCFunctions" style="align-items:center; width:100%" OnListViewItemClick="OnWcPsClick">
+        <FluentDropZone StopPropagation="true" Data="@filteredEquip" TItem="EquipmentItem" Class="empty-zone"  Draggable="false" Droppable="true" >
+        <ListView TItem="EquipmentCapability" Items="@_allPSEquip" style="align-items:center; width:100%" OnListViewItemClick="OnPSEClick">
         <HeaderTemplate>
-            @if (WC != null){
-                <div style="color:white">PRODUCTION STAGES ASSIGNED TO THE @WC.WorkCentreName WORK CENTRE</div>
+            @if (PS != null){
+                <div style="color:white">EQUIPMENT USED IN THE @PS.ProductionStageName PRODUCTION STAGE</div>
             }
         </HeaderTemplate>
         <BodyTemplate>
             <Card IsShadow="true">
                 <HeaderTemplate>
-                    <FluentLabel Typo="Typography.H6" style="color:white"><strong>STAGE ID @context.ProductionStageID</strong></FluentLabel>
+                    <FluentLabel Typo="Typography.H6" style="color:white"><strong>EQUIPMENT ID @context.EquipmentItemID</strong></FluentLabel>
                 </HeaderTemplate>
                 <BodyTemplate>
-                        <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" style="margin:5px">@context.ProductionStage.ProductionStageName</FluentLabel>
+                        <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" style="margin:5px">@context.EquipmentItem.EquipmentItemDescription</FluentLabel>
                 </BodyTemplate>
                 <FooterTemplate>
-                    @* @if (context.EquipmentItem.EquipmentCategory != null)
-                    { *@
-                            <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@context.ProductionStage.WorkType.WorkTypeName</FluentLabel>
-                    @* }
+                    @if (context.EquipmentItem.EquipmentCategory != null)
+                    {
+                            <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Category: @context.EquipmentItem.EquipmentCategory.EquipmentCategoryName</FluentLabel>
+                    }
                     else
                     {
                             <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Category: Unassigned</FluentLabel>
-                    } *@
+                    }
                 </FooterTemplate>
             </Card>
         </BodyTemplate>
@@ -75,36 +76,36 @@
     
     
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="-ms-flex-item-align:end; border: 1px solid #365b66; margin-bottom:5px ; background-color:white; border-radius:10px; padding: 10px; overflow: hidden;">
-        <div style="margin-top:5px; width: 100%; font-weight:bold">AVAILABLE STAGES TO ADD</div>
+        <div style="margin-top:5px; width: 100%; font-weight:bold">AVAILABLE EQUIPMENT TO ADD</div>
         <FluentHorizontalScroll class="both-gradient" Style="width:100%"  Speed="600" Easing="ScrollEasing.EaseInOut">
-    @if(filteredPS == null || filteredPS.Count == 0)
+    @if(filteredEquip == null || filteredEquip.Count == 0)
     {
-        <div>No Available Stages to Add</div>
+        <div>No Available Equipment to Add</div>
     }
     else
     {
         
         
-        foreach (var psItem in filteredPS)
+        foreach (var eqItem in filteredEquip)
         {
-            <FluentDropZone StopPropagation="true" Item="psItem" Data="@filteredPS" Class="form-element" Draggable="true" Droppable="false">
+            <FluentDropZone StopPropagation="true" Item="eqItem" Data="@filteredEquip" Class="form-element" Draggable="true" Droppable="false">
                 <Card IsShadow="true">
                     <HeaderTemplate>
-                        <FluentLabel Typo="Typography.Body" style="color:white; width:max-content; word-wrap:revert"><strong>STAGE ID @psItem.ProductionStageId</strong></FluentLabel>
+                        <FluentLabel Typo="Typography.Body" style="color:white; width:max-content; word-wrap:revert"><strong>EQUIPMENT ID @eqItem.EquipmentItemID</strong></FluentLabel>
                     </HeaderTemplate>
                     <BodyTemplate>
-                                <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@psItem.ProductionStageName</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@eqItem.EquipmentItemDescription</FluentLabel>
                                 @* <FluentTextArea Typo="Typography.Body" Rows="2" ReadOnly="true" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Placeholder=@eqItem.EquipmentItemDescription></FluentTextArea> *@
                     </BodyTemplate>
                     <FooterTemplate>
-                        @*         @if (psItem.EquipmentCategory != null)
-                        { *@
-                                    <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@psItem.WorkType.WorkTypeName</FluentLabel>
-                        @* }
+                                @if (eqItem.EquipmentCategory != null)
+                        {
+                                    <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@eqItem.EquipmentCategory.EquipmentCategoryName</FluentLabel>
+                        }
                         else
                         {
                                     <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">Unassigned</FluentLabel>
-                        } *@
+                        }
                     </FooterTemplate>
                 </Card>
                 @* <FluentCard Style="margin:10px;height:100%;">@eqItem.EquipmentItemDescription</FluentCard> *@
@@ -116,45 +117,44 @@
                 </FluentHorizontalScroll>
 </FluentStack>
 </FluentDragContainer>
-    
+</div>
 
 
 
 @code {
-    [Parameter][SupplyParameterFromQuery(Name = "WorkCentreID")] public int? wcID { get; set; }
-    WorkCentre? WC;
-    List<WorkCentreFunctions>? _allWCFunctions;
-    List<ProductionStage>? allDivPS;
-    List<ProductionStage>? filteredPS;
+    [Parameter][SupplyParameterFromQuery(Name = "ProductionStageID")] public int? psID { get; set; }
+    ProductionStage? PS;
+    List<EquipmentCapability>? _allPSEquip;
+    List<EquipmentItem>? allDivEquip;
+    List<EquipmentItem>? filteredEquip;
     Division? d;
 
     protected override async Task OnInitializedAsync()
     {
         d = await dTrf.GetgvSelectedDivision();
         await dTrf.SetgvContextArea(0);
-        WC = await pApiClient.GetAsync<WorkCentre>($"/Divisions/Production/GetWorkCentreByID/{wcID}");
-        _allWCFunctions = await pApiClient.GetAsync<List<WorkCentreFunctions>>($"/Divisions/Production/GetWorkCentreFunctionsByID/{wcID}");
-        allDivPS = await pApiClient.GetAsync<List<ProductionStage>>($"/Divisions/{d.DivisionID}/GetAllProductionStagesByDiv");
-        await FilterStage();
+        PS = await pApiClient.GetAsync<ProductionStage>($"/Divisions/Production/GetProductionStageByID/{psID}");
+        _allPSEquip = await pApiClient.GetAsync<List<EquipmentCapability>>($"/Divisions/GetProductionStageEquipment/{psID}");
+        allDivEquip = await pApiClient.GetAsync<List<EquipmentItem>>($"/Divisions/{d.DivisionID}/GetDivisionEquipment");
+        await FilterEquip();
     }
-    private async Task FilterStage()
+    private async Task FilterEquip()
     {
-        filteredPS = allDivPS
-            .Where(e => e.ProductionStageId.ToString() == string.Empty)
+        filteredEquip = allDivEquip
+            .Where(e => !_allPSEquip.Any(p => p.EquipmentItemID == e.EquipmentItemID))
             .ToList();
     }
-    private async void OnDropStage(FluentDragEventArgs<ProductionStage> psI)
+    private async void OnDropEquip(FluentDragEventArgs<EquipmentItem> eqI)
     {
-        var source = psI.Source.Item;
-        WorkCentreFunctions newWcF = new WorkCentreFunctions
+        var source = eqI.Source.Item;
+        EquipmentCapability newEC = new EquipmentCapability
         {
-            WorkCentreID = wcID.Value,
-            ProductionStageID = source.ProductionStageId
+            EquipmentItemID = source.EquipmentItemID,
+            ProductionStageID = psID.Value
         };
-        await pApiClient.AddWorkCentreFunctionAsync(newWcF);
-        _allWCFunctions = await pApiClient.GetAsync<List<WorkCentreFunctions>>($"/Divisions/Production/GetWorkCentreFunctionsByID/{wcID}");
-        allDivPS = await pApiClient.GetAsync<List<ProductionStage>>($"/Divisions/{d.DivisionID}/GetAllProductionStagesByDiv");
-        await FilterStage();
+        await pApiClient.AddEquipmentCapabilityAsync(newEC);
+        _allPSEquip = await pApiClient.GetAsync<List<EquipmentCapability>>($"/Divisions/GetProductionStageEquipment/{psID}");
+        await FilterEquip();
         StateHasChanged();
     }
     private async Task btnWorkCentreClick()
@@ -167,9 +167,9 @@
         //Navigation.NavigateTo($"/Production/ProductionStages/{w.WorkTypeID}");
 
     }
-    private async Task OnWcPsClick(WorkCentreFunctions e)
+    private async Task OnPSEClick(EquipmentCapability e)
     {
 
-        Navigation.NavigateTo($"/EmployeeZone/Production/Setup/ProductionStageEquipment?ProductionStageID={e.ProductionStageID}");
+        //Navigation.NavigateTo($"/Production/ProductionStages?WorkTypeID={w.WorkTypeID}");
     }
 }

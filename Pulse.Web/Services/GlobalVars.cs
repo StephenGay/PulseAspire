@@ -33,6 +33,7 @@ namespace Pulse.Web.Services
         public List<WorkInProgressDto> gv_Selected_Division_WIP { get; set; }
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
         public string gv_AIContext_Mode { get; set; }
+        public bool gv_IsMuted { get; set; } = false;
 
         public string gv_AIModel { get; set; } = "gpt-oss:latest";
         public string gv_User_Theme { get; set; } = "pulse";
@@ -104,6 +105,15 @@ namespace Pulse.Web.Services
         public async Task<Flapper> GetgvFlapper()
         {
             return await Task.FromResult(gv_Flapper);
+        }
+        public async Task<bool> GetgvIsMuted()
+        {
+            return await Task.FromResult(gv_IsMuted);
+        }
+        public async Task SetgvIsMuted(bool isMuted)
+        {
+            gv_IsMuted = isMuted;
+            await Task.CompletedTask;
         }
         public async Task SetgvCurrentPeriod(Period period)
         {
@@ -265,6 +275,8 @@ namespace Pulse.Web.Services
         //public Task<User> GetgvUser();
         public Task<List<PulseMessage>> GetgvUserMessages();
         public Task SetgvUserMessages(List<PulseMessage> messages);
+        public Task SetgvIsMuted(bool isMuted);
+        public Task<bool> GetgvIsMuted();
         public Task AddgvUserMessage(PulseMessage msg);
         public Task SetgvUserSettings(ApplicationUserSettings userSettings);
         public Task<ApplicationUserSettings> GetgvUserSettings();

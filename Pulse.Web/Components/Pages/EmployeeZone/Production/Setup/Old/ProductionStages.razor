@@ -1,4 +1,4 @@
-﻿@page "/EmployeeZone/Production/Setup/ProductionStages"
+﻿@page "/EmployeeZone/Production/Setup/old/ProductionStages"
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
 
@@ -68,6 +68,6 @@
     private async Task OnWTPSClick(ProductionStage p)
     {
 
-        Navigation.NavigateTo($"/EmployeeZone/Production/Setup/ProductionStageEquipment?ProductionStageID={p.ProductionStageId}");
+        Navigation.NavigateTo($"/EmployeeZone/Production/Setup/old/ProductionStageEquipment?ProductionStageID={p.ProductionStageId}");
     }
 }

@@ -456,7 +456,8 @@
 
     private async Task AISpeak(string what, string who)
     {
-        if(userSettings == null || userSettings.AIHasVoice != true)
+        bool isMuted = await dataTrf.GetgvIsMuted();
+        if(userSettings == null || userSettings.AIHasVoice != true || isMuted)
         {
             return;
         }

@@ -89,12 +89,20 @@
             overflow-y: auto;
         }
     }
+
+    .column-header[b-w6qdxfylwy] {
+        min-width: 50px !important;
+        min-height: 32px !important;
+    }
 </style>
 
 @* <div style="flex: 1; background: rgba(255,255,255,0.5); height:100%; margin: 10px; padding: 10px; border-radius: 10px; overflow: auto;"> *@
     
-        <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
-            <h2 style="margin: 0; color: white;">
+        <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px 16px 16px 5px;">
+            <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:26px;width:fit-content;padding: 5px" Color="var(--pulse-accent-btn-colour)" Disabled="@(pgWCMode == "ViewAll" ? true : false)" OnClick="@(() => { pgWCMode = "ViewAll"; })">
+                <FluentIcon Value="@(new Icons.Filled.Size16.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))" />
+            </FluentButton>
+            <h2 style="margin: 0 0 0 10px; color: white;">
                 Work Centres
                 </h2>
         </FluentHeader>
@@ -212,12 +220,8 @@
                                             <FluentSpacer />
                                             @if (pgWCMode == "ViewSetup")
                                             {
-                                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:fit-content;padding: 0px 5px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { pgWCMode = "ViewAll";})">
-                                                    <FluentIcon Value="@(new Icons.Filled.Size32.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))" /> All Work Centres
-                                                </FluentButton>
-                                                <FluentSpacer />
-                                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:100px" Color="var(--pulse-accent-btn-colour)" OnClick="EditWCDetails">
-                                                    <FluentIcon Value="@(new Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit
+                                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:30px;padding-right:10px;padding-left:10px" Color="var(--pulse-accent-btn-colour)" OnClick="EditWCDetails">
+                                                    <FluentIcon Value="@(new Icons.Filled.Size20.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit Details
                                                 </FluentButton>
                                             }
                                             else
@@ -247,20 +251,76 @@
                                     </FluentStack>
                                 </FluentStack>
                             </div>
-                            <div class="@(!isAddZone  ? "viewWCSetup" : "editWCSetup")" style="min-width: 200px;max-width:500px;width:95%;border-radius:10px;padding:10px;margin: 10px 0 0 10px;">
-                                <FluentDataGrid Items="TopLevelZones.AsQueryable()" 
-                                                TGridItem="FactoryZone" 
-                                                AutoFit="false"
-                                                RowClass="@(context => context == selZone ? "fdgrselected" : "fdgrunselected")"
-                                                SelectionMode="SelectionMode.Single"
-                                                SelectedItem="@selZone"
-                                                OnRowClick="ClickZoneRow"
-                                                >
-                                    <PropertyColumn Title="Zone Name" Width="60%" Property="@(context => context.Name)" />
-                                    <PropertyColumn Title="Min" Width="10%" Property="@(context => context.TargetMinUnitsPerDay)" />
-                                    <PropertyColumn Title="Max" Width="10%" Property="@(context => context.TargetMaxUnitsPerDay)" />
-                                    <PropertyColumn Title="Plotted" Width="auto" Property="@(context => context.IsPlotted)" />
-                                </FluentDataGrid>
+                            <div class="@(!isAddZone  ? "viewWCSetup" : "editWCSetup")" style="min-width: 500px;max-width:500px;width:95%;border-radius:10px;padding:10px;margin: 10px 0 0 10px;">
+                                @if (isAddZone)
+                                {
+                                    <FluentTextField @bind-Value="editZone.Name"
+                                         Placeholder="Enter a Zone Name"
+                                         Required="true"
+                                         Label="Zone Name"
+                                         Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px" />
+                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
+                                        <FluentLabel >Daily Target : </FluentLabel>
+                                        <FluentNumberField @bind-Value="editZone.TargetMinUnitsPerDay"
+                                                           Required="true"
+                                                           Label="Minimum"
+                                                           Style="width:100px;text-align:center" />
+                                        
+                                        <FluentNumberField @bind-Value="editZone.TargetMaxUnitsPerDay"
+                                                           Required="true"
+                                                           Label="Maximum"
+                                                           Style="width:100px;text-align:center" />
+                                    </FluentStack>
+                                    <FluentTextField @bind-Value="editZone.Notes"
+                                         Placeholder="Enter Any Notes For Zone"
+                                         Required="false"
+                                         Label="Notes"
+                                         Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px" />
+                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
+                                        <FluentButton Class="myCancelBtn"
+                                                BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                                Color="var(--pulse-cancel-btn-colour)"
+                                                IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
+                                                Style="height:40px"
+                                                onclick="() => {editZone = new FactoryZone() ; isAddZone = false ;}">
+                                            Cancel
+                                        </FluentButton>
+                                        <FluentButton Class="myOkBtn"
+                                                      BackgroundColor="var(--pulse-ok-btn-bg)"
+                                                      Color="var(--pulse-ok-btn-colour)"
+                                                      @onclick="SaveZone"
+                                                      IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                      Style="height:40px;"
+                                                      Disabled="@(string.IsNullOrEmpty(editZone?.Name))">
+                                            Save
+                                        </FluentButton>
+                                    </FluentStack>
+                                }
+                                else
+                                {
+                                    <FluentDataGrid Items="TopLevelZones.AsQueryable()" 
+                                                    TGridItem="FactoryZone"
+                                                    Style="font-size:10px;width:480px"
+                                                    AutoFit="false"
+                                                    RowClass="@(context => context == selZone ? "fdgrselected" : "fdgrunselected")"
+                                                    SelectionMode="SelectionMode.Single"
+                                                    SelectedItem="@selZone"
+                                                    OnRowClick="ClickZoneRow"
+                                                    >
+                                        <PropertyColumn Title="Zone Name" Width="270px" Property="@(context => context.Name)" />
+                                        <PropertyColumn Title="Min" Width="70px" Property="@(context => context.TargetMinUnitsPerDay)" />
+                                        <PropertyColumn Title="Max" Width="70px" Property="@(context => context.TargetMaxUnitsPerDay)" />
+                                        <PropertyColumn Title="Plotted" Width="70px" Property="@(context => context.IsPlotted)" />
+                                    </FluentDataGrid>
+                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 12px;">
+                                        <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:30px;padding-right:10px;padding-left:10px" Color="var(--pulse-accent-btn-colour)" OnClick="AddNewZone">
+                                            <FluentIcon Value="@(new Icons.Filled.Size20.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> New Zone
+                                        </FluentButton>
+                                        <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:30px;padding-right:10px;padding-left:10px" Color="var(--pulse-accent-btn-colour)" OnClick="EditZone">
+                                            <FluentIcon Value="@(new Icons.Filled.Size20.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit Zone
+                                        </FluentButton>
+                                    </FluentStack>
+                                }
                             </div>   
                             </div>
                             
@@ -293,6 +353,7 @@
     private List<FactoryZone>? TopLevelZones;
     private List<FactoryZone>? ZoneEquipment;
     private FactoryZone? selZone;
+    private FactoryZone? editZone;
     private string? selectedZone;
 
     private string newPermissionName = string.Empty;
@@ -309,6 +370,7 @@
     private string errorMessage = string.Empty;
     private string pgWCMode = "ViewAll";
     private bool isAddZone = false;
+    private bool isEditZone = false;
     private bool addEditPermission = false;
 
     private bool isLoadingPermissions = true;
@@ -330,7 +392,49 @@
     {
         selZone = item.Item;
         StateHasChanged();
+    }
+    private async Task AddNewZone()
+    {
+        editZone = new FactoryZone
+            {
+                DivisionId = d.DivisionID,
+                Level = 0,
+                ParentZoneId = "0",
+                WorkCentreID = selectedWC.WorkCentreId,
+                Description = selectedWC.WorkCentreName,
+                IsPlotted = false,
+                Color = selectedWC.Colour,
+                TextColor = selectedWC.TextColour
+            };
+        isEditZone = false;
+        isAddZone = true;
 
+    }
+    private async Task EditZone()
+    {
+        editZone = new FactoryZone
+        {
+            Id = selZone.Id,
+            DivisionId = selZone.DivisionId,
+            Name = selZone.Name,
+            Level = selZone.Level,
+            ParentZoneId = selZone.ParentZoneId,
+            WorkCentreID = selZone.WorkCentreID,
+            EquipmentCapabilityID = selZone.EquipmentCapabilityID,
+            Description = selZone.Description,
+            IsPlotted = selZone.IsPlotted,
+            TargetMinUnitsPerDay = selZone.TargetMinUnitsPerDay,
+            TargetMaxUnitsPerDay = selZone.TargetMaxUnitsPerDay,
+            X = selZone.X,
+            Y = selZone.Y,
+            Width = selZone.Width,
+            Height = selZone.Height,
+            Color = selZone.Color,
+            TextColor = selZone.TextColor,
+            Notes = selZone.Notes
+        };
+        isEditZone = true;
+        isAddZone = true;
     }
     private async Task ViewWCSetup()
     {
@@ -448,6 +552,48 @@
         await GlobalAI.AISpeak("I'm sorry, but this feature is still under development.", "PulseAI");
     }
 
+    private async Task SaveZone()
+    {
+        bool isSuccess = false;
+
+        try
+        {
+
+            if (!isEditZone)
+            {
+                var createResponse = await ApiService.PostAsync<FactoryZone, ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.Create(d.DivisionID), editZone);
+                isSuccess = createResponse?.Success == true;
+            }
+            else
+            {
+                var createResponse = await ApiService.PostAsync<FactoryZone, ApiResponse>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.Update(d.DivisionID), editZone);
+                isSuccess = createResponse?.Success == true;
+            }
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (isSuccess)
+            {
+                PulseToastService.ShowToast("Success", $"The zone has been saved.");
+                await GlobalAI.AISpeak($"The zone has been saved.", "PulseAI");
+                editZone = new FactoryZone();
+                await LoadWorkCentreZones();
+                isEditZone = false;
+                isAddZone = false;
+                StateHasChanged();
+            }
+            else
+            {
+                Logger.LogError("Error saving zone");
+                PulseToastService.ShowToast("Error", "There was a problem saving the Zone.<br />Please try again.");
+                await GlobalAI.AISpeak("There was a problem saving the Zone.<br />Please try again.", "PulseAI");
+            }
+        }
+    }
     private async Task SaveWorkCentre()
     {
         bool isSuccess = false;

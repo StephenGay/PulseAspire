@@ -1,4 +1,4 @@
-﻿@page "/EmployeeZone/Production/Setup/WorkCentres"
+﻿@page "/EmployeeZone/Production/Setup/old/WorkCentres"
 @using Microsoft.AspNetCore.Authorization
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
@@ -47,6 +47,6 @@
     private async Task OnWCClick(WorkCentre w)
     {
         
-        Navigation.NavigateTo($"/EmployeeZone/Production/Setup/WorkCentreProductionStages?WorkCentreID={w.WorkCentreId}");
+        Navigation.NavigateTo($"/EmployeeZone/Production/Setup/Old/WorkCentreProductionStages?WorkCentreID={w.WorkCentreId}");
     }
 }

@@ -6,11 +6,11 @@
   <Project Path="Pulse.AppHost/Pulse.AppHost.csproj" />
   <Project Path="Pulse.DesktopApp/Pulse.DesktopApp.csproj">
     <Platform Project="x64" />
-    <Build Solution="Debug|*" Project="false" />
-    <Deploy Solution="Release|*" />
+    <Deploy />
   </Project>
   <Project Path="Pulse.MobileApp/Pulse.MobileApp.csproj">
     <Build Solution="Debug|*" Project="false" />
+    <Deploy Solution="Debug|*" />
   </Project>
   <Project Path="Pulse.Models/Pulse.Models.csproj" />
   <Project Path="Pulse.ServiceDefaults/Pulse.ServiceDefaults.csproj" />

@@ -83,6 +83,23 @@ namespace Pulse.ApiService.Endpoints
                 .Produces<ApiResponse>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/Create", CreateFactoryZone)
+                .WithName("CreateFactoryZone")
+                .Produces<ApiResponse>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/Update", UpdateFactoryZone)
+                .WithName("UpdateFactoryZone")
+                .Produces<ApiResponse>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status500InternalServerError);
+
+            group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/Save", SaveFactoryZone)
+                .WithName("SaveFactoryZone")
+                .Produces<ApiResponse>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status404NotFound)
+                .Produces(StatusCodes.Status500InternalServerError);
+
             // Get all work centres for a division
             group.MapGet("/WithDivisionID/{divisionid}/Factory/WorkCentres/GetAll", GetAllDivisionWorkCentres)
                 .WithName("GetAllDivisionWorkCentres")
@@ -595,7 +612,102 @@ namespace Pulse.ApiService.Endpoints
             }
         }
 
-        
+        private static async Task<IResult> SaveFactoryZone(
+            FactoryZone zone,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("SaveFactoryZone");
+            try
+            {
+                var z = db.FactoryZones
+                    .Where(e => e.Id == zone.Id)
+                    .FirstOrDefault();
+
+                if (z == null)
+                {
+                    db.FactoryZones.Add(zone);
+                }
+                else
+                {
+                    db.Entry(z).CurrentValues.SetValues(zone);
+                }
+
+                await db.SaveChangesAsync();
+
+                return Results.Ok(new ApiResponse
+                {
+                    Success = true,
+                    Message = "Zone was saved",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error saving factory zone");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+        private static async Task<IResult> UpdateFactoryZone(
+            FactoryZone zone,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("UpdateFactoryZone");
+            try
+            {
+                var z = db.FactoryZones
+                    .Where(e => e.Id == zone.Id)
+                    .FirstOrDefault();
+
+                if(z == null)
+                {
+                    logger.LogError("Error updating Factory Zone : Not Found");
+                    return Results.StatusCode(StatusCodes.Status404NotFound);
+                                            
+                }
+
+                db.Entry(z).CurrentValues.SetValues(zone);
+                await db.SaveChangesAsync();
+
+                return Results.Ok(new ApiResponse
+                {
+                    Success = true,
+                    Message = "Zone was updated",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error updating factory zone");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+        private static async Task<IResult> CreateFactoryZone(
+            FactoryZone zone,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("CreateFactoryZone");
+            try
+            {
+                db.FactoryZones.Add(zone);
+                await db.SaveChangesAsync();
+
+                return Results.Ok(new ApiResponse
+                {
+                    Success = true,
+                    Message = "Zone was created",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error creating factory zone");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
+
         private static async Task<IResult> GetDivisionWorkCentreZones(
             string divisionid,
             int workCentreId,
