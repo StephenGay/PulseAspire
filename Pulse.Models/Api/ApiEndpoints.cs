@@ -281,6 +281,27 @@ namespace Pulse.Models.Api
 
         #endregion
 
+        #region Production Endpoints
+
+        public static class Production
+        {
+            private const string Prefix = $"{ApiPrefix}/Production";
+            public static class WorkTypes
+            {
+                private const string WorkTypesPrefix = $"{Prefix}/WorkTypes";
+                public const string GetAllActive = $"{WorkTypesPrefix}/GetAllActive";
+
+                public static class Division
+                {
+                    private const string DivisionPrefix = $"{WorkTypesPrefix}/Division";
+                    public static string GetAllActive(string divisionId) => $"{DivisionPrefix}/{Uri.EscapeDataString(divisionId)}/GetAllActive";
+                    public static string Add(string divisionId) => $"{DivisionPrefix}/{Uri.EscapeDataString(divisionId)}/Add";
+                }
+            }
+        }
+
+        #endregion
+
         #region Default Endpoints
 
         public static class Default

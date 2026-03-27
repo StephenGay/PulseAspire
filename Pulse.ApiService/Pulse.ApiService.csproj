@@ -31,9 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Pulse.AIds\Flapper\" />
-    <Folder Include="Pulse.AIds\Ali\" />
-    <Folder Include="Pulse.AIds\Tables\" />
+    <Folder Include="Migrations\" />
+    <Folder Include="PulseAI\Flapper\" />
+    <Folder Include="PulseAI\Ali\" />
+    <Folder Include="PulseAI\Tables\" />
   </ItemGroup>
 
 </Project>

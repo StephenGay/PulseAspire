@@ -21,6 +21,7 @@ using Pulse.Models.Production.NonConformance;
 using Pulse.Models.Permissions;
 using Pulse.Models.Communication;
 using Pulse.Models.Production.Layout;
+using Pulse.Models.Production.WorkTypes;
 
 namespace Pulse.Models.PulseContext
 {
@@ -77,6 +78,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<RolePermission> AspNetRolePermissions { get; set; }
         public DbSet<PermissionCategory> AspNetPermissionCategories { get; set; }
         public DbSet<FactoryZone> FactoryZones { get; set; }
+        public DbSet<DivisionWorkType> DivisionWorkTypes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -131,6 +133,7 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new AspNetRolePermissionConfigurationMap());  
             modelBuilder.ApplyConfiguration(new AspNetPermissionCategoryConfigurationMap());
             modelBuilder.ApplyConfiguration(new FactoryZoneMap());
+            modelBuilder.ApplyConfiguration(new DivisionWorkTypeMap());
 
             base.OnModelCreating(modelBuilder);
         }

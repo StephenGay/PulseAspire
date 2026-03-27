@@ -779,6 +779,7 @@
                     {
                         flapperThinking += thinking;
                         StateHasChanged();  // Update UI immediately
+                        await Task.Delay(5);
                     }
                 }
                 // Check for final answer marker
@@ -787,6 +788,7 @@
                     var answer = chunk.Substring("__FINAL_ANSWER__".Length);
                     flapperAnswer += answer;  // ← USE += NOT = (accumulate, don't overwrite!)
                     StateHasChanged();  // Update UI immediately
+                    await Task.Delay(5);
                 }
             }
         }
@@ -968,7 +970,7 @@
                     {
                         inThinking = false;
                         // flapperAnswer += "Answer:\n";
-                        yield return "__FINAL_ANSWER__Answer:\n";
+                        yield return "__FINAL_ANSWER__";
                     }
                     hasYieldedContent = true;
                     // flapperAnswer += chunk.Message.Content;
@@ -1031,7 +1033,7 @@
         {
             yield return "Error: No response from Ollama.";
         }
-        chatHistory.Add(accumulatedMessage);
+        // chatHistory.Add(accumulatedMessage);
         // ✅ DON'T yield final accumulated answer here!
         // We already yielded individual chunks, so accumulating and yielding the whole thing causes duplication
     }

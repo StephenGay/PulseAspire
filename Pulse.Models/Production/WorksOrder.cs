@@ -2,6 +2,7 @@
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Models.Organizational;
+using Pulse.Models.Production.WorkTypes;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;

@@ -59,19 +59,48 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(e => e.RequiresPlanning)
                 .HasDefaultValue(false);
 
+            builder.Property(e => e.DifficultyMeasurement)
+               .HasMaxLength(50);
+
+            builder.Property(e => e.BaseValue)
+                   .HasDefaultValue(0m)
+                   .HasPrecision(18, 4)   // Good precision for decimal values
+                   .IsRequired();
+
+            builder.Property(e => e.BaseMinutesAtStage)
+                   .HasDefaultValue(0)
+                   .IsRequired();
+
             builder.Property(e => e.IsActive)
                 .HasDefaultValue(true);
 
             // Relationships (assuming one-to-many; adjust if Division/WorkType have collections)
             builder.HasOne(e => e.Division)
                 .WithMany() // Add .HasMany(d => d.ProductionStages) if collection exists in Division
-                .HasForeignKey(e => e.DivisionID);
-                //.OnDelete(DeleteBehavior.Restrict); // Or Cascade/NoAction as per business rules
+                .HasForeignKey(e => e.DivisionID)
+                .HasPrincipalKey(d => d.DivisionID)
+                .IsRequired()
+                .OnDelete(DeleteBehavior.Restrict); 
+                
 
             builder.HasOne(e => e.WorkType)
                 .WithMany() // Add .HasMany(w => w.ProductionStages) if collection exists in WorkType
-                .HasForeignKey(e => e.WorkTypeID);
-                //.OnDelete(DeleteBehavior.Restrict); // Or Cascade/NoAction as per business rules
+                .HasForeignKey(e => e.WorkTypeID)
+                .HasPrincipalKey(w => w.WorkTypeID)
+               .IsRequired()
+               .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(e => e.DivisionWorkType)
+               .WithMany()                                      // You can add a back navigation later if needed
+               .HasForeignKey(e => new { e.WorkTypeID, e.DivisionID })   // Composite FK
+               .HasPrincipalKey(dwt => new { dwt.WorkTypeID, dwt.DivisionId })
+               .IsRequired(false)
+               .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasIndex(e => e.IsActive);
+            builder.HasIndex(e => e.StepNo);
+            builder.HasIndex(e => new { e.DivisionID, e.WorkTypeID });        // Useful for the composite relationship
+            builder.HasIndex(e => new { e.DivisionID, e.WorkTypeID, e.StepNo });
         }
     }
 }

@@ -1,0 +1,51 @@
+﻿.editWCSetup {
+    /*margin-left: auto;
+    margin-right: auto;*/
+    background-color: white;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+.viewWCSetup {
+    /*margin-left: 10px;
+    margin-right: 10px;*/
+    background-color: var(--pulse-light-colour);
+    border: 1px solid var(--pulse-dark-colour);
+}
+.box {
+    /*width: 60vmin;
+    height: 50vmin;
+    display: grid;
+    place-content: center;*/
+    color: white;
+    /*text-shadow: 0 1px 0 #000;*/
+    --border-angle: 0turn; /* // For animation. */
+    --main-bg: conic-gradient( from var(--border-angle), #213, #112 5%, #112 60%, #213 95% );
+    border: solid 5px transparent;
+    border-radius: 8px;
+    --gradient-border: conic-gradient(from var(--border-angle), transparent 25%, #08f, #f03 99%, transparent);
+    background:
+    /* // padding-box clip this background in to the overall element except the border. */
+    var(--main-bg) padding-box,
+    /* // border-box extends this background to the border space */
+    var(--gradient-border) border-box,
+    /* // Duplicate main background to fill in behind the gradient border. You can remove this if you want the border to extend "outside" the box background. */
+    var(--main-bg) border-box;
+    background-position: center center;
+    animation: bg-spin 3s linear infinite;
+}
+
+    @keyframes bg-spin {
+        to {
+            --border-angle: 1turn;
+        }
+    }
+
+    &:hover {
+        animation-play-state: paused;
+    
+}
+
+@property --border-angle {
+    syntax: "<angle>";
+    inherits: true;
+    initial-value: 0turn;
+}

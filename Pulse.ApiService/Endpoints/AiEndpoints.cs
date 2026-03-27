@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
+using Pulse.ApiService.PulseAI.Functions;
+using Pulse.ApiService.Queries;
 using Pulse.Models.AI;
+using Pulse.Models.Api;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
 using Pulse.Models.PulseContext;
@@ -16,7 +20,35 @@ namespace Pulse.ApiService.Endpoints
         {
             var group = routes.MapGroup("/AI").WithTags("AI Endpoints");
 
-            group.MapGet("/schema", (PulseDbContext dbContext) =>
+            group.MapPost("/execute-validated", async (
+                [FromBody] AiQueryRequest request,
+                PulseDbContext dbContext,
+                ILoggerFactory loggerFactory) =>
+                        {
+                            var logger = loggerFactory.CreateLogger<SQL>();
+                            var functions = new SQL(logger, dbContext);
+
+                            try
+                            {
+                                var connectionString = dbContext.Database.GetConnectionString();
+                                var response = await functions.ExecuteValidatedQuery(connectionString, request.Query, request.Timeout ?? 30);
+
+                                return response.Success
+                                    ? Results.Ok(response)
+                                    : Results.BadRequest(response);
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogError(ex, "Error executing validated AI query");
+                                return Results.Problem("An unexpected error occurred");
+                            }
+                        })
+            .Produces<AiQueryResponse<List<Dictionary<string, object>>>>(200)
+            .ProducesProblem(400)
+            .ProducesProblem(500);
+
+            
+        group.MapGet("/schema", (PulseDbContext dbContext) =>
             {
                 var schemas = dbContext.Model.GetEntityTypes()
                     .Select(et => new SchemaDto

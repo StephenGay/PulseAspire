@@ -4,6 +4,7 @@ using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Models.Organizational;
 using Pulse.Models.Production;
+using Pulse.Models.Production.WorkTypes;
 
 public static class MappingExtensions
 {

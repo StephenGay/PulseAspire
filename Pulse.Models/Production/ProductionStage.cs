@@ -1,4 +1,5 @@
 ﻿using Pulse.Models.Organizational;
+using Pulse.Models.Production.WorkTypes;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -49,6 +50,7 @@ namespace Pulse.Models.Production
         public int BaseMinutesAtStage { get; set; } = 0;
         public Division? Division { get; set; }
         public WorkType? WorkType { get; set; }
+        public DivisionWorkType? DivisionWorkType { get; set; }
         public ICollection<EquipmentCapability>? EquipmentCapabilities { get; set; }
 
     }

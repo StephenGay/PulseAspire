@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pulse.Models.Production.WorkTypes;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -25,6 +26,8 @@ namespace Pulse.Models.Organizational
         public Company? Company { get; set; }
         
         public Branch? Branch { get; set; }
-
+        public ICollection<DivisionWorkType> DivisionWorkTypes { get; set; } = new List<DivisionWorkType>();
     }
+
 }
+

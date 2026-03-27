@@ -7,6 +7,7 @@ using Pulse.Models.Organizational;
 using Pulse.Models.Permissions;
 using Pulse.Models.Production;
 using Pulse.Models.Production.Layout;
+using Pulse.Models.Production.WorkTypes;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
 using System.Linq;

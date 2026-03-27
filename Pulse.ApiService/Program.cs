@@ -6,6 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
+using Pulse.ApiService.Endpoints.Production;
 using Pulse.ApiService.Endpoints.Security;
 using Pulse.ApiService.Hubs;
 using Pulse.ApiService.Middleware;
@@ -235,6 +236,7 @@ app.MapUtilitiesEndpoints();
 app.MapDivisionEndpoints();
 app.MapTechnicalEndpoints();
 app.MapCompanyEndpoints();
+app.MapWorkTypeEndpoints();
 
 // SignalR Hub
 app.MapHub<MessageHub>("/messagehub");

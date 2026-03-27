@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260327034527_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -293,22 +296,13 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(4)");
 
                     b.Property<decimal>("CalculatedCostPerKg")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("CalculatedSpecificGravity")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("CarbonBlackCharge")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Colour")
                         .HasMaxLength(100)
@@ -320,15 +314,9 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal>("CompoundDifficultyMultiplier")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)")
-                        .HasDefaultValue(1m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("CompoundRangeId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("CompoundRangeId1")
                         .HasColumnType("int");
 
                     b.Property<string>("CompoundType")
@@ -337,16 +325,10 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<decimal>("CostingCostPerKg")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("CustomSaleFactor")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("DateCostUpdated")
                         .HasColumnType("datetime2");
@@ -362,19 +344,13 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsImported")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("OverRideCostPerKg")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<bool>("OverRideSpecificGravity")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("bit");
 
                     b.Property<string>("PolymerName")
                         .HasMaxLength(50)
@@ -390,7 +366,9 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(3)");
 
                     b.Property<DateTime>("RevisionDate")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("getdate()");
 
                     b.Property<string>("RevisionReason")
                         .IsRequired()
@@ -398,16 +376,10 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<decimal>("RoyaltyCharge")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("SpecificGravity")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 6)
-                        .HasColumnType("decimal(18,6)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("State")
                         .IsRequired()
@@ -417,14 +389,6 @@ namespace Pulse.ApiService.Migrations
                     b.HasKey("CompoundCode");
 
                     b.HasIndex("CompoundRangeId");
-
-                    b.HasIndex("CompoundRangeId1");
-
-                    b.HasIndex("CompoundType");
-
-                    b.HasIndex("IsImported");
-
-                    b.HasIndex("State");
 
                     b.ToTable("CompoundMaster", (string)null);
                 });
@@ -711,10 +675,7 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("AdditionalRollDifficultyMultiplier")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)")
-                        .HasDefaultValue(1m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("ArticleNumber")
                         .HasMaxLength(50)
@@ -725,31 +686,16 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(4)");
 
                     b.Property<decimal?>("CoverDiameter")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("CoverLeftOffset")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("CoverLength")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("CoverMinimumDiameter")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<string>("CustomerFullClientID")
-                        .HasColumnType("nvarchar(10)");
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(100)
@@ -775,9 +721,7 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
+                        .HasColumnType("bit");
 
                     b.Property<string>("MachineType")
                         .HasMaxLength(100)
@@ -791,29 +735,19 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("RollerFunction")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("RollerType")
                         .HasColumnType("int");
 
                     b.Property<decimal?>("ShellDiameter")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("ShellLength")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal?>("ShellMinimumDiameter")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("ShellTypeID")
                         .HasColumnType("int");
@@ -823,22 +757,13 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<decimal?>("ShellWeight")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.HasKey("ClientRollerSpecificationID");
 
                     b.HasIndex("CompoundCode");
 
-                    b.HasIndex("CustomerFullClientID");
-
                     b.HasIndex("FullClientID");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("FullClientID", "IsActive");
 
                     b.ToTable("ClientRollerSpecificationMaster", (string)null);
                 });
@@ -1751,43 +1676,6 @@ namespace Pulse.ApiService.Migrations
                     b.ToTable("AspNetRolePermissions", (string)null);
                 });
 
-            modelBuilder.Entity("Pulse.Models.Production.DivisionWorkType", b =>
-                {
-                    b.Property<int>("WorkTypeID")
-                        .HasColumnType("int")
-                        .HasColumnOrder(0);
-
-                    b.Property<string>("DivisionId")
-                        .HasMaxLength(5)
-                        .HasColumnType("nvarchar(5)")
-                        .HasColumnOrder(1);
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TargetWorkingDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("WorkTypeID", "DivisionId");
-
-                    b.HasIndex("DivisionId");
-
-                    b.HasIndex("IsActive");
-
-                    b.HasIndex("SortOrder");
-
-                    b.HasIndex("DivisionId", "IsActive");
-
-                    b.ToTable("DivisionWorkTypes", (string)null);
-                });
-
             modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
                 {
                     b.Property<string>("EquipmentItemID")
@@ -2210,15 +2098,10 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("BaseMinutesAtStage")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
+                        .HasColumnType("int");
 
                     b.Property<decimal>("BaseValue")
-                        .ValueGeneratedOnAdd()
-                        .HasPrecision(18, 4)
-                        .HasColumnType("decimal(18,4)")
-                        .HasDefaultValue(0m);
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("DifficultyMeasurement")
                         .HasMaxLength(50)
@@ -2285,17 +2168,11 @@ namespace Pulse.ApiService.Migrations
 
                     b.HasKey("ProductionStageId");
 
-                    b.HasIndex("IsActive");
+                    b.HasIndex("DivisionID");
 
-                    b.HasIndex("StepNo");
+                    b.HasIndex("WorkTypeID");
 
                     b.HasIndex("WorkTypeID1");
-
-                    b.HasIndex("DivisionID", "WorkTypeID");
-
-                    b.HasIndex("WorkTypeID", "DivisionID");
-
-                    b.HasIndex("DivisionID", "WorkTypeID", "StepNo");
 
                     b.ToTable("ProductionStageMaster", (string)null);
                 });
@@ -2390,16 +2267,6 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("WorkTypeID")
                         .HasColumnType("int");
 
-                    b.Property<string>("Component")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("DescriptionForAI")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("FactoryWorkType")
-                        .HasColumnType("bit");
-
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -2408,10 +2275,6 @@ namespace Pulse.ApiService.Migrations
                     b.Property<string>("LockToProductCode")
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
-
-                    b.Property<string>("Module")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<int>("SortOrder")
                         .ValueGeneratedOnAdd()
@@ -2472,9 +2335,6 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("CompoundCode")
-                        .HasColumnType("nvarchar(4)");
-
-                    b.Property<string>("CompoundCode1")
                         .HasColumnType("nvarchar(4)");
 
                     b.Property<string>("CoverCompoundCode")
@@ -2565,8 +2425,6 @@ namespace Pulse.ApiService.Migrations
                     b.HasIndex("ClientRollerSpecificationID");
 
                     b.HasIndex("CompoundCode");
-
-                    b.HasIndex("CompoundCode1");
 
                     b.HasIndex("DateStarted")
                         .HasDatabaseName("IX_WorksOrder_DateStarted");
@@ -2917,13 +2775,8 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
                 {
                     b.HasOne("Pulse.Models.Compounds.CompoundRange", "CompoundRange")
-                        .WithMany()
-                        .HasForeignKey("CompoundRangeId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Pulse.Models.Compounds.CompoundRange", null)
                         .WithMany("Compounds")
-                        .HasForeignKey("CompoundRangeId1");
+                        .HasForeignKey("CompoundRangeId");
 
                     b.Navigation("CompoundRange");
                 });
@@ -2993,17 +2846,12 @@ namespace Pulse.ApiService.Migrations
                 {
                     b.HasOne("Pulse.Models.Compounds.Compound", "Compound")
                         .WithMany("ClientRollerSpecifications")
-                        .HasForeignKey("CompoundCode")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Pulse.Models.Customers.Customer", null)
-                        .WithMany("ClientRollerSpecifications")
-                        .HasForeignKey("CustomerFullClientID");
+                        .HasForeignKey("CompoundCode");
 
                     b.HasOne("Pulse.Models.Customers.Customer", "Customer")
-                        .WithMany()
+                        .WithMany("ClientRollerSpecifications")
                         .HasForeignKey("FullClientID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Compound");
@@ -3205,25 +3053,6 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("Permission");
                 });
 
-            modelBuilder.Entity("Pulse.Models.Production.DivisionWorkType", b =>
-                {
-                    b.HasOne("Pulse.Models.Organizational.Division", "Division")
-                        .WithMany("DivisionWorkTypes")
-                        .HasForeignKey("DivisionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Pulse.Models.Production.WorkType", "WorkType")
-                        .WithMany("DivisionWorkTypes")
-                        .HasForeignKey("WorkTypeID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Division");
-
-                    b.Navigation("WorkType");
-                });
-
             modelBuilder.Entity("Pulse.Models.Production.EquipmentCapability", b =>
                 {
                     b.HasOne("Pulse.Models.Production.EquipmentItem", "EquipmentItem")
@@ -3305,28 +3134,20 @@ namespace Pulse.ApiService.Migrations
                     b.HasOne("Pulse.Models.Organizational.Division", "Division")
                         .WithMany()
                         .HasForeignKey("DivisionID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Pulse.Models.Production.WorkType", "WorkType")
                         .WithMany()
                         .HasForeignKey("WorkTypeID")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("Pulse.Models.Production.WorkType", null)
                         .WithMany("ProductionStages")
                         .HasForeignKey("WorkTypeID1");
 
-                    b.HasOne("Pulse.Models.Production.DivisionWorkType", "DivisionWorkType")
-                        .WithMany("ProductionStages")
-                        .HasForeignKey("WorkTypeID", "DivisionID")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.Navigation("Division");
-
-                    b.Navigation("DivisionWorkType");
 
                     b.Navigation("WorkType");
                 });
@@ -3373,17 +3194,11 @@ namespace Pulse.ApiService.Migrations
 
                     b.HasOne("Pulse.Models.Customers.ClientRollerSpecification", "ClientRollerSpecification")
                         .WithMany("WorksOrders")
-                        .HasForeignKey("ClientRollerSpecificationID")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("Pulse.Models.Compounds.Compound", null)
-                        .WithMany("WorksOrders")
-                        .HasForeignKey("CompoundCode")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .HasForeignKey("ClientRollerSpecificationID");
 
                     b.HasOne("Pulse.Models.Compounds.Compound", "Compound")
-                        .WithMany()
-                        .HasForeignKey("CompoundCode1");
+                        .WithMany("WorksOrders")
+                        .HasForeignKey("CompoundCode");
 
                     b.HasOne("Pulse.Models.Organizational.Division", "Division")
                         .WithMany()
@@ -3579,11 +3394,6 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("SalesRepresentatives");
                 });
 
-            modelBuilder.Entity("Pulse.Models.Organizational.Division", b =>
-                {
-                    b.Navigation("DivisionWorkTypes");
-                });
-
             modelBuilder.Entity("Pulse.Models.Organizational.SalesRepresentative", b =>
                 {
                     b.Navigation("Customers");
@@ -3592,11 +3402,6 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Permissions.Permission", b =>
                 {
                     b.Navigation("RolePermissions");
-                });
-
-            modelBuilder.Entity("Pulse.Models.Production.DivisionWorkType", b =>
-                {
-                    b.Navigation("ProductionStages");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.EquipmentItem", b =>
@@ -3616,8 +3421,6 @@ namespace Pulse.ApiService.Migrations
 
             modelBuilder.Entity("Pulse.Models.Production.WorkType", b =>
                 {
-                    b.Navigation("DivisionWorkTypes");
-
                     b.Navigation("ProductionStages");
                 });
 

@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using Pulse.Models.Production;
+using Pulse.Models.Production.WorkTypes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,6 +39,14 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(w => w.IsActive)
                 .HasDefaultValue(true);
 
+            builder.HasMany(w => w.DivisionWorkTypes)
+               .WithOne(dwt => dwt.WorkType)
+               .HasForeignKey(dwt => dwt.WorkTypeID)
+               .HasPrincipalKey(w => w.WorkTypeID)
+               .IsRequired()
+               .OnDelete(DeleteBehavior.Restrict);
+
+            
             // Indexes for performance (e.g., sorting or filtering on SortOrder or IsActive)
             builder.HasIndex(w => w.SortOrder)
                 .HasDatabaseName("IX_WorkType_SortOrder");
