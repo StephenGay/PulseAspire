@@ -45,18 +45,11 @@
 @rendermode InteractiveServer
 
 
-<style>
-    
-    
-</style>
-@* <div style="display: flex;flex-direction: column;overflow:hidden;height:100%;padding:5px;background-color:rgba(188,209,212,0.8)"> *@
-<div class="dparent">
+<div class="aiParent">
     <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
     </div>
-    <div class="dheader">
+    <div class="aiHeader">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
-                @* <FluentButton Appearance="Appearance.Accent" class="btnShadow" IconStart="@(new Icons.Filled.Size24.GridDots().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                              Style="border: 1px solid white" OnClick="() => viewBox = !viewBox"></FluentButton> *@
                 <FluentButton class=@(!viewBox ? "myModeBtnOff" : "flapOn")
                               BackgroundColor="white"
                               Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
@@ -89,16 +82,6 @@
                                       OnClick="() => AdminMode = !AdminMode"></FluentButton>
                     </Authorized>
                 </AuthorizeView>
-            
-                @* @if (ViewAll)
-                { *@
-            
-                @* }
-                else
-                {
-                    <FluentButton Appearance="Appearance.Accent" class="btnShadow"
-                                  Style="border: 1px solid white" OnClick="() => ViewAll = true">View All</FluentButton>
-                } *@
                 <FluentSpacer />
                 <FluentButton id="btnView" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
                               IconStart="@(new Icons.Filled.Size24.Eye().WithColor("var(--pulse-accent-btn-colour)"))"
@@ -166,10 +149,10 @@
         <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
     }
     
-    <div class="dcontent" style="background-color: white">
+    <div class="aiContent" style="background-color: white">
         @if (viewBox)
         {
-            <div class="sidebar">
+            <div class="aiSidebar">
                 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
                     <div class="aiBox">
                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour); border-bottom: 1px solid white; padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
@@ -598,6 +581,10 @@
 
     private string ParseToHtml(string markdownContent)
     {
+        if(string.IsNullOrEmpty(markdownContent))
+        {
+            return string.Empty;
+        }
         var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
         var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
 
@@ -625,14 +612,30 @@
 
     private string AddExportMUcss(string html)
     {
-        return html
-            .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\" style=\"border-collapse:collapse\">")
-            .Replace("<th>", "<th style=\"background-color: grey ; color: white; border: 1px solid grey;\">")
-            .Replace("<td>", "<td style=\"border: 1px solid grey; padding:5px;\">")
-             // .Replace("<hr />", "")
-             .Replace("h4", "h2")
-             .Replace("h5", "h2")
-             .Replace("h3", "h2");
+        var css = @"
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+                h1, h2, h3 { color: hsl(0,100%,20%); }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th { background-color: hsl(0,100%,20%); color: white; padding: 8px; text-align: left; }
+                td { border: 1px solid #ddd; padding: 8px; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                tr:hover { background-color: #f1f1f1; }
+            </style>";
+
+        var htmlHeader = "<div style=\"display:flex;width: 100% ; padding: 8px; border-bottom: 1px solid hsl(0,100%,20%); justify-content: start; \">";
+        htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Flapper.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Conversation With Flapper</h3></div>";
+
+
+        return css + htmlHeader + html;
+        // return html
+        //     .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\" style=\"border-collapse:collapse\">")
+        //     .Replace("<th>", "<th style=\"background-color: grey ; color: white; border: 1px solid grey;\">")
+        //     .Replace("<td>", "<td style=\"border: 1px solid grey; padding:5px;\">")
+        //      // .Replace("<hr />", "")
+        //      .Replace("h4", "h2")
+        //      .Replace("h5", "h2")
+        //      .Replace("h3", "h2");
     }
 
     #endregion
@@ -722,22 +725,20 @@
 
     private async Task FlapperChatStream(CancellationToken cToken = default)
     {
-
         Company c = await dtrf.GetgvCompany();
         List<OllamaMessage> newMsgs = new List<OllamaMessage>();
 
         if (!fromRetryBtn)
         {
-            newMsgs.Add(new OllamaMessage { Role = "user", Content = query });
+            chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
         }
         else
         {
             var lastMsg = $@"""This is a repeat of the last query as there was either an error or the user was not satisfied with the response. 
-                            Query: {query}""";
-            newMsgs.Add(new OllamaMessage { Role = "user", Content = lastMsg });
+                        Query: {query}""";
+            chatHistory.Add(new OllamaMessage { Role = "user", Content = lastMsg });
         }
         fromRetryBtn = false;
-
 
         try
         {
@@ -751,16 +752,18 @@
                 SqlGuidelines = AiPrompts.GetSqlGuidelines(),
                 UserName = _authService.aspireFullName,
                 Tools = AiPrompts.GetToolsGuidelines(AdminMode),
-                ConversationHistory = chatHistory,
                 UserQuery = txtQ
             };
 
             flapperSystemPrompt = flapper?.BuildSystemMessage(systemMessageData);
 
-            chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
-            var messages = new List<OllamaMessage>();
+            // ✅ Create QueryContext with original user query
+            var context = new QueryContext 
+            { 
+                OriginalUserQuery = userQry  // Store the original query!
+            };
 
-            await foreach (var chunk in FlapperStream(newMsgs, cToken))
+            await foreach (var chunk in FlapperStream(chatHistory, context, cToken))
             {
                 if (string.IsNullOrEmpty(chunk)) continue;
                 if(chunk.StartsWith("Error:"))
@@ -778,16 +781,15 @@
                     if (!string.IsNullOrEmpty(thinking))
                     {
                         flapperThinking += thinking;
-                        StateHasChanged();  // Update UI immediately
+                        StateHasChanged();
                         await Task.Delay(5);
                     }
                 }
-                // Check for final answer marker
                 else if (chunk.StartsWith("__FINAL_ANSWER__"))
                 {
                     var answer = chunk.Substring("__FINAL_ANSWER__".Length);
-                    flapperAnswer += answer;  // ← USE += NOT = (accumulate, don't overwrite!)
-                    StateHasChanged();  // Update UI immediately
+                    flapperAnswer += answer;
+                    StateHasChanged();
                     await Task.Delay(5);
                 }
             }
@@ -805,14 +807,15 @@
         }
     }
 
+    // Update FlapperStream signature to accept QueryContext
     private async IAsyncEnumerable<string> FlapperStream(
         List<OllamaMessage> newMessages,
+        QueryContext context,  // ← Add QueryContext parameter
         [EnumeratorCancellation] CancellationToken ct = default,
         int qryLoop = 0,
         bool inThinking = false,
         int failedAttempts = 0)
     {
-
         if (!AdminMode && qryLoop >= flapper.MaxRecursionDepth) // MAX_RECURSION_DEPTH)
         {
             yield return $"Error: I have reached the maximum recursion limit.<br />Try breaking the query into smaller steps.";
@@ -985,8 +988,9 @@
             if (chunk.Done)
             {
                 // ✅ ALWAYS add the assistant message to history
-                accumulatedMessage.Role = "assistant";
-                currMsgs.Add(accumulatedMessage);
+                // accumulatedMessage.Role = "assistant";
+                // currMsgs.Add(accumulatedMessage);
+                // chatHistory.Add(accumulatedMessage);
 
                 if (accumulatedMessage.ToolCalls is { Count: > 0 })
                 {
@@ -1004,7 +1008,7 @@
                     // await Task.Delay(5, ct);
 
                     // Process tool calls (they'll add results to newMessages)
-                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, currMsgs, ct);
+                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, currMsgs, context, ct);
                     if (toolError != null)
                     {
                         yield return $"Error: {toolError}";
@@ -1013,7 +1017,12 @@
 
                     // Recursive call with updated history (WITHOUT system message)
                     await foreach (var recursiveChunk in FlapperStream(
-                        currMsgs, ct, qryLoop + 1, inThinking, failedAttempts))
+                        currMsgs, 
+                        context,  // ← Pass context to recursive call
+                        ct, 
+                        qryLoop + 1, 
+                        inThinking, 
+                        failedAttempts))
                     {
                         yield return recursiveChunk;
                     }
@@ -1033,7 +1042,8 @@
         {
             yield return "Error: No response from Ollama.";
         }
-        // chatHistory.Add(accumulatedMessage);
+        accumulatedMessage.Role = "assistant";
+        chatHistory.Add(accumulatedMessage);
         // ✅ DON'T yield final accumulated answer here!
         // We already yielded individual chunks, so accumulating and yielding the whole thing causes duplication
     }
@@ -1051,7 +1061,7 @@
                 chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
             }
             fromRetryBtn = false;
-            flapperAnswer = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, cToken);
+            flapperAnswer = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, query, cToken);
 
             if (string.IsNullOrEmpty(flapperAnswer))
             {
@@ -1084,7 +1094,7 @@
         }
     }
 
-#endregion
+#endregion 
 
   
 
@@ -1153,12 +1163,11 @@
     private async Task<string?> ProcessToolCallsAsync(
     List<OllamaToolCall> toolCalls,
     List<OllamaMessage> currMsgs,
+    QueryContext context,  // ← Add QueryContext parameter
     CancellationToken ct)
     {
         try
         {
-            var context = new QueryContext();
-
             foreach (var toolCall in toolCalls)
             {
                 string toolName = Pulse_AI.NormalizeToolName(toolCall.Function?.Name);
@@ -1176,7 +1185,6 @@
 
                 if (!context.ShouldRetryTool(toolName, flapper.MaxToolRetries))
                 {
-                    //_logger.LogWarning("Tool {Tool} exceeded max retries", toolName);
                     currMsgs.Add(new OllamaMessage
                     {
                         Role = "tool",
@@ -1189,25 +1197,24 @@
                 flapperThinking += $"\n🔧 Executing: {toolName}...\n";
                 StateHasChanged();
                 await Task.Delay(5, ct);
-                var toolResult = await pAI.ExecuteToolAsync(toolName, toolCall.Function?.Arguments ?? default, ct);
+                
+                // ✅ Pass QueryContext to ExecuteToolAsync
+                var toolResult = await pAI.ExecuteToolAsync(
+                    toolName, 
+                    toolCall.Function?.Arguments ?? default, 
+                    context,  // ← Pass context!
+                    ct);
+                
                 currMsgs.Add(new OllamaMessage
                 {
                     Role = "tool",
                     Content = toolResult,
                     ToolName = toolName
                 });
+                
                 flapperThinking += $"✓ {toolName} completed.\n";
                 StateHasChanged();
                 await Task.Delay(5, ct);
-
-                // var toolName = toolCall.Function?.Name ?? "unknown";
-                
-                // Execute the tool and get results
-                // await pAI.HandleToolCallsAsync(
-                //     [toolCall],
-                //     messages,  // This should add both the assistant message and tool results
-                //     context,
-                //     ct);
             }
             
             return null;

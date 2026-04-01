@@ -996,7 +996,7 @@
             };
 
             // Get SQL from AI (non-streaming, just SQL generation)
-            aiSQL = await pAI.ChatWithOllamaAsync(messages, tables.Model, false, cts.Token);
+            aiSQL = await pAI.ChatWithOllamaAsync(messages, tables.Model, false, query, cts.Token);
 
             if (string.IsNullOrEmpty(aiSQL))
             {

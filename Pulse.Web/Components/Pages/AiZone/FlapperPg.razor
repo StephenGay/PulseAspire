@@ -705,7 +705,7 @@
             }
             else
             {
-                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, cts.Token);
+                aiSQL = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, query, cts.Token);
             }
 
             if (string.IsNullOrEmpty(aiSQL))

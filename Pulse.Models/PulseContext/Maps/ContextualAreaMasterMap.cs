@@ -12,7 +12,7 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<ContextualArea> builder)
         {
             // Table name (optional, defaults to DbSet name)
-            builder.ToTable("ContextualAreaMaster");
+            builder.ToTable("ContextualAreaMaster","pai");
 
             // Primary Key
             builder.HasKey(ca => ca.ContextAreaId);

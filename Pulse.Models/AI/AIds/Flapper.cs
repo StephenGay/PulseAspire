@@ -1,9 +1,12 @@
-﻿using Pulse.Models.CustomComponents;
+﻿using Microsoft.VisualBasic;
+using Pulse.Models.CustomComponents;
 using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 using System.Text.Json.Serialization;
 using Toolbelt.Blazor.SpeechSynthesis;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 
 namespace Pulse.Models.AI.AIds
@@ -42,16 +45,16 @@ namespace Pulse.Models.AI.AIds
         public string BuildSystemMessage(SystemMessageData systemMessageData)
         {
             
-            if (systemMessageData.ConversationHistory != null && systemMessageData.ConversationHistory.Count > 0)          
-            {
-                var conversationHistoryString = new StringBuilder();
-                conversationHistoryString.AppendLine("Here is the conversation history between you and the user so far, You can use this information to provide context for the current query:");
-                foreach (var message in systemMessageData.ConversationHistory)
-                {
-                    conversationHistoryString.AppendLine($"{message.Role}: {message.Content}");
-                }
-                systemMessageData.CompanyInformation += $"\n\nConversation History:\n{conversationHistoryString.ToString()}";
-            }
+            //if (systemMessageData.ConversationHistory != null && systemMessageData.ConversationHistory.Count > 0)          
+            //{
+            //    var conversationHistoryString = new StringBuilder();
+            //    conversationHistoryString.AppendLine("Here is the conversation history between you and the user so far, You can use this information to provide context for the current query:");
+            //    foreach (var message in systemMessageData.ConversationHistory)
+            //    {
+            //        conversationHistoryString.AppendLine($"{message.Role}: {message.Content}");
+            //    }
+            //    systemMessageData.CompanyInformation += $"\n\nConversation History:\n{conversationHistoryString.ToString()}";
+            //}
             var systemMessage = $"""
                 You are Flapper, a powerful AI used in Pulse Aspire, a software solution. Your role is to have
                 intelligent conversations with users, providing feedback / advice / suggestions on any messages
@@ -79,30 +82,59 @@ namespace Pulse.Models.AI.AIds
                 You are provided with the following database schema to help you understand what data is available and how it is organized.
                 Database Schema: {systemMessageData.DbSchema}
 
-                Examine the schema and decide if the database contains the necessary information to answer the user's question or move you further along
+                Examine the schema and decide if the database contains the necessary information to provide a response to the user's message or move you further along
                 in creating your response. If it does, generate an appropriate SQL query to retrieve the relevant data, using these guidelines:
                 {systemMessageData.SqlGuidelines}
 
-                Once you have generated a SQL query, execute it against the database and use the results to inform your response to the user. 
-                You should be able to handle any errors that may occur when querying the database, providing users with helpful feedback and suggestions for how to resolve any issues that may arise.
+                Use the following examples of correct query / sql statements to help:
+                {systemMessageData.DbExamples}
 
-                If the database does not contain the necessary information to fully answer the user's question, you can use any of the provided tools to help you gather additional information and provide a more complete response:
+                Once you have generated a SQL query, use the execute_sql tool to run it against the database. Use the results to assist with your response.
+                If the tool experienced errors executing the query, check the tool response, it will detail the error and optionally any suggestions on how
+                to proceed. 
+
+                If the database does not contain the necessary information to respond fully to the user's message, decide whether you can get any information from the internet
+                and use web_search and web_fetch to help you gather additional information and provide a more complete response:
                 { systemMessageData.Tools}
     
                 You should use these tools judiciously, only when necessary to provide a more complete and accurate response to the user.
 
-                Streaming Response: When responding to the user, you should generate your response in a streaming fashion, providing users with a more dynamic and engaging conversational experience. 
-                This means that you should start generating your response as soon as you have enough information to provide a helpful answer, rather than waiting until you have a complete response before 
-                sending anything back to the user. This will allow users to see your thought process in real-time and provide them with a more interactive and engaging experience. Use the Thinking field
-                to indicate when you are still processing information or generating a response, and update it as needed to provide users with insight into your thought process. When you have generated a 
-                response, switch to the Content field.
+                When you have constructed a FINAL response, use these guidelines to format it and then send to the user.
 
-                Here is the current user query requiring a response, as well as any work you have done so far:
+                **RESPONSE FORMATTING GUIDELINES:**
                 
+                For Table Results:
+                - Use markdown table format when showing data results
+                - Include column headers clearly
+                - Right-align numbers (right-justify)
+                - Left-align text
+                - Show row counts: "Found 23 matching records"
+                
+                For Numeric Data:
+                - Currency: Any money amounts are in ZAR
+                - Percentages: 75% (with % symbol)
+                - Large numbers: Use comma separator (10,000 not 10000)
+                - Decimals: Show 2 decimal places for money
+                
+                For Dates:
+                - Display format: "01 Jan 2024" or "January 1, 2024"
+                - Ranges: "01 Jan 2024 to 31 Dec 2024"
+                - In SQL: Use YYYY-MM-DD format
+                
+                For Lists and Groups:
+                - Use bullet points for items
+                - Bold key metrics or findings
+                - Use numbered lists for steps or ranking
+
+                DO NOT return a SQL Statement as the answer, SQL Statements must be executed to get results.
                 """;
 
             // - "ask_user": a tool that allows you to ask the user for additional information or clarification. You can use this tool to gather more details about the user's question or to clarify any ambiguities in their request.
-            
+            //// Streaming Response: When responding to the user, you should generate your response in a streaming fashion, providing users with a more dynamic and engaging conversational experience. 
+            //This means that you should start generating your response as soon as you have enough information to provide a helpful answer, rather than waiting until you have a complete response before
+            //sending anything back to the user.This will allow users to see your thought process in real - time and provide them with a more interactive and engaging experience. Use the Thinking field
+            //    to indicate when you are still processing information or generating a response, and update it as needed to provide users with insight into your thought process.When you have generated a
+            //    response, switch to the Content field.
             return systemMessage;
         }
 

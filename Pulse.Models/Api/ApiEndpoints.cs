@@ -63,6 +63,34 @@ namespace Pulse.Models.Api
 
         #region AI Endpoints
 
+
+        public static class PulseAi
+        {
+            private const string Prefix = $"{ApiPrefix}/PulseAI";
+
+            public static class Tables
+            {
+                private const string TablesPrefix = $"{Prefix}/Tables";
+                public const string SendRequest = $"{TablesPrefix}/SendRequest";
+            }
+            public static class Flapper
+            {
+                private const string FlapperPrefix = $"{Prefix}/Flapper";
+                public const string SendRequest = $"{FlapperPrefix}/SendRequest";
+            }
+            public static class Ali
+            {
+                private const string AliPrefix = $"{Prefix}/Ali";
+                public const string SendRequest = $"{AliPrefix}/SendRequest";
+
+                public static class CustomPrompts
+                {
+                    private const string CustomPromptsPrefix = $"{AliPrefix}/CustomPrompts";
+                    public const string GetAll = $"{CustomPromptsPrefix}/GetAll";
+                }
+            }
+        }
+
         public static class Ai
         {
             private const string Prefix = $"{ApiPrefix}/AI";

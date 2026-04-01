@@ -2,8 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
-using Pulse.ApiService.PulseAI.Functions;
-using Pulse.ApiService.Queries;
+using Pulse.ApiService.PulseAI.Services;
 using Pulse.Models.AI;
 using Pulse.Models.Api;
 using Pulse.Models.CustomComponents;
@@ -25,8 +24,8 @@ namespace Pulse.ApiService.Endpoints
                 PulseDbContext dbContext,
                 ILoggerFactory loggerFactory) =>
                         {
-                            var logger = loggerFactory.CreateLogger<SQL>();
-                            var functions = new SQL(logger, dbContext);
+                            var logger = loggerFactory.CreateLogger<TablesSQL>();
+                            var functions = new TablesSQL(logger, dbContext);
 
                             try
                             {
@@ -85,26 +84,46 @@ namespace Pulse.ApiService.Endpoints
             })
 .Produces<List<SchemaDto>>(200);
 
-            group.MapGet("/execute:{sqlS}", async (string sqlS, PulseDbContext dbContext) =>
+            group.MapGet("/execute:{sqlS}", async (
+                string sqlS, 
+                PulseDbContext dbContext,
+                ILoggerFactory loggerFactory) =>
             {
-                Functions f = new Functions();
-                string sdb = dbContext.Database.GetConnectionString();
-                var qRes = await f.ExecuteAiQry(sdb,sqlS); 
-                return Results.Ok(qRes);
-            })
-                .Produces<List<Dictionary<string, object>>>(200)
-                ;
+                var logger = loggerFactory.CreateLogger<TablesSQL>();
+                var functions = new TablesSQL(logger, dbContext);
+                var connectionString = dbContext.Database.GetConnectionString();
 
-            group.MapGet("/ExecuteAiUpdateInsertQry:{sqlS2}", async (string sqlS2, PulseDbContext dbContext) =>
-            {
-                Functions f = new Functions();
-                string sdb = dbContext.Database.GetConnectionString();
-                var qRes = await f.ExecuteAiUpdateInsertQry(sdb, sqlS2);
-                return Results.Ok(qRes);
+                try
+                {
+                    var response = await functions.ExecuteValidatedQuery(connectionString, sqlS);
+                    return response.Success ? Results.Ok(response.Data) : Results.BadRequest(response);
+                }
+                catch (Exception ex)
+                {
+                    logger.LogError(ex, "Error executing query");
+                    return Results.Problem("Error executing query");
+                }
             })
-                //.RequireAuthorization(new AuthorizeAttribute { Roles = "Admin" })
-                .Produces<int>(200)
-                ;
+            .Produces<List<Dictionary<string, object>>>(200)
+            .ProducesProblem(400);
+
+            group.MapGet("/ExecuteAiUpdateInsertQry:{sqlS2}", async (
+                string sqlS2, 
+                PulseDbContext dbContext,
+                ILoggerFactory loggerFactory) =>
+            {
+                // Note: This endpoint is deprecated - use POST with proper validation instead
+                var logger = loggerFactory.CreateLogger("ExecuteUpdateInsert");
+                logger.LogWarning("ExecuteAiUpdateInsertQry endpoint is deprecated and will be removed");
+
+                return Results.BadRequest(new
+                {
+                    error = "This endpoint is deprecated. Please use POST /execute-validated instead.",
+                    message = "For security reasons, INSERT/UPDATE/DELETE operations should use proper validation."
+                });
+            })
+            .Produces<int>(200)
+            .ProducesProblem(400);
 
             group.MapGet("/execute4bot:{sql}", async (string sql, PulseDbContext dbContext) =>
             {
@@ -139,50 +158,7 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(examples);
             });
             
-            group.MapGet("/GetContextualPromptById/{promptid}", async (int promptid, PulseDbContext dbContext) =>
-            {
-                var prompt = await dbContext.ContextualPromptMaster
-                    .AsNoTracking()
-                    .Where(a => a.ContextualPromptId == promptid)
-                    .Select(a => new ContextualPrompt
-                    {
-                        ContextualPromptId = a.ContextualPromptId,
-                        ContextualAreaId = a.ContextualAreaId,
-                        ContextualPromptTitle = a.ContextualPromptTitle ?? string.Empty,
-                        ContextualPromptDescription = a.ContextualPromptDescription ?? string.Empty,
-                        Prompt = a.Prompt ?? string.Empty,
-                        ApplicationUserId = a.ApplicationUserId ?? string.Empty,
-                        Likes = a.Likes
-                    })
-                    .FirstOrDefaultAsync();
-                return Results.Ok(prompt);
-            });
-
-            group.MapPost("/ContextualPrompt", async (ContextualPrompt prompt, PulseDbContext dbContext) =>
-            {
-                dbContext.ContextualPromptMaster.Add(prompt);
-                await dbContext.SaveChangesAsync();
-                return Results.Created($"/AI/ContextualPrompt/{prompt.ContextualPromptId}", prompt);
-            });
-
-            group.MapGet("/GetContextualPromptsByAreaId/{areaid}", async (int areaid, PulseDbContext dbContext) =>
-            {
-                var prompts = await dbContext.ContextualPromptMaster
-                    .AsNoTracking()
-                    .Where(a => a.ContextualAreaId == areaid)
-                    .Select(a => new ContextualPrompt
-                    {
-                        ContextualPromptId = a.ContextualPromptId,
-                        ContextualAreaId = a.ContextualAreaId,
-                        ContextualPromptTitle = a.ContextualPromptTitle ?? string.Empty,
-                        ContextualPromptDescription = a.ContextualPromptDescription ?? string.Empty,
-                        Prompt = a.Prompt ?? string.Empty,
-                        ApplicationUserId = a.ApplicationUserId ?? string.Empty,
-                        Likes = a.Likes
-                    })
-                    .ToListAsync();
-                return Results.Ok(prompts);
-            });
+            
 
             group.MapGet("/savedqueries", async (PulseDbContext dbContext) =>
             {

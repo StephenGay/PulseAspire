@@ -12,7 +12,7 @@ namespace Pulse.Models.PulseContext.Maps
         public void Configure(EntityTypeBuilder<ContextualPrompt> builder)
         {
             // Table name (optional, defaults to DbSet name)
-            builder.ToTable("ContextualPromptMaster");
+            builder.ToTable("ContextualPromptMaster","pai");
 
             // Primary Key
             builder.HasKey(cp => cp.ContextualPromptId);

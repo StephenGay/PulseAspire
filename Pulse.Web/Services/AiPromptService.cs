@@ -20,7 +20,7 @@ public class AiPromptService
             **IMPORTANT NOTES REGARDING DATABASE STRUCTURE:**
             
             1. Database Type: SQL Server 2022
-            2. Access Method: Standard SQL queries (no T-SQL, SQLite, MySQL, or PostgreSQL syntax)
+            2. Access Method: Standard SQL queries (no SQLite, MySQL, or PostgreSQL syntax)
 
             """;
     }
@@ -115,10 +115,8 @@ public class AiPromptService
         return """
             **SQL GENERATION BEST PRACTICES (STANDARD SQL ONLY)**
 
-            ⚠️ **CRITICAL DATABASE**: Standard SQL (NOT T-SQL, SQLite, MySQL, or PostgreSQL)
-            ❌ FORBIDDEN: T-SQL functions (CONVERT, GETDATE, DATEDIFF, STRING_AGG, DECLARE)
+            ⚠️ **CRITICAL DATABASE**: Standard SQL (NOT SQLite, MySQL, or PostgreSQL)
             ❌ FORBIDDEN: sqlite_master, PRAGMA, AUTOINCREMENT, ROWID, etc.
-            ❌ FORBIDDEN: MySQL backticks, PostgreSQL serial types
             ✅ REQUIRED: Use ANSI standard SQL only
 
             Query Structure:
@@ -186,9 +184,6 @@ public class AiPromptService
             ❌ Hardcoded dates (use GETDATE(), DATEADD, etc.)
             ❌ Missing DISTINCT when counting unique values
             ❌ Wrong datetime comparisons (remember DATETIME includes time portion)
-            ❌ **SQLite syntax like sqlite_master, PRAGMA, ROWID, AUTOINCREMENT (WRONG DATABASE)**
-            ❌ MySQL syntax like AUTO_INCREMENT, backticks (WRONG DATABASE)
-            ❌ PostgreSQL syntax like serial, ::text (WRONG DATABASE)
             """;
     }
     /// <summary>
@@ -196,14 +191,10 @@ public class AiPromptService
     /// </summary>
     public string GetSqlGuidelines()
     {
-        return """
-            **SQL GENERATION BEST PRACTICES (STANDARD SQL ONLY)**
+        return $"""
 
-            ⚠️ **CRITICAL DATABASE**: Standard SQL (NOT T-SQL, SQLite, MySQL, or PostgreSQL)
-            ❌ FORBIDDEN: T-SQL functions (CONVERT, GETDATE, DATEDIFF, STRING_AGG, DECLARE)
-            ❌ FORBIDDEN: sqlite_master, PRAGMA, AUTOINCREMENT, ROWID, etc.
-            ❌ FORBIDDEN: MySQL backticks, PostgreSQL serial types
-            ✅ REQUIRED: Use ANSI standard SQL only
+            ⚠️ **CRITICAL** Statements must be able to run on Microsoft SQL Server 2022
+            ✅ Prefer standard SQL where possible, but you may use common safe T-SQL functions.
 
             Query Structure:
             ━━━━━━━━━━━━
@@ -273,6 +264,8 @@ public class AiPromptService
             ❌ **SQLite syntax like sqlite_master, PRAGMA, ROWID, AUTOINCREMENT (WRONG DATABASE)**
             ❌ MySQL syntax like AUTO_INCREMENT, backticks (WRONG DATABASE)
             ❌ PostgreSQL syntax like serial, ::text (WRONG DATABASE)
+
+            {GetDatabaseContextPrompt()}
             """;
     }
 
@@ -301,8 +294,6 @@ public class AiPromptService
                - Use for SELECT statement database queries
                - Input: Valid SQL query string
                - Output: Query results or error message
-               - Important: If you get a SQL error, do NOT retry the same query. Instead, generate a new valid SQL query to fix the error.
-               - If you get no results, consider if the answer could be found externally and use web_search if appropriate.
             
             2. web_search
                - Use for general knowledge questions or when database has no relevant data
@@ -339,7 +330,6 @@ public class AiPromptService
 
             🚨 **CRITICAL: STANDARD SQL ONLY** 🚨
             - Generate ANSI standard SQL queries
-            - NEVER use T-SQL syntax (CONVERT, DATEDIFF, GETDATE, STRING_AGG, DECLARE, etc.)
             - NEVER use SQLite, MySQL, or PostgreSQL syntax
             - Use standard SQL functions: DATE(), YEAR(), CAST(), SUBSTRING(), etc.
 
@@ -406,7 +396,7 @@ public class AiPromptService
 
             🚨 **CRITICAL DATABASE CONTEXT** 🚨
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            **DATABASE: Standard SQL (NOT T-SQL, SQLite, MySQL, or PostgreSQL)**
+            **DATABASE: Standard SQL (NOT SQLite, MySQL, or PostgreSQL)**
 
             ✅ YOU MUST:
             - Use ONLY standard ANSI SQL syntax
@@ -414,7 +404,6 @@ public class AiPromptService
             - Use standard SQL functions (CAST, CURRENT_DATE, COALESCE, etc.)
 
             ❌ YOU MUST NEVER:
-            - Use T-SQL syntax (CONVERT, GETDATE, DATEDIFF, STRING_AGG, DECLARE, etc.)
             - Use SQLite syntax (sqlite_master, PRAGMA, AUTOINCREMENT, ROWID, etc.)
             - Use MySQL syntax (AUTO_INCREMENT, backticks, etc.)
             - Use PostgreSQL syntax (serial, ::text, etc.)
@@ -625,7 +614,7 @@ public class AiPromptService
             - Show row counts: "Found 23 matching records"
             
             For Numeric Data:
-            - Currency: ZAR 50,000.00 or ZAR 1,250,500.50
+            - Currency: ZAR
             - Percentages: 75% (with % symbol)
             - Large numbers: Use comma separator (10,000 not 10000)
             - Decimals: Show 2 decimal places for money

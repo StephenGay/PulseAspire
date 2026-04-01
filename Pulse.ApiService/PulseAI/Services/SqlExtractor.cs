@@ -1,4 +1,4 @@
-namespace Pulse.Web.Tools;
+namespace Pulse.ApiService.PulseAI.Services;
 
 /// <summary>
 /// Shared utility for extracting SQL from LLM responses.

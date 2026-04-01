@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Caching.Memory;
+using Pulse.ApiService.PulseAI.Services;
 using Pulse.Models.AI.AIds;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
@@ -266,6 +267,7 @@ public sealed class Pulse_AI(
         List<OllamaMessage> messages,
         string model,
         bool enableSearch = true,
+        string? userQry = null,
         CancellationToken ct = default,
         QueryContext? context = null,
         int queryLoop = 0)
@@ -289,7 +291,7 @@ public sealed class Pulse_AI(
             if (response is { Message.ToolCalls.Count: > 0 })
             {
                 await HandleToolCallsAsync(response.Message.ToolCalls, messages, context, ct);
-                return await ChatWithOllamaAsync(messages, model, enableSearch, ct, context, queryLoop + 1);
+                return await ChatWithOllamaAsync(messages, model, enableSearch, userQry, ct, context, queryLoop + 1);
             }
 
             return response?.Message?.Content?.Trim() ?? "No response.";
@@ -629,13 +631,13 @@ public sealed class Pulse_AI(
                 messages.Add(new OllamaMessage
                 {
                     Role = "tool",
-                    Content = $"Tool '{toolName}' exceeded maximum retry attempts.",
+                    Content = $"Tool '{toolName}' exceeded maximum retry attempts for query: {context.OriginalUserQuery}",
                     ToolName = toolName
                 });
                 continue;
             }
 
-            var toolResult = await ExecuteToolAsync(toolName, toolCall.Function?.Arguments ?? default, ct);
+            var toolResult = await ExecuteToolAsync(toolName, toolCall.Function?.Arguments ?? default, context, ct);
             messages.Add(new OllamaMessage
             {
                 Role = "tool",
@@ -654,16 +656,16 @@ public sealed class Pulse_AI(
         return ToolNames.All.FirstOrDefault(t => normalized.Contains(t)) ?? normalized;
     }
 
-    public async Task<string> ExecuteToolAsync(string toolName, JsonElement args, CancellationToken ct)
+    public async Task<string> ExecuteToolAsync(string toolName, JsonElement args, QueryContext context, CancellationToken ct)
     {
         try
         {
             return toolName switch
             {
-                ToolNames.ExecuteSql => await ExecuteSqlAsync(args, ct),
-                ToolNames.WebSearch => await WebSearchAsync(args, ct),
-                ToolNames.WebFetch => await WebFetchAsync(args, ct),
-                ToolNames.ExecuteActionSql => await ExecuteActionSqlToolAsync(args, ct),
+                ToolNames.ExecuteSql => await ExecuteSqlAsync(args, context, ct),
+                ToolNames.WebSearch => await WebSearchAsync(args, context, ct),
+                ToolNames.WebFetch => await WebFetchAsync(args, context, ct),
+                ToolNames.ExecuteActionSql => await ExecuteActionSqlToolAsync(args, context, ct),
                 _ => $"Unknown tool: {toolName}"
             };
         }
@@ -674,7 +676,27 @@ public sealed class Pulse_AI(
         }
     }
 
-    private async Task<string> ExecuteSqlAsync(JsonElement args, CancellationToken ct)
+    //public async Task<string> ExecuteToolAsync(string toolName, JsonElement args, CancellationToken ct)
+    //{
+    //    try
+    //    {
+    //        return toolName switch
+    //        {
+    //            ToolNames.ExecuteSql => await ExecuteSqlAsync(args, ct),
+    //            ToolNames.WebSearch => await WebSearchAsync(args, ct),
+    //            ToolNames.WebFetch => await WebFetchAsync(args, ct),
+    //            ToolNames.ExecuteActionSql => await ExecuteActionSqlToolAsync(args, ct),
+    //            _ => $"Unknown tool: {toolName}"
+    //        };
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        _logger.LogError(ex, "Tool {Tool} failed", toolName);
+    //        return $"Tool error: {ex.Message}";
+    //    }
+    //}
+
+    private async Task<string> ExecuteSqlAsync(JsonElement args, QueryContext context, CancellationToken ct)
     {
         if (!args.TryGetProperty("sql", out var sqlProp))
             return "Error: Missing 'sql' argument";
@@ -698,7 +720,11 @@ public sealed class Pulse_AI(
             {
                 var errorContent = await response.Content.ReadAsStringAsync(ct);
                 _logger.LogError("SQL execution returned {StatusCode}: {Error}", response.StatusCode, errorContent[..Math.Min(200, errorContent.Length)]);
-                return $"❌ __SQL_ERROR__ ❌\n\nSQL Query Failed with error:\n{errorContent}\n\nYou MUST generate a DIFFERENT SQL query and retry, OR use web_search if the query cannot be fixed.";
+                return $"❌ __SQL_ERROR__ ❌\n\n" +
+                   $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**SQL Query Failed**:\n```sql\n{sql}\n```\n\n" +
+                   $"**Error**: {errorContent}\n\n" +
+                   $"You MUST generate a DIFFERENT SQL query and retry, OR use web_search if the query cannot be fixed.";
             }
 
             var result = await response.Content.ReadAsStringAsync(ct);
@@ -707,24 +733,37 @@ public sealed class Pulse_AI(
             if (string.IsNullOrWhiteSpace(result) || result == "[]" || result == "{}" || result.Contains("No data found"))
             {
                 _logger.LogWarning("SQL query returned no results");
-                return $"⚠️ __SQL_NO_RESULTS__ ⚠️\n\nThe query executed successfully but returned NO DATA from the database.\n\nYou MUST now use web_search to find this information externally.";
+                return $"⚠️ __SQL_NO_RESULTS__ ⚠️\n\n" +
+                   $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**SQL query executed successfully but returned NO DATA from the database**:\n```sql\n{sql}\n```\n\n" +
+                   $"This means the requested data does not exist in our database.\n\n" +
+                   $"You MUST now use web_search to find this information externally.";
             }
 
-            return result;
+            //return result;
+            // ✅ Include user query context in successful SQL results
+            return $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**SQL Query Results**:\n```sql\n{sql}\n```\n\n" +
+                   $"**Data from database**:\n{result}";
         }
         catch (HttpRequestException ex)
         {
             _logger.LogError(ex, "SQL execution failed with HTTP error");
-            return $"__SQL_ERROR__Database connection failed: {ex.Message}";
+            return $"__SQL_ERROR__\n\n**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"Database connection failed: {ex.Message}";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SQL execution failed");
-            return $"__SQL_ERROR__SQL error: {ex.Message}";
+            return $"__SQL_ERROR__\n\n**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"SQL error: {ex.Message}";
         }
     }
 
-    private async Task<string> ExecuteActionSqlToolAsync(JsonElement args, CancellationToken ct)
+    /// <summary>
+    /// Executes an action SQL query (INSERT, UPDATE, DELETE) with contextual information.
+    /// </summary>
+    private async Task<string> ExecuteActionSqlToolAsync(JsonElement args, QueryContext context, CancellationToken ct)
     {
         string sql = args.TryGetProperty("sql", out var sqlProp) ? sqlProp.GetString() ?? "" : "";
         if (string.IsNullOrEmpty(sql))
@@ -740,25 +779,30 @@ public sealed class Pulse_AI(
         {
             return "Error: Missing 'sql' argument.";
         }
-        //var apiClient = _httpClientFactory.CreateClient("PulseApiClient");
+
         try
         {
             _logger.LogInformation("Executing SQL Action tool: {Sql}", sql);
-            // TESTING PUTTING THIS BACK
-            //sql = sql.Replace("\n", " ");
             var response = await _pulseApiClient.GetAsync($"/AI/ExecuteAiUpdateInsertQry:{sql}", ct);
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync(ct);
-            //var result = JsonSerializer.Deserialize<string>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true }); // Return raw JSON data for Ollama to use in next turn
-            return $"{json} rows affected";
+
+            // ✅ Include context in action SQL results
+            return $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**Action SQL Executed**:\n```sql\n{sql}\n```\n\n" +
+                   $"**Result**: {json} rows affected";
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "SQL tool execution error.");
-            return $"Error executing SQL: {ex.Message}";
+            return $"Error executing SQL for query '{context.OriginalUserQuery}': {ex.Message}";
         }
     }
-    private async Task<string> WebSearchAsync(JsonElement args, CancellationToken ct)
+
+    /// <summary>
+    /// Performs web search with contextual information.
+    /// </summary>
+    private async Task<string> WebSearchAsync(JsonElement args, QueryContext context, CancellationToken ct)
     {
         if (!args.TryGetProperty("query", out var queryProp))
             return "Error: Missing 'query' argument";
@@ -774,15 +818,22 @@ public sealed class Pulse_AI(
             searchUrl, new { query }, ct);
 
         if (response?.Results is not { Count: > 0 })
-            return "No search results found.";
+            return $"No search results found for '{query}' related to user question: {context.OriginalUserQuery}";
 
         var results = string.Join(" | ", response.Results.Select(r =>
             $"[{r.Title}]({r.Url}): {r.Snippet}"));
 
-        return results.Length > 8000 ? results[..8000] + "..." : results;
+        // ✅ Include original user query in the tool result
+        var contextualResult = $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                              $"**Web search results for '{query}'**:\n{results}";
+
+        return contextualResult.Length > 8000 ? contextualResult[..8000] + "..." : contextualResult;
     }
 
-    private async Task<string> WebFetchAsync(JsonElement args, CancellationToken ct)
+    /// <summary>
+    /// Fetches web page content with contextual information.
+    /// </summary>
+    private async Task<string> WebFetchAsync(JsonElement args, QueryContext context, CancellationToken ct)
     {
         if (!args.TryGetProperty("url", out var urlProp))
             return "Error: Missing 'url' argument";
@@ -798,7 +849,12 @@ public sealed class Pulse_AI(
             fetchUrl, new { url }, ct);
 
         var content = response?.Content ?? "";
-        return content.Length > 12000 ? content[..12000] + "..." : content;
+
+        // ✅ Include original user query and URL context in the tool result
+        var contextualResult = $"**Original user question**: {context.OriginalUserQuery}\n\n" +
+                              $"**Content fetched from {url}**:\n\n{content}";
+
+        return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
     }
 
     #endregion

@@ -22,7 +22,7 @@ namespace Pulse.Models.AI
         [MaxLength(2000)]
         public string Prompt { get; set; }
         [MaxLength(450)]
-        public string ApplicationUserId { get; set; }
+        public string? ApplicationUserId { get; set; }
         [Required]
         [DefaultValue(0)]
         public int Likes { get; set; }= 0;

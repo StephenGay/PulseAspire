@@ -17,6 +17,7 @@ namespace Pulse.Models.AI
         public List<OllamaMessage>? ConversationHistory { get; set; }
         public string? Tools { get; set; }
         public string? UserQuery { get; set; }
+        public string? ResponseFormat { get; set; }
         public string? Error { get; set; }
     }
 }

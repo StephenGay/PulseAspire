@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <UserSecretsId>ed233e63-d309-4d34-ab58-3804fc7b934e</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -15,6 +16,7 @@
   
 
   <ItemGroup>
+    <ProjectReference Include="..\Pulse.ApiService\Pulse.ApiService.csproj" />
     <ProjectReference Include="..\Pulse.Models\Pulse.Models.csproj" />
     <ProjectReference Include="..\Pulse.ServiceDefaults\Pulse.ServiceDefaults.csproj" />
   </ItemGroup>
@@ -24,11 +26,11 @@
     <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="13.2.0" />
     <PackageReference Include="Blazor.SessionStorage" Version="9.0.1" />
     <PackageReference Include="BlazorAnimation" Version="2.2.0" />
-    <PackageReference Include="BootstrapBlazor" Version="10.4.0" />
+    <PackageReference Include="BootstrapBlazor" Version="10.4.2" />
     <PackageReference Include="BootstrapBlazor.Chart" Version="10.0.2" />
     <PackageReference Include="BootstrapBlazor.FontAwesome" Version="10.0.1" />
     <PackageReference Include="ClosedXML" Version="0.105.0" />
-    <PackageReference Include="Markdig" Version="1.1.1" />
+    <PackageReference Include="Markdig" Version="1.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="10.0.5" />
@@ -40,7 +42,7 @@
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Emoji" Version="4.14.0" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.14.0" />
     <PackageReference Include="Polly" Version="8.6.6" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
     <PackageReference Include="Toolbelt.Blazor.SpeechRecognition" Version="1.0.0" />
     <PackageReference Include="Toolbelt.Blazor.SpeechSynthesis" Version="11.0.0" />
   </ItemGroup>
@@ -67,10 +69,7 @@
     <None Update="Components\Pages\AdminZone\SiteSensorManagement.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Update="Components\Pages\AiZone\BU\FlapperPg.razor.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Components\Pages\AiZone\BU\TablesPg.razor.css">
+    <None Update="Components\Pages\AiZone\AliPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\AiZone\FlapperPg v2.razor.css">
@@ -80,9 +79,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\AiZone\TablesPg.razor.css">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Components\Pages\AiZone\FlapperOldPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\EmployeeZone\Customers\ClientSales.razor.css">

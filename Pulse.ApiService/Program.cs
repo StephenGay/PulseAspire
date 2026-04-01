@@ -4,12 +4,18 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
+using OllamaSharp;
+using OllamaSharp.Models.Chat;
 using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
 using Pulse.ApiService.Endpoints.Production;
 using Pulse.ApiService.Endpoints.Security;
 using Pulse.ApiService.Hubs;
 using Pulse.ApiService.Middleware;
+using Pulse.ApiService.PulseAI.Characters;
+using Pulse.ApiService.PulseAI.Endpoints;
+
+using Pulse.ApiService.PulseAI.Services;
 using Pulse.ApiService.Security;
 using Pulse.ApiService.Services;
 using Pulse.Models;
@@ -30,24 +36,19 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.AddRedisDistributedCache("cache");
 
-// Health checks
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<PulseDbContext>();
-
 #endregion
 
 #region Database
 
-var connectionString = builder.Configuration["PulseSqlDb:ConnectionString"]
-    ?? throw new InvalidOperationException("Missing PulseSqlDb:ConnectionString");
-
-builder.Services.AddDbContext<PulseDbContext>(
-    options => options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Pulse.ApiService")),
-    contextLifetime: Microsoft.Extensions.DependencyInjection.ServiceLifetime.Scoped,
-    optionsLifetime: Microsoft.Extensions.DependencyInjection.ServiceLifetime.Singleton);
-
-builder.Services.AddDbContextFactory<PulseDbContext>(options =>
-    options.UseSqlServer(connectionString, b => b.MigrationsAssembly("Pulse.ApiService")));
+builder.AddSqlServerDbContext<PulseDbContext>("dbPulse",  
+    configureDbContextOptions: options =>
+    {
+        options.UseSqlServer(
+        sqlOptions => sqlOptions.MigrationsAssembly("Pulse.ApiService")
+        );
+    });
+builder.Services.AddDbContextFactory<PulseDbContext>( options =>
+    options.UseSqlServer());
 
 #endregion
 
@@ -136,18 +137,38 @@ builder.Services.AddCors(options =>
 
 #endregion
 
+#region Pulse AI Integration
+
+var PulseAIUrl = builder.Configuration.GetConnectionString("LocalAI") ?? "http://localhost:11434";
+var TablesAIUrl = builder.Configuration.GetConnectionString("RemoteAI") ?? "http://192.168.0.5:11434";
+
+builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
+    new PulseAiClientFactory(new Dictionary<string, string>
+    {
+        { "FlapperAliClient", PulseAIUrl },
+        { "TablesClient", TablesAIUrl }
+    }));
+
+builder.Services.AddScoped<TablesAPI>();
+//builder.Services.AddScoped<FlapperCharacter>();
+#endregion
+
 #region Application Services
 
+builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<PresenceService>();
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
-
+builder.Services.AddSingleton<AiShared>();
 // Email Configuration
 var emailConfig = builder.Configuration.GetSection("EmailConfiguration");
 builder.Services.Configure<EmailConfiguration>(emailConfig);
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordGeneratorService, PasswordGeneratorService>();
+
+// AI Services
+builder.Services.AddScoped<TablesSQL>();
 
 #endregion
 
@@ -237,6 +258,8 @@ app.MapDivisionEndpoints();
 app.MapTechnicalEndpoints();
 app.MapCompanyEndpoints();
 app.MapWorkTypeEndpoints();
+app.MapPulseAiEndpoints();
+app.MapAliEndpoints();
 
 // SignalR Hub
 app.MapHub<MessageHub>("/messagehub");
@@ -246,21 +269,21 @@ app.MapHub<MessageHub>("/messagehub");
 #region Database Initialization
 
 // Seed default roles
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var roles = new[] { "Admin", "User", "Manager", "Viewer" };
+//using (var scope = app.Services.CreateScope())
+//{
+//    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+//    var roles = new[] { "Admin", "User", "Manager", "Viewer" };
 
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(new IdentityRole(role));
-        }
-    }
+//    foreach (var role in roles)
+//    {
+//        if (!await roleManager.RoleExistsAsync(role))
+//        {
+//            await roleManager.CreateAsync(new IdentityRole(role));
+//        }
+//    }
 
-    app.Logger.LogInformation("Default roles ensured at startup");
-}
+//    app.Logger.LogInformation("Default roles ensured at startup");
+//}
 
 #endregion
 

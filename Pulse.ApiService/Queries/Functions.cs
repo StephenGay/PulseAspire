@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Logging;
-
-namespace Pulse.ApiService.Queries;
+//using Pulse.ApiService.Queries;  // Should match Functions.cs namespace
 
 public class Functions
 {
-    private readonly ILogger<Functions>? _logger;
+    //private readonly ILogger<Functions>? /// _logger;
 
-    public Functions(ILogger<Functions>? logger = null)
-    {
-        _logger = logger;
-    }
+    //public Functions(ILogger<PulseAI.Characters.TablesAPI> logger1, ILogger<Functions>? logger = null)
+    //{
+    //    /// _logger = logger;
+    //}
 
     /// <summary>
     /// Executes a SELECT query and returns results as a list of dictionaries.
@@ -29,20 +28,20 @@ public class Functions
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            _logger?.LogError("Connection string is null or empty");
+            ///// _logger?.LogError("Connection string is null or empty");
             throw new ArgumentNullException(nameof(connectionString), "Connection string cannot be null or empty");
         }
 
         if (string.IsNullOrWhiteSpace(query))
         {
-            _logger?.LogError("Query is null or empty");
+            ///// _logger?.LogError("Query is null or empty");
             throw new ArgumentNullException(nameof(query), "Query cannot be null or empty");
         }
 
         // Validate SELECT-only query for safety
         if (!query.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
         {
-            _logger?.LogWarning("Attempted to execute non-SELECT query: {Query}", query);
+            ///// _logger?.LogWarning("Attempted to execute non-SELECT query: {Query}", query);
             throw new InvalidOperationException("Only SELECT queries are allowed in ExecuteAiQry");
         }
 
@@ -72,16 +71,16 @@ public class Functions
                 results.Add(row);
             }
 
-            _logger?.LogInformation("Query executed successfully. Returned {Count} rows", results.Count);
+            ///// _logger?.LogInformation("Query executed successfully. Returned {Count} rows", results.Count);
             return results;
         }
         catch (SqlException sqlEx)
         {
-            _logger?.LogError(sqlEx,
-                "SQL error executing query. ErrorNumber: {ErrorNumber}, LineNumber: {LineNumber}, Query: {Query}",
-                sqlEx.Number,
-                sqlEx.LineNumber,
-                query);
+            ///// _logger?.LogError(sqlEx,
+            //    "SQL error executing query. ErrorNumber: {ErrorNumber}, LineNumber: {LineNumber}, Query: {Query}",
+            //    sqlEx.Number,
+            //    sqlEx.LineNumber,
+            //    query);
             throw new InvalidOperationException($"Database error: {sqlEx.Message} (Error {sqlEx.Number})", sqlEx);
         }
         catch (InvalidOperationException)
@@ -91,7 +90,7 @@ public class Functions
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Unexpected error executing query: {Query}", query);
+            ///// _logger?.LogError(ex, "Unexpected error executing query: {Query}", query);
             throw new InvalidOperationException($"Error executing query: {ex.Message}", ex);
         }
     }
@@ -110,13 +109,13 @@ public class Functions
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            _logger?.LogError("Connection string is null or empty");
+            /// _logger?.LogError("Connection string is null or empty");
             throw new ArgumentNullException(nameof(connectionString), "Connection string cannot be null or empty");
         }
 
         if (string.IsNullOrWhiteSpace(query))
         {
-            _logger?.LogError("Query is null or empty");
+            /// _logger?.LogError("Query is null or empty");
             throw new ArgumentNullException(nameof(query), "Query cannot be null or empty");
         }
 
@@ -128,7 +127,7 @@ public class Functions
 
         if (!isModifyQuery)
         {
-            _logger?.LogWarning("Attempted to execute non-modify query: {Query}", query);
+            /// _logger?.LogWarning("Attempted to execute non-modify query: {Query}", query);
             throw new InvalidOperationException("Only INSERT, UPDATE, or DELETE queries are allowed");
         }
 
@@ -145,16 +144,16 @@ public class Functions
 
             var rowsAffected = await command.ExecuteNonQueryAsync();
 
-            _logger?.LogInformation("Query executed successfully. {RowsAffected} rows affected", rowsAffected);
+            /// _logger?.LogInformation("Query executed successfully. {RowsAffected} rows affected", rowsAffected);
             return rowsAffected;
         }
         catch (SqlException sqlEx)
         {
-            _logger?.LogError(sqlEx,
-                "SQL error executing query. ErrorNumber: {ErrorNumber}, LineNumber: {LineNumber}, Query: {Query}",
-                sqlEx.Number,
-                sqlEx.LineNumber,
-                query);
+            /// _logger?.LogError(sqlEx,
+                //"SQL error executing query. ErrorNumber: {ErrorNumber}, LineNumber: {LineNumber}, Query: {Query}",
+                //sqlEx.Number,
+                //sqlEx.LineNumber,
+                //query);
             throw new InvalidOperationException($"Database error: {sqlEx.Message} (Error {sqlEx.Number})", sqlEx);
         }
         catch (InvalidOperationException)
@@ -164,7 +163,7 @@ public class Functions
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Unexpected error executing query: {Query}", query);
+            /// _logger?.LogError(ex, "Unexpected error executing query: {Query}", query);
             throw new InvalidOperationException($"Error executing query: {ex.Message}", ex);
         }
     }
@@ -219,17 +218,17 @@ public class Functions
                 results.Add(row);
             }
 
-            _logger?.LogInformation("Parameterized query executed. Returned {Count} rows", results.Count);
+            /// _logger?.LogInformation("Parameterized query executed. Returned {Count} rows", results.Count);
             return results;
         }
         catch (SqlException sqlEx)
         {
-            _logger?.LogError(sqlEx, "SQL error executing parameterized query");
+            /// _logger?.LogError(sqlEx, "SQL error executing parameterized query");
             throw new InvalidOperationException($"Database error: {sqlEx.Message}", sqlEx);
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error executing parameterized query");
+            /// _logger?.LogError(ex, "Error executing parameterized query");
             throw new InvalidOperationException($"Error executing query: {ex.Message}", ex);
         }
     }
