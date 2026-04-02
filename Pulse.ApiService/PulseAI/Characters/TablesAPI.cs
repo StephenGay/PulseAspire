@@ -36,7 +36,7 @@ public class TablesAPI
     /// <summary>
     /// Main entry point for asking Tables a question.
     /// </summary>
-    public async Task<ApiResponse<TablesResponse>> AskTablesAsync(PulseAiRequest request)
+    public async Task<ApiResponse<List<Dictionary<string, object>>>> AskTablesAsync(PulseAiRequest request)
     {
         var response = new TablesResponse
         {
@@ -80,7 +80,7 @@ public class TablesAPI
 
             if (string.IsNullOrWhiteSpace(sqlQuery))
             {
-                return ApiResponse<TablesResponse>.ErrorResponse(
+                return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse(
                     "Tables was unable to generate a valid SQL query.",
                     statusCode: 400);
             }
@@ -106,14 +106,14 @@ public class TablesAPI
                 response.Data = queryResult.Data;
             }
 
-            return ApiResponse<TablesResponse>.SuccessResponse(response);
+            return ApiResponse<List<Dictionary<string, object>>>.SuccessResponse(response.Data);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing Tables AI request");
             response.IsSuccess = false;
             response.Content = $"I encountered an error: {ex.Message}";
-            return ApiResponse<TablesResponse>.ErrorResponse(
+            return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse(
                 "An error occurred while processing your request.",
                 statusCode: 500);
         }

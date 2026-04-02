@@ -194,20 +194,20 @@ namespace Pulse.ApiService.Endpoints
                         WHERE (wo.UndelQty > 0) AND (wo.DivisionID = @divisionId)
                     ";
 
-                                var parameter = new SqlParameter("@divisionId", divisionId);
+                    var parameter = new SqlParameter("@divisionId", divisionId);
 
-                                var wipItems = await db.Database.SqlQueryRaw<WorkInProgressDto>(sql, parameter).ToListAsync();
+                    var wipItems = await db.Database.SqlQueryRaw<WorkInProgressDto>(sql, parameter).ToListAsync();
 
-                                if (!wipItems.Any()) return Results.NotFound($"No WIP found for division {divisionId}");
+                    if (!wipItems.Any()) return Results.NotFound($"No WIP found for division {divisionId}");
 
-                                return Results.Ok(wipItems);
-                            }
-                            catch (Exception ex)
-                            {
-                                // Log ex (inject ILogger if needed)
-                                return Results.Problem($"Error fetching WIP: {ex.Message}");
-                            }
-                        })
+                    return Results.Ok(wipItems);
+                }
+                catch (Exception ex)
+                {
+                    // Log ex (inject ILogger if needed)
+                    return Results.Problem($"Error fetching WIP: {ex.Message}");
+                }
+            })
             .WithName("GetWipByDivision");
 
             group.MapGet("/Production/WorkOrder/{WorkOrderNo}/CreateProductionPlan", async (int WorkOrderNo, PulseDbContext db) =>

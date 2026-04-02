@@ -11,6 +11,7 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using static Pulse.Models.Api.ApiEndpoints;
 
 namespace Pulse.ApiService.Hubs;
 
@@ -47,6 +48,11 @@ public class MessageHub : Hub
     // Send private message to a specific recipient
     public async Task SendPrivateMessage(PulseMessage msg)
     {
+        if (string.IsNullOrEmpty(msg.RecipientUserName))
+        {
+            var user = await _userManager.FindByIdAsync(msg.RecipientUserId);
+            msg.RecipientUserName = user?.UserName ?? "Unknown Recipient";
+        }
         using var db = await _dbFactory.CreateDbContextAsync();
         db.PulseMessages.Add(msg);
         await db.SaveChangesAsync();

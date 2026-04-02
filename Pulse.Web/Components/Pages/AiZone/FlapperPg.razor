@@ -6,7 +6,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
-@using Pulse.Models.AI.AIds
+@using Pulse.Models.AI.Flapper
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
@@ -40,10 +40,9 @@
 @implements IDisposable
 @rendermode InteractiveServer
 
-<div class="dparent">
-    <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
-    </div>
-    <div class="dheader" Style="border-bottom: 1px solid black">
+<div class="aiParent">
+    <div class="aiHeader" />
+    <div class="aiMenu">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
             <FluentButton class=@(!viewBox ? "myModeBtnOff" : "flapOn")
                           BackgroundColor="white"
@@ -147,15 +146,16 @@
         </FluentStack>
     </div>
 
-    <FluentMessageBarProvider Section="MESSAGES_TOP" />
-    
-    @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
-    }
     
     
-    <div class="dcontent">
+    
+    <div class="aiContent">
+        <FluentMessageBarProvider Section="MESSAGES_TOP" />
+    
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
+        }
         @if (viewBox)
         {
             <div class="sidebar">
@@ -305,11 +305,11 @@
             </div>
         </div>
     </div>
-
+    <div class="aiFooter" />
 </div>
     
 @* </FluentLayout> *@
-<FluentMenuProvider />
+@* <FluentMenuProvider /> *@
 
 @code {
     private string query = string.Empty;

@@ -1,7 +1,9 @@
 ﻿
 using DocumentFormat.OpenXml.Wordprocessing;
 using Microsoft.FluentUI.AspNetCore.Components;
-using Pulse.Models.AI.AIds;
+using Pulse.Models.AI.Ali;
+using Pulse.Models.AI.Tables;
+using Pulse.Models.AI.Flapper;
 using Pulse.Models.Api;
 using Pulse.Models.Communication;
 using Pulse.Models.Customers;

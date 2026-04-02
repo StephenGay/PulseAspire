@@ -73,22 +73,26 @@ html, body {
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }
 
-/*#region Layout for AI Drawers*/
+/*#region Layout for AI Pages*/
 
 .aiParent {
     display: flex;
     flex-direction: column; /* Stack children vertically */
-    height: calc(100vh - 56px); /* whole screen - bottom menu */
+    height: 100vh;
     background-color: var(--pulse-light-colour);
 }
 
 .aiHeader, .aiFooter {
-    /* Header used as Menu Bar */
-    /* Footer not used but maybe future */
-    /* Fixed sizes; flexbox will respect these */
+    width: 100%;
+    height: 56px;
+    background-color: var(--pulse-dark-colour) !important;
+    text-align: center;
+    /* background: lightgray; */
+}
+
+.aiMenu {
     min-height: 50px; /* Or min-height if you want flexibility */
     border-bottom: 1px solid black;
-    /* background: lightgray; */
 }
 
 .aiContent {
@@ -117,7 +121,7 @@ html, body {
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }
 
-/*#endregion Layout for AI Drawers*/
+/*#endregion Layout for AI Pages*/
 
 
 /*#region Layout for Pulse Zones */

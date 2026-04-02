@@ -27,7 +27,8 @@ namespace Pulse.Models.PulseContext.Maps
 
             builder.Property(ca => ca.AreaAiPrompt);
 
-            builder.Property(ca => ca.ExpectedRequestDataFormat);
+            builder.Property(ca => ca.TargetEntityType);
+            builder.Property(ca => ca.KeyProperty);
 
             // Relationships
             builder.HasMany(ca => ca.ContextualPrompts)

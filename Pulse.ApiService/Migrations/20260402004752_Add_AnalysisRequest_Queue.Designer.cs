@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260402004752_Add_AnalysisRequest_Queue")]
+    partial class Add_AnalysisRequest_Queue
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -165,18 +168,26 @@ namespace Pulse.ApiService.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("AnalysisType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ApplicationUserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("ContextualAreaID")
-                        .HasColumnType("int");
-
                     b.Property<string>("ErrorMessage")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("KeyProperty")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("KeyValue")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LoadedObjectJson")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("QueuedAt")
@@ -188,6 +199,10 @@ namespace Pulse.ApiService.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("TargetEntityType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserQuery")
                         .IsRequired()
@@ -213,11 +228,7 @@ namespace Pulse.ApiService.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("KeyProperty")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("TargetEntityType")
+                    b.Property<string>("ExpectedRequestDataFormat")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("ContextAreaId");
@@ -265,75 +276,6 @@ namespace Pulse.ApiService.Migrations
                     b.HasIndex("ContextualAreaId");
 
                     b.ToTable("ContextualPromptMaster", "pai");
-                });
-
-            modelBuilder.Entity("Pulse.Models.AI.Flapper.FlapperConversation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("LastActivity")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("StartedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("FlapperConversations", "pai");
-                });
-
-            modelBuilder.Entity("Pulse.Models.AI.Flapper.FlapperMessage", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ClarificationType")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ConversationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("FlapperConversationId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<bool>("IsClarificationQuestion")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Sender")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("SentAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FlapperConversationId");
-
-                    b.ToTable("FlapperMessages", "pai");
                 });
 
             modelBuilder.Entity("Pulse.Models.Communication.PulseMessage", b =>
@@ -3031,13 +2973,6 @@ namespace Pulse.ApiService.Migrations
                     b.Navigation("ContextualArea");
                 });
 
-            modelBuilder.Entity("Pulse.Models.AI.Flapper.FlapperMessage", b =>
-                {
-                    b.HasOne("Pulse.Models.AI.Flapper.FlapperConversation", null)
-                        .WithMany("Messages")
-                        .HasForeignKey("FlapperConversationId");
-                });
-
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>
                 {
                     b.HasOne("Pulse.Models.Compounds.CompoundRange", "CompoundRange")
@@ -3592,11 +3527,6 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.AI.ContextualArea", b =>
                 {
                     b.Navigation("ContextualPrompts");
-                });
-
-            modelBuilder.Entity("Pulse.Models.AI.Flapper.FlapperConversation", b =>
-                {
-                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>

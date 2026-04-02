@@ -16,7 +16,8 @@ namespace Pulse.Models.AI
         public string AreaDescription { get; set; }
 
         public string? AreaAiPrompt { get; set; }
-        public string? ExpectedRequestDataFormat { get; set; }
+        public string? TargetEntityType { get; set; }
+        public string KeyProperty { get; set; }
         public ICollection<ContextualPrompt>? ContextualPrompts { get; set; }
     }
 }

@@ -1,6 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-@using Pulse.Models.AI.AIds
+@using Pulse.Models.AI.Ali
+@using Pulse.Models.AI.Flapper
+@using Pulse.Models.AI.Tables
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Organizational
@@ -110,7 +112,7 @@
                     <FluentSpacer />
                     <Animation Effect="@Effect.Shake" Enabled="@aniMsg" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2" OnAnimationEnd="() => aniMsg=false">
                         <FluentCounterBadge  Count="@_messages.Count" BackgroundColor="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Fill" Dot="@showChatDot" aria-hidden="false">
-                            <FluentButton id="btnMsg" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)" OnClick="ViewMsgCentre"  @onkeydown="@(e => { if (e.Key == "Enter" || e.Key == " ") ViewMsgCentre(); })"> 
+                                <FluentButton id="btnMsg" data-bs-toggle="offcanvas" data-bs-target="#msgCentre" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)">
                                 <FluentIcon Value="@(new Icons.Filled.Size32.Mail().WithColor("var(--pulse-light-colour)"))" />
                             </FluentButton>
                         </FluentCounterBadge>
@@ -126,14 +128,14 @@
                     }
                 </FluentStack>
              </div>
-            <Drawer Placement="Placement.Left" @bind-IsOpen="@ShowMsgCentre" IsBackdrop="true" @OnCloseAsync="() => ShowMsgCentre=false" AllowResize="true" width="100%" style="overflow-x:hidden">
-                    <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
-                                  IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => ShowMsgCentre=false">
-                        Close
-                    </FluentButton>
-                    
-                <UserMsgCentre OnCloseDrawer="(closeDrawer) => ShowMsgCentre = closeDrawer" />
-            </Drawer>
+            
+            <div class="offcanvas offcanvas-start" style="width:100%" tabindex="-1" id="msgCentre" aria-labelledby="msgCentreLabel">
+                <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                                IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+                    Close
+                </FluentButton>
+                <UserMsgCentre />
+            </div>
         </div>
         
     </Authorized>

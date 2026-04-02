@@ -16,7 +16,7 @@ public static class PulseAiEndpoints
             .WithName("SendTablesARequest")
             .WithDescription("Sends Tables a request and returns the response.")
             .Accepts<PulseAiRequest>("application/json")
-            .Produces<ApiResponse<TablesResponse>>(StatusCodes.Status200OK)
+            .Produces<ApiResponse<List<Dictionary<string, object>>>>(StatusCodes.Status200OK)
             .ProducesProblem(400);
 
         group.MapPost("/Flapper/SendRequest", HandleUserRequestAsync)

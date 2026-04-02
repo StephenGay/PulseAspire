@@ -88,6 +88,13 @@ namespace Pulse.Models.Api
                     private const string CustomPromptsPrefix = $"{AliPrefix}/CustomPrompts";
                     public const string GetAll = $"{CustomPromptsPrefix}/GetAll";
                 }
+
+                public static class Analysis
+                {
+                    private const string AnalysisPrefix = $"{AliPrefix}/Analysis";
+                    public const string AddToQueue = $"{AnalysisPrefix}/AddToQueue";
+
+                }
             }
         }
 

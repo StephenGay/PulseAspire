@@ -6,18 +6,8 @@ using System.Text.Json.Serialization;
 using Toolbelt.Blazor.SpeechSynthesis;
 using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 
-namespace Pulse.Models.AI.AIds
+namespace Pulse.Models.AI.Ali
 {
-    public class Tables
-    {
-        public Microsoft.FluentUI.AspNetCore.Components.Emoji emoji { get; set; } = new Emojis.PeopleBody.Color.MediumLight.ManTechnologist();
-        public SpeechSynthesisVoice? _Voice { get; set; }
-        public string _VoiceId { get; set; } = "Microsoft Guy Online (Natural) - English (United States)|en-US";
-
-        [JsonPropertyName("model")]
-        public string Model { get; set; } = "gpt-oss:latest";
-    }
-    
     public class Ali
     {
         public Microsoft.FluentUI.AspNetCore.Components.Emoji emoji { get; set; } = new Emojis.PeopleBody.Color.MediumLight.Detective();
@@ -27,5 +17,5 @@ namespace Pulse.Models.AI.AIds
         [JsonPropertyName("model")]
         public string Model { get; set; } = "gpt-oss:latest";
     }
-    
 }
+

@@ -2,7 +2,9 @@
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI
-@using Pulse.Models.AI.AIds
+@using Pulse.Models.AI.Ali
+@using Pulse.Models.AI.Flapper
+@using Pulse.Models.AI.Tables
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
@@ -202,7 +204,7 @@
                     else
                     {
                         <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showAli" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuAliBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" OnClick="btnOpenAIMenu">
+                            <FluentButton Id="mnuAliBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiAli">
                                 @* @(mAli.emoji.ToMarkup("40px")) *@
                                 <img src="Images/AI/Ali.jpg" alt="Ali" style="height:40px;width:40px" />
                             </FluentButton>
@@ -216,7 +218,7 @@
                         </FluentTooltip>
 
                         <Animation Effect="@Effect.HeartBeat" Enabled="@showAi.showTables" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuTablesBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" OnClick="btnChooseTables">
+                            <FluentButton Id="mnuTablesBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiTables">
                                 @* @(mTables.emoji.ToMarkup("40px")) *@
                                 <img src="Images/AI/Tables.jpg" alt="Tables" style="height:40px;width:40px;align-content:center" />
                             </FluentButton>
@@ -232,7 +234,7 @@
                         
 
                         <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showFlapper" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuFlapperBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" OnClick="btnChooseFlapper">
+                            <FluentButton Id="mnuFlapperBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiFlapper" >
                                 @* @(mFlapper.emoji.ToMarkup("40px")) *@
                                 <img src="Images/AI/Flapper.jpg" alt="Flapper" style="height:40px;width:40px" />
                             </FluentButton>
@@ -267,15 +269,14 @@
         }
 
     </FluentStack>
-          <Drawer Placement="Placement.Right" @bind-IsOpen="@IsOpen" IsBackdrop="true" @OnCloseAsync="() => IsOpen=false" AllowResize="true" width="100%" style="overflow-x:hidden">
-                <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
-                              IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => IsOpen=false">
-                    Close
-                </FluentButton>
-                <AliPg />
-           
-        
-    </Drawer>
+
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiAli">
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            Close
+        </FluentButton>
+        <AliPg />
+    </div>
 
     <Drawer Id="ResultsPanel" Placement="Placement.Bottom" @bind-IsOpen="@showResultsPanel" width="100%" Height="calc(100vh - 56px)"  AllowResize="true">
         <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
@@ -327,36 +328,35 @@
         </div>
     </Drawer>
 
-        
-
-     <Drawer Placement="Placement.Right" @bind-IsOpen="@OpenFlapper" IsBackdrop="true" @OnCloseAsync="() => OpenFlapper=false" AllowResize="true" width="100%" style="overflow-x:hidden">
-         <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
-                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenFlapper=false">
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiFlapper">
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
             Close
         </FluentButton>
         <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;margin-left:10px"
-                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => flapperVersion1=!flapperVersion1">
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="NextFlapperVersion">
             Ver
         </FluentButton>
-        @if (flapperVersion1)
+        @if (flapperVersion == 1)
         {
-             <FlapperPg />
+            <FlapperPg />
         }
-        else
+        else if (flapperVersion == 2)
         {
             <FlapperPg_v2 />
         }
-    </Drawer>
-
-        <Drawer Placement="Placement.Right" @bind-IsOpen="@OpenTables" IsBackdrop="true" @OnCloseAsync="() => OpenTables=false" AllowResize="true" width="100%" style="overflow-x:hidden">
-            <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; justify-content:end">
-             <FluentButton BackgroundColor="rgba(188,209,212,1)" Style="border: 1px solid red;height:40px;" 
-                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => OpenTables=false">
-            </FluentButton>
-
-         </div>
-                <TablesPg />
-        </Drawer>
+        else if (flapperVersion == 3)
+        {
+            <FlapperPg_v3 />
+        }
+        </div>
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiTables">
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            Close
+        </FluentButton>
+        <TablesPg />
+    </div>
             
 </FluentStack>
 </BootstrapBlazorRoot>
@@ -382,7 +382,7 @@
     private string _AliAnalysis = string.Empty;
     private int useModelVal = 0;
     private string aiModel = "gpt-oss:latest";
-    private bool flapperVersion1 = true;
+    private int flapperVersion = 1;
     private string txtQ = string.Empty;
     //public bool isSales { get; set; }
    
@@ -505,6 +505,12 @@
             await JSRuntime.InvokeVoidAsync("applyPulseTheme", pTheme);
             await InvokeAsync(StateHasChanged);
         };
+    }
+
+    private async Task NextFlapperVersion(){
+        flapperVersion++;
+        if (flapperVersion > 3) flapperVersion = 1;
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task ToggleMute()

@@ -14,8 +14,10 @@ namespace Pulse.Models.CustomComponents
         public const string WebSearch = "web_search";
         public const string WebFetch = "web_fetch";
         public const string ExecuteActionSql = "execute_action_sql";
+        public const string AskTables = "ask_tables";
+        public const string AskUser = "ask_user";
 
-        public static readonly HashSet<string> All = [ExecuteSql, WebSearch, WebFetch, ExecuteActionSql];
+        public static readonly HashSet<string> All = new HashSet<string> { ExecuteSql, WebSearch, WebFetch, ExecuteActionSql, AskTables, AskUser };
     }
     public class OllamaChatResponse
     {

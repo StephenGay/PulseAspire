@@ -30,6 +30,7 @@ else
 
 var PulseAI = builder.AddOllama("PulseAI")
                     .WithDataVolume("Pulse-Aspire-AI-Models")
+                    .WithLifetime(ContainerLifetime.Persistent)
                     .WithGPUSupport()
                     .WithOpenWebUI()
                     .AddModel("gpt-oss:latest");

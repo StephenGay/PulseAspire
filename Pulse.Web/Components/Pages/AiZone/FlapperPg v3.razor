@@ -8,6 +8,8 @@
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 @using Pulse.Models.AI
 @using Pulse.Models.AI.Flapper
+@using Pulse.Models.AI.Tables
+@using Pulse.Models.Api
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
@@ -21,12 +23,14 @@
 @using Markdig
 @using System.Runtime.CompilerServices
 @using System.Text.Json
+@using System.Text.Json.Serialization
 @using Toolbelt.Blazor.SpeechRecognition
 @* @using Toolbelt.Blazor.SpeechSynthesis *@
 
 @inject Pulse_AI pAI
 @inject PulseApiService pulseApiClient 
 @inject IPulseToastService PulseToastService
+@inject OllamaService _ollamaService
 @inject IMessageService MessageService
 @inject IDialogService DialogService
 @inject DataTransferService dtrf
@@ -159,7 +163,7 @@
                             <FluentSpacer />
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
                                 <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">@(!ViewSettings ? "CONVERSATIONS" : "SETTINGS")</FluentLabel>
-                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Flapper v2</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Flapper v3</FluentLabel>
                             </FluentStack>
                         </FluentStack>
                             @if (!ViewSettings)
@@ -738,12 +742,12 @@
                 CompanyName = c.CompanyName,
                 CompanyInformation = AiPrompts.GetTempCoInfo(),
                 SqlGuidelines = AiPrompts.GetSqlGuidelines(),
-                UserName = _authService.aspireFullName,
+                UserName = uName,
                 Tools = AiPrompts.GetToolsGuidelines(AdminMode),
                 UserQuery = txtQ
             };
 
-            flapperSystemPrompt = flapper?.BuildSystemMessage(systemMessageData);
+            flapperSystemPrompt = flapper?.BuildSystemMessagev2(systemMessageData);
 
             // ✅ Create QueryContext with original user query
             var context = new QueryContext 
@@ -839,7 +843,7 @@
                 presence_penalty = flapper.Options.PresencePenalty
             }
         };
-        
+
         var accumulatedMessage = new OllamaMessage { Role = "assistant" };
         bool hasYieldedContent = false;
         string? pendingError = null;
@@ -945,7 +949,7 @@
                 yield return $"__THINKING__{chunk.Message.Thinking}";
                 // StateHasChanged();
                 // await Task.Delay(5, ct);
-                
+
             }
 
 
@@ -1035,9 +1039,9 @@
         // ✅ DON'T yield final accumulated answer here!
         // We already yielded individual chunks, so accumulating and yielding the whole thing causes duplication
     }
-#endregion
+    #endregion
 
-#region Flapper Chat Non-Stream
+    #region Flapper Chat Non-Stream
 
     private async Task FlapperChatNonStream(CancellationToken cToken = default)
     {
@@ -1082,9 +1086,9 @@
         }
     }
 
-#endregion 
+    #endregion 
 
-  
+
 
     private string FormatMessageToHtml(string content) //, string role, string toolName)
     {
@@ -1112,7 +1116,7 @@
         return html;
     }
 
-    
+
 
     /// <summary>
     /// Prepares context for streaming chat - handles exceptions safely.
@@ -1143,7 +1147,14 @@
     /// <summary>
     /// Streams chat chunks with proper error handling.
     /// </summary>
-    
+    private static string NormaliseToolNamev3(string? toolName)
+    {
+        if (string.IsNullOrEmpty(toolName))
+            return "unknown";
+
+        var normalized = toolName.ToLowerInvariant().Trim();
+        return ToolNames.All.FirstOrDefault(t => normalized.Contains(t)) ?? normalized;
+    }
 
     /// <summary>
     /// Processes tool calls with error handling.
@@ -1158,7 +1169,7 @@
         {
             foreach (var toolCall in toolCalls)
             {
-                string toolName = Pulse_AI.NormalizeToolName(toolCall.Function?.Name);
+                string toolName = NormaliseToolNamev3(toolCall.Function?.Name);
 
                 if (!ToolNames.All.Contains(toolName))
                 {
@@ -1185,26 +1196,26 @@
                 flapperThinking += $"\n🔧 Executing: {toolName}...\n";
                 StateHasChanged();
                 await Task.Delay(5, ct);
-                
+
                 // ✅ Pass QueryContext to ExecuteToolAsync
-                var toolResult = await pAI.ExecuteToolAsync(
+                var toolResult = await ExecuteToolAsyncv3(
                     toolName, 
                     toolCall.Function?.Arguments ?? default, 
                     context,  // ← Pass context!
                     ct);
-                
+
                 currMsgs.Add(new OllamaMessage
                 {
                     Role = "tool",
                     Content = toolResult,
                     ToolName = toolName
                 });
-                
+
                 flapperThinking += $"✓ {toolName} completed.\n";
                 StateHasChanged();
                 await Task.Delay(5, ct);
             }
-            
+
             return null;
         }
         catch (OperationCanceledException)
@@ -1217,36 +1228,206 @@
         }
     }
 
-    /// <summary>
-    /// Builds the system message for Flapper using centralized prompts.
-    /// Uses concise version on recursive calls to preserve context window.
-    /// </summary>
-    private OllamaMessage BuildFlapperSystemMessage(
-        List<OllamaMessage> historyMessages,
-        string schemaText,
-        string examples,
-        string adminSection,
-        int recursionLevel = 0)
+    private async Task<string> ExecuteToolAsyncv3(string toolName, JsonElement args, QueryContext context, CancellationToken ct)
     {
-        // On recursive calls (2nd loop+), use concise message to save context window
-        // if (recursionLevel > 0)
-        // {
-        //     return new OllamaMessage
-        //     {
-        //         Role = "system",
-        //         Content = AiPrompts.GetFlapperSystemMessageConcise(AdminMode)
-        //     };
-        // }
-
-        // First call: use full system message with all context
-        var systemContent = AiPrompts.GetFlapperSystemMessage(schemaText, examples, AdminMode);
-
-        return new OllamaMessage
+        try
         {
-            Role = "system",
-            Content = systemContent
-        };
+            return toolName switch
+            {
+                ToolNames.AskTables => await AskTablesAsync(args, context, ct),
+                ToolNames.WebSearch => await WebSearchAsync(args, context, ct),
+                ToolNames.WebFetch => await WebFetchAsync(args, context, ct),
+                ToolNames.ExecuteActionSql => await ExecuteActionSqlToolAsync(args, context, ct),
+                _ => $"Unknown tool: {toolName}"
+            };
+        }
+        catch (Exception ex)
+        {
+            // _logger.LogError(ex, "Tool {Tool} failed", toolName);
+            return $"Tool error: {ex.Message}";
+        }
     }
+
+    private async Task<string> AskTablesAsync(JsonElement args, QueryContext context, CancellationToken ct)
+    {
+        if (!args.TryGetProperty("query", out var queryProp))
+            return "Error: Missing 'query' argument";
+
+        var query = queryProp.GetString()?.Trim();
+        if (string.IsNullOrEmpty(query))
+            return "Error: Query is empty";
+
+
+        // _logger.LogInformation("Asking Tables: {Query}", query[..Math.Min(100, query.Length)]);
+
+        try
+        {
+            Tables tbl = await dtrf.GetgvTables();
+
+            var req = new PulseAiRequest
+                {
+                    UserId = "Flapper",
+                    UserEmail = "flapper@pulseai.ste",
+                    ModelName = tbl.Model,
+                    AiName = AiName.Tables,
+                    UserRequest = new OllamaChatMessage
+                    {
+                        Role = "user",
+                        Content = query
+                    }
+                };
+
+            var response = await pulseApiClient.PostAsync<PulseAiRequest, ApiResponse<List<Dictionary<string, object>>>>(ApiEndpoints.PulseAi.Tables.SendRequest, req, ct);
+
+
+            // Check for HTTP errors
+            if (!response.Success)
+            {
+                var errorContent = response.Message;
+                // _logger.LogError("SQL execution returned {StatusCode}: {Error}", response.StatusCode, errorContent[..Math.Min(200, errorContent.Length)]);
+                return $"❌ __SQL_ERROR__ ❌\n\n" +
+                   $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**Error**: {errorContent}\n\n" +
+                   $"Rephrase your query and try again, OR use web_search if the query cannot be fixed.";
+            }
+
+            JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            };
+            var result = response.Data;
+            
+
+            // ✅ Check if result is empty (no data found)
+            if (result == null || !result.Any())
+            {
+                // _logger.LogWarning("SQL query returned no results");
+                return $"⚠️ __SQL_NO_RESULTS__ ⚠️\n\n" +
+                   $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**SQL query executed successfully but returned NO DATA from the database**\n\n" +
+                   $"This means the requested data does not exist in our database.\n\n" +
+                   $"You MUST now use web_search to find this information externally.";
+            }
+
+            //return result;
+            // ✅ Include user query context in successful SQL results
+            return $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**Data from database**:\n{JsonSerializer.Serialize(result, _jsonOptions)}";
+        }
+        catch (HttpRequestException ex)
+        {
+            // _logger.LogError(ex, "SQL execution failed with HTTP error");
+            return $"__SQL_ERROR__\n\n**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"Database connection failed: {ex.Message}";
+        }
+        catch (Exception ex)
+        {
+            // _logger.LogError(ex, "SQL execution failed");
+            return $"__SQL_ERROR__\n\n**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"SQL error: {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Executes an action SQL query (INSERT, UPDATE, DELETE) with contextual information.
+    /// </summary>
+    private async Task<string> ExecuteActionSqlToolAsync(JsonElement args, QueryContext context, CancellationToken ct)
+    {
+        string sql = args.TryGetProperty("sql", out var sqlProp) ? sqlProp.GetString() ?? "" : "";
+        if (string.IsNullOrEmpty(sql))
+        {
+            sql = args.TryGetProperty("query", out var sqlProp2) ? sqlProp2.GetString() ?? "" : "";
+            if (string.IsNullOrEmpty(sql))
+            {
+                sql = args.TryGetProperty("arguments", out var sqlProp3) ? sqlProp3.GetString() ?? "" : "";
+            }
+        }
+
+        if (string.IsNullOrEmpty(sql))
+        {
+            return "Error: Missing 'sql' argument.";
+        }
+
+        try
+        {
+            // _logger.LogInformation("Executing SQL Action tool: {Sql}", sql);
+            // var response = await pulseApiClient.GetAsync($"/AI/ExecuteAiUpdateInsertQry:{sql}", ct);
+            // response.EnsureSuccessStatusCode();
+            var json = 0; // await response.Content.ReadAsStringAsync(ct);
+
+            // ✅ Include context in action SQL results
+            return $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                   $"**Action SQL Executed**:\n```sql\n{sql}\n```\n\n" +
+                   $"**Result**: {json} rows affected";
+        }
+        catch (Exception ex)
+        {
+            // _logger.LogError(ex, "SQL tool execution error.");
+            return $"Error executing SQL for query '{context.OriginalUserQuery}': {ex.Message}";
+        }
+    }
+
+    /// <summary>
+    /// Performs web search with contextual information.
+    /// </summary>
+    private async Task<string> WebSearchAsync(JsonElement args, QueryContext context, CancellationToken ct)
+    {
+        if (!args.TryGetProperty("query", out var queryProp))
+            return "Error: Missing 'query' argument";
+
+        var query = queryProp.GetString();
+        if (string.IsNullOrEmpty(query))
+            return "Error: Query is empty";
+
+        // var searchUrl = _configuration["OllamaApi:WebSearchEndpoint"]
+        //     ?? "https://ollama.com/api/web_search";
+        var searchUrl = "https://ollama.com/api/web_search";
+
+        var response = await _ollamaService.PostAsync<OllamaWebSearchResponse>(
+            searchUrl, new { query }, ct);
+
+        if (response?.Results is not { Count: > 0 })
+            return $"No search results found for '{query}' related to user question: {context.OriginalUserQuery}";
+
+        var results = string.Join(" | ", response.Results.Select(r =>
+            $"[{r.Title}]({r.Url}): {r.Snippet}"));
+
+        // ✅ Include original user query in the tool result
+        var contextualResult = $"**User asked**: {context.OriginalUserQuery}\n\n" +
+                              $"**Web search results for '{query}'**:\n{results}";
+
+        return contextualResult.Length > 8000 ? contextualResult[..8000] + "..." : contextualResult;
+    }
+
+    /// <summary>
+    /// Fetches web page content with contextual information.
+    /// </summary>
+    private async Task<string> WebFetchAsync(JsonElement args, QueryContext context, CancellationToken ct)
+    {
+        if (!args.TryGetProperty("url", out var urlProp))
+            return "Error: Missing 'url' argument";
+
+        var url = urlProp.GetString();
+        if (string.IsNullOrEmpty(url))
+            return "Error: URL is empty";
+
+        // var fetchUrl = _configuration["OllamaApi:WebFetchEndpoint"]
+        //     ?? "https://ollama.com/api/web_fetch";
+        var fetchUrl = "https://ollama.com/api/web_fetch";
+
+        var response = await _ollamaService.PostAsync<OllamaWebFetchResponse>(
+            fetchUrl, new { url }, ct);
+
+        var content = response?.Content ?? "";
+
+        // ✅ Include original user query and URL context in the tool result
+        var contextualResult = $"**Original user question**: {context.OriginalUserQuery}\n\n" +
+                              $"**Content fetched from {url}**:\n\n{content}";
+
+        return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
+    }
+
 
     /// <summary>
     /// Builds the tools list for Flapper.
@@ -1283,6 +1464,38 @@
                     type = "object",
                     properties = new { url = new { type = "string", description = "URL to fetch" } },
                     required = new[] { "url" }
+                }
+            }
+        });
+
+        tools.Add(new
+        {
+            type = "function",
+            function = new
+            {
+                name = ToolNames.AskTables,
+                description = "Ask Tables for information from the database.",
+                parameters = new
+                {
+                    type = "object",
+                    properties = new { query = new { type = "string", description = "NL query" } },
+                    required = new[] { "query" }
+                }
+            }
+        });
+
+        tools.Add(new
+        {
+            type = "function",
+            function = new
+            {
+                name = ToolNames.AskUser,
+                description = "Ask the user a Yes/No question.",
+                parameters = new
+                {
+                    type = "object",
+                    properties = new { question = new { type = "string", description = "NL question" } },
+                    required = new[] { "question" }
                 }
             }
         });

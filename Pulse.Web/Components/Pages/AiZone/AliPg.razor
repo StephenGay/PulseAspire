@@ -7,7 +7,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 @using Pulse.Models.AI
-@using Pulse.Models.AI.AIds
+@using Pulse.Models.AI.Ali
 @using Pulse.Models.Api
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
@@ -49,9 +49,8 @@
 
 
 <div class="aiParent">
-    <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important; text-align:center">
-    </div>
-    <div class="aiHeader">
+    <div class="aiHeader" />
+    <div class="aiMenu">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
                 @* <FluentButton Appearance="Appearance.Accent" class="btnShadow" IconStart="@(new Icons.Filled.Size24.GridDots().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
                               Style="border: 1px solid white" OnClick="() => viewBox = !viewBox"></FluentButton> *@
@@ -151,17 +150,13 @@
             
         </FluentStack>
     </div>
-
-        
-
-    <FluentMessageBarProvider Section="MESSAGES_TOP" />
-    
-     @if (!string.IsNullOrEmpty(errorMessage))
-    {
-        <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
-    }
-    
     <div class="aiContent" style="background-color: white">
+        <FluentMessageBarProvider Section="MESSAGES_TOP" />
+    
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
+        }
         @if (viewBox)
         {
             <div class="aiSidebar">
@@ -228,7 +223,10 @@
                                 }
                             </div>
                         }
-                                    
+                        <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
+                            <FluentLabel style="margin-bottom:5px;width:50%">@keyPropertyLbl</FluentLabel>
+                            <FluentTextField @bind-Value=keyPropertyVal style="margin-bottom:5px;width:50%" Required="true" Label="Title" Placeholder="Enter Value"></FluentTextField>
+                        </div>
                         @if (Saving)
                         {
                             <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
@@ -287,8 +285,8 @@
         }
         
     </div>
-    @* <div class="dfooter"></div> *@
-  </div> 
+    <div class="aiFooter" />
+</div> 
 
         
 
@@ -313,6 +311,8 @@
     public int? ContextAreaId = 0;
     private string? line1;
     private string? line2;
+    private string? keyPropertyLbl;
+    private string? keyPropertyVal;
 
     private string sState = "LOAD";
     string fileName = string.Empty;
@@ -383,25 +383,39 @@
 
     private async Task btnAskAIClick()
     {
-        // if (ContextAreaId == 1)
-        // {
-        //     LoadHdr = "Processing Sales Qry";
-        //     Hdr = "Custom Sales Qry";
-        //     qry = txtQ;
-        //     await GenerateSalesPrompt();
-        // }
-        // else
-        // {
-        //     LoadHdr = "Processing Production Qry";
-        //     Hdr = "Custom Production Qry";
-        //     qry = txtQ;
-        //     await GenerateProductionPrompt();
-        // }
-        LoadHdr = "Processing";
-        Hdr = "Custom Qry";
-        qry = txtQ;
-        await GeneratePrompt();
-        showSave = true;
+        bool isSuccess = false;
+        try
+        {
+            var aReq = new AnalysisRequestDto
+         (
+             keyPropertyVal,
+             _authService.aspireUserId,
+             Convert.ToInt32(selAreaId),
+             txtQ,
+             custTitle
+         );
+            var response = await pApiClient.PostAsync<AnalysisRequestDto, ApiResponse>(ApiEndpoints.PulseAi.Ali.Analysis.AddToQueue, aReq);
+            isSuccess = response.Success == true;
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (!isSuccess)
+            {
+                var errMsg = "There was an error adding your request to the queue.<br />Please try again.";
+                PulseToastService.ShowToast("Error", errMsg, true, true, "Ali");
+                await GlobalAI.AISpeak("There was an error adding your request to the queue. Please try again.", "Ali");
+            }
+            else
+            {
+                var msg = "Your request has been added to the queue.<br />You will receive a message when it has been processed.";
+                PulseToastService.ShowToast("Information", msg, true, true, "Ali");
+                await GlobalAI.AISpeak(msg, "Ali");
+            }
+        }
     }
 
     private async Task SendToast(string tType, string tContent, string tAI = "Ali", bool autoHide = true, bool isHtml = false, string? tTitle = null)
@@ -530,6 +544,9 @@
 
         if (prompt != null)
         {
+            selAreaId = prompt.ContextualAreaId.ToString();
+            keyPropertyLbl = contextualAreas.FirstOrDefault(a => a.ContextAreaId == prompt.ContextualAreaId)?.KeyProperty;
+            keyPropertyVal = string.Empty;
             txtQ = prompt.Prompt;
             custDesc = prompt.ContextualPromptDescription;
             custQryHdr = prompt.ContextualPromptTitle;
@@ -669,17 +686,18 @@
 
                 You are to use the data provided to answer the user query in a meaningful way.Note: Any monetary amounts will be in South African Rands (ZAR).
 
-                The query is for customer {customer.ClientName} ,use the name when referencing the customer, not the client id.
+                The will be provided the customers' name, use the name when referencing the customer, not the client id.
                 The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
                 not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
                 field you are using.
 
                 Do not include your reasoning in the final response, just the answer.
+                Customer Name:{customer.ClientName} 
 
                 The Roller Specification and it's subjects are here followed by the users query.
 
                 Data:
-    {dataText}
+                {dataText}
 
                 Query: {qry}
                 """;
@@ -745,7 +763,7 @@
     {
         if (firstRender)
         {
-            Ali ali = await dtrf.GetgvAli();
+            ali = await dtrf.GetgvAli();
             var response = await pApiClient.GetAsync<ApiResponse<List<ContextualArea>>>(ApiEndpoints.PulseAi.Ali.CustomPrompts.GetAll);
             contextualAreas = response.Data ?? new List<ContextualArea>();
             this._available = await this.SpeechRecognition.IsAvailableAsync();

@@ -150,6 +150,8 @@ builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
     }));
 
 builder.Services.AddScoped<TablesAPI>();
+builder.Services.AddScoped<AliAPI>();
+builder.Services.AddScoped<MessageHub>();
 //builder.Services.AddScoped<FlapperCharacter>();
 #endregion
 
@@ -159,6 +161,7 @@ builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<PresenceService>();
 builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
+builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddSingleton<AiShared>();
 // Email Configuration
 var emailConfig = builder.Configuration.GetSection("EmailConfiguration");
@@ -166,6 +169,7 @@ builder.Services.Configure<EmailConfiguration>(emailConfig);
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordGeneratorService, PasswordGeneratorService>();
+builder.Services.AddHostedService<AliAnalysisWorker>();
 
 // AI Services
 builder.Services.AddScoped<TablesSQL>();

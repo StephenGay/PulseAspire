@@ -8,7 +8,7 @@
 @using Pulse.Web.Components.Layout
 @using Pulse.Web.Services
 @using Pulse.Web.Tools
-@using Pulse.Models.AI.AIds
+@using Pulse.Models.AI.Tables
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Misc
 @using Pulse.Models.Users
@@ -90,8 +90,9 @@
         --fill-color : red !important;
     }
 </style>
-<div class="dparent">
-    <div class="dheader" Style="border-bottom: 1px solid black">
+<div class="aiParent">
+    <div class="aiHeader" />
+    <div class="aiMenu">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
             @if (!showResults)
             {
@@ -449,7 +450,7 @@
             }
         </FluentGrid>
     </div>
-            
+    <div class="aiFooter" />
 </div>
 @* </FluentLayout> *@
 @* <FluentMenuProvider /> *@

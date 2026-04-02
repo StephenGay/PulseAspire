@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Pulse.ApiService.PulseAI.Characters;
 using Pulse.Models.AI;
+using Pulse.Models.AI.Ali;
 using Pulse.Models.Api;
 using Pulse.Models.PulseContext;
 
@@ -16,6 +17,13 @@ public static class AliAiEndpoints
             .WithName("GetAllCustomPrompts")
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .Produces<ApiResponse<List<ContextualArea>>>(StatusCodes.Status200OK);
+
+        // Pulse.ApiService/Program.cs  (or wherever your minimal APIs live)
+        group.MapPost("/Analysis/AddToQueue", AddRequestToQueue)
+            .WithName("QueueAnalysis")
+            .Accepts<AnalysisRequestDto>("application/json")
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .Produces<ApiResponse>(StatusCodes.Status200OK);
 
         //group.MapGet("/CustomPrompts/{promptid}", async (int promptid, PulseDbContext dbContext) =>
         //{
@@ -120,7 +128,8 @@ public static class AliAiEndpoints
                     ContextAreaId = a.ContextAreaId,
                     AreaAiPrompt = a.AreaAiPrompt ?? string.Empty,
                     AreaDescription = a.AreaDescription ?? string.Empty,
-                    ExpectedRequestDataFormat = a.ExpectedRequestDataFormat ?? string.Empty,
+                    TargetEntityType = a.TargetEntityType ?? string.Empty,
+                    KeyProperty = a.KeyProperty ?? string.Empty,
                     ContextualPrompts = a.ContextualPrompts!.Select(p => new ContextualPrompt
                     {
                         ContextualPromptId = p.ContextualPromptId,
@@ -146,6 +155,36 @@ public static class AliAiEndpoints
         {
             logger.LogError(e, "Error fetching contextual areas and prompts");
             return Results.Problem("An error occurred while fetching contextual areas and prompts.");
+        }
+    }
+
+    private static async Task<IResult> AddRequestToQueue(
+        AnalysisRequestDto dto,
+        PulseDbContext db,
+        ILoggerFactory loggerFactory)
+    {
+        var logger = loggerFactory.CreateLogger("AddRequestToQueue");
+
+        try
+        {
+            var newRequest = new AnalysisRequest
+            {
+                KeyValue = dto.KeyValue,
+                ApplicationUserId = dto.ApplicationUserId,
+                ContextualAreaID = dto.ContextualAreaID,
+                AnalysisTitle = dto.AnalysisTitle,
+                UserQuery = dto.UserQuery,
+                Status = "Queued",
+                QueuedAt = DateTime.UtcNow
+            };
+            db.AnalysisRequests.Add(newRequest);
+            await db.SaveChangesAsync();
+            return Results.Ok(ApiResponse.SuccessResponse("Request added to queue successfully."));
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error adding request to queue");
+            return Results.Problem("An error occurred while adding the request to the queue.");
         }
     }
 }
