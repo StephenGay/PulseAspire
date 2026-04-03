@@ -32,8 +32,9 @@ var PulseAI = builder.AddOllama("PulseAI")
                     .WithDataVolume("Pulse-Aspire-AI-Models")
                     .WithLifetime(ContainerLifetime.Persistent)
                     .WithGPUSupport()
-                    .WithOpenWebUI()
-                    .AddModel("gpt-oss:latest");
+                    .WithOpenWebUI();
+
+var flapperAI = PulseAI.AddModel("gpt-oss:latest");
 
 var TablesAI = builder.AddConnectionString("TablesAI");
 
@@ -41,10 +42,10 @@ var PulseApi = builder.AddProject<Projects.Pulse_ApiService>("PulseApi")
     .WithReference(cache)
     .WithReference(sqlDbResource)
     .WithHttpHealthCheck("/alive")
-    .WithReference(PulseAI)
+    .WithReference(flapperAI)
     .WithReference(TablesAI)
     .WaitFor(cache)
-    .WaitFor(PulseAI);
+    .WaitFor(flapperAI);
 
 var PulseWebUI = builder.AddProject<Projects.Pulse_Web>("PulseWebUI")
     .WithExternalHttpEndpoints()

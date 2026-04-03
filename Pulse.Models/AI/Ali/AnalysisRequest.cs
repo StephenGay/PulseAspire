@@ -26,10 +26,10 @@ public class AnalysisRequest
     public string? ErrorMessage { get; set; }
 
     // Optional: store the full JSON of the loaded object after retrieval (handy for debugging Ali)
-    //public string? LoadedObjectJson { get; set; }
+    public string? LoadedObjectJson { get; set; }
 
-    //public int? CurrentTurn { get; set; } = 0;                    // 0 = initial, 1+, clarification turns
-    //public string? LastClarificationQuestion { get; set; }        // Question Ali asked
-    //public string? LastUserClarificationAnswer { get; set; }      // User's Yes/No or short answer
-    //public string? FullConversationHistory { get; set; }
+    public int? CurrentTurn { get; set; } = 0;                    // 0 = initial, 1+, clarification turns
+    public string? LastClarificationQuestion { get; set; }        // Question Ali asked
+    public string? LastUserClarificationAnswer { get; set; }      // User's Yes/No or short answer
+    public string? FullConversationHistory { get; set; }
 }

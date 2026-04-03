@@ -72,6 +72,9 @@
     <None Update="Components\Pages\AiZone\AliPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Components\Pages\AiZone\FlapperPgv4.razor.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Components\Pages\AiZone\FlapperPg v3.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

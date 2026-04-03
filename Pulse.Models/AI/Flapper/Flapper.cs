@@ -173,7 +173,7 @@ namespace Pulse.Models.AI.Flapper
                 RESOURCE 2: 
                 A tool called "ask_tables" so if you decide the database might contain information you need, you can ask this tool to extract the relevant data for you.
                     INPUT: Pass a parameter to this tool called "query" which contains a natural language question or request for information. For example, you might ask "What are the top 5 most recent work orders?" or "Show me all customers in the Paper industry".
-                    OUTPUT: JSON string containing the results of the query OR a string describing an error.
+                    OUTPUT: Dictionary<string, object> containing the results of the query OR a string describing an error.
                  
                 RESOURCE 3: 
                 A tool called "web_search" that allows you to search the internet for additional information when the database does not contain what you need.

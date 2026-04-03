@@ -10,6 +10,7 @@ using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
 using Pulse.ApiService.Endpoints.Production;
 using Pulse.ApiService.Endpoints.Security;
+using Pulse.ApiService.Extensions;
 using Pulse.ApiService.Hubs;
 using Pulse.ApiService.Middleware;
 using Pulse.ApiService.PulseAI.Characters;
@@ -139,20 +140,48 @@ builder.Services.AddCors(options =>
 
 #region Pulse AI Integration
 
-var PulseAIUrl = builder.Configuration.GetConnectionString("LocalAI") ?? "http://localhost:11434";
-var TablesAIUrl = builder.Configuration.GetConnectionString("RemoteAI") ?? "http://192.168.0.5:11434";
+builder.AddOllamaApiClient("PulseAI").AddChatClient();                    // "ollama" must match your AppHost resource name
 
-builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
-    new PulseAiClientFactory(new Dictionary<string, string>
+// 3. Configure HttpClient timeout + resilience for long Ollama calls
+builder.Services.AddHttpClient("PulseAiClient", client =>
+{
+    client.Timeout = Timeout.InfiniteTimeSpan;    // Overall timeout
+})
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
     {
-        { "FlapperAliClient", PulseAIUrl },
-        { "TablesClient", TablesAIUrl }
-    }));
+        PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(15),
+        ConnectTimeout = TimeSpan.FromSeconds(30)
+    })
+.StopPollyTimeouts();
 
-builder.Services.AddScoped<TablesAPI>();
-builder.Services.AddScoped<AliAPI>();
-builder.Services.AddScoped<MessageHub>();
-//builder.Services.AddScoped<FlapperCharacter>();
+builder.Services.AddScoped<FlapperAPI>(sp =>
+{
+    var flapperClient = sp.GetRequiredService<IOllamaApiClient>();
+    var logger = sp.GetRequiredService<ILogger<FlapperAPI>>();
+    return new FlapperAPI(flapperClient, logger);
+});
+
+builder.Services.AddScoped<AliAPI>(sp =>
+{
+    var aliClient = sp.GetRequiredService<IOllamaApiClient>();
+    var logger = sp.GetRequiredService<ILogger<AliAPI>>();
+    return new AliAPI(aliClient, logger);
+});
+
+
+var remoteTablesUrl = builder.Configuration.GetConnectionString("RemoteAI")
+                   ?? "http://127.0.0.1:11434";
+
+builder.Services.AddHttpClient<TablesAPI>("tablesClient", client =>
+{
+    client.BaseAddress = new Uri(remoteTablesUrl);
+    client.Timeout = TimeSpan.FromMinutes(10);  // or whatever timeout you need
+})
+    .StopPollyTimeouts();
+
+
+
 #endregion
 
 #region Application Services
@@ -292,3 +321,42 @@ app.MapHub<MessageHub>("/messagehub");
 #endregion
 
 await app.RunAsync();
+
+
+#region old stuff
+
+//var PulseAIUrl = builder.Configuration.GetConnectionString("LocalAI") ?? "http://localhost:11434";
+//var TablesAIUrl = builder.Configuration.GetConnectionString("RemoteAI") ?? "http://192.168.0.5:11434";
+
+//builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
+//    new PulseAiClientFactory(new Dictionary<string, string>
+//    {
+//        { "FlapperAliClient", PulseAIUrl },
+//        { "TablesClient", TablesAIUrl }
+//    }));
+
+//builder.Services.AddScoped<TablesAPI>();
+//builder.Services.AddScoped<AliAPI>();
+//builder.Services.AddScoped<MessageHub>();
+//builder.Services.AddScoped<FlapperCharacter>();
+
+//builder.Services.AddHttpClient("PulseAiClient", flapperClient =>
+//{
+//    flapperClient.Timeout = TimeSpan.FromMinutes(10);           // Overall request timeout
+//})
+//.AddStandardResilienceHandler(options =>
+//{
+//    options.Retry.MaxRetryAttempts = 2;
+//    options.TotalRequestTimeout.Timeout = TimeSpan.FromMinutes(9);
+//    options.AttemptTimeout.Timeout = TimeSpan.FromMinutes(8);   // Per attempt timeout
+//});
+
+//// 1. Containerized Ollama for Ali (Aspire-managed)
+//builder.Services.AddOllamaApiClient("PulseAI", clientBuilder =>
+//{
+//    clientBuilder.ConfigureHttpClient(flapperClient => flapperClient.Timeout = TimeSpan.FromMinutes(10));
+//});                  // Aspire injects the correct endpoint automatically
+// .AddChatClient();     // Optional: clean IChatClient abstraction
+
+// 2. Keep your factory / config for the remote Tables Ollama (different machine)
+#endregion

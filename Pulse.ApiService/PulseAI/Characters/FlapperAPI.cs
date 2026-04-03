@@ -1,4 +1,5 @@
 ﻿using OllamaSharp;
+using OllamaSharp.Models;
 using OllamaSharp.Models.Chat;
 using Pulse.Models.AI.Flapper;
 using System.Text.Json;
@@ -11,79 +12,112 @@ public class FlapperAPI
     private readonly IOllamaApiClient _ollamaClient;
     private readonly ILogger<FlapperAPI> _logger;
 
-    public FlapperAPI(IOllamaApiClient ollamaClient, ILogger<FlapperAPI> logger)
+    public FlapperAPI(IOllamaApiClient client, ILogger<FlapperAPI> logger)
     {
-        _ollamaClient = ollamaClient;
+        _ollamaClient = client;
         _logger = logger;
     }
 
     public async Task<FlapperResponse> ProcessMessageAsync(FlapperConversation conv, string userMessage)
     {
-        // Build full history for context
-        var messages = conv.Messages.Select(m => new Message
+        try
         {
-            Role = m.Sender == "User" ? "user" : "assistant",
-            Content = m.Content
-        }).ToList();
+            // Build full history for context (this keeps the session alive)
+            var history = conv.Messages.Select(m => new Message
+            {
+                Role = m.Sender == "User" ? "user" : "assistant",
+                Content = m.Content
+            }).ToList();
 
-        var systemPrompt = """
-            You are Flapper, a helpful, friendly, and precise AI assistant.
-            When the user's request is ambiguous or you need clarification:
-            - Respond with EXACTLY this JSON and nothing else:
-              {"type": "clarification", "question": "Your clear yes/no question?"}
-            - Otherwise, give a normal helpful response in HTML.
+            var systemPrompt = """
+            You are Flapper, a helpful, friendly, and precise AI assistant in the Pulse system.
+
+            IMPORTANT RULES:
+            - If the user's request is clear, respond with a normal helpful answer **in HTML**.
+            - If the request is ambiguous or you need clarification (yes/no or short answer), 
+              respond with **EXACTLY** this JSON and **nothing else**:
+              {"type": "clarification", "question": "Your clear yes/no question here?"}
+
+            Examples:
+            User: Should I approve this order?
+            Assistant: {"type": "clarification", "question": "Do you want to approve this order?"}
+
+            User: Tell me about the client sales.
+            Assistant: <p>Here is the client sales summary...</p>
+
             Keep responses concise and professional.
             """;
 
-        var chatMessages = new List<Message>
+            var messages = new List<Message>
         {
             new Message { Role = "system", Content = systemPrompt }
         };
-        chatMessages.AddRange(messages);
-        chatMessages.Add(new Message { Role = "user", Content = userMessage });
+            messages.AddRange(history);
+            messages.Add(new Message { Role = "user", Content = userMessage });
 
-        var request = new ChatRequest
-        {
-            Model = "llama3.2",
-            Messages = chatMessages,
-            Stream = false,
-            Options = new RequestOptions { Temperature = 0.4 }
-        };
-
-        var response = await _ollamaClient.ChatAsync(request);
-        var rawReply = response?.Response?.Trim() ?? "";
-
-        // Detect clarification request
-        if (rawReply.StartsWith("{") && rawReply.Contains("\"type\": \"clarification\""))
-        {
-            try
+            var request = new ChatRequest
             {
-                var clar = JsonSerializer.Deserialize<ClarificationResponse>(rawReply);
-                if (clar?.Type == "clarification" && !string.IsNullOrEmpty(clar.Question))
+                Model = "llama3.2",                    // ← Use a model you actually have in your Ollama container
+                Messages = messages,
+                Stream = false,                        // Important: non-streaming for structured output
+                Options = new RequestOptions
                 {
-                    return new FlapperResponse
+                    Temperature = 0.3f,
+                    NumPredict = 1024
+                }
+            };
+
+            // === CORRECT WAY TO CALL ChatAsync in OllamaSharp ===
+            var response = await _ollamaClient.ChatAsync(request).FirstAsync();   // This fixes the awaiter error
+
+            var rawReply = response?.Message?.Content?.Trim() ?? string.Empty;
+
+            // Detect clarification JSON
+            if (rawReply.StartsWith("{", StringComparison.Ordinal) &&
+                rawReply.Contains("\"type\": \"clarification\"", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var clar = JsonSerializer.Deserialize<ClarificationResponse>(rawReply);
+                    if (clar?.Type == "clarification" && !string.IsNullOrWhiteSpace(clar.Question))
                     {
-                        Success = true,
-                        RequiresClarification = true,
-                        ClarificationQuestion = clar.Question,
-                        RawContent = clar.Question
-                    };
+                        return new FlapperResponse
+                        {
+                            Success = true,
+                            RequiresClarification = true,
+                            ClarificationQuestion = clar.Question.Trim(),
+                            RawContent = clar.Question
+                        };
+                    }
+                }
+                catch (JsonException)
+                {
+                    // Fall through - treat as normal response if JSON parse fails
                 }
             }
-            catch { /* fall through to normal response */ }
-        }
 
-        return new FlapperResponse
+            // Normal response
+            return new FlapperResponse
+            {
+                Success = true,
+                RequiresClarification = false,
+                Content = rawReply,
+                RawContent = rawReply
+            };
+        }
+        catch (Exception ex)
         {
-            Success = true,
-            RequiresClarification = false,
-            Content = rawReply,
-            RawContent = rawReply
-        };
+            _logger.LogError(ex, "Flapper ProcessMessageAsync failed");
+            return new FlapperResponse
+            {
+                Success = false,
+                Content = "Sorry, I encountered an error while processing your request."
+            };
+        }
     }
 }
 
-public record ClarificationResponse(string Type, string Question);
+    public record ClarificationResponse(string Type, string Question);
 
 public class FlapperResponse
 {

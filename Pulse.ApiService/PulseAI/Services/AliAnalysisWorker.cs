@@ -53,6 +53,15 @@ public class AliAnalysisWorker : BackgroundService
             next.Status = "Processing";
             await db.SaveChangesAsync(stoppingToken);
 
+            var pulseMessage = new PulseMessage
+            {
+                SenderUserName = "Ali",
+                RecipientUserId = next.ApplicationUserId,
+                Role = "PulseAI",
+                Subject = next.AnalysisTitle ?? "Analysis By Ali",
+                ContentType = "HTML"
+            };
+
             try
             {
                 var reqDto = new AnalysisRequestDto(
@@ -78,56 +87,53 @@ public class AliAnalysisWorker : BackgroundService
                     throw new InvalidOperationException($"Ali analysis failed: {result.Message}");
                 }
 
-                // Send message via hub (inside scope)
-                var pulseMessage = new PulseMessage
-                {
-                    SenderUserName = "Ali",
-                    RecipientUserId = next.ApplicationUserId,
-                    Role = "PulseAI",
-                    Subject = next.AnalysisTitle ?? "Analysis Complete",
-                    ContentType = "HTML",
-                    Content = result.Data
-                };
-
-                // === Lookup RecipientUserName if missing (matches your hub logic) ===
-                if (string.IsNullOrEmpty(pulseMessage.RecipientUserName))
-                {
-                    var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-                    var user = await userManager.FindByIdAsync(next.ApplicationUserId.ToString());
-                    pulseMessage.RecipientUserName = user?.FullName ?? "Unknown Recipient";
-                }
-
-                // === SAVE TO DATABASE FIRST (critical - matches hub) ===
-                db.PulseMessages.Add(pulseMessage);
-                await db.SaveChangesAsync(stoppingToken);
-
-                // === SEND USING PRESENCE SERVICE (exact match to your SendPrivateMessage) ===
-                var recipientConnectionIds = presenceService.GetUserConnectionIds(next.ApplicationUserId);
-
-                if (recipientConnectionIds.Any())
-                {
-                    await hubContext.Clients.Clients(recipientConnectionIds.ToList())
-                                    .SendAsync("ReceiveMessage", pulseMessage);
-
-                    _logger.LogInformation("Ali private message sent to user {UserId} ({Count} connections) for request {RequestId}",
-                        next.ApplicationUserId, recipientConnectionIds.Count(), next.Id);
-                }
-                else
-                {
-                    _logger.LogWarning("Recipient {UserId} not online. Message saved to DB but not delivered live. RequestId: {RequestId}",
-                        next.ApplicationUserId, next.Id);
-                }
                 next.ResultSummary = result.Data;
                 next.Status = "Completed";
+                pulseMessage.Subject = "Completed: " + pulseMessage.Subject;
+                pulseMessage.Content = result.Data;
+
+                
+
+                
             }
             catch (Exception ex)
             {
                 next.Status = "Failed";
                 next.ErrorMessage = ex.Message;
+                pulseMessage.Subject = "Error: " + pulseMessage.Subject;
+                pulseMessage.Content = $"<p>Ali analysis failed: {ex.Message}</p>";
                 _logger.LogError(ex, "Ali analysis failed for request {RequestId}", next.Id);
             }
 
             await db.SaveChangesAsync(stoppingToken);
+
+            // === Lookup RecipientUserName if missing (matches your hub logic) ===
+            if (string.IsNullOrEmpty(pulseMessage.RecipientUserName))
+            {
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+                var user = await userManager.FindByIdAsync(next.ApplicationUserId.ToString());
+                pulseMessage.RecipientUserName = user?.FullName ?? "Unknown Recipient";
+            }
+            // === SAVE TO DATABASE FIRST (critical - matches hub) ===
+            db.PulseMessages.Add(pulseMessage);
+            await db.SaveChangesAsync(stoppingToken);
+
+            // === SEND USING PRESENCE SERVICE (exact match to your SendPrivateMessage) ===
+            var recipientConnectionIds = presenceService.GetUserConnectionIds(next.ApplicationUserId);
+
+            if (recipientConnectionIds.Any())
+            {
+                await hubContext.Clients.Clients(recipientConnectionIds.ToList())
+                                .SendAsync("ReceiveMessage", pulseMessage);
+
+                _logger.LogInformation("Ali private message sent to user {UserId} ({Count} connections) for request {RequestId}",
+                    next.ApplicationUserId, recipientConnectionIds.Count(), next.Id);
+            }
+            else
+            {
+                _logger.LogWarning("Recipient {UserId} not online. Message saved to DB but not delivered live. RequestId: {RequestId}",
+                    next.ApplicationUserId, next.Id);
+            }
         }
     }
 

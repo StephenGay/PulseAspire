@@ -18,3 +18,9 @@ public class FlapperMessage
     public bool IsClarificationQuestion { get; set; } = false;
     public string? ClarificationType { get; set; } = "YesNo"; // YesNo | ShortAnswer
 }
+
+public class FlapperMessageDto
+{
+    public string Sender { get; set; } = string.Empty;
+    public string Content { get; set; } = string.Empty;
+}

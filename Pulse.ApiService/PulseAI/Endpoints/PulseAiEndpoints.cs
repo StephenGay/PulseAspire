@@ -38,7 +38,7 @@ public static class PulseAiEndpoints
         {
             if (request.AiName == AiName.Tables)
             {
-                request.ModelName = "sqlcoder:latest";
+                request.ModelName = "gpt-oss:latest";
                 var response = await tablesAPI.AskTablesAsync(request);
                 return response.Success ? Results.Ok(response) : Results.BadRequest(response);
             }

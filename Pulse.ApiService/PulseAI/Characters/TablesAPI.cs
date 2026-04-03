@@ -12,6 +12,7 @@ namespace Pulse.ApiService.PulseAI.Characters;
 public class TablesAPI
 {
     private readonly AiShared _aiShared;
+    private readonly HttpClient _tablesClient;
     private readonly IPulseAiClientFactory _aiClientFactory;
     private readonly IDbContextFactory<PulseDbContext> _dbFactory;
     private readonly ILogger<TablesAPI> _logger;
@@ -22,11 +23,13 @@ public class TablesAPI
 
     public TablesAPI(
         AiShared aiShared,
-        IPulseAiClientFactory aiClientFactory,
+        HttpClient tablesClient,
+    IPulseAiClientFactory aiClientFactory,
         IDbContextFactory<PulseDbContext> dbFactory,
         ILogger<TablesAPI> logger)
     {
         _aiShared = aiShared;
+        _tablesClient = tablesClient;
         _aiClientFactory = aiClientFactory;
         _dbFactory = dbFactory;
         _logger = logger;
@@ -48,7 +51,7 @@ public class TablesAPI
         try
         {
             _logger.LogInformation("Tables AI request: {Question}, Session: {SessionId}",
-                request.UserRequest, response.SessionId);
+                request.UserRequest.Content, response.SessionId);
 
             // Get or create chat session
             var chat = GetOrCreateChatSession(response.SessionId, response.ModelUsed);
@@ -104,6 +107,7 @@ public class TablesAPI
             if (queryResult.Success && queryResult.Data?.Any() == true)
             {
                 response.Data = queryResult.Data;
+                _logger.LogInformation("Tables found and is returning data.");
             }
 
             return ApiResponse<List<Dictionary<string, object>>>.SuccessResponse(response.Data);
@@ -128,8 +132,7 @@ public class TablesAPI
         {
             if (!_sessions.TryGetValue(sessionId, out var chat))
             {
-                var client = _aiClientFactory.GetClient("TablesClient");
-                chat = new Chat(client)
+                chat = new Chat((IOllamaApiClient)_tablesClient)
                 {
                     Model = modelName
                 };

@@ -16,67 +16,81 @@ namespace Pulse.ApiService.PulseAI.Characters
     public class AliAPI
     {
 
-        private readonly AiShared _aiShared;
-        private readonly IPulseAiClientFactory _aiClientFactory;
-        private readonly IDbContextFactory<PulseDbContext> _dbFactory;
+        //private readonly AiShared _aiShared;
+        private readonly IOllamaApiClient _ollamaClient;
+        //private readonly IPulseAiClientFactory _aiClientFactory;
+        //private readonly IDbContextFactory<PulseDbContext> _dbFactory;
         private readonly ILogger<AliAPI> _logger;
         // Session management - stores chat history per session
-        private static readonly Dictionary<string, Chat> _sessions = new(StringComparer.OrdinalIgnoreCase);
-        private static readonly object _sessionLock = new object();
+        //private static readonly Dictionary<string, Chat> _sessions = new(StringComparer.OrdinalIgnoreCase);
+        //private static readonly object _sessionLock = new object();
 
         public AliAPI(
-            AiShared aiShared,
-            IPulseAiClientFactory aiClientFactory,
-            IDbContextFactory<PulseDbContext> dbFactory,
+            //AiShared aiShared,
+            IOllamaApiClient ollamaClient,
+            //IPulseAiClientFactory aiClientFactory,
+            //IDbContextFactory<PulseDbContext> dbFactory,
             ILogger<AliAPI> logger)
         {
-            _aiShared = aiShared;
-            _aiClientFactory = aiClientFactory;
-            _dbFactory = dbFactory;
+            //_aiShared = aiShared;
+            _ollamaClient = ollamaClient;
+            //_dbFactory = dbFactory;
             _logger = logger;
 
         }
 
         public async Task<ApiResponse<string>> AnalyseWithAliAsync(ContextualArea context, object entity, string userQuery)
         {
-            string SessionId = Guid.NewGuid().ToString();
+            //string SessionId = Guid.NewGuid().ToString();
             try
             {
-                var client = _aiClientFactory.GetClient("FlapperAliClient");
+                //var client = _aiClientFactory.GetClient("FlapperAliClient");
                 // Get or create session
-                Chat chat = new Chat(client)
+                //Chat chat = new Chat(client)
+                //{
+                //    Model = "gpt-oss:latest"
+                //};
+                //lock (_sessionLock)
+                //{
+                //    _sessions[SessionId] = chat;
+                //}
+                var prompt = $"{context.AreaAiPrompt}\n\nEntity Data: {System.Text.Json.JsonSerializer.Serialize(entity)}\n\nRespond with a concise answer to the following user query based on the provided context and entity data.\n\nUser Query: {userQuery}";
+
+                var chat = new ChatRequest
                 {
-                    Model = "gpt-oss:latest"
+                    Model = "gpt-oss:latest",   // or pull from config
+                    Messages = [new Message { Role = "user", Content = prompt }]
                 };
-                lock (_sessionLock)
-                {
-                    _sessions[SessionId] = chat;
-                }
-                var sysPrompt = $"{context.AreaAiPrompt}\n\nEntity Data: {System.Text.Json.JsonSerializer.Serialize(entity)}\n\nRespond with a concise answer to the following user query based on the provided context and entity data.";
 
-                await foreach (var chunk in chat.SendAsync(sysPrompt, CancellationToken.None))
-                {
-                    // Just consume the stream to complete the system message
-                }
+                var response = await _ollamaClient.ChatAsync(chat).FirstAsync();
+                var resultText = string.Join("", response?.Message?.Content ?? string.Empty);
 
-                _logger.LogInformation("System prompt initialized for session {SessionId}", SessionId);
+                return new ApiResponse<string>{ Data = resultText, Success = true };
 
-                var ResponseBuilder = new StringBuilder();
-                await foreach (var chunk in chat.SendAsync(userQuery, CancellationToken.None))
-                {
-                    ResponseBuilder.Append(chunk);
-                }
-                var aliResponse = ParseToHtml(ResponseBuilder.ToString());
+
+                //await foreach (var chunk in chat.SendAsync(sysPrompt, CancellationToken.None))
+                //{
+                //    // Just consume the stream to complete the system message
+                //}
+
+                //_logger.LogInformation("System prompt initialized for session {SessionId}", SessionId);
+
+                //var ResponseBuilder = new StringBuilder();
+                //await foreach (var chunk in chat.SendAsync(userQuery, CancellationToken.None))
+                //{
+                //    ResponseBuilder.Append(chunk);
+                //}
+                //var aliResponse = ParseToHtml(ResponseBuilder.ToString());
                 
-                // Log the interaction (you can expand this to log more details as needed)
-                _logger.LogInformation("Session {SessionId}: User: {UserQuery} | Ali: {AliResponse}",
-                    SessionId, userQuery, aliResponse);
-                return new ApiResponse<string> { Success = true, Data = aliResponse, Timestamp = DateTime.UtcNow };
+                //// Log the interaction (you can expand this to log more details as needed)
+                //_logger.LogInformation("Session {SessionId}: User: {UserQuery} | Ali: {AliResponse}",
+                //    SessionId, userQuery, aliResponse);
+                //return new ApiResponse<string> { Success = true, Data = aliResponse, Timestamp = DateTime.UtcNow };
                 
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in AskAliAsync for Session {SessionId}", SessionId);
+                _logger.LogError(ex, "Error in AskAliAsync");
                 return ApiResponse<string>.ErrorResponse("An error occurred while processing the request.");
             }
         }

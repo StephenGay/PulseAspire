@@ -1,11 +1,11 @@
-// Cleaned & Optimized Pulse.Web/Program.cs
+ï»¿// Cleaned & Optimized Pulse.Web/Program.cs
 // Key Fixes:
 // - Removed duplicates (TokenStorageService)
 // - Simplified circuit handler registration (single line, scoped)
 // - Removed unnecessary AddControllers() (Blazor Server doesn't need MVC controllers)
 // - Ensured antiforgery skips SignalR paths (assuming /messagehub or similar)
-// - Kept custom JWT auth (no server-side JwtBearer — handled manually via AuthService)
-// - Added CascadingAuthenticationState (already present — required for custom provider)
+// - Kept custom JWT auth (no server-side JwtBearer â€” handled manually via AuthService)
+// - Added CascadingAuthenticationState (already present â€” required for custom provider)
 // - Uncommented/added hub mapping placeholder (adjust to your actual hub, e.g., MessageHub)
 // - Minor cleanups: removed redundant comments, ensured logical service order
 
@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Http;
 using Microsoft.FluentUI.AspNetCore.Components;
+using Pulse.ApiService.Extensions;
 using Pulse.Models.Misc;
 using Pulse.Models.Users;
 using Pulse.Web.Components;
@@ -26,6 +27,16 @@ using Toolbelt.Blazor.Extensions.DependencyInjection;
 var builder = WebApplication.CreateBuilder(args);
 
 #region Aspire Scaffolding
+builder.Services.ConfigureHttpClientDefaults(http =>
+{
+    // Don't add resilience - we'll control it per client
+    http.UseSocketsHttpHandler((handler, sp) =>
+    {
+        handler.PooledConnectionLifetime = TimeSpan.FromMinutes(15);
+    });
+});
+
+
 builder.AddServiceDefaults();
 builder.AddRedisDistributedCache("cache");
 builder.AddRedisOutputCache("cache");
@@ -58,7 +69,8 @@ builder.Services.AddHttpClient<OllamaService>("OllamaClient", client =>
     client.BaseAddress = new Uri(ollamaEndpoint);
     client.Timeout = Timeout.InfiniteTimeSpan;
 })
-.ClearResilienceHandlers();
+.StopPollyTimeouts();
+
 
 // Pulse API HttpClient (with auth header handler for JWT)
 builder.Services.AddHttpClient<PulseApiService>("PulseApiClient", client =>
@@ -66,8 +78,9 @@ builder.Services.AddHttpClient<PulseApiService>("PulseApiClient", client =>
     client.BaseAddress = new Uri(pulseApiEndpoint);
     client.Timeout = Timeout.InfiniteTimeSpan;
 })
-.ClearResilienceHandlers()
+.StopPollyTimeouts()
 .AddHttpMessageHandler<AuthHeaderHandler>();
+
 #endregion
 
 #region Authentication & Authorization (Custom JWT via AuthService)
