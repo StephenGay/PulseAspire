@@ -9,12 +9,12 @@ namespace Pulse.ApiService.PulseAI.Characters;
 // Pulse.ApiService/PulseAI/Characters/FlapperAPI.cs   (or FlapperCharacter)
 public class FlapperAPI
 {
-    private readonly IOllamaApiClient _ollamaClient;
+    private readonly IOllamaApiClient _flapperClient;
     private readonly ILogger<FlapperAPI> _logger;
 
     public FlapperAPI(IOllamaApiClient client, ILogger<FlapperAPI> logger)
     {
-        _ollamaClient = client;
+        _flapperClient = client;
         _logger = logger;
     }
 
@@ -57,7 +57,7 @@ public class FlapperAPI
 
             var request = new ChatRequest
             {
-                Model = "llama3.2",                    // ← Use a model you actually have in your Ollama container
+                Model = "gpt-oss:latest",                    // ← Use a model you actually have in your Ollama container
                 Messages = messages,
                 Stream = false,                        // Important: non-streaming for structured output
                 Options = new RequestOptions
@@ -68,7 +68,7 @@ public class FlapperAPI
             };
 
             // === CORRECT WAY TO CALL ChatAsync in OllamaSharp ===
-            var response = await _ollamaClient.ChatAsync(request).FirstAsync();   // This fixes the awaiter error
+            var response = await _flapperClient.ChatAsync(request).FirstAsync();   // This fixes the awaiter error
 
             var rawReply = response?.Message?.Content?.Trim() ?? string.Empty;
 
@@ -117,13 +117,4 @@ public class FlapperAPI
     }
 }
 
-    public record ClarificationResponse(string Type, string Question);
-
-public class FlapperResponse
-{
-    public bool Success { get; set; }
-    public string? Content { get; set; }
-    public string? RawContent { get; set; }
-    public bool RequiresClarification { get; set; }
-    public string? ClarificationQuestion { get; set; }
-}
+    

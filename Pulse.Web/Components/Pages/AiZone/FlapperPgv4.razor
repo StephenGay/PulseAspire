@@ -8,11 +8,15 @@
 @using Pulse.Web.Components.Pages.AiZone
 @using Pulse.Web.Services
 
-@inject HubConnection HubConnection 
+@inject NavigationManager NavigationManager
+@inject MessageHubService MsgHubService
+@inject PulseApiService PulseApi
+@* @inject HubConnection HubConnection  *@
 @inject HttpClient Http
 @inject IPulseToastService ToastService
 @inject AuthService authService
 
+@implements IAsyncDisposable
 @rendermode InteractiveServer
 
 <FluentStack Orientation="Orientation.Vertical" VerticalGap="10" Style="height: 100%;">
@@ -57,7 +61,8 @@
 </FluentStack>
 
 
-@code{
+    @code{
+    // private HubConnection? HubConnection { get; set; }
     private List<FlapperMessageDto> Messages { get; set; } = new();
     private string CurrentUserMessage { get; set; } = string.Empty;
     private bool IsAwaitingClarification { get; set; } = false;
@@ -66,12 +71,15 @@
 
     protected override async Task OnInitializedAsync()
     {
+        await MsgHubService.EnsureConnectedAsync();
         // Setup SignalR connection
-        HubConnection.On<PulseMessage>("ReceiveMessage", OnMessageReceived);
-        await HubConnection.StartAsync();
+        MsgHubService.OnReceiveMessage += 
+                OnFlapperMessageReceived;
+            
+        
 
         // Optional: Load conversation history
-        await LoadConversationHistoryAsync();
+        // await LoadConversationHistoryAsync();
     }
 
     private async Task SendMessageAsync()
@@ -93,7 +101,8 @@
             userMsg
         );
 
-        await Http.PostAsJsonAsync(ApiEndpoints.PulseAi.Flapper.Chat, request);
+        await Http.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.Flapper.Chat, request);
+        // await PulseApi.PostAsync<FlapperChatRequest,string>(ApiEndpoints.PulseAi.Flapper.Chat, request);
     }
 
     private async Task SendQuickReplyAsync(string answer)
@@ -111,7 +120,8 @@
             answer   // Yes / No becomes the next user message
         );
 
-        await Http.PostAsJsonAsync(ApiEndpoints.PulseAi.Flapper.Chat, request);
+        await Http.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.Flapper.Chat, request);
+        // await PulseApi.PostAsync<FlapperChatRequest, object>(ApiEndpoints.PulseAi.Flapper.Chat, request);
 
         // Reset clarification UI
         IsAwaitingClarification = false;
@@ -127,11 +137,16 @@
         StateHasChanged();
     }
 
-    private async Task OnMessageReceived(PulseMessage msg)
+    private async void OnFlapperMessageReceived(PulseMessage msg)
     {
+        
+        if (msg.Role != "Flapper")
+        {
+            return;
+        }
         Messages.Add(new FlapperMessageDto
         {
-            Sender = msg.SenderUserName,
+            Sender = "Flapper",
             Content = msg.Content
         });
 
@@ -142,7 +157,7 @@
             CurrentClarificationQuestion = ExtractQuestionFromHtml(msg.Content);
         }
 
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private string ExtractQuestionFromHtml(string htmlContent)
@@ -165,7 +180,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (HubConnection is not null)
-            await HubConnection.DisposeAsync();
+        MsgHubService.OnReceiveMessage -= OnFlapperMessageReceived;
     }
 }

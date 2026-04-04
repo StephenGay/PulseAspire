@@ -173,12 +173,22 @@ builder.Services.AddScoped<AliAPI>(sp =>
 var remoteTablesUrl = builder.Configuration.GetConnectionString("RemoteAI")
                    ?? "http://127.0.0.1:11434";
 
-builder.Services.AddHttpClient<TablesAPI>("tablesClient", client =>
-{
-    client.BaseAddress = new Uri(remoteTablesUrl);
-    client.Timeout = TimeSpan.FromMinutes(10);  // or whatever timeout you need
-})
-    .StopPollyTimeouts();
+var TablesAIUrl = builder.Configuration.GetConnectionString("RemoteAI") ?? "http://127.0.0.1:11434";
+
+builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
+    new PulseAiClientFactory(new Dictionary<string, string>
+    {
+        //{ "FlapperAliClient", PulseAIUrl },
+        { "TablesClient", TablesAIUrl }
+    }));
+
+builder.Services.AddScoped<TablesAPI>();
+//builder.Services.AddHttpClient<TablesAPI>("tablesClient", client =>
+//{
+//    client.BaseAddress = new Uri(remoteTablesUrl);
+//    client.Timeout = TimeSpan.FromMinutes(10);  // or whatever timeout you need
+//})
+//    .StopPollyTimeouts();
 
 
 
@@ -293,6 +303,7 @@ app.MapCompanyEndpoints();
 app.MapWorkTypeEndpoints();
 app.MapPulseAiEndpoints();
 app.MapAliEndpoints();
+app.MapFlapperEndpoints();
 
 // SignalR Hub
 app.MapHub<MessageHub>("/messagehub");

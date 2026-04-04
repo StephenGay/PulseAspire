@@ -12,7 +12,7 @@ namespace Pulse.ApiService.PulseAI.Characters;
 public class TablesAPI
 {
     private readonly AiShared _aiShared;
-    private readonly HttpClient _tablesClient;
+    //private readonly HttpClient _tablesClient;
     private readonly IPulseAiClientFactory _aiClientFactory;
     private readonly IDbContextFactory<PulseDbContext> _dbFactory;
     private readonly ILogger<TablesAPI> _logger;
@@ -23,14 +23,14 @@ public class TablesAPI
 
     public TablesAPI(
         AiShared aiShared,
-        HttpClient tablesClient,
-    IPulseAiClientFactory aiClientFactory,
+        IPulseAiClientFactory aiClientFactory,
+        //HttpClient tablesClient,
         IDbContextFactory<PulseDbContext> dbFactory,
         ILogger<TablesAPI> logger)
     {
         _aiShared = aiShared;
-        _tablesClient = tablesClient;
         _aiClientFactory = aiClientFactory;
+        //_tablesClient = tablesClient;
         _dbFactory = dbFactory;
         _logger = logger;
 
@@ -132,7 +132,9 @@ public class TablesAPI
         {
             if (!_sessions.TryGetValue(sessionId, out var chat))
             {
-                chat = new Chat((IOllamaApiClient)_tablesClient)
+                //chat = new Chat((IOllamaApiClient)_tablesClient)
+                var client = _aiClientFactory.GetClient("TablesClient");
+                chat = new Chat(client)
                 {
                     Model = modelName
                 };

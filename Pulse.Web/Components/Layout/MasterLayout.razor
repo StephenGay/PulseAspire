@@ -285,6 +285,7 @@
     {
         try
         {
+            if (msg.Role == "Flapper") { return; } // Ignore Flapper messages in the general message bar - they will be handled in the Flapper component}
 
             // Update UI state on the renderer thread
             await dataTrf.AddgvUserMessage(msg);

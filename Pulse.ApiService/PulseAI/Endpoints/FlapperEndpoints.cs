@@ -14,6 +14,7 @@ public static class FlapperEndpoints
     public static void MapFlapperEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/PulseAI/Flapper").WithTags("FlapperEndpoints");
+
         group.MapPost("/chat", async (
             FlapperChatRequest req,
             FlapperAPI flapper,
@@ -22,11 +23,30 @@ public static class FlapperEndpoints
             PresenceService presence) =>
         {
             var conversation = await db.FlapperConversations
-                .Include(c => c.Messages)
                 .FirstOrDefaultAsync(c => c.Id == req.ConversationId && c.UserId == req.UserId);
 
             if (conversation == null)
-                return Results.NotFound();
+            {
+                conversation = new FlapperConversation
+                {
+                    Id = req.ConversationId,
+                    UserId = req.UserId,
+                    Title = "Flapper Chat"
+                };
+                db.FlapperConversations.Add(conversation);
+            }
+
+            // Save user message
+            var userMessage = new FlapperMessage
+            {
+                ConversationId = conversation.Id,
+                Sender = "User",
+                Content = req.Message,
+                SentAt = DateTime.UtcNow
+            };
+
+            db.FlapperMessages.Add(userMessage);
+            await db.SaveChangesAsync();
 
             conversation.LastActivity = DateTime.UtcNow;
 
@@ -43,7 +63,7 @@ public static class FlapperEndpoints
                 IsClarificationQuestion = result.RequiresClarification
             };
 
-            conversation.Messages.Add(flapperMsg);
+            db.FlapperMessages.Add(flapperMsg);
             await db.SaveChangesAsync();
 
             // Send via SignalR (real-time)
@@ -51,7 +71,7 @@ public static class FlapperEndpoints
             {
                 SenderUserName = "Flapper",
                 RecipientUserId = req.UserId,
-                Role = "PulseAI",
+                Role = "Flapper",
                 Subject = result.RequiresClarification ? "Clarification Needed" : "Flapper Reply",
                 ContentType = "HTML",
                 Content = result.RequiresClarification
@@ -63,10 +83,9 @@ public static class FlapperEndpoints
             await hubContext.Clients.User(req.UserId).SendAsync("ReceiveMessage", pulseMsg);
 
             return Results.Ok(new { requiresClarification = result.RequiresClarification });
-        })
-        .RequireAuthorization();
+        });
+        //.RequireAuthorization();
     }
 }
 
 // Simple request DTO
-public record FlapperChatRequest(string UserId, Guid ConversationId, string Message);

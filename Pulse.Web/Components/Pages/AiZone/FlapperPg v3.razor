@@ -333,7 +333,7 @@
     // private List<string>? ollamaModels = new();
     // Multi-turn chat history
     private List<OllamaMessage> chatHistory = new();
-
+    private List<OllamaMessage> currMsgs = new();
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
     private bool _isListening = false;
@@ -821,7 +821,7 @@
         }
 
         var tools = BuildFlapperTools();
-        var currMsgs = new List<OllamaMessage>();
+        currMsgs = new List<OllamaMessage>();
 
         currMsgs.Add(new OllamaMessage { Role = "system", Content = flapperSystemPrompt });
         currMsgs.AddRange(newMessages);
@@ -980,8 +980,8 @@
             if (chunk.Done)
             {
                 // ✅ ALWAYS add the assistant message to history
-                // accumulatedMessage.Role = "assistant";
-                // currMsgs.Add(accumulatedMessage);
+                accumulatedMessage.Role = "assistant";
+                currMsgs.Add(accumulatedMessage);
                 // chatHistory.Add(accumulatedMessage);
 
                 if (accumulatedMessage.ToolCalls is { Count: > 0 })
@@ -1000,7 +1000,7 @@
                     // await Task.Delay(5, ct);
 
                     // Process tool calls (they'll add results to newMessages)
-                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls, currMsgs, context, ct);
+                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls,context, ct);
                     if (toolError != null)
                     {
                         yield return $"Error: {toolError}";
@@ -1009,15 +1009,17 @@
 
                     // Recursive call with updated history (WITHOUT system message)
                     await foreach (var recursiveChunk in FlapperStream(
-                        currMsgs, 
+                        currMsgs,
                         context,  // ← Pass context to recursive call
-                        ct, 
-                        qryLoop + 1, 
-                        inThinking, 
+                        ct,
+                        qryLoop + 1,
+                        inThinking,
                         failedAttempts))
                     {
                         yield return recursiveChunk;
                     }
+                    // Recursive call with updated history (WITHOUT system message)
+                    // FlapperStream(currMsgs, context, ct, qryLoop + 1, inThinking, failedAttempts);
                 }
                 break;
             }
@@ -1161,7 +1163,6 @@
     /// </summary>
     private async Task<string?> ProcessToolCallsAsync(
     List<OllamaToolCall> toolCalls,
-    List<OllamaMessage> currMsgs,
     QueryContext context,  // ← Add QueryContext parameter
     CancellationToken ct)
     {

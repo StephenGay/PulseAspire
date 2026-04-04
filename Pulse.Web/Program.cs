@@ -11,9 +11,11 @@
 
 using Aspire.StackExchange.Redis;
 using BlazorAnimation;
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.FluentUI.AspNetCore.Components;
 using Pulse.ApiService.Extensions;
 using Pulse.Models.Misc;
@@ -110,6 +112,16 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<ICircuitState, CircuitState>();
 builder.Services.AddScoped<CircuitHandler, CircuitIdService>();
 #endregion
+
+// In Pulse.Web/Program.cs
+builder.Services.AddSingleton<HubConnection>(sp =>
+{
+    var navigationManager = sp.GetRequiredService<NavigationManager>();
+    return new HubConnectionBuilder()
+        .WithUrl(navigationManager.ToAbsoluteUri("/messagehub"))
+        .WithAutomaticReconnect()
+        .Build();
+});
 
 #region UI Frameworks & Tools
 builder.Services.AddSingleton<IPulseToastService, PulseToastService>();
