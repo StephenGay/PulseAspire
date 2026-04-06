@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405165915_Modify_Ai2")]
+    partial class Modify_Ai2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -315,12 +318,10 @@ namespace Pulse.ApiService.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ClarificationType")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Content")
                         .IsRequired()
@@ -328,10 +329,12 @@ namespace Pulse.ApiService.Migrations
 
                     b.Property<string>("ContentType")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<Guid>("ConversationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("FlapperConversationId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("IsClarificationQuestion")
@@ -339,21 +342,17 @@ namespace Pulse.ApiService.Migrations
 
                     b.Property<string>("Sender")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("SentAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("ToolName")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("UserAnswer")
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ConversationId");
+                    b.HasIndex("FlapperConversationId");
 
                     b.ToTable("FlapperMessages", "pai");
                 });
@@ -3055,13 +3054,9 @@ namespace Pulse.ApiService.Migrations
 
             modelBuilder.Entity("Pulse.Models.AI.Flapper.FlapperMessage", b =>
                 {
-                    b.HasOne("Pulse.Models.AI.Flapper.FlapperConversation", "Conversation")
+                    b.HasOne("Pulse.Models.AI.Flapper.FlapperConversation", null)
                         .WithMany("Messages")
-                        .HasForeignKey("ConversationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Conversation");
+                        .HasForeignKey("FlapperConversationId");
                 });
 
             modelBuilder.Entity("Pulse.Models.Compounds.Compound", b =>

@@ -13,9 +13,9 @@ public class FlapperConversationMap : IEntityTypeConfiguration<FlapperConversati
     public void Configure(EntityTypeBuilder<FlapperConversation> builder)
     {
         // Table name (optional - EF will default to "FlapperConversations" if omitted)
-        builder.ToTable("FlapperConversations","pai")
-                .HasMany(c => c.Messages)
-                .WithOne()
-                .HasForeignKey(m => m.ConversationId);
+        builder.ToTable("FlapperConversations", "pai");
+                //.HasMany(c => c.Messages)
+                //.WithOne()
+                //.HasForeignKey(m => m.ConversationId);
     }
 }

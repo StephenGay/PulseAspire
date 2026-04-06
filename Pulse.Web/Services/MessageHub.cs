@@ -23,6 +23,7 @@ public class MessageHubService : IAsyncDisposable
 
     // Events for components to subscribe
     public event Action<PulseMessage>? OnReceiveMessage;
+    public event Action<PulseMessage>? OnReceiveFlapperChunk;
     public event Action<List<PulseMessage>>? OnLoadHistory;
     public event Action<List<UserPresenceDto>>? OnPresenceListUpdated;
 
@@ -99,6 +100,18 @@ public class MessageHubService : IAsyncDisposable
                     catch (Exception ex)
                     {
                         _logger?.LogError(ex, "Error handling ReceiveMessage");
+                    }
+                });
+
+                _hubConnection.On<PulseMessage>("ReceiveFlapperChunk", msg =>
+                {
+                    try
+                    {
+                        OnReceiveFlapperChunk?.Invoke(msg);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Error handling ReceiveFlapperChunk");
                     }
                 });
 

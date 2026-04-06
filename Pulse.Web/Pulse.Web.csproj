@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.2.0" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.2.1" />
     <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="13.2.0" />
     <PackageReference Include="Blazor.SessionStorage" Version="9.0.1" />
     <PackageReference Include="BlazorAnimation" Version="2.2.0" />
@@ -70,6 +70,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\AiZone\AliPg.razor.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Components\Pages\AiZone\FlapperPg v5.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\AiZone\FlapperPgv4.razor.css">

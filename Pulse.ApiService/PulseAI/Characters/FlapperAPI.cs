@@ -1,120 +1,187 @@
-﻿using OllamaSharp;
-using OllamaSharp.Models;
-using OllamaSharp.Models.Chat;
+﻿// Pulse.ApiService/PulseAI/Characters/FlapperAPI.cs
+using Microsoft.Extensions.AI;
 using Pulse.Models.AI.Flapper;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Pulse.ApiService.PulseAI.Characters;
 
-// Pulse.ApiService/PulseAI/Characters/FlapperAPI.cs   (or FlapperCharacter)
 public class FlapperAPI
 {
-    private readonly IOllamaApiClient _flapperClient;
+    private readonly IChatClient _chatClient;
     private readonly ILogger<FlapperAPI> _logger;
 
-    public FlapperAPI(IOllamaApiClient client, ILogger<FlapperAPI> logger)
+    public FlapperAPI(IChatClient chatClient, ILogger<FlapperAPI> logger)
     {
-        _flapperClient = client;
+        _chatClient = chatClient;
         _logger = logger;
     }
 
-    public async Task<FlapperResponse> ProcessMessageAsync(FlapperConversation conv, string userMessage)
+    /// <summary>
+    /// Processes a user message with tool support using the chat client.
+    /// </summary>
+    public async Task<FlapperResponse> ProcessWithToolsAsync(
+        FlapperConversation conv,
+        string userMessage,
+        string systemPrompt,
+        List<object> tools,
+        CancellationToken ct = default)
     {
         try
         {
-            // Build full history for context (this keeps the session alive)
-            var history = conv.Messages.Select(m => new Message
+            // Build message history
+            var messages = new List<ChatMessage>();
+
+            // Add system prompt
+            messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
+
+            // Add conversation history
+            foreach (var msg in conv.Messages)
             {
-                Role = m.Sender == "User" ? "user" : "assistant",
-                Content = m.Content
-            }).ToList();
+                var role = msg.Sender == "User" ? ChatRole.User : ChatRole.Assistant;
+                messages.Add(new ChatMessage(role, msg.Content));
+            }
 
-            var systemPrompt = """
-            You are Flapper, a helpful, friendly, and precise AI assistant in the Pulse system.
+            // Add current user message
+            messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
-            IMPORTANT RULES:
-            - If the user's request is clear, respond with a normal helpful answer **in HTML**.
-            - If the request is ambiguous or you need clarification (yes/no or short answer), 
-              respond with **EXACTLY** this JSON and **nothing else**:
-              {"type": "clarification", "question": "Your clear yes/no question here?"}
-
-            Examples:
-            User: Should I approve this order?
-            Assistant: {"type": "clarification", "question": "Do you want to approve this order?"}
-
-            User: Tell me about the client sales.
-            Assistant: <p>Here is the client sales summary...</p>
-
-            Keep responses concise and professional.
-            """;
-
-            var messages = new List<Message>
-        {
-            new Message { Role = "system", Content = systemPrompt }
-        };
-            messages.AddRange(history);
-            messages.Add(new Message { Role = "user", Content = userMessage });
-
-            var request = new ChatRequest
+            // Create options with tools
+            var options = new ChatOptions
             {
-                Model = "gpt-oss:latest",                    // ← Use a model you actually have in your Ollama container
-                Messages = messages,
-                Stream = false,                        // Important: non-streaming for structured output
-                Options = new RequestOptions
-                {
-                    Temperature = 0.3f,
-                    NumPredict = 1024
-                }
+                ModelId = "gpt-oss:latest",
+                Temperature = 0.2f,
+                MaxOutputTokens = 2000
             };
 
-            // === CORRECT WAY TO CALL ChatAsync in OllamaSharp ===
-            var response = await _flapperClient.ChatAsync(request).FirstAsync();   // This fixes the awaiter error
+            // Note: Tools are included in the system prompt context rather than ChatOptions.Tools
+            // to allow flexible tool descriptions without requiring AITool/AIFunction implementations
 
-            var rawReply = response?.Message?.Content?.Trim() ?? string.Empty;
+            _logger.LogInformation("Processing message with {ToolCount} tools", tools?.Count() ?? 0);
 
-            // Detect clarification JSON
-            if (rawReply.StartsWith("{", StringComparison.Ordinal) &&
-                rawReply.Contains("\"type\": \"clarification\"", StringComparison.OrdinalIgnoreCase))
+            // ✅ Correct method for IChatClient (.NET 10)
+            var response = await _chatClient.GetResponseAsync<FlapperResponse>(
+                messages: messages,
+                options: options,
+                cancellationToken: ct);
+
+            if (response is null )
             {
-                try
+                return new FlapperResponse
                 {
-                    var clar = JsonSerializer.Deserialize<ClarificationResponse>(rawReply);
-                    if (clar?.Type == "clarification" && !string.IsNullOrWhiteSpace(clar.Question))
+                    Success = false,
+                    Content = "No response from the AI model."
+                };
+            }
+
+            var completion = response.Result;// .Completions[0];
+            var content = completion.Content ?? string.Empty;
+
+            // Extract thinking blocks
+            var thinking = ExtractBetween(content, "<thinking>", "</thinking>");
+
+            // Extract tool calls from the response
+            var toolCalls = new List<FlapperToolCall>();
+
+            if (completion.ToolCalls is not null)
+            {
+                foreach (var toolCall in completion.ToolCalls)
+                {
+                    toolCalls.Add(new FlapperToolCall
                     {
-                        return new FlapperResponse
-                        {
-                            Success = true,
-                            RequiresClarification = true,
-                            ClarificationQuestion = clar.Question.Trim(),
-                            RawContent = clar.Question
-                        };
-                    }
-                }
-                catch (JsonException)
-                {
-                    // Fall through - treat as normal response if JSON parse fails
+                        ToolName = toolCall.ToolName,
+                        Parameters = ParseToolParameters(toolCall.Parameters.ToString() ?? string.Empty)
+                    });
                 }
             }
 
-            // Normal response
+            // Clean up content
+            //var finalContent = content
+            //    .Replace($"<thinking>{thinking}</thinking>", "", StringComparison.Ordinal);
+                //.Trim();
+
             return new FlapperResponse
             {
                 Success = true,
+                Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
+                ToolCalls = toolCalls.Any() ? toolCalls : null,
+                Content = content, // finalContent,
                 RequiresClarification = false,
-                Content = rawReply,
-                RawContent = rawReply
+                RawContent = content
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Flapper ProcessMessageAsync failed");
+            _logger.LogError(ex, "Flapper ProcessWithToolsAsync failed");
             return new FlapperResponse
             {
                 Success = false,
-                Content = "Sorry, I encountered an error while processing your request."
+                Content = "Sorry, I encountered an error processing your request."
             };
         }
     }
-}
 
-    
+    /// <summary>
+    /// Simple streaming version for when you need real-time responses.
+    /// </summary>
+    //public async IAsyncEnumerable<string> ProcessStreamingAsync(
+    //    List<ChatMessage> messages,
+    //    ChatOptions? options = null,
+    //    CancellationToken ct = default)
+    //{
+        
+    //        options ??= new ChatOptions { Temperature = 0.2f };
+
+    //        //await foreach (var chunk in _chatClient.GetChatCompletionAsStreamAsync(messages, options, ct))
+    //        //{
+    //        //    if (!string.IsNullOrEmpty(chunk.Content))
+    //        //    {
+    //        //        yield return chunk.Content;
+    //        //    }
+    //        //}
+        
+    //}
+
+    /// <summary>
+    /// Extracts content between two tags.
+    /// </summary>
+    private string ExtractBetween(string text, string startTag, string endTag)
+    {
+        if (string.IsNullOrEmpty(text))
+            return string.Empty;
+
+        var startIndex = text.IndexOf(startTag, StringComparison.Ordinal);
+        if (startIndex == -1)
+            return string.Empty;
+
+        startIndex += startTag.Length;
+
+        var endIndex = text.IndexOf(endTag, startIndex, StringComparison.Ordinal);
+        if (endIndex == -1)
+            return string.Empty;
+
+        return text.Substring(startIndex, endIndex - startIndex).Trim();
+    }
+
+    /// <summary>
+    /// Parses tool parameters from raw JSON string.
+    /// </summary>
+    private Dictionary<string, object> ParseToolParameters(string rawArgs)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(rawArgs))
+                return new Dictionary<string, object>();
+
+            return JsonSerializer.Deserialize<Dictionary<string, object>>(rawArgs)
+                ?? new Dictionary<string, object>();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to parse tool parameters");
+            return new Dictionary<string, object>();
+        }
+    }
+}

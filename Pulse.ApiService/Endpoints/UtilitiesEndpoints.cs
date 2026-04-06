@@ -6,6 +6,7 @@ using Pulse.Models.CustomComponents;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 
+
 namespace Pulse.ApiService.Endpoints
 {
     

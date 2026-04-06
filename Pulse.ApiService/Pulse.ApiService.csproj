@@ -5,52 +5,57 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <UserSecretsId>a92dd10d-cacb-4034-8c7d-5b7f23d1ab74</UserSecretsId>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="PulseAI\Ali\**" />
-    <Compile Remove="PulseAI\Flapper\**" />
-    <Content Remove="PulseAI\Ali\**" />
-    <Content Remove="PulseAI\Flapper\**" />
-    <EmbeddedResource Remove="PulseAI\Ali\**" />
-    <EmbeddedResource Remove="PulseAI\Flapper\**" />
-    <None Remove="PulseAI\Ali\**" />
-    <None Remove="PulseAI\Flapper\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Pulse.Models\Pulse.Models.csproj" />
     <ProjectReference Include="..\Pulse.ServiceDefaults\Pulse.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <!-- NuGet Package References -->
   <ItemGroup>
+    <!-- API Versioning & Documentation -->
     <PackageReference Include="Asp.Versioning.Http" Version="8.1.1" />
-    <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.2.0" />
-    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.2.0" />
+    <PackageReference Include="PuppeteerSharp" Version="24.40.0" />
+    <PackageReference Include="Scalar.AspNetCore" Version="2.13.20" />
+
+    <!-- Aspire Integration -->
+    <PackageReference Include="Aspire.Microsoft.EntityFrameworkCore.SqlServer" Version="13.2.1" />
+    <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.2.1" />
     <PackageReference Include="CommunityToolkit.Aspire.OllamaSharp" Version="13.1.1" />
-    <PackageReference Include="Markdig" Version="1.1.2" />
-    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+
+    <!-- Entity Framework Core -->
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.5" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.5" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.5" />
+
+    <!-- Authentication & Security -->
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
+
+    <!-- Extensions & AI -->
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.4.1" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.5" />
-    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.5" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.4.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
+
+    <!-- Utilities -->
+    <PackageReference Include="Markdig" Version="1.1.2" />
     <PackageReference Include="Microsoft.SqlServer.TransactSql.ScriptDom" Version="170.191.0" />
-    <PackageReference Include="OllamaSharp" Version="5.4.25" />
-    <PackageReference Include="PuppeteerSharp" Version="24.40.0" />
-    <PackageReference Include="Scalar.AspNetCore" Version="2.13.17" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
+    <!-- OllamaSharp is now handled by CommunityToolkit.Aspire.OllamaSharp - removed to prevent conflicts -->
   </ItemGroup>
 
+  <!-- Folder Structure -->
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="PulseAI\Functions\" />
+    <Folder Include="PulseAI\Characters\" />
+    <Folder Include="PulseAI\Services\" />
   </ItemGroup>
 
 </Project>

@@ -1,5 +1,6 @@
 ﻿using Markdig;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Identity.Client;
 using OllamaSharp;
 using OllamaSharp.Models.Chat;
@@ -17,7 +18,7 @@ namespace Pulse.ApiService.PulseAI.Characters
     {
 
         //private readonly AiShared _aiShared;
-        private readonly IOllamaApiClient _ollamaClient;
+        private readonly IChatClient _chatClient;
         //private readonly IPulseAiClientFactory _aiClientFactory;
         //private readonly IDbContextFactory<PulseDbContext> _dbFactory;
         private readonly ILogger<AliAPI> _logger;
@@ -27,14 +28,14 @@ namespace Pulse.ApiService.PulseAI.Characters
 
         public AliAPI(
             //AiShared aiShared,
-            IOllamaApiClient ollamaClient,
+            IChatClient chatClient,
             //IPulseAiClientFactory aiClientFactory,
             //IDbContextFactory<PulseDbContext> dbFactory,
             ILogger<AliAPI> logger)
         {
             //_aiShared = aiShared;
-            _ollamaClient = ollamaClient;
-            //_dbFactory = dbFactory;
+            //_ollamaClient = ollamaClient;
+            ////_dbFactory = dbFactory;
             _logger = logger;
 
         }
@@ -56,42 +57,51 @@ namespace Pulse.ApiService.PulseAI.Characters
                 //}
                 var prompt = $"{context.AreaAiPrompt}\n\nEntity Data: {System.Text.Json.JsonSerializer.Serialize(entity)}\n\nRespond with a concise answer to the following user query based on the provided context and entity data.\n\nUser Query: {userQuery}";
 
-                var chat = new ChatRequest
+                try
                 {
-                    Model = "gpt-oss:latest",   // or pull from config
-                    Messages = [new Message { Role = "user", Content = prompt }]
-                };
+                    // Build messages using the modern IChatClient format
+                    var messages = new List<ChatMessage>
+                     {
+                    new ChatMessage(Microsoft.Extensions.AI.ChatRole.System, context.AreaAiPrompt),   // System prompt
+                     new ChatMessage(Microsoft.Extensions.AI.ChatRole.User,
+                    $"Entity Data: {System.Text.Json.JsonSerializer.Serialize(entity)}\n\nUser Query: {userQuery}")
+                    };
 
-                var response = await _ollamaClient.ChatAsync(chat).FirstAsync();
-                var resultText = string.Join("", response?.Message?.Content ?? string.Empty);
+                    var options = new ChatOptions
+                    {
+                        Temperature = 0.3f,
+                        // You can add Tools here later when we add tool calling
+                    };
 
-                return new ApiResponse<string>{ Data = resultText, Success = true };
+                    // ✅ Correct call for IChatClient
+                    var response = await _chatClient.GetResponseAsync(messages, options);
 
+                    var resultText = response.RawRepresentation?.ToString()?.Trim() ?? string.Empty;
 
-                //await foreach (var chunk in chat.SendAsync(sysPrompt, CancellationToken.None))
-                //{
-                //    // Just consume the stream to complete the system message
-                //}
-
-                //_logger.LogInformation("System prompt initialized for session {SessionId}", SessionId);
-
-                //var ResponseBuilder = new StringBuilder();
-                //await foreach (var chunk in chat.SendAsync(userQuery, CancellationToken.None))
-                //{
-                //    ResponseBuilder.Append(chunk);
-                //}
-                //var aliResponse = ParseToHtml(ResponseBuilder.ToString());
-                
-                //// Log the interaction (you can expand this to log more details as needed)
-                //_logger.LogInformation("Session {SessionId}: User: {UserQuery} | Ali: {AliResponse}",
-                //    SessionId, userQuery, aliResponse);
-                //return new ApiResponse<string> { Success = true, Data = aliResponse, Timestamp = DateTime.UtcNow };
-                
+                    return new ApiResponse<string>
+                    {
+                        Data = resultText,
+                        Success = true
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Analysis failed");
+                    return new ApiResponse<string>
+                    {
+                        Success = false,
+                        Message = ex.Message
+                    };
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error in AskAliAsync");
-                return ApiResponse<string>.ErrorResponse("An error occurred while processing the request.");
+                _logger.LogError(ex, "Unexpected error in AnalyseWithAliAsync");
+                return new ApiResponse<string>
+                {
+                    Success = false,
+                    Message = "An unexpected error occurred. Please try again later."
+                };
             }
         }
 

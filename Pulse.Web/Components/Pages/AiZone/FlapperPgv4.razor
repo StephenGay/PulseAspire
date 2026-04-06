@@ -57,6 +57,7 @@
                          OnKeyDown="HandleKeyDown" />
         
         <FluentButton Appearance="Appearance.Accent" OnClick="SendMessageAsync">Send</FluentButton>
+        <FluentSwitch @bind-Checked="isStreamingResponse" Label="Stream Response" />
     }
 </FluentStack>
 
@@ -66,7 +67,9 @@
     private List<FlapperMessageDto> Messages { get; set; } = new();
     private string CurrentUserMessage { get; set; } = string.Empty;
     private bool IsAwaitingClarification { get; set; } = false;
+    private bool isStreamingResponse = true;
     private string? CurrentClarificationQuestion { get; set; }
+    private string CurrentFlapperResponse { get; set; } = string.Empty;
     private Guid CurrentConversationId { get; set; } = Guid.NewGuid();
 
     protected override async Task OnInitializedAsync()
@@ -75,8 +78,10 @@
         // Setup SignalR connection
         MsgHubService.OnReceiveMessage += 
                 OnFlapperMessageReceived;
-            
-        
+        MsgHubService.OnReceiveFlapperChunk +=
+                OnFlapperMessageChunkReceived;
+
+
 
         // Optional: Load conversation history
         // await LoadConversationHistoryAsync();
@@ -86,11 +91,13 @@
     {
         if (string.IsNullOrWhiteSpace(CurrentUserMessage)) return;
 
-        // Add user message locally
-        Messages.Add(new FlapperMessageDto { Sender = "You", Content = CurrentUserMessage });
-        var userMsg = CurrentUserMessage;
+        var userText = CurrentUserMessage;
+        Messages.Add(new FlapperMessageDto { Sender = "You", Content = userText });
         CurrentUserMessage = string.Empty;
 
+        // Add placeholder for Flapper
+        Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = "..." });
+        CurrentFlapperResponse = "";
         StateHasChanged();
 
         // Send to API
@@ -98,11 +105,12 @@
         (
             authService.aspireUserId,
             CurrentConversationId,
-            userMsg
+            userText,
+            authService.aspireFullName
         );
 
-        await Http.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.Flapper.Chat, request);
-        // await PulseApi.PostAsync<FlapperChatRequest,string>(ApiEndpoints.PulseAi.Flapper.Chat, request);
+        
+        await Http.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.Flapper.ChatSession, request);
     }
 
     private async Task SendQuickReplyAsync(string answer)
@@ -117,10 +125,11 @@
         (
             authService.aspireUserId,
             CurrentConversationId,
-            answer   // Yes / No becomes the next user message
+            answer,
+            authService.aspireFullName   // Yes / No becomes the next user message
         );
 
-        await Http.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.Flapper.Chat, request);
+        await Http.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.Flapper.ChatSession, request);
         // await PulseApi.PostAsync<FlapperChatRequest, object>(ApiEndpoints.PulseAi.Flapper.Chat, request);
 
         // Reset clarification UI
@@ -135,6 +144,40 @@
         // Show input again for custom answer
         IsAwaitingClarification = false;
         StateHasChanged();
+    }
+
+    private async void OnFlapperMessageChunkReceived(PulseMessage msg)
+    {
+        if (msg.Role != "Flapper")
+        {
+            return;
+        }
+        // Clarification detection
+        if (msg.Content.StartsWith("[CLARIFICATION]"))
+        {
+            IsAwaitingClarification = true;
+            CurrentClarificationQuestion = msg.Content.Replace("[CLARIFICATION]", "").Trim();
+            CurrentFlapperResponse = "";
+
+            // Clear the "..." placeholder
+            // var placeholder = Messages.LastOrDefault(m => m.Sender == "Flapper" && m.Content == "...");
+            // if (placeholder != null)
+            //     Messages.Remove(placeholder);
+
+            StateHasChanged();
+            return;
+        }
+
+        // Normal streaming content
+        CurrentFlapperResponse += msg.Content;
+
+        var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+        if (lastMsg != null)
+            lastMsg.Content = CurrentFlapperResponse;
+        else
+            Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
+
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void OnFlapperMessageReceived(PulseMessage msg)
@@ -154,7 +197,7 @@
         if (msg.Subject?.Contains("Clarification", StringComparison.OrdinalIgnoreCase) == true)
         {
             IsAwaitingClarification = true;
-            CurrentClarificationQuestion = ExtractQuestionFromHtml(msg.Content);
+            CurrentClarificationQuestion = msg.Content;
         }
 
         await InvokeAsync(StateHasChanged);
@@ -181,5 +224,6 @@
     public async ValueTask DisposeAsync()
     {
         MsgHubService.OnReceiveMessage -= OnFlapperMessageReceived;
+        MsgHubService.OnReceiveFlapperChunk -= OnFlapperMessageChunkReceived;
     }
 }

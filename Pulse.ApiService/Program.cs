@@ -2,6 +2,7 @@ using Aspire.StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using OllamaSharp;
@@ -140,31 +141,31 @@ builder.Services.AddCors(options =>
 
 #region Pulse AI Integration
 
-builder.AddOllamaApiClient("PulseAI").AddChatClient();                    // "ollama" must match your AppHost resource name
+builder.AddOllamaApiClient("PulseAI").AddChatClient();                // "ollama" must match your AppHost resource name
 
 // 3. Configure HttpClient timeout + resilience for long Ollama calls
-builder.Services.AddHttpClient("PulseAiClient", client =>
-{
-    client.Timeout = Timeout.InfiniteTimeSpan;    // Overall timeout
-})
-    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
-    {
-        PooledConnectionLifetime = TimeSpan.FromMinutes(15),
-        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(15),
-        ConnectTimeout = TimeSpan.FromSeconds(30)
-    })
-.StopPollyTimeouts();
+//builder.Services.AddHttpClient("PulseAiClient", client =>
+//{
+//    client.Timeout = Timeout.InfiniteTimeSpan;    // Overall timeout
+//})
+//    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+//    {
+//        PooledConnectionLifetime = TimeSpan.FromMinutes(15),
+//        PooledConnectionIdleTimeout = TimeSpan.FromMinutes(15),
+//        ConnectTimeout = TimeSpan.FromSeconds(30)
+//    })
+//.StopPollyTimeouts();
 
 builder.Services.AddScoped<FlapperAPI>(sp =>
 {
-    var flapperClient = sp.GetRequiredService<IOllamaApiClient>();
+    var flapperClient = sp.GetRequiredService<IChatClient>();
     var logger = sp.GetRequiredService<ILogger<FlapperAPI>>();
     return new FlapperAPI(flapperClient, logger);
 });
 
 builder.Services.AddScoped<AliAPI>(sp =>
 {
-    var aliClient = sp.GetRequiredService<IOllamaApiClient>();
+    var aliClient = sp.GetRequiredService<IChatClient>();
     var logger = sp.GetRequiredService<ILogger<AliAPI>>();
     return new AliAPI(aliClient, logger);
 });

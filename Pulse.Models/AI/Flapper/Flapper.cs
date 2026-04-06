@@ -186,10 +186,15 @@ namespace Pulse.Models.AI.Flapper
                     INPUT: Pass a parameter to this tool called "url" which contains the URL of the web page you want to retrieve information from, and a parameter called "query" which contains a natural language description of the specific information you are looking for on that page. For example, you might ask "From the article at https://www.industryreport.com/market-trends-paper-industry, what are the key statistics about market growth?".
                     OUTPUT: A string containing the specific information you requested from the web page, or an error message if the information could not be retrieved. For example, "The article states that the paper industry is expected to grow at a rate of 3% annually over the next five years, with key drivers including increased demand for sustainable packaging and growth in emerging markets."
 
-                RESOURCE 5: 
-                A tool called "ask_user" that allows you to ask the user a Yes or No question for clarification. You can use this tool to clarify any ambiguities in their request.
-                    INPUT: Pass a parameter to this tool called "question" which contains a natural language Yes or No question for the user. For example, if a user asks "Show me all customers in the paper industry", you might ask "Do you want to include customers in the packaging industry as well?".
-                    OUTPUT: A string containing the user's response, which should be either "Yes" or "No". For example, if the user responds "Yes", you would then include customers in the packaging industry in your response to their original query.
+                RESOURCE 5:
+                If the user's request is unclear or ambiguous, or you need more information to go forward you can ask the user to clarify. This works especially well for yes/no queries. To use this resource, you must respond **EXACTLY** with the following format in your response to the user, and then wait for their response before proceeding:
+                [CLARIFICATION] [Your clear yes/no or short answer question here?]
+
+                Example:
+                User: Should I approve this?
+                Assistant: [CLARIFICATION] [Do you want to approve this request?]
+
+                Extract the answer from the user response that follows immediately after your clarification question, and use it to inform your next steps. This will allow you to gather more information from the user and provide a more accurate and helpful response to their original query.
 
                 RESOURCE 6: 
                 Your own internal knowledge and reasoning abilities, which you can use to generate responses to user queries, even when the database does not contain the necessary information. You can use this resource to provide insights, explanations and suggestions based on your understanding of the world and the information you have been provided.
@@ -231,7 +236,11 @@ namespace Pulse.Models.AI.Flapper
                 - Bold key metrics or findings
                 - Use numbered lists for steps or ranking
 
-                If you have used the web_search tool to find relevant sources, you should include a list of the sources you found at the end of your response, along with a brief description of each source and a link to the original web page. This will allow users to explore the information further if they are interested.
+                Use HTML formatting where appropriate to enhance the readability of your responses, such as using bold or italic text to highlight key points, or using bullet points and numbered lists to organize information.
+
+                If you have used the web_search tool to find relevant sources, you should include a list of the sources you found at the end of your response, along with a brief description of each source and a link to the original web page. IMPORTANT: The link must open in a new window ONLY.
+                This will allow users to explore the information further if they are interested.
+
                 End by suggesting a follow-up question or action the user can take to continue the conversation or explore the topic further. This will help to keep the conversation going and provide users with a more engaging experience.
                 """;
             return systemMessage;

@@ -353,6 +353,10 @@
         {
                 <FlapperPgv4 />
         }
+        else if (flapperVersion == 5)
+        {
+            <FlapperPg_v5 />
+        }
         </div>
     <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiTables">
         <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
@@ -513,7 +517,7 @@
 
     private async Task NextFlapperVersion(){
         flapperVersion++;
-        if (flapperVersion > 4) flapperVersion = 1;
+        if (flapperVersion > 5) flapperVersion = 1;
         await InvokeAsync(StateHasChanged);
     }
 

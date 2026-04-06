@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -14,5 +15,13 @@ public class FlapperConversation
     public string Status { get; set; } = "Active"; // Active | Completed
 
     public List<FlapperMessage> Messages { get; set; } = new();
+
+    protected void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<FlapperMessage>()
+            .HasOne(m => m.Conversation)
+            .WithMany(c => c.Messages)
+            .HasForeignKey(m => m.ConversationId);
+    }
 }
 

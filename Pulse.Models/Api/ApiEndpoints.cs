@@ -77,7 +77,8 @@ namespace Pulse.Models.Api
             {
                 private const string FlapperPrefix = $"{Prefix}/Flapper";
                 public const string SendRequest = $"{FlapperPrefix}/SendRequest";
-                public const string Chat = $"{FlapperPrefix}/Chat";
+                public const string ChatSession = $"{FlapperPrefix}/ChatSession";
+                
             }
             public static class Ali
             {
