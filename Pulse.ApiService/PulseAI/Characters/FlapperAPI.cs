@@ -20,101 +20,67 @@ public class FlapperAPI
         _logger = logger;
     }
 
-    /// <summary>
-    /// Processes a user message with tool support using the chat client.
-    /// </summary>
     public async Task<FlapperResponse> ProcessWithToolsAsync(
         FlapperConversation conv,
         string userMessage,
         string systemPrompt,
-        List<object> tools,
+        IEnumerable<AITool> tools,
         CancellationToken ct = default)
     {
         try
         {
-            // Build message history
-            var messages = new List<ChatMessage>();
+            // Build conversation history
+            var history = conv.Messages.Select(m => new ChatMessage(
+                role: m.Sender == "User" ? ChatRole.User : ChatRole.Assistant,
+                content: m.Content
+            )).ToList();
 
-            // Add system prompt
-            messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
-
-            // Add conversation history
-            foreach (var msg in conv.Messages)
+            var messages = new List<ChatMessage>
             {
-                var role = msg.Sender == "User" ? ChatRole.User : ChatRole.Assistant;
-                messages.Add(new ChatMessage(role, msg.Content));
-            }
-
-            // Add current user message
+                new ChatMessage(ChatRole.System, systemPrompt)
+            };
+            messages.AddRange(history);
             messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
-            // Create options with tools
             var options = new ChatOptions
             {
-                ModelId = "gpt-oss:latest",
                 Temperature = 0.2f,
-                MaxOutputTokens = 2000
+                Tools = tools?.ToList() ?? new List<AITool>()
             };
 
-            // Note: Tools are included in the system prompt context rather than ChatOptions.Tools
-            // to allow flexible tool descriptions without requiring AITool/AIFunction implementations
+            // Correct IChatClient call
+            var response = await _chatClient.GetResponseAsync(messages, options, ct);
 
-            _logger.LogInformation("Processing message with {ToolCount} tools", tools?.Count() ?? 0);
+            var rawReply = response.Text?.Trim() ?? string.Empty;
 
-            // ✅ Correct method for IChatClient (.NET 10)
-            var response = await _chatClient.GetResponseAsync<FlapperResponse>(
-                messages: messages,
-                options: options,
-                cancellationToken: ct);
+            // Extract thinking (if Flapper used <thinking> tags)
+            var thinking = ExtractBetween(rawReply, "<thinking>", "</thinking>");
 
-            if (response is null )
+            // Extract tool calls (native from IChatClient)
+            var toolCalls = response.ToolCalls?.Select(tc => new FlapperToolCall
             {
-                return new FlapperResponse
-                {
-                    Success = false,
-                    Content = "No response from the AI model."
-                };
-            }
+                ToolName = tc.Name,
+                Parameters = tc.Arguments ?? new Dictionary<string, object>()
+            }).ToList() ?? new List<FlapperToolCall>();
 
-            var completion = response.Result;// .Completions[0];
-            var content = completion.Content ?? string.Empty;
-
-            // Extract thinking blocks
-            var thinking = ExtractBetween(content, "<thinking>", "</thinking>");
-
-            // Extract tool calls from the response
-            var toolCalls = new List<FlapperToolCall>();
-
-            if (completion.ToolCalls is not null)
-            {
-                foreach (var toolCall in completion.ToolCalls)
-                {
-                    toolCalls.Add(new FlapperToolCall
-                    {
-                        ToolName = toolCall.ToolName,
-                        Parameters = ParseToolParameters(toolCall.Parameters.ToString() ?? string.Empty)
-                    });
-                }
-            }
-
-            // Clean up content
-            //var finalContent = content
-            //    .Replace($"<thinking>{thinking}</thinking>", "", StringComparison.Ordinal);
-                //.Trim();
+            // Clean final content
+            var finalContent = rawReply
+                .Replace($"<thinking>{thinking}</thinking>", "")
+                .Trim();
 
             return new FlapperResponse
             {
                 Success = true,
                 Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
                 ToolCalls = toolCalls.Any() ? toolCalls : null,
-                Content = content, // finalContent,
+                Content = finalContent,
                 RequiresClarification = false,
-                RawContent = content
+                RawContent = rawReply
             };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Flapper ProcessWithToolsAsync failed");
+            _logger.LogError(ex, "Flapper ProcessWithToolsAsync failed for user message: {Message}", userMessage);
             return new FlapperResponse
             {
                 Success = false,
@@ -123,26 +89,7 @@ public class FlapperAPI
         }
     }
 
-    /// <summary>
-    /// Simple streaming version for when you need real-time responses.
-    /// </summary>
-    //public async IAsyncEnumerable<string> ProcessStreamingAsync(
-    //    List<ChatMessage> messages,
-    //    ChatOptions? options = null,
-    //    CancellationToken ct = default)
-    //{
-        
-    //        options ??= new ChatOptions { Temperature = 0.2f };
-
-    //        //await foreach (var chunk in _chatClient.GetChatCompletionAsStreamAsync(messages, options, ct))
-    //        //{
-    //        //    if (!string.IsNullOrEmpty(chunk.Content))
-    //        //    {
-    //        //        yield return chunk.Content;
-    //        //    }
-    //        //}
-        
-    //}
+    
 
     /// <summary>
     /// Extracts content between two tags.
@@ -185,3 +132,127 @@ public class FlapperAPI
         }
     }
 }
+
+/// <summary>
+/// Processes a user message with tool support using the chat client.
+/// </summary>
+//public async Task<FlapperResponse> ProcessWithToolsAsync(
+//    FlapperConversation conv,
+//    string userMessage,
+//    string systemPrompt,
+//    List<object> tools,
+//    CancellationToken ct = default)
+//{
+//    try
+//    {
+//        // Build message history
+//        var messages = new List<ChatMessage>();
+
+//        // Add system prompt
+//        messages.Add(new ChatMessage(ChatRole.System, systemPrompt));
+
+//        // Add conversation history
+//        foreach (var msg in conv.Messages)
+//        {
+//            var role = msg.Sender == "User" ? ChatRole.User : ChatRole.Assistant;
+//            messages.Add(new ChatMessage(role, msg.Content));
+//        }
+
+//        // Add current user message
+//        messages.Add(new ChatMessage(ChatRole.User, userMessage));
+
+//        // Create options with tools
+//        var options = new ChatOptions
+//        {
+//            ModelId = "gpt-oss:latest",
+//            Temperature = 0.2f,
+//            MaxOutputTokens = 2000
+//        };
+
+//        // Note: Tools are included in the system prompt context rather than ChatOptions.Tools
+//        // to allow flexible tool descriptions without requiring AITool/AIFunction implementations
+
+//        _logger.LogInformation("Processing message with {ToolCount} tools", tools?.Count() ?? 0);
+
+//        // ✅ Correct method for IChatClient (.NET 10)
+//        var response = await _chatClient.GetResponseAsync<FlapperResponse>(
+//            messages: messages,
+//            options: options,
+//            cancellationToken: ct);
+
+//        if (response is null )
+//        {
+//            return new FlapperResponse
+//            {
+//                Success = false,
+//                Content = "No response from the AI model."
+//            };
+//        }
+
+//        var completion = response.Result;// .Completions[0];
+//        var content = completion.Content ?? string.Empty;
+
+//        // Extract thinking blocks
+//        var thinking = ExtractBetween(content, "<thinking>", "</thinking>");
+
+//        // Extract tool calls from the response
+//        var toolCalls = new List<FlapperToolCall>();
+
+//        if (completion.ToolCalls is not null)
+//        {
+//            foreach (var toolCall in completion.ToolCalls)
+//            {
+//                toolCalls.Add(new FlapperToolCall
+//                {
+//                    ToolName = toolCall.ToolName,
+//                    Parameters = ParseToolParameters(toolCall.Parameters.ToString() ?? string.Empty)
+//                });
+//            }
+//        }
+
+//        // Clean up content
+//        //var finalContent = content
+//        //    .Replace($"<thinking>{thinking}</thinking>", "", StringComparison.Ordinal);
+//            //.Trim();
+
+//        return new FlapperResponse
+//        {
+//            Success = true,
+//            Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
+//            ToolCalls = toolCalls.Any() ? toolCalls : null,
+//            Content = content, // finalContent,
+//            RequiresClarification = false,
+//            RawContent = content
+//        };
+//    }
+//    catch (Exception ex)
+//    {
+//        _logger.LogError(ex, "Flapper ProcessWithToolsAsync failed");
+//        return new FlapperResponse
+//        {
+//            Success = false,
+//            Content = "Sorry, I encountered an error processing your request."
+//        };
+//    }
+//}
+
+/// <summary>
+/// Simple streaming version for when you need real-time responses.
+/// </summary>
+//public async IAsyncEnumerable<string> ProcessStreamingAsync(
+//    List<ChatMessage> messages,
+//    ChatOptions? options = null,
+//    CancellationToken ct = default)
+//{
+
+//        options ??= new ChatOptions { Temperature = 0.2f };
+
+//        //await foreach (var chunk in _chatClient.GetChatCompletionAsStreamAsync(messages, options, ct))
+//        //{
+//        //    if (!string.IsNullOrEmpty(chunk.Content))
+//        //    {
+//        //        yield return chunk.Content;
+//        //    }
+//        //}
+
+//}
