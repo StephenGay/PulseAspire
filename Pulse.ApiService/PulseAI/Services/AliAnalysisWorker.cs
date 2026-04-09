@@ -29,13 +29,15 @@ public class AliAnalysisWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        //var aliModel = builder.Configuration["OllamaApi:AliModel"] ?? "neural-chat";
         while (!stoppingToken.IsCancellationRequested)
         {
             // Create a fresh scope for EVERY iteration → this gives us safe access to Scoped services
             await using var scope = _scopeFactory.CreateAsyncScope();
 
             var db = scope.ServiceProvider.GetRequiredService<PulseDbContext>();
-            var aliApi = scope.ServiceProvider.GetRequiredService<AliAPI>();        // ← now safe
+            var aliApi = scope.ServiceProvider.GetRequiredService<AliOllamaAPI>();        // ← now safe
+            
             var presenceService = scope.ServiceProvider.GetRequiredService<PresenceService>();  // ← Added
             var hubContext = scope.ServiceProvider.GetRequiredService<IHubContext<MessageHub>>(); // ← now safe
 
@@ -46,7 +48,7 @@ public class AliAnalysisWorker : BackgroundService
 
             if (next is null)
             {
-                await Task.Delay(5000, stoppingToken);
+                await Task.Delay(30000, stoppingToken);
                 continue;
             }
 

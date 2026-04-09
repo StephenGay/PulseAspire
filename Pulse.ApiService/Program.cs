@@ -6,6 +6,7 @@ using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using OllamaSharp;
+using OllamaSharp.Models;
 using OllamaSharp.Models.Chat;
 using Pulse.ApiService;
 using Pulse.ApiService.Endpoints;
@@ -139,9 +140,43 @@ builder.Services.AddCors(options =>
 
 #endregion
 
-#region Pulse AI Integration
 
-builder.AddOllamaApiClient("PulseAI").AddChatClient();                // "ollama" must match your AppHost resource name
+builder.AddOllamaApiClient("PulseAI").AddChatClient();
+
+#region Pulse AI Ollama Client Integration
+
+//builder.Services.ConfigureHttpClientDefaults(http =>
+//{
+//    // Don't add resilience - we'll control it per client
+//    http.T .UseSocketsHttpHandler((handler, sp) =>
+//    {
+//        handler.PooledConnectionLifetime = TimeSpan.FromMinutes(15);
+//    });
+//});
+builder.Services.AddScoped<FlapperOllamaAPI>(sp =>
+{
+    var flapperOllamaClient = sp.GetRequiredService<IOllamaApiClient>();
+    var logger = sp.GetRequiredService<ILogger<FlapperOllamaAPI>>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    return new FlapperOllamaAPI(flapperOllamaClient, logger, httpClientFactory);
+});
+
+builder.Services.AddHttpClient("FlapperApiClient", client =>
+{
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
+//builder.Services.AddScoped<AliOllamaAPI>(sp =>
+//{
+//    var aliOllamaClient = sp.GetRequiredService<IOllamaApiClient>();
+//    var logger = sp.GetRequiredService<ILogger<AliOllamaAPI>>();
+//    return new AliOllamaAPI(aliOllamaClient, logger);
+//});
+
+#endregion
+
+#region Pulse AI IChat Client Integration
+
+// "ollama" must match your AppHost resource name
 
 // 3. Configure HttpClient timeout + resilience for long Ollama calls
 //builder.Services.AddHttpClient("PulseAiClient", client =>
@@ -156,6 +191,10 @@ builder.AddOllamaApiClient("PulseAI").AddChatClient();                // "ollama
 //    })
 //.StopPollyTimeouts();
 
+
+
+
+
 builder.Services.AddScoped<FlapperAPI>(sp =>
 {
     var flapperClient = sp.GetRequiredService<IChatClient>();
@@ -166,10 +205,25 @@ builder.Services.AddScoped<FlapperAPI>(sp =>
 builder.Services.AddScoped<AliAPI>(sp =>
 {
     var aliClient = sp.GetRequiredService<IChatClient>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var logger = sp.GetRequiredService<ILogger<AliAPI>>();
     return new AliAPI(aliClient, logger);
 });
 
+builder.Services.AddScoped<AliOllamaAPI>(sp =>
+{
+    var aliOllamaClient = sp.GetRequiredService<IOllamaApiClient>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var logger = sp.GetRequiredService<ILogger<AliOllamaAPI>>();
+    return new AliOllamaAPI (aliOllamaClient, logger, httpClientFactory);
+});
+var pulseAiLocation = builder.Configuration["Aspire:Services:PulseAI:Http:0"] ?? "http://localhost:11434";
+
+builder.Services.AddHttpClient("AliApiClient", client =>
+{
+    client.BaseAddress = new Uri(pulseAiLocation);
+    client.Timeout = Timeout.InfiniteTimeSpan;
+});
 
 var remoteTablesUrl = builder.Configuration.GetConnectionString("RemoteAI")
                    ?? "http://127.0.0.1:11434";

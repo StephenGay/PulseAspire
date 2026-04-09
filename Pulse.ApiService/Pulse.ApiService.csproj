@@ -55,8 +55,6 @@
   <ItemGroup>
     <Folder Include="Migrations\" />
     <Folder Include="PulseAI\Functions\" />
-    <Folder Include="PulseAI\Characters\" />
-    <Folder Include="PulseAI\Services\" />
   </ItemGroup>
 
 </Project>

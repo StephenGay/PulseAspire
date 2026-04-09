@@ -83,6 +83,13 @@ builder.Services.AddHttpClient<PulseApiService>("PulseApiClient", client =>
 .StopPollyTimeouts()
 .AddHttpMessageHandler<AuthHeaderHandler>();
 
+// Flapper API HttpClient (for long-running AI model inference)
+builder.Services.AddHttpClient("FlapperApiClient", client =>
+{
+    client.Timeout = Timeout.InfiniteTimeSpan;
+})
+.StopPollyTimeouts();
+
 #endregion
 
 #region Authentication & Authorization (Custom JWT via AuthService)

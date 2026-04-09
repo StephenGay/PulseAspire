@@ -68,19 +68,19 @@ namespace Pulse.Models.Api
         {
             private const string Prefix = $"{ApiPrefix}/PulseAI";
 
-            public static class Tables
+            public static class EndpointsTables
             {
                 private const string TablesPrefix = $"{Prefix}/Tables";
                 public const string SendRequest = $"{TablesPrefix}/SendRequest";
             }
-            public static class Flapper
+            public static class EndpointsFlapper
             {
                 private const string FlapperPrefix = $"{Prefix}/Flapper";
                 public const string SendRequest = $"{FlapperPrefix}/SendRequest";
                 public const string ChatSession = $"{FlapperPrefix}/ChatSession";
-                
+                public const string OllamaChatSession = $"{FlapperPrefix}/OllamaChatSession";
             }
-            public static class Ali
+            public static class EndpointsAli
             {
                 private const string AliPrefix = $"{Prefix}/Ali";
                 public const string SendRequest = $"{AliPrefix}/SendRequest";

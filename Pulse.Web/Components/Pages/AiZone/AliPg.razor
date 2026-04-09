@@ -47,7 +47,23 @@
 @implements IDisposable
 @rendermode InteractiveServer
 
+<style>
+    .selected-wc {
+        border: 2px double var(--pulse-dark-colour);
+        /*background-color:  var(--pulse-dark-t25-colour);*/
+        animation: selected-item-pulse 2s infinite;
+    }
 
+    @@keyframes selected-item-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 var(--pulse-dark-t25-colour);
+        }
+
+        50% {
+            box-shadow: 0 0 15px 8px var(--pulse-dark-t75-colour);
+        }
+    }
+</style>
 <div class="aiParent">
     <div class="aiHeader" />
     <div class="aiMenu">
@@ -253,37 +269,51 @@
                 </div>
             </div>
         }
-        @if (isLoadingAreas)
-        {
-            <FluentProgressRing></FluentProgressRing>
-            <p>Loading Contextual Areas...</p>
-        }
-        else if (contextualAreas?.Any() == true)
-        {
-            @* <div style="margin-top: 16px;width:stretch">
-                            <h4>All Permissions (@permissions.Count)</h4>
-                            </div> *@
-            <div class="pulse-column-grid " style="height:100%">
-                @foreach (var area in contextualAreas)
-                {
-                    <div>
-                        <h5 style="margin: 0 0 12px 0;background-color: var(--pulse-dark-t50-colour); color:white;border-radius:10px;padding:8px;min-width:320px">@area.AreaDescription</h5>
-                        @foreach (var prompt in area.ContextualPrompts!)
-                        {
-                            <div class="pulse-grid-item divShadow" style=" margin-bottom:10px" @onclick="() => CopyCommunityPrompt(prompt)">
-                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
-                                    <FluentLabel Typo="Typography.Body" Style="font-weight: bold;padding: 0 12px 0 12px">@prompt.ContextualPromptTitle</FluentLabel>
-                                    <FluentTextArea rows="2" Cols="75" style="width:100%;height:100%;margin-bottom:2px" readonly Value="@prompt.ContextualPromptDescription"></FluentTextArea>
-                                    <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;;padding: 0 12px 0 12px">ID: @prompt.ContextualPromptId</FluentLabel>
-                                </FluentStack>
-                            </div>
-                        }
-                    </div>
-                }
-            </div>
+        <div class="chat-area">
+            @if (isLoadingAreas)
+            {
+                <FluentProgressRing></FluentProgressRing>
+                <p>Loading Contextual Areas...</p>
+            }
+            else if (contextualAreas?.Any() == true)
+            {
+                @* <div style="margin-top: 16px;width:stretch">
+                                <h4>All Permissions (@permissions.Count)</h4>
+                                </div> *@
+                <div class="pulse-column-grid " style="height:100%;padding:20px;wrap-before">
+                    @foreach (var area in contextualAreas)
+                    {
+                        <div>
+                            <h5 style="margin: 0 0 12px 0;background-color: var(--pulse-dark-t50-colour); color:white;border-radius:10px;padding:8px;min-width:320px">@area.AreaDescription</h5>
+                            @foreach (var prompt in area.ContextualPrompts!)
+                            {
+                                <div class="pulse-grid-item @(prompt == selPrompt ? "box" : "divShadow")" style=" margin-bottom:10px" @onclick="() => CopyCommunityPrompt(prompt)">
+                                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                        <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" 
+                                                     CustomColor='@(prompt == selPrompt ? "rgba(255,255,255,1)" : "rgba(0,0,0,1)")' 
+                                                     Style="font-weight: bold; padding: 0 12px 0 12px">
+                                            @prompt.ContextualPromptTitle
+                                        </FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom"
+                                                     CustomColor='@(prompt == selPrompt ? "rgba(255,255,255,1)" : "rgba(0,0,0,1)")'
+                                                     Style='@($"border-top: 1px solid;border-bottom: 1px solid; border-color: {(prompt == selPrompt ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.1)")} ; width:100%; height:50px; margin-bottom:2px; padding: 0 12px 0 12px")'>
+                                            @prompt.ContextualPromptDescription
+                                        </FluentLabel>
+                                        @* <FluentTextArea rows="2" Cols="75" 
+                                                        Style='@($"width:100%; height:100%; margin-bottom:2px; background-color:rgba(0,0,0,0); color: {(prompt == selPrompt ? "white" : "black")}")' 
+                                                    
+                                                        Value="@prompt.ContextualPromptDescription">
+                                        </FluentTextArea> *@
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;padding: 0 12px 0 12px">ID: @prompt.ContextualPromptId</FluentLabel>
+                                    </FluentStack>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
                         
-        }
-        
+            }
+        </div>
     </div>
     <div class="aiFooter" />
 </div> 
@@ -394,7 +424,7 @@
              txtQ,
              custTitle
          );
-            var response = await pApiClient.PostAsync<AnalysisRequestDto, ApiResponse>(ApiEndpoints.PulseAi.Ali.Analysis.AddToQueue, aReq);
+            var response = await pApiClient.PostAsync<AnalysisRequestDto, ApiResponse>(ApiEndpoints.PulseAi.EndpointsAli.Analysis.AddToQueue, aReq);
             isSuccess = response.Success == true;
         }
         catch (Exception ex)
@@ -764,7 +794,7 @@
         if (firstRender)
         {
             ali = await dtrf.GetgvAli();
-            var response = await pApiClient.GetAsync<ApiResponse<List<ContextualArea>>>(ApiEndpoints.PulseAi.Ali.CustomPrompts.GetAll);
+            var response = await pApiClient.GetAsync<ApiResponse<List<ContextualArea>>>(ApiEndpoints.PulseAi.EndpointsAli.CustomPrompts.GetAll);
             contextualAreas = response.Data ?? new List<ContextualArea>();
             this._available = await this.SpeechRecognition.IsAvailableAsync();
             isLoadingAreas = false;

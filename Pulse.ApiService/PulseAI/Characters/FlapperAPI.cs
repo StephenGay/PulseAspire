@@ -57,11 +57,11 @@ public class FlapperAPI
             var thinking = ExtractBetween(rawReply, "<thinking>", "</thinking>");
 
             // Extract tool calls (native from IChatClient)
-            var toolCalls = response.ToolCalls?.Select(tc => new FlapperToolCall
-            {
-                ToolName = tc.Name,
-                Parameters = tc.Arguments ?? new Dictionary<string, object>()
-            }).ToList() ?? new List<FlapperToolCall>();
+            //var toolCalls = response.ToolCalls?.Select(tc => new FlapperToolCall
+            //{
+            //    ToolName = tc.Name,
+            //    Parameters = tc.Arguments ?? new Dictionary<string, object>()
+            //}).ToList() ?? new List<FlapperToolCall>();
 
             // Clean final content
             var finalContent = rawReply
@@ -72,7 +72,7 @@ public class FlapperAPI
             {
                 Success = true,
                 Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
-                ToolCalls = toolCalls.Any() ? toolCalls : null,
+                //ToolCalls = toolCalls.Any() ? toolCalls : null,
                 Content = finalContent,
                 RequiresClarification = false,
                 RawContent = rawReply

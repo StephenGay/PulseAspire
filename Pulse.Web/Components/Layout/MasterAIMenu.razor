@@ -333,14 +333,14 @@
                         IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
             Close
         </FluentButton>
-        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;margin-left:10px"
+        @* <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;margin-left:10px"
                         IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="NextFlapperVersion">
             Ver
-        </FluentButton>
-        @if (flapperVersion == 1)
-        {
+        </FluentButton> *@
+        @* @if (flapperVersion == 1)
+        { *@
             <FlapperPg />
-        }
+        @* }
         else if (flapperVersion == 2)
         {
             <FlapperPg_v2 />
@@ -355,8 +355,8 @@
         }
         else if (flapperVersion == 5)
         {
-            <FlapperPg_v5 />
-        }
+            <FlapperPg />
+        } *@
         </div>
     <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiTables">
         <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"

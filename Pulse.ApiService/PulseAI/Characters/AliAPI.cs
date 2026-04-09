@@ -22,6 +22,7 @@ namespace Pulse.ApiService.PulseAI.Characters
         //private readonly IPulseAiClientFactory _aiClientFactory;
         //private readonly IDbContextFactory<PulseDbContext> _dbFactory;
         private readonly ILogger<AliAPI> _logger;
+        //private readonly IHttpClientFactory _httpClientFactory;
         // Session management - stores chat history per session
         //private static readonly Dictionary<string, Chat> _sessions = new(StringComparer.OrdinalIgnoreCase);
         //private static readonly object _sessionLock = new object();
@@ -32,16 +33,23 @@ namespace Pulse.ApiService.PulseAI.Characters
             //IPulseAiClientFactory aiClientFactory,
             //IDbContextFactory<PulseDbContext> dbFactory,
             ILogger<AliAPI> logger)
+            //IHttpClientFactory httpClientFactory)
         {
             //_aiShared = aiShared;
             //_ollamaClient = ollamaClient;
             ////_dbFactory = dbFactory;
+            _chatClient = chatClient;
+            //_httpClientFactory = httpClientFactory;
             _logger = logger;
 
         }
 
-        public async Task<ApiResponse<string>> AnalyseWithAliAsync(ContextualArea context, object entity, string userQuery)
+        public async Task<ApiResponse<string>> AnalyseWithAliAsync(ContextualArea context, object entity, string userQuery, string? modelOverride = null)
         {
+            var chatOptions = new ChatOptions
+            {
+                ModelId = modelOverride ?? "gpt-oss:latest"
+            };
             //string SessionId = Guid.NewGuid().ToString();
             try
             {
@@ -70,6 +78,8 @@ namespace Pulse.ApiService.PulseAI.Characters
                     var options = new ChatOptions
                     {
                         Temperature = 0.3f,
+                        
+                        ModelId = "gpt-oss:latest"
                         // You can add Tools here later when we add tool calling
                     };
 
@@ -105,23 +115,23 @@ namespace Pulse.ApiService.PulseAI.Characters
             }
         }
 
-        private string ParseToHtml(string markdownContent)
-        {
-            if (string.IsNullOrEmpty(markdownContent))
-            {
-                return string.Empty;
-            }
-            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
-            var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
+        //private string ParseToHtml(string markdownContent)
+        //{
+        //    if (string.IsNullOrEmpty(markdownContent))
+        //    {
+        //        return string.Empty;
+        //    }
+        //    var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
+        //    var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
 
-            html = System.Text.RegularExpressions.Regex.Replace(
-                html,
-                @"<a\s+href=""([^""]*)""",
-                @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
-            );
+        //    html = System.Text.RegularExpressions.Regex.Replace(
+        //        html,
+        //        @"<a\s+href=""([^""]*)""",
+        //        @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
+        //    );
 
-            return AddMUcss(html);
-        }
+        //    return AddMUcss(html);
+        //}
         private string AddMUcss(string html)
         {
             return html
