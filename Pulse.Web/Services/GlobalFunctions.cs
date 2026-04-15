@@ -1,7 +1,5 @@
 ﻿using DocumentFormat.OpenXml.Drawing.Charts;
 using Markdig;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Mvc.Razor.Internal;
 using Microsoft.JSInterop;
 using Pulse.Models.Api;
 using Pulse.Models.Communication;
@@ -10,33 +8,42 @@ using Pulse.Web.Services;
 
 public class GlobalFunctions
 {
-    [Inject]
-    public Global_AI_Functions global_AI { get; set; } = default!;
-    [Inject]
-    public IPulseToastService PulseToastService { get; set; } = default!;
-    [Inject] 
-    public PulseApiService ApiService { get; set; } = default!;
-    [Inject]
-    public IJSRuntime JSRuntime { get; set; } = default!;
+    private readonly Global_AI_Functions _global_AI;
+    private readonly IPulseToastService _pulseToastService;
+    private readonly PulseApiService _apiService;
+    private readonly AuthService _authService;
+    private readonly MessageHubService _msgHubService;
+    private readonly IJSRuntime _jsRuntime;
 
-    [Inject]
-    public AuthService AuthService { get; set; } = default!;
-
-    [Inject]
-    public MessageHubService MsgHubService { get; set; } = default!;
+    public GlobalFunctions(
+        Global_AI_Functions globalAI,
+        IPulseToastService pulseToastService,
+        PulseApiService apiService,
+        AuthService authService,
+        MessageHubService msgHubService,
+        IJSRuntime jsRuntime)
+    {
+        _global_AI = globalAI;
+        _pulseToastService = pulseToastService;
+        _apiService = apiService;
+        _authService = authService;
+        _msgHubService = msgHubService;
+        _jsRuntime = jsRuntime;
+    }
 
     private async Task showError(string errMsg)
     {
-        PulseToastService.ShowToast("Error", errMsg, true);
-        await global_AI.AISpeak(errMsg, "PulseAI");
+        _pulseToastService.ShowToast("Error", errMsg, true);
+        await _global_AI.AISpeak(errMsg, "PulseAI");
     }
+
     public string ParseToHtml(string markdownContent)
     {
         if (string.IsNullOrEmpty(markdownContent))
         {
             return string.Empty;
         }
-        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
         var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
 
         html = System.Text.RegularExpressions.Regex.Replace(
@@ -62,7 +69,6 @@ public class GlobalFunctions
 
         try
         {
-            //using var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
             filename += ".pdf";
             html = ParseToHtml(html);
             html = AddExportCss(html);
@@ -73,24 +79,16 @@ public class GlobalFunctions
                 FileName = filename
             };
 
-            var response = await ApiService.PostAsync<PdfRequest, ApiResponse<ByteArrayContent>>(ApiEndpoints.Utilities.ExportPdf, request);
-            if (response.Success)
-            {
-                var pdfBytes = await response.Data.ReadAsByteArrayAsync();
-                var base64 = Convert.ToBase64String(pdfBytes);
-                // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
-                await JSRuntime.InvokeVoidAsync("downloadPdfFile", filename, base64);
-            }
-            else
-            {
-                await showError("There was a problem exporting the PDF.<br />Please try again.");
-                return;
-            }
+            var response = await _apiService.PostJsonAsync<PdfRequest>(ApiEndpoints.Utilities.ExportPdf, request);
+            response.EnsureSuccessStatusCode();
 
-            // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
+            var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(pdfBytes);
+            await _jsRuntime.InvokeVoidAsync("downloadPdfFile", filename, base64);
         }
         catch (Exception ex)
         {
+            await showError("There was a problem exporting the PDF.<br />Please try again.");
             return;
         }
     }
@@ -104,7 +102,6 @@ public class GlobalFunctions
         
         try
         {
-            
             var mC = msg.Content;
             mC = ParseToHtml(mC);
             mC = AddInternalMarkUp(mC);
@@ -115,19 +112,18 @@ public class GlobalFunctions
                 SenderUserId = msg.SenderUserId ?? "PulseAI",
                 SentAt = msg.SentAt ?? DateTime.Now,
 
-                RecipientUserId = msg.RecipientUserId ?? AuthService.aspireUserId,
-                RecipientUserName = msg.RecipientUserName ?? AuthService.aspireFullName,
+                RecipientUserId = msg.RecipientUserId ?? _authService.aspireUserId,
+                RecipientUserName = msg.RecipientUserName ?? _authService.aspireFullName,
                 Role = msg.Role ?? "PulseAI",
                 ContentType = "MARKUP",
                 Content = mC,
                 Subject = msg.Subject ?? "Pulse Aspire Export"
             };
-            await MsgHubService.SendPrivateMessageAsync(msgExp);
+            await _msgHubService.SendPrivateMessageAsync(msgExp);
         }
         catch (Exception ex)
         {
             await showError("There was an error sending the message.<br />Please try again.");
-            
             return;
         }
     }
@@ -148,7 +144,7 @@ public class GlobalFunctions
         {
             html = ParseToHtml(html);
             html = AddExportCss(html);
-            await JSRuntime.InvokeVoidAsync("downloadHTMLFile", $"{filename}.html", html.Replace("h5", "h3"));
+            await _jsRuntime.InvokeVoidAsync("downloadHTMLFile", $"{filename}.html", html.Replace("h5", "h3"));
         }
         catch (Exception ex)
         {

@@ -22,10 +22,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="ApprenticeFoundryBlazorThreeJS" Version="23.1.0" />
     <PackageReference Include="Aspire.StackExchange.Redis.DistributedCaching" Version="13.2.1" />
     <PackageReference Include="Aspire.StackExchange.Redis.OutputCaching" Version="13.2.0" />
     <PackageReference Include="Blazor.SessionStorage" Version="9.0.1" />
     <PackageReference Include="BlazorAnimation" Version="2.2.0" />
+    <PackageReference Include="BlazorThreeJS" Version="1.5.0" />
     <PackageReference Include="BootstrapBlazor" Version="10.4.2" />
     <PackageReference Include="BootstrapBlazor.Chart" Version="10.0.2" />
     <PackageReference Include="BootstrapBlazor.FontAwesome" Version="10.0.1" />
@@ -42,6 +44,7 @@
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Emoji" Version="4.14.0" />
     <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.14.0" />
     <PackageReference Include="Polly" Version="8.6.6" />
+    <PackageReference Include="Radzen.Blazor" Version="10.2.3" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.17.0" />
     <PackageReference Include="Toolbelt.Blazor.SpeechRecognition" Version="1.0.0" />
     <PackageReference Include="Toolbelt.Blazor.SpeechSynthesis" Version="11.0.0" />
@@ -65,6 +68,9 @@
     </None>
     <None Update="Components\Layout\MasterLayout.razor.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Components\Pages\aaBU\TablesPgBU.razor.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="Components\Pages\AdminZone\SiteSensorManagement.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
@@ -90,10 +96,6 @@
     <None Update="Components\PulseComponents\Cards\PulseAICard.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Components\Pages\aaBU\" />
   </ItemGroup>
 
 </Project>

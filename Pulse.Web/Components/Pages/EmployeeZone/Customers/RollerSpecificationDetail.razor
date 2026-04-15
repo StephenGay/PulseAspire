@@ -10,6 +10,7 @@
 @using Pulse.Web.Services
 
 @inject DataTransferService DTrf
+@inject NavigationManager Navigation
 @inject AppState AppState
 @inject PulseApiService pApiClient
 @inject HttpClient Http
@@ -28,18 +29,18 @@
     .accordion-item{
         background-color: var(--pulse-light-colour) !important;
     }
-    .cparent {
+/*     .cparent {
         display: flex;
-        flex-direction: column; /* Stack children vertically */
-        height: 100%; /* Or whatever height your parent should be, like 100% */
+        flex-direction: column; 
+        height: 100%; 
     }
 
     .cheader, .cfooter {
-        /* Fixed sizes; flexbox will respect these */
-        height: 5px; /* Or min-height if you want flexibility */
+        
+        height: 5px;
         background: lightgray;
     }
-
+ */
     
 
     fluent-number-field::part(control) {
@@ -83,6 +84,7 @@
         {
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Width="100%" Style="padding: 10px">
             <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:start;">Roller Specification ID: @cSpec.ClientRollerSpecificationID</FluentLabel>
+                <FluentButton Appearance="Appearance.Accent" Style="height:fit-content; align-self:center;" @onclick="Get3DModel">3D Model</FluentButton>
                 <FluentLabel Typo="Typography.H5" Style="color:black; width:50%;text-align:end;">@cSpec.Description</FluentLabel>
             </FluentStack>
             @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
@@ -90,15 +92,15 @@
                        <Collapse IsAccordion="false" style="width:100%;  border-radius:10px; ">
                     <CollapseItems>
                         <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="true" >
-                            <FluentStack Orientation="Orientation.Vertical"
-                                         HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
-                                         VerticalAlignment="VerticalAlignment.Center"
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical"
+                                         HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
+                                         VerticalAlignment="MsFluent.VerticalAlignment.Center"
                                          VerticalGap="20">
                                          
                                
-                                <FluentStack Orientation="Orientation.Horizontal"
-                                             HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
-                                             VerticalAlignment="VerticalAlignment.Center"
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal"
+                                             HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
+                                             VerticalAlignment="MsFluent.VerticalAlignment.Center"
                                              HorizontalGap="4"
                                              >
                                     <FluentTextField @bind-Value=cSpec.Description Style="min-width:40%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Roller Description</FluentTextField>
@@ -108,11 +110,11 @@
                                     <FluentTextField @bind-Value=cSpec.DrawingNumber Style="min-width:20%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Drawing Number</FluentTextField>
                                 </FluentStack>
                                 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
+                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Shell Details</FluentLabel>
-                                    <FluentStack Orientation="Orientation.Horizontal"
-                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
-                                                 VerticalAlignment="VerticalAlignment.Center"
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal"
+                                                 HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
+                                                 VerticalAlignment="MsFluent.VerticalAlignment.Center"
                                                  Style="padding:10px;"
                                                  HorizontalGap="4">
                                         <FluentNumberField @bind-Value=cSpec.ShellDiameter Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Diameter</FluentNumberField>
@@ -127,11 +129,11 @@
                                     </FluentStack>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
+                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Cover Details</FluentLabel>
-                                    <FluentStack Orientation="Orientation.Horizontal"
-                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
-                                                 VerticalAlignment="VerticalAlignment.Center"
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal"
+                                                 HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
+                                                 VerticalAlignment="MsFluent.VerticalAlignment.Center"
                                                  Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-top:10px;"
                                                  HorizontalGap="4">
                                         <FluentTextField @bind-Value=cSpec.CompoundCode Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Compound</FluentTextField>
@@ -142,9 +144,9 @@
                                         <FluentSpacer />
                                         <FluentTextField @bind-Value=cSpec.HardnessTypeRequired Appearance="FluentInputAppearance.Filled" ReadOnly="true">Hardness Type</FluentTextField>
                                     </FluentStack>
-                                    <FluentStack Orientation="Orientation.Horizontal"
-                                                 HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
-                                                 VerticalAlignment="VerticalAlignment.Center"
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal"
+                                                 HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
+                                                 VerticalAlignment="MsFluent.VerticalAlignment.Center"
                                                  Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-bottom:10px;"
                                                  HorizontalGap="4">
                                         <FluentNumberField @bind-Value=cSpec.CoverLength Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Length</FluentNumberField>
@@ -159,7 +161,7 @@
 
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Operating Environment</FluentLabel>
-                                    <FluentStack Orientation="Orientation.Horizontal"
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
                                                  VerticalAlignment="VerticalAlignment.Center"
                                                  Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-top:10px;"
@@ -274,6 +276,11 @@
         await AppState.NotifyStateChanged();
         rollerTypes = await pApiClient.GetAsync<List<RollerType>>("/Technical/RollerTypes/GetAll");
         isLoading = false;
+    }
+
+    private void Get3DModel()
+    {
+        Navigation.NavigateTo($"/EmployeeZone/Customers/3DRoller");
     }
 
     private async Task GetSpecInfo()

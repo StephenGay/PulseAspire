@@ -11,6 +11,7 @@
 
 using Aspire.StackExchange.Redis;
 using BlazorAnimation;
+using BlazorThreeJS.Solutions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
@@ -23,6 +24,7 @@ using Pulse.Models.Users;
 using Pulse.Web.Components;
 using Pulse.Web.Services;
 using Pulse.Web.Tools;
+using Radzen;
 using System.Net.Http.Headers;
 using Toolbelt.Blazor.Extensions.DependencyInjection;
 
@@ -50,6 +52,7 @@ builder.Services.AddScoped<PulseApiService>();
 builder.Services.AddScoped<OllamaService>();
 builder.Services.AddScoped<DataTransferService>();
 builder.Services.AddScoped<Global_AI_Functions>();
+builder.Services.AddScoped<GlobalFunctions>();
 builder.Services.AddScoped<ApiErrorHandler>();
 builder.Services.AddScoped<AiPromptService>();  // ? Centralized AI prompts
 builder.Services.AddSingleton<IMouseService, MouseService>();
@@ -145,6 +148,7 @@ builder.Services.AddDataGridEntityFrameworkAdapter();
 builder.Services.AddScoped<Microsoft.FluentUI.AspNetCore.Components.DialogService>();
 builder.Services.AddScoped<AppState>();
 builder.Services.Configure<AnimationOptions>(Guid.NewGuid().ToString(), _ => { });
+builder.Services.AddRadzenComponents();
 #endregion
 
 #region Blazor Server Setup
@@ -163,6 +167,17 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MessageHubService>();
 #endregion
 
+//builder.Services.AddScoped<BlazorComponentBus.ComponentBus>();
+//builder.Services.AddScoped<BlazorComponentBus.IComponentBus>(sp =>
+//    sp.GetRequiredService<BlazorComponentBus.ComponentBus>());
+//builder.Services.AddScoped<BlazorThreeJS.Solutions.IThreeDService, BlazorThreeJS.Solutions.ThreeDService>();
+
+
+builder.Services.AddScoped<BlazorComponentBus.ComponentBus>();
+builder.Services.AddScoped<BlazorComponentBus.IComponentBus>(sp =>
+    sp.GetRequiredService<BlazorComponentBus.ComponentBus>());
+builder.Services.AddScoped<BlazorThreeJS.Solutions.IThreeDService, BlazorThreeJS.Solutions.ThreeDService>();
+//builder.Services.AddScoped<IThreeDService, ThreeDService>();   // if you have a using directive
 // Add IMemoryCache if not already registered
 builder.Services.AddMemoryCache();
 

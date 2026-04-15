@@ -1,0 +1,10 @@
+﻿body {
+}
+
+.th {
+    background-color: var(--pulse-dark-t50-colour) !important;
+    color: var(--pulse-light-colour) !important;
+}
+.rz-cell-filter{
+    background-color: var(--pulse-dark-colour) !important;
+}

@@ -1,8 +1,10 @@
-﻿
+﻿using Pulse.ApiService.PulseAI.Services;
 using Pulse.ApiService.Services;
 using Pulse.Models.Api;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.PulseContext;
+using Pulse.Models.Rollers;
 using PuppeteerSharp;
 using PuppeteerSharp.Media;
 
@@ -23,6 +25,33 @@ namespace Pulse.ApiService.Endpoints
             })
             .WithName("HealthCheck")
             .Produces(StatusCodes.Status200OK);
+
+            //group.MapGet("/3DRoller/{specId}", async (int specId, [FromServices] IRollerModelGenerationService rollerService, [FromServices] PulseDbContext dbContext) =>
+            //{
+            //    try
+            //    {
+            //        var rollerSpec = await dbContext.ClientRollerSpecificationMaster.FindAsync(specId);
+            //        if (rollerSpec == null)
+            //            return Results.NotFound($"Roller specification {specId} not found");
+                        
+            //        var rollerModel = await rollerService.GenerateRollerModelAsync(rollerSpec);
+            //        if (rollerModel != null)
+            //        {
+            //            return Results.Ok(new ApiResponse<RollerModel3DDto>
+            //            {
+            //                Success = true,
+            //                Message = "3D roller model generated successfully",
+            //                Data = rollerModel,
+            //                StatusCode = 200
+            //            });
+            //        }
+            //        return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            //    }
+            //    catch (Exception ex)
+            //    {
+            //        return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            //    }
+            //});
 
             group.MapPost("/SendEmail", async (EMailMessage msg, IEmailService emailService) =>
             {
@@ -77,7 +106,9 @@ namespace Pulse.ApiService.Endpoints
                         }
                     });
 
+                    
                     return Results.File(pdfBytes, "application/pdf", $"{request.FileName}.pdf");
+                    
                 }
                 catch (Exception ex)
                 {

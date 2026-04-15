@@ -82,8 +82,8 @@
 
         <FluentTabs ActiveTabId="@activeTab">
             <FluentTab Id="permissions" Label="Manage Permissions">
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 16px;">
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; flex-wrap: wrap;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px; margin-top: 16px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; flex-wrap: wrap;">
                         <FluentTextField @bind-Value="newPermissionName"
                                         Placeholder="Permission name (e.g., View Users)"
                                         Label="Permission Name"
@@ -95,7 +95,7 @@
                                         Style="flex: 1; min-width: 200px;" />
                     </FluentStack>
 
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
                         <div style="min-width: 200px;">
                             <FluentLabel Style="display: block; margin-bottom: 8px;">Category</FluentLabel>
                             <select @bind="newPermissionCategory" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%;">
@@ -130,7 +130,7 @@
                                         @foreach (var perm in categoryGroup)
                                         {
                                             <div class="permission-card">
-                                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
                                                     <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@perm.Name</FluentLabel>
                                                     <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@perm.Description</FluentLabel>
                                                     <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
@@ -152,7 +152,7 @@
             </FluentTab>
 
             <FluentTab Id="assign" Label="Assign Permissions">
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 16px;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px; margin-top: 16px;">
                     @if (isLoadingRoles)
                     {
                         <FluentProgressRing></FluentProgressRing>
@@ -173,7 +173,7 @@
 
                         @if (!string.IsNullOrEmpty(selectedRoleId) && rolePermissions != null)
                         {
-                            <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
                                 <h4>@rolePermissions.RoleName - Permissions (@rolePermissions.Permissions.Count assigned)</h4>
                                 
                                 @if (isLoadingPermissions)
@@ -192,7 +192,7 @@
                                                     var isAssigned = rolePermissions.Permissions.Any(p => p.Id == permission.Id);
                                                     <div class="permission-item">
                                                         <input type="checkbox" @onchange="@(async (ChangeEventArgs e) => await TogglePermissionAsync(permission.Id, (bool)e.Value!))" checked="@isAssigned" />
-                                                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 4px; flex: 1;">
+                                                        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 4px; flex: 1;">
                                                             <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@permission.Name</FluentLabel>
                                                             <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@permission.Description</FluentLabel>
                                                         </FluentStack>

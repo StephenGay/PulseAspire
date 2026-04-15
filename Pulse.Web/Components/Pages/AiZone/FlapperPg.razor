@@ -8,7 +8,7 @@
 @inject AuthService _authService
 @inject MessageHubService MsgHubService
 @inject HttpClient Http
-
+@inject GlobalFunctions GlobalFunctions
 @implements IAsyncDisposable
 
 @rendermode InteractiveServer
@@ -35,6 +35,7 @@
 @using System.Runtime.CompilerServices
 @using System.Text.Json
 @using System.Text.Json.Serialization
+@using System.Text
 @using Toolbelt.Blazor.SpeechRecognition
 
 @inject Pulse_AI pAI
@@ -73,7 +74,11 @@
                               IconStart="@(new Icons.Filled.Size24.Thinking().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
                               Title="Toggle Thinking"
                               OnClick="() => stream = !stream"></FluentButton>
-            
+            <FluentButton Appearance="Appearance.Accent" class=@(!viewHistory ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                          Color="var(--pulse-mode-btn-item-colour)"
+                          IconStart="@(new Icons.Filled.Size24.History().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
+                          Title="Toggle History"
+                          OnClick="ToggleHistory"></FluentButton>
                 <AuthorizeView Roles="Admin">
                     <Authorized>
                         <!-- Create Role Form (only shown to admins) -->
@@ -96,9 +101,9 @@
                               IconStart="@(new Icons.Filled.Size24.Eye().WithColor("var(--pulse-accent-btn-colour)"))"
                               Title="View"
                               Style="height:50px;width:50px" OnClick="() => showViewMenu = !showViewMenu"></FluentButton>
-                <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Start" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnView2" @bind-Open="showViewMenu">
+                <FluentPopover Style="width: 300px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Start" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnView2" @bind-Open="showViewMenu">
                     <Body>
-                        <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+                        <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
                             <FluentButton Appearance="Appearance.Accent" class=@(!ViewAll ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                                             Color="var(--pulse-mode-btn-item-colour)"
                                             Style="height:40px;width:80%"
@@ -111,41 +116,49 @@
                         </FluentStack>
                     </Body>
                 </FluentPopover>
-                <FluentButton id="btnDownload2" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                              IconStart="@(new Icons.Filled.Size24.ArrowDownload().WithColor("var(--pulse-accent-btn-colour)"))"
-                              Title="Download"
-                              Style="height:50px;width:50px" OnClick="() => showDownloadMenu = !showDownloadMenu"></FluentButton>
-                <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Start" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnDownload2" @bind-Open="showDownloadMenu">
-                    <Body>
-                        <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
-                            <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                          class="btnShadow"
-                                          BackgroundColor="rgba(255,0,0,0.4)"
-                                          Style="height:40px; width:80%; border:1px solid white"
-                                          Color="rgba(255,255,255,1)"
-                                          OnClick="ExportToPdf">
-                                <strong>PDF</strong>
-                            </FluentButton>
-                            <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                          BackgroundColor="rgba(0,0,0,1)"
-                                          class="btnShadow"
-                                          Style="height:40px; width:80%; border:1px solid white"
-                                          Color="rgba(255,255,255,1)"
-                                          OnClick="ExportHtmlFile">
-                                <strong>HTML</strong>
-                            </FluentButton>
-                            <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                          BackgroundColor="rgba(0,0,0,1)"
-                                          class="btnShadow"
-                                          Style="height:40px; width:80%; border:1px solid white"
-                                          Color="rgba(255,255,255,1)"
-                                          OnClick="ExportToPulseMsg">
-                                <strong>PULSE MSG</strong>
-                            </FluentButton>
-                        </FluentStack>
-                    </Body>
-                </FluentPopover>
-            
+                @if (pdfLoading)
+                {
+                    <div class="spinner-grow text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                }
+                else
+                {
+                    <FluentButton id="btnDownload2" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                                      IconStart="@(new Icons.Filled.Size24.ArrowDownload().WithColor("var(--pulse-accent-btn-colour)"))"
+                                      Title="Download"
+                                      Style="height:50px;width:50px" OnClick="() => showDownloadMenu = !showDownloadMenu"></FluentButton>
+                    <FluentPopover Style="width: 300px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" Class="divShadow" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Start" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnDownload2" @bind-Open="showDownloadMenu">
+                        <Body>
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                class="btnShadow"
+                                                BackgroundColor="rgba(255,0,0,0.4)"
+                                                Style="height:40px; width:80%; border:1px solid white"
+                                                Color="rgba(255,255,255,1)"
+                                                OnClick="ExportToPdf">
+                                    <strong>PDF</strong>
+                                </FluentButton>
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                BackgroundColor="rgba(0,0,0,1)"
+                                                class="btnShadow"
+                                                Style="height:40px; width:80%; border:1px solid white"
+                                                Color="rgba(255,255,255,1)"
+                                                OnClick="ExportHtmlFile">
+                                    <strong>HTML</strong>
+                                </FluentButton>
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                BackgroundColor="rgba(0,0,0,1)"
+                                                class="btnShadow"
+                                                Style="height:40px; width:80%; border:1px solid white"
+                                                Color="rgba(255,255,255,1)"
+                                                OnClick="ExportToPulseMsg">
+                                    <strong>PULSE MSG</strong>
+                                </FluentButton>
+                            </FluentStack>
+                        </Body>
+                    </FluentPopover>
+                }
         </FluentStack>
     </div>
     <div class="aiContent" style="background-color: white">
@@ -180,7 +193,7 @@
                                         <div style="padding: 16px; background-color: var(--neutral-layer-2); border-top: 2px solid var(--accent-fill-rest);">
                                             <p><strong>Flapper asks:</strong> @CurrentClarificationQuestion</p>
             
-                                            <FluentStack Orientation="Orientation.Horizontal" >
+                                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" >
                                                 <FluentButton Appearance="Appearance.Accent"@OnClick="() => SendQuickReplyAsync("Yes")">Yes</FluentButton>
                                                 <FluentButton Appearance="Appearance.Neutral" @OnClick="() => SendQuickReplyAsync("No")">No</FluentButton>
                                                 <FluentButton Appearance="Appearance.Lightweight" OnClick="() => SendCustomReplyAsync()">Custom Reply</FluentButton>
@@ -262,47 +275,66 @@
 
         <div class="chat-area">
             <div class="chat-messages" @ref="chatContainer">
-                @if (!ViewAll)
+                @if (viewHistory)
                 {
-                    @if (!string.IsNullOrEmpty(userQry))
+                    if(ConversationHistory.Count == 0)
                     {
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%">@userQry</FluentLabel>
-                        </FluentStack>
+                        <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;text-align:center">No past conversations found.</FluentLabel>
                     }
-                    @if (!string.IsNullOrEmpty(CurrentFlapperResponse))
+                    else
                     {
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                            <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                <div style="color: black;">
-                                    @((MarkupString)AddMUcss(ParseToHtml(CurrentFlapperResponse)))
-                                </div>
-                            </FluentLabel>
-                        </FluentStack>
-                    }
-                    @if (stream && !string.IsNullOrEmpty(flapperThinking))
-                    {
-                        <br />
-                            <FluentLabel Typo="Typography.Body" class="divShadow" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@flapperThinking</FluentLabel>
+                        @foreach (var convo in ConversationHistory)
+                        {
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel>
+                            </FluentStack>
+                        }
                     }
                 }
                 else
                 {
-                    @foreach (var message in (oldFirst ? Messages : Enumerable.Reverse(Messages)) )
+                    @if (!ViewAll)
                     {
-                        @if (message.Sender.ToUpper() == "USER")
+                        @if (!string.IsNullOrEmpty(userQry))
                         {
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                        <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;">@message.Content</FluentLabel>
+                                    <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%">@userQry</FluentLabel>
                             </FluentStack>
                         }
-                        else
+                        @if (!string.IsNullOrEmpty(CurrentFlapperResponse))
                         {
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
-                                        <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                    <div style="color: black;">@((MarkupString)AddMUcss(ParseToHtml(message.Content))) </div>
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+                                <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                    <div style="color: black;">
+                                        @((MarkupString)AddMUcss(ParseToHtml(CurrentFlapperResponse)))
+                                    </div>
                                 </FluentLabel>
                             </FluentStack>
+                        }
+                        @if (stream && !string.IsNullOrEmpty(flapperThinking))
+                        {
+                            <br />
+                                <FluentLabel Typo="Typography.Body" class="divShadow" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@flapperThinking</FluentLabel>
+                        }
+                    }
+                    else
+                    {
+                        @foreach (var message in (oldFirst ? Messages : Enumerable.Reverse(Messages)) )
+                        {
+                            @if (message.Sender.ToUpper() == "USER")
+                            {
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+                                            <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;">@message.Content</FluentLabel>
+                                </FluentStack>
+                            }
+                            else
+                            {
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
+                                            <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                        <div style="color: black;">@((MarkupString)AddMUcss(ParseToHtml(message.Content))) </div>
+                                    </FluentLabel>
+                                </FluentStack>
+                            }
                         }
                     }
                 }
@@ -316,6 +348,7 @@
 
 @code {
     private Flapper? flapper;
+    private FlapperDTO? flapperDTO;
     private List<FlapperMessageDto> Messages { get; set; } = new();
     private string CurrentUserMessage { get; set; } = string.Empty;
     private bool IsAwaitingClarification { get; set; } = false;
@@ -323,8 +356,8 @@
     private string? CurrentClarificationQuestion { get; set; }
     private string CurrentFlapperResponse { get; set; } = string.Empty;
     private Guid CurrentConversationId { get; set; } = Guid.NewGuid();
-
-
+    private bool viewHistory = false;
+    private List<FlapperConversation> ConversationHistory = new();
 
     private string? flapperSystemPrompt = string.Empty;
     private string query = string.Empty;
@@ -357,6 +390,9 @@
     // private User? user;
     private bool stream = false;
 
+    private StringBuilder _answerBuilder = new();
+    private int _lastSpokenCharIndex = 0;
+    private bool _isSpeaking = false;
     // Dynamic models for select
     // private List<string>? ollamaModels = new();
     // Multi-turn chat history
@@ -399,6 +435,16 @@
         if (string.IsNullOrWhiteSpace(CurrentUserMessage)) return;
 
         isLoading = true;
+        flapper = await dtrf.GetgvFlapper();
+        flapperDTO = new FlapperDTO
+            {
+                Model = flapper.Model,
+                Think = flapper.Think,
+                MaxRecursionDepth = flapper.MaxRecursionDepth,
+                MaxFailedAttempts = flapper.MaxFailedAttempts,
+                MaxToolRetries = flapper.MaxToolRetries,
+                Options = flapper.Options
+            };
         flapperThinking = "";
         userQry = CurrentUserMessage;
         Messages.Add(new FlapperMessageDto { Sender = "You", Content = CurrentUserMessage });
@@ -412,6 +458,7 @@
         // Send to API
         var request = new FlapperChatRequest
         (
+            flapperDTO,
             _authService.aspireUserId,
             CurrentConversationId,
             userQry,
@@ -454,7 +501,7 @@
                 lastMsg.Content = CurrentFlapperResponse;
             retryBtn = true;
         }
-        
+
     }
 
     private async Task SendQuickReplyAsync(string answer)
@@ -467,6 +514,7 @@
         // Send the clarification answer back to continue the session
         var request = new FlapperChatRequest
         (
+            flapperDTO,
             _authService.aspireUserId,
             CurrentConversationId,
             answer,
@@ -497,26 +545,27 @@
             return;
         }
         // Clarification detection
-        if (msg.Content.StartsWith("[CLARIFICATION]"))
-        {
-            IsAwaitingClarification = true;
-            CurrentClarificationQuestion = msg.Content.Replace("[CLARIFICATION]", "").Trim();
-            CurrentFlapperResponse = "";
+        // if (msg.Content.StartsWith("[CLARIFICATION]"))
+        // {
+        //     IsAwaitingClarification = true;
+        //     CurrentClarificationQuestion = msg.Content.Replace("[CLARIFICATION]", "").Trim();
+        //     CurrentFlapperResponse = "";
 
-            // Clear the "..." placeholder
-            // var placeholder = Messages.LastOrDefault(m => m.Sender == "Flapper" && m.Content == "...");
-            // if (placeholder != null)
-            //     Messages.Remove(placeholder);
+        //     // Clear the "..." placeholder
+        //     // var placeholder = Messages.LastOrDefault(m => m.Sender == "Flapper" && m.Content == "...");
+        //     // if (placeholder != null)
+        //     //     Messages.Remove(placeholder);
 
-            StateHasChanged();
-            return;
-        }
+        //     StateHasChanged();
+        //     return;
+        // }
 
         var msgContent = msg.Content;
 
         if(msg.Content.StartsWith("<thinking>"))
         {
-            _inThinking = true; 
+            _inThinking = true;
+            flapperThinking = "";
             msgContent = msgContent.Replace("<thinking>", "").Trim();
         }
         if (msg.Content.StartsWith("</thinking>"))
@@ -533,8 +582,9 @@
         else
         {
             CurrentFlapperResponse += msgContent;
+            await SpeakIncremental(msgContent);
         }
-        
+
 
         var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
         if (lastMsg != null)
@@ -573,7 +623,68 @@
     }
 
     #endregion
-   
+
+    private async Task SpeakIncremental(string newDelta)
+    {
+        newDelta = newDelta.Replace(" U.S.", " United States");
+        _answerBuilder.Append(newDelta);
+
+        string full = _answerBuilder.ToString();
+
+        // Find last complete sentence end
+        int boundary = full.LastIndexOfAny(new[] { '!', '?', '\n' });
+        if (boundary < _lastSpokenCharIndex) return; // nothing new to speak
+
+        string toSpeak = full.Substring(_lastSpokenCharIndex, boundary - _lastSpokenCharIndex + 1).Trim();
+
+        if (string.IsNullOrWhiteSpace(toSpeak)) return;
+
+        _isSpeaking = true;
+        await InvokeAsync(StateHasChanged);
+
+        await GlobalAI.AISpeak(toSpeak, "Flapper");
+
+        _lastSpokenCharIndex = boundary + 1;
+
+        // If very long chunk without punctuation → force speak every ~250 chars
+        if (full.Length - _lastSpokenCharIndex > 300)
+        {
+            string chunk = full.Substring(_lastSpokenCharIndex, 300);
+            chunk = PrepareForSpeech(chunk);
+            await GlobalAI.AISpeak(chunk, "Flapper");
+            _lastSpokenCharIndex += 300;
+        }
+
+        _isSpeaking = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string PrepareForSpeech(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return text;
+
+        text = text
+            .Replace("\n\n", "\n")           // reduce big gaps
+            .Replace("\n", " ")              // turn newlines into spaces
+            .Replace("  ", " ")              // collapse spaces
+            .Replace("*", "")                // remove asterisks
+            .Replace("**", "")
+            .Replace("```", "")
+            .Replace("`", "")
+            .Replace("# ", "")               // remove markdown headings
+            .Replace("### ", "")
+            .Replace("## ", "")
+            .Replace("#### ", "")
+            .Replace(" U.S. ", " United States ")
+            .Trim();
+
+        // Optional: make it even more spoken
+        text = System.Text.RegularExpressions.Regex.Replace(text, @"\b(SQL|query|table|column)\b", match =>
+            match.Value.ToLower()); // or rephrase specific terms if needed
+
+        return text;
+    }
     protected override void OnInitialized()
     {
         // Subscribe to state changes
@@ -605,7 +716,7 @@
         cts?.Dispose();
     }
 
-    
+
 
     #region Speech Recognition
 
@@ -646,97 +757,142 @@
 
     private async Task ExportToPdf()
     {
-        if (chatHistory==null)
+
+        if (Messages == null)
         {
             return;
         }
 
         try
         {
+            showDownloadMenu = false;
             string cnt = string.Empty;
             pdfLoading = true;
             if (!ViewAll)
             {
                 cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{ParseToHtml(flapperAnswer)}";
-                if (stream) { cnt += $"<hr>{ParseToHtml(flapperThinking)}< hr >"; }
+                if (stream) { cnt += $"<hr><p><i>{flapperThinking}</i></p><hr>"; }
             }
             else
             {
-                foreach (var message in chatHistory)
+                foreach (var message in Messages)
                 {
-                    if (message.Role.ToUpper() != "USER")
+                    if (message.Sender != "You")
                     {
-                        cnt += ParseToHtml(@message.Content);
+                        cnt += @message.Content;
                     }
                     else
                     {
-                        cnt += $"<hr><p><strong>" + message.Role.ToUpper() + "</strong>: " + @message.Content +"</p><hr>";
+                        cnt += $"<hr><p><strong>USER: </strong>: " + @message.Content + "</p><hr>";
                     }
                 }
             }
 
-            using var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
-            var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".pdf";
-            var H = AddExportMUcss(cnt);
+            var fileName = "ChatLog" + DateTime.Now.ToShortDateString();
+            await GlobalFunctions.ExportToPdf(cnt, fileName);
 
-            var request = new PdfRequest
-            {
-                Html = H,
-                FileName = fileName,
-            };
-
-            var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
-            response.EnsureSuccessStatusCode();
-
-            var pdfBytes = await response.Content.ReadAsByteArrayAsync();
-            var base64 = Convert.ToBase64String(pdfBytes);
-            // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
-
-            pdfLoading = false;
-            await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
-
-            // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
         }
         catch (Exception ex)
         {
             return;
         }
+        finally
+        {
+            pdfLoading = false;
+        }
+
+        // if (chatHistory==null)
+        // {
+        //     return;
+        // }
+
+        // try
+        // {
+        //     string cnt = string.Empty;
+        //     pdfLoading = true;
+        //     if (!ViewAll)
+        //     {
+        //         cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{ParseToHtml(flapperAnswer)}";
+        //         if (stream) { cnt += $"<hr>{ParseToHtml(flapperThinking)}< hr >"; }
+        //     }
+        //     else
+        //     {
+        //         foreach (var message in chatHistory)
+        //         {
+        //             if (message.Role.ToUpper() != "USER")
+        //             {
+        //                 cnt += ParseToHtml(@message.Content);
+        //             }
+        //             else
+        //             {
+        //                 cnt += $"<hr><p><strong>" + message.Role.ToUpper() + "</strong>: " + @message.Content +"</p><hr>";
+        //             }
+        //         }
+        //     }
+
+        //     using var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
+        //     var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".pdf";
+        //     var H = AddExportMUcss(cnt);
+
+        //     var request = new PdfRequest
+        //     {
+        //         Html = H,
+        //         FileName = fileName,
+        //     };
+
+        //     var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
+        //     response.EnsureSuccessStatusCode();
+
+        //     var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+        //     var base64 = Convert.ToBase64String(pdfBytes);
+        //     // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
+
+        //     pdfLoading = false;
+        //     await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
+
+        //     // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
+        // }
+        // catch (Exception ex)
+        // {
+        //     return;
+        // }
     }
 
     private async Task ExportToPulseMsg()
     {
-        if (chatHistory == null)
+
+        if (Messages == null)
         {
             return;
         }
 
         try
         {
+            showDownloadMenu = false;
+            pdfLoading = true;
             string cnt = string.Empty;
 
             if (!ViewAll)
             {
-                cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{ParseToHtml(flapperAnswer)}";
-                if (stream) { cnt += $"<hr>{ParseToHtml(flapperThinking)}< hr >"; }
+                cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{flapperAnswer}";
+                if (stream) { cnt += $"<hr><p><i>{flapperThinking}</i></p><hr>"; }
             }
             else
             {
-                foreach (var message in chatHistory)
+                foreach (var message in Messages)
                 {
-                    if (message.Role.ToUpper() != "USER")
+                    if (message.Sender != "You")
                     {
-                        cnt += ParseToHtml(@message.Content);
+                        cnt += @message.Content;
                     }
                     else
                     {
-                        cnt += $"<hr><p><strong>" + message.Role.ToUpper() + "</strong>: " + @message.Content + "</p><hr>";
+                        cnt += $"<hr><p><strong>USER: </strong>: " + @message.Content + "</p><hr>";
                     }
                 }
             }
 
             var subject = "ChatLog" + DateTime.Now.ToShortDateString();
-            var H = AddMUcss(cnt);
-
             var msg = new PulseMessage()
                 {
                     SenderUserName = "Flapper",
@@ -744,16 +900,21 @@
                     RecipientUserName = _authService.aspireFullName,
                     Role = "PulseAI",
                     ContentType = "MARKUP",
-                    Content = H,
+                    Content = cnt,
                     Subject = subject
                 };
-            await MsgHubService.SendPrivateMessageAsync(msg);
+            await GlobalFunctions.ExportToPulseMsg(msg);
+
         }
         catch (Exception ex)
         {
-            PulseToastService.ShowToast("Error", "There was an error sending the message.<br />Please try again.", true, true, "Flapper");
-            await GlobalAI.AISpeak("There was an error sending the message.<br />Please try again.", "Flapper");
+            // PulseToastService.ShowToast("Error", "There was an error sending the message.<br />Please try again.", true, true, "Flapper");
+            // await GlobalAI.AISpeak("There was an error sending the message.<br />Please try again.", "Flapper");
             return;
+        }
+        finally
+        {
+            pdfLoading = false;
         }
     }
 
@@ -766,6 +927,8 @@
 
         try
         {
+            showDownloadMenu = false;
+            pdfLoading = true;
             string cnt = string.Empty;
 
             foreach (var message in chatHistory)
@@ -788,6 +951,10 @@
         {
             await SayIt("I'm sorry, there was a problem exporting the conversation.", "Flapper");
             return;
+        }
+        finally
+        {
+            pdfLoading = false;
         }
     }
 
@@ -852,7 +1019,7 @@
 
     #endregion
 
-   
+
     private async Task ClearChatHistory()
     {
         chatHistory.Clear();
@@ -877,9 +1044,43 @@
         isLoading = false;
     }
 
+    private async Task ToggleHistory()
+    {
+        viewHistory = !viewHistory;
 
+        if(viewHistory && ConversationHistory.Count == 0)
+        {
+            await LoadConversationHistory();
+        }
+    }
 
-    
+    private async Task LoadConversationHistory()
+    {
+        bool isSuccess = false;
+        try
+        {
+            var response = await pulseApiClient.GetAsync<ApiResponse<List<FlapperConversation>>>(ApiEndpoints.PulseAi.EndpointsFlapper.GetUserConversationHistory(_authService.aspireUserId));
+            isSuccess = response?.Success == true ? true : false;
+            if (isSuccess)
+            {
+                ConversationHistory = response?.Data?.ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (!isSuccess)
+            {
+                PulseToastService.ShowToast("Error", "There was an error loading your conversation history.<br />Please try again.", true, true, "Flapper");
+                await GlobalAI.AISpeak("There was an error loading your conversation history.<br />Please try again.", "Flapper");
+                viewHistory = false;
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+    }
 
 
 

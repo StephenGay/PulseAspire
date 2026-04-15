@@ -41,7 +41,7 @@
 
 <div class="cparent">
     <div class="ccontent">
-        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center">
             <h2>My Setup</h2>
             <FluentSpacer />
             <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" IconStart="@(new Icons.Filled.Size28.Save().WithColor("var(--pulse-accent-btn-colour)"))" Style="height: 50px; border-radius: 10px;" OnClick="onClickSave">Update</FluentButton>
@@ -50,12 +50,12 @@
         <hr />
         @if (uSettings != null)
         {
-            <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="30" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Wrap="true">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="30" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Wrap="true">
                 <FluentCard AreaRestricted="false" Class="divShadow" Style="background-color: var(--pulse-light-colour);width:fit-content">
                     <FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px;">
                         <h2 style="margin: 0; color: white;">AI Settings</h2>
                     </FluentHeader>
-                    <FluentStack Orientation="Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalAlignment="MsFluent.VerticalAlignment.Center">
                         <FluentCheckbox @bind-Value="@uSettings.AIHasVoice" Label="Add A Voice To My AI" />
                         @* <FluentSpacer /> *@
                         <FluentTextField @bind-Value="@uSettings.PreferredUserName"

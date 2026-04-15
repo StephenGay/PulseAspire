@@ -7,6 +7,7 @@ namespace Pulse.Models.AI.Flapper;
 public record ClarificationResponse(string type, string question);
 
 public record FlapperChatRequest(
+    FlapperDTO flapperDTO,
     string UserId, 
     Guid ConversationId, 
     string Message,

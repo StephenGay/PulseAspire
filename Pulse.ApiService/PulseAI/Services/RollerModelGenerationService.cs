@@ -1,0 +1,129 @@
+﻿using Pulse.Models.Customers;
+using Pulse.Models.Rollers;
+using System.Numerics;
+
+namespace Pulse.ApiService.PulseAI.Services;
+
+public interface IRollerModelGenerationService
+{
+    Task<RollerModel3DDto> GenerateRollerModelAsync(ClientRollerSpecification _rollerData);
+}
+
+public class RollerModelGenerationService : IRollerModelGenerationService
+{
+    private readonly ILogger<RollerModelGenerationService> _logger;
+
+    public RollerModelGenerationService(ILogger<RollerModelGenerationService> logger)
+    {
+        _logger = logger;
+    }
+
+    public async Task<RollerModel3DDto> GenerateRollerModelAsync(ClientRollerSpecification rollerData)
+    {
+        try
+        {
+            _logger.LogInformation("Generating 3D model for roller: {RollerId}", rollerData.ClientRollerSpecificationID);
+
+            var geometry = GenerateGeometry(rollerData);
+            var material = GenerateMaterial(rollerData);
+            var components = GenerateComponents(rollerData);
+
+            return new RollerModel3DDto
+            {
+                RollerId = rollerData.ClientRollerSpecificationID.ToString(),
+                RollerName = rollerData.Description,
+                Geometry = geometry,
+                Material = material,
+                Components = components
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to generate 3D model for roller {RollerId}", rollerData.ClientRollerSpecificationID);
+            throw;
+        }
+    }
+
+    // Pass rollerData as parameter - thread-safe
+    private RollerGeometryDto GenerateGeometry(ClientRollerSpecification rollerData)
+    {
+        // Generate cylinder geometry for roller
+        var (vertices, indices, normals) = GenerateCylinderGeometry(
+            (float)rollerData.ShellDiameter / 2f,  // radius
+            (float)rollerData.ShellLength,
+            segments: 32);
+
+        return new RollerGeometryDto
+        {
+            Vertices = vertices,
+            Indices = indices,
+            Normals = normals,
+            Radius = (float)rollerData.ShellDiameter / 2f,
+            Length = (float)rollerData.ShellLength
+        };
+    }
+
+    private RollerMaterialDto GenerateMaterial(ClientRollerSpecification rollerData)
+    {
+        return new RollerMaterialDto
+        {
+            Color = "#1a1a1a",
+            Roughness = 0.6f,
+            Metalness = 0.2f,
+            Opacity = 1.0f
+        };
+    }
+
+    private List<RollerComponentDto> GenerateComponents(ClientRollerSpecification rollerData)
+    {
+        var components = new List<RollerComponentDto>
+        {
+            new RollerComponentDto
+            {
+                Name = "Shell",
+                Type = "shell",
+                Position = new float[] { 0, 0, 0 },
+                Color = "#C0C0C0"
+            }
+        };
+
+        return components;
+    }
+
+    private (float[], int[], float[]) GenerateCylinderGeometry(float radius, float length, int segments)
+    {
+        var vertices = new List<float>();
+        var indices = new List<int>();
+        var normals = new List<float>();
+
+        // Generate cylinder vertices
+        for (int i = 0; i <= segments; i++)
+        {
+            float angle = (i / (float)segments) * 2 * MathF.PI;
+            float x = radius * MathF.Cos(angle);
+            float z = radius * MathF.Sin(angle);
+
+            // Top circle
+            vertices.AddRange(new[] { x, length / 2f, z });
+            normals.AddRange(new[] { x / radius, 0, z / radius });
+
+            // Bottom circle
+            vertices.AddRange(new[] { x, -length / 2f, z });
+            normals.AddRange(new[] { x / radius, 0, z / radius });
+        }
+
+        // Generate indices for cylinder sides
+        for (int i = 0; i < segments; i++)
+        {
+            int a = i * 2;
+            int b = a + 1;
+            int c = ((i + 1) % segments) * 2;
+            int d = c + 1;
+
+            indices.AddRange(new[] { a, b, c });
+            indices.AddRange(new[] { b, d, c });
+        }
+
+        return (vertices.ToArray(), indices.ToArray(), normals.ToArray());
+    }
+}

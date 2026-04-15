@@ -37,6 +37,7 @@
         border-radius: 8px;
         /* padding: 12px; */
         background: white;
+        cursor: pointer;
         transition: box-shadow 0.2s ease;
     }
 
@@ -131,7 +132,7 @@
                                 <FluentMessageBar Intent="MessageIntent.Info" Style="width:90%;margin-left:5%;margin-right:5%;margin-top:20px">
                                     Select A Work Type to add to this Division from the items below
                                 </FluentMessageBar>
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="margin-top:10px;gap: 12px; flex-wrap: wrap;">
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="margin-top:10px;gap: 12px; flex-wrap: wrap;">
                                     <FluentButton Class="myAccentBtn" Disabled="@(selectedWT?.WorkTypeID <= 0)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:30px;padding:0 10px 0 10px" Color="var(--pulse-accent-btn-colour)" OnClick="AddWtToDiv">
                                         <FluentIcon Value="@(new Icons.Filled.Size20.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> Add To Division
                                     </FluentButton>
@@ -144,9 +145,9 @@
                                     {
                                         <FluentGridItem xs="12" sm="6" md="4" lg="2">
                                             <div class="permission-card @(selectedWT == workType ? "box" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedWT = workType">
-                                                <FluentStack Orientation="Orientation.Vertical" Style="@($"gap: 8px; background-color: {(selectedWT == workType ? "var(--pulse-dark-colour)" : "var(--pulse-light-colour)")}; border-radius: 8px; padding: 12px;")">
+                                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="@($"gap: 8px; background-color: {(selectedWT == workType ? "var(--pulse-dark-colour)" : "var(--pulse-light-colour)")}; border-radius: 8px; padding: 12px;")">
                                 @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 0px;(selectedWT == workType ? "background-color:var(--pulse-dark-colour)" : "background-color:var(--pulse-light-colour)");border-radius:8px;padding:12px;"> *@
-                                                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;">
                                                         <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @workType.WorkTypeID</FluentLabel>
                                                         <FluentSpacer />
                                                         <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">Active: @(workType.IsActive ? "Yes" : "No")</FluentLabel>
@@ -164,7 +165,7 @@
                             }   
                             else
                             {
-                                <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
                                     <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:30px;width:100px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => isAddWorkType = true)">
                                         <FluentIcon Value="@(new Icons.Filled.Size20.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> Add
                                     </FluentButton>
@@ -177,9 +178,9 @@
                                     {
                                         <FluentGridItem xs="12" sm="6" md="4" lg="2" >
                                             <div class="permission-card @(selectedDivWT == workType ? "box" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedDivWT = workType" >
-                                                <FluentStack Orientation="Orientation.Vertical" Style="@($"gap: 8px; background-color: {(selectedDivWT == workType ? "var(--pulse-dark-colour)" : "var(--pulse-light-colour)")}; border-radius: 8px; padding: 12px;")">
+                                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="@($"gap: 8px; background-color: {(selectedDivWT == workType ? "var(--pulse-dark-colour)" : "var(--pulse-light-colour)")}; border-radius: 8px; padding: 12px;")">
                                                 @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;"> *@
-                                                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;">
                                                         <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @workType.WorkTypeID</FluentLabel>
                                                         <FluentSpacer />
                                                         <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">Active: @(workType.IsActive ? "Yes" : "No")</FluentLabel>

@@ -51,7 +51,7 @@ public static class AliAiEndpoints
         //    return Results.Created($"/AI/ContextualPrompt/{prompt.ContextualPromptId}", prompt);
         //});
 
-        //group.MapGet("/GetContextualPromptsByAreaId/{areaid}", async (int areaid, PulseDbContext dbContext) =>
+        //group.MapGet("/GetCustomPromptsByAreaId/{areaid}", async (int areaid, PulseDbContext dbContext) =>
         //{
         //    var prompts = await dbContext.ContextualPromptMaster
         //        .AsNoTracking()

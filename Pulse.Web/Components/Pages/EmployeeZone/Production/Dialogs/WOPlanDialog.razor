@@ -26,7 +26,7 @@
         </Animation>
         <br />
         <Animation Effect="@Effect.FadeInUpBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-            <FluentStack Orientation="Orientation.Horizontal" Style="padding:10px">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding:10px">
                 <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowCircleUp().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="togPlan"></FluentButton>
                 <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowCircleDown().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="startStage"></FluentButton>
                 <FluentSpacer />

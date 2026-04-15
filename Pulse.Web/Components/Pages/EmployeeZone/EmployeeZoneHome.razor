@@ -87,21 +87,21 @@
 
     private void HandleShowToast()
     {
-        ToastService.ShowSuccess("This is a Test Success message", SelectedAI, "Success");
+        ToastService.ShowToast("Success","This is a Test Success message",true,false, SelectedAI);
     }
 
     private void HandleInfoToast()
     {
-        ToastService.ShowInformation("This is a Test Information message", SelectedAI, "Information");
+        ToastService.ShowToast("Information", "This is a Test Information message", true, false, SelectedAI);
     }
 
     private void HandleErrToast()
     {
-        ToastService.ShowError("This is a Test Error message", SelectedAI, "Error");
+        ToastService.ShowToast("Error", "This is a Test Error message", true, false, SelectedAI);
     }
 
     private void HandleWarningToast()
     {
-        ToastService.ShowWarning("This is a Test Warning message", SelectedAI, "Warning");
+        ToastService.ShowToast("Warning", "This is a Test Warning message", true, false, SelectedAI);
     }
 }

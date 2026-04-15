@@ -5,15 +5,44 @@
     color: white !important;
 }
 
-/*tr {
-    background-color: white !important;
-    color: black !important;
-}*/
-/*.selected {
-    background-color: lightblue !important;
-    opacity: 1 !important;
-    
-}*/
+.ali-pulse-column-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fill, minmax(325px, 325px));
+    /*grid-auto-columns: minmax(320px, 1fr);*/
+    grid-template-rows: repeat(auto-fill, minmax(120px, auto));
+    gap: 15px;
+    padding: 20px;
+    height: 100%;
+    overflow: auto;
+}
+
+.ali-pulse-grid-item {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    background-color:white;
+    width:320px;
+    height:120px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .ali-pulse-grid-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    /*.pulse-grid-item.box {
+        border: 2px solid var(--pulse-dark-colour);
+        background: linear-gradient(135deg, var(--pulse-dark-t25-colour), var(--pulse-dark-t50-colour));
+    }*/
+    /*.pulse-grid-item.box {
+        border: 2px solid var(--pulse-dark-colour);
+        background: linear-gradient(135deg, var(--pulse-dark-t25-colour), var(--pulse-dark-t50-colour));
+    }*/
+
 .box {
     /*width: 60vmin;
     height: 50vmin;

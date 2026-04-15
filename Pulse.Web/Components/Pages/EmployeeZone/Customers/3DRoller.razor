@@ -1,0 +1,30 @@
+﻿@page "/EmployeeZone/Customers/3DRoller"
+@using Pulse.Web.Components.PulseComponents.Viewers
+
+<style>
+.cparent {
+  display: flex;
+  flex-direction: column; /* Stack children vertically */
+  height: 100%; /* Or whatever height your parent should be, like 100% */
+}
+
+.cheader, .cfooter {
+  /* Fixed sizes; flexbox will respect these */
+  height: 50px; /* Or min-height if you want flexibility */
+  background: lightgray;
+}
+
+
+</style>
+
+<div class="cparent">
+    @* <div class="cheader">Fixed Header (e.g., 50px)</div> *@
+    <div class="ccontent">
+        <Roller3DViewer />    
+    </div>
+   @*  <div class="cfooter">Fixed Footer (e.g., 30px)</div> *@
+</div>
+
+@code {
+
+}

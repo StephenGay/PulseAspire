@@ -8,6 +8,7 @@ public class PulseToastService : IPulseToastService
     private readonly ConcurrentQueue<PulseToastMessage> _messages = new();
 
     public event Action<PulseToastMessage>? OnShow;
+    public event Action<Guid>? OnRemove;
 
     public void ShowSuccess(string message, string aiEmoji  = "PulseAI", string? title = null, int autoHideMs = 5000)
         => Show(new PulseToastMessage { Level = ToastLevel.Success, AiEmoji = aiEmoji, Message = message, Title = title ?? "Success", AutoHideMs = autoHideMs });
@@ -66,5 +67,8 @@ public class PulseToastService : IPulseToastService
     }
 
     // Optional: method to remove by ID if needed
-    public void Remove(Guid id) { /* implement if you want manual dismiss tracking */ }
+    public void Remove(Guid id)
+    {
+        OnRemove?.Invoke(id);
+    }
 }

@@ -502,7 +502,7 @@
             this._available = await this.SpeechRecognition.IsAvailableAsync();
             if (ContextAreaId > 0)
             {
-                ContextPrompts = await pApiClient.GetAsync<List<ContextualPrompt>>($"/AI/GetContextualPromptsByAreaId/{ContextAreaId}");
+                // ContextPrompts = await pApiClient.GetAsync<List<ContextualPrompt>>($"/AI/GetContextualPromptsByAreaId/{ContextAreaId}");
             }
             await InvokeAsync(StateHasChanged);
         };
@@ -586,7 +586,7 @@
                 return;
             case "Customers":
                 custSel = true;
-                Navigation.NavigateTo("/EmployeeZone/SearchPages/CustomerSearch");
+                Navigation.NavigateTo("/EmployeeZone/SearchPages/ClientSearch");
                 return;
             case "Production":
                 prodSel = true;

@@ -147,7 +147,7 @@
                                         @foreach (var perm in categoryGroup)
                                         {
                                             <div class="permission-card divShadow" style=" margin-bottom:10px">
-                                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
                                                     <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@perm.Name</FluentLabel>
                                                     <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@perm.Description</FluentLabel>
                                                     <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
@@ -171,12 +171,12 @@
         else if(activeTab == "tbCategory")
         {
             <div Id="tbCategory">
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
                     @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;background-color: var(--pulse-light-2-colour); flex-wrap: wrap;border: 1px solid var(--pulse-dark-colour);border-radius:10px;padding:10px;"> *@
                     @if (addMode)
                     {
                         <div class="divShadow" style="min-width: 200px;max-width:800px;width:95%;border-radius:10px;padding:10px;margin-left:auto;margin-right:auto">
-                            <FluentStack Orientation="Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
                                 <FluentTextField @bind-Value="newCategory"
                                     Immediate="true"
                                     Placeholder="Add A New Category (e.g., Admin)"
@@ -198,7 +198,7 @@
                         </div>
                     }
                         
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
                         <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)"  style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { addMode= !addMode ; selectedCategory = string.Empty;})">
                             <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
                         </FluentButton>
@@ -223,7 +223,7 @@
                     }
                     else
                     {
-                        <FluentGrid style="width:stretch" Justify="JustifyContent.Center">
+                        <FluentGrid style="width:stretch" Justify="MsFluent.JustifyContent.Center">
                             @foreach (var cat in categories)
                             {
                                 <FluentGridItem xs="12" sm="6" md="4" lg="2" >
@@ -237,12 +237,12 @@
             }else if(activeTab == "permissions")
             {
                 <div Id="permissions">
-                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
 
                         @if (addEditPermission)
                         {
                             <div class="divShadow" style="min-width: 200px;max-width:800px;width:95%;padding:10px;border-radius:10px;margin-left:auto;margin-right:auto">
-                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
+                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 5px; align-items: flex-start;">
                                     <FluentLabel Typo="Typography.PaneHeader" Style="display: block; margin-bottom: 8px;width:100%">Category : @selectedCategory</FluentLabel>
                                     <FluentTextField @bind-Value="newPermissionName"
                                             Placeholder="Permission name (e.g., View Users)"
@@ -253,7 +253,7 @@
                                                     Placeholder="Description"
                                                     Label="Description"
                                                     Style="flex: 1; min-width: 200px;width:100%;" />
-                                    <FluentStack Orientation="Orientation.Horizontal" Style="padding: 12px;">
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding: 12px;">
                                         <FluentButton Class="myCancelBtn"
                                             BackgroundColor="var(--pulse-cancel-btn-bg)"
                                             Color="var(--pulse-cancel-btn-colour)"
@@ -279,7 +279,7 @@
                         }
                         
                     }
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
                         <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="() => { selectedPermission = null ; addEditPermission = true;}">
                             <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
                         </FluentButton>
@@ -298,13 +298,13 @@
                     }
                     else if (permissions?.Any() == true)
                     {
-                        <FluentGrid style="width:stretch" Justify="JustifyContent.Center">
+                        <FluentGrid style="width:stretch" Justify="MsFluent.JustifyContent.Center">
                         @* <FluentGrid Class="permission-grid"> *@
                             @foreach (var perm in permissions)
                             {
                                 <FluentGridItem xs="12" sm="6" md="4" lg="2" >
                                     <div class="permission-card @(selectedPermission?.Id != perm.Id ? "divShadow" : "selected-permission")" style=" margin-bottom:10px" @onclick="@(() => @selectedPermission = perm)">
-                                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                                        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
                                             <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@perm.Name</FluentLabel>
                                             <FluentLabel Typo="Typography.Body" Style="font-size: 0.875rem; color: #666;">@perm.Description</FluentLabel>
                                             <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @perm.Id</FluentLabel>
@@ -352,7 +352,7 @@
             } else if(activeTab == "assign")
             {
             <div Id="assign">
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px; margin-top: 0px;">
                     @if (isLoadingRoles)
                     {
                         <FluentProgressRing></FluentProgressRing>
@@ -363,7 +363,7 @@
 
                         @if (selectedPermission != null)
                         {
-                            <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
                                 <h4>@selectedPermission.Name - Assigned Roles (@assignedRoleIds.Count)</h4>
                                 
                                 @if (isLoadingPermissions)

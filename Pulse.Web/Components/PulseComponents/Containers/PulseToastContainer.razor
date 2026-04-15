@@ -3,46 +3,139 @@
 @implements IAsyncDisposable
 @inject IPulseToastService PulseToastService
 @rendermode InteractiveServer
+
 <div class="pulse-toast-container">
-    @{
-        var toasts = _activeMessages.ToList();
-        for (int i = 0; i < toasts.Count; i++)
-        {
-            var msg = toasts[i];
-            <PulseToast Message="msg" ToastIndex="i" OnClose="@(new EventCallback<Guid>(this, (Guid id) => RemoveToast(id)))" />
-        }
+    @foreach (var msg in _activeMessages.ToList())
+    {
+        <PulseToast @key="msg.Id"
+                    Message="msg" 
+                    ToastIndex="_activeMessages.IndexOf(msg)" 
+                    OnClose="HandleCloseToast" />
     }
 </div>
 
 @code {
     private List<PulseToastMessage> _activeMessages = new();
+    private Dictionary<Guid, CancellationTokenSource> _autoDismissTasks = new();
 
     protected override void OnInitialized()
     {
-        PulseToastService.OnShow += HandleToastShow;
+        System.Console.WriteLine("[PulseToastContainer] OnInitialized - subscribing to events");
+
+        if (PulseToastService is PulseToastService service)
+        {
+            service.OnShow += HandleToastShow;
+            service.OnRemove += RemoveToastFromService;
+            System.Console.WriteLine("[PulseToastContainer] Events subscribed successfully");
+        }
+        else
+        {
+            System.Console.WriteLine("[PulseToastContainer] ERROR: PulseToastService is not PulseToastService type");
+        }
     }
 
     private void HandleToastShow(PulseToastMessage msg)
     {
+        System.Console.WriteLine($"[PulseToastContainer] HandleToastShow - Toast ID: {msg.Id}, Message: {msg.Message}");
+
         _ = InvokeAsync(async () =>
         {
             _activeMessages.Add(msg);
+            System.Console.WriteLine($"[PulseToastContainer] Toast added. Total toasts: {_activeMessages.Count}");
             StateHasChanged();
 
-            // Auto-dismiss after delay
-            await Task.Delay(msg.AutoHideMs);
-            RemoveToast(msg.Id);
+            // Create cancellation token for auto-dismiss
+            var cts = new CancellationTokenSource();
+            _autoDismissTasks[msg.Id] = cts;
+
+            try
+            {
+                // Auto-dismiss after delay
+                await Task.Delay(msg.AutoHideMs, cts.Token);
+                System.Console.WriteLine($"[PulseToastContainer] Auto-dismissing toast ID: {msg.Id}");
+                await RemoveToastAsync(msg.Id);
+            }
+            catch (OperationCanceledException)
+            {
+                System.Console.WriteLine($"[PulseToastContainer] Toast ID {msg.Id} was manually closed");
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"[PulseToastContainer] Error in auto-dismiss: {ex.Message}");
+            }
+            finally
+            {
+                if (_autoDismissTasks.ContainsKey(msg.Id))
+                {
+                    _autoDismissTasks.Remove(msg.Id);
+                }
+            }
         });
     }
 
-    private void RemoveToast(Guid id)
+    private void RemoveToastFromService(Guid id)
     {
+        System.Console.WriteLine($"[PulseToastContainer] RemoveToastFromService called - ID: {id}");
+        _ = InvokeAsync(() => RemoveToastAsync(id));
+    }
+
+    // This is called from the OnClose callback in PulseToast
+    private async Task HandleCloseToast(Guid id)
+    {
+        System.Console.WriteLine($"[PulseToastContainer] HandleCloseToast called - ID: {id}");
+        await RemoveToastAsync(id);
+    }
+
+    private async Task RemoveToastAsync(Guid id)
+    {
+        System.Console.WriteLine($"[PulseToastContainer] RemoveToastAsync - ID: {id}, Current toasts: {_activeMessages.Count}");
+
+        // Cancel any pending auto-dismiss for this toast
+        if (_autoDismissTasks.TryGetValue(id, out var cts))
+        {
+            System.Console.WriteLine($"[PulseToastContainer] Cancelling auto-dismiss task for ID: {id}");
+            cts.Cancel();
+            cts.Dispose();
+            _autoDismissTasks.Remove(id);
+        }
+
+        var initialCount = _activeMessages.Count;
         _activeMessages.RemoveAll(m => m.Id == id);
-        StateHasChanged();
+
+        System.Console.WriteLine($"[PulseToastContainer] Removed toast. Before: {initialCount}, After: {_activeMessages.Count}");
+
+        // Only update UI if something was actually removed
+        if (_activeMessages.Count < initialCount)
+        {
+            StateHasChanged();
+            System.Console.WriteLine($"[PulseToastContainer] StateHasChanged called");
+        }
+        else
+        {
+            System.Console.WriteLine($"[PulseToastContainer] No toast found with ID {id}");
+        }
     }
 
     async ValueTask IAsyncDisposable.DisposeAsync()
     {
-        PulseToastService.OnShow -= HandleToastShow;
+        System.Console.WriteLine("[PulseToastContainer] Disposing");
+
+        if (PulseToastService is PulseToastService service)
+        {
+            service.OnShow -= HandleToastShow;
+            service.OnRemove -= RemoveToastFromService;
+        }
+
+        // Cancel all pending auto-dismiss tasks
+        foreach (var cts in _autoDismissTasks.Values)
+        {
+            try
+            {
+                cts.Cancel();
+                cts.Dispose();
+            }
+            catch { }
+        }
+        _autoDismissTasks.Clear();
     }
 }

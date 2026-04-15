@@ -9,6 +9,7 @@ using System.Data;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Azure.Core;
 
 namespace Pulse.Web.Services
 {
@@ -83,6 +84,112 @@ namespace Pulse.Web.Services
             }
         }
 
+        public async Task<System.Net.Http.HttpResponseMessage?> PostJsonAsync<TRequest>(
+            string requestUri,
+            TRequest payload,
+            CancellationToken ct = default)
+
+        {
+            ArgumentException.ThrowIfNullOrEmpty(requestUri);
+            ArgumentNullException.ThrowIfNull(payload);
+
+            try
+            {
+                _logger.LogDebug("POST request to {RequestUri}", requestUri);
+                var response = await _httpClient.PostAsJsonAsync(requestUri, payload, ct);
+                return response;
+                // Read response content first
+                //var content = await response.Content.ReadAsStringAsync(ct);
+
+                //_logger.LogDebug("Response Status: {StatusCode}, Content Length: {ContentLength}",
+                //    response.StatusCode, content.Length);
+
+                //// Log response for debugging if not successful
+                //if (!response.IsSuccessStatusCode)
+                //{
+                //    _logger.LogWarning("API returned {StatusCode}: {Content}",
+                //        response.StatusCode, content[..Math.Min(500, content.Length)]);
+
+                //    if (string.IsNullOrWhiteSpace(content))
+                //    {
+                //        throw new PulseApiException(
+                //            "API returned error with no response body",
+                //            requestUri,
+                //            response.StatusCode);
+                //    }
+
+                //    // Try to parse error response
+                //    try
+                //    {
+                //        var errorResponse = JsonSerializer.Deserialize<ApiResponse>(content, _jsonOptions);
+                //        throw PulseApiException.FromApiResponse(errorResponse ?? new ApiResponse(), requestUri);
+                //    }
+                //    catch (JsonException)
+                //    {
+                //        // Not JSON - might be HTML error page
+                //        throw new PulseApiException(
+                //            $"API returned error ({response.StatusCode}): {content[..Math.Min(200, content.Length)]}",
+                //            requestUri,
+                //            response.StatusCode);
+                //    }
+                //}
+
+                //// Validate success response has content
+                //if (string.IsNullOrWhiteSpace(content))
+                //{
+                //    _logger.LogWarning("Success response but empty content from {RequestUri}", requestUri);
+                //    throw new PulseApiException(
+                //        "API returned empty response body",
+                //        requestUri,
+                //        response.StatusCode);
+                //}
+
+                //// Deserialize response
+                //try
+                //{
+                //    _logger.LogDebug("Deserializing response: {Content}", content[..Math.Min(200, content.Length)]);
+                //    return JsonSerializer.Deserialize<TResponse>(content, _jsonOptions);
+                //}
+                //catch (JsonException ex)
+                //{
+                //    _logger.LogError(ex, "Failed to deserialize response from {RequestUri}. Content: {Content}",
+                //        requestUri, content[..Math.Min(500, content.Length)]);
+                //    throw new PulseApiException(
+                //        $"Invalid JSON response from API: {ex.Message}",
+                //        requestUri,
+                //        response.StatusCode,
+                //        content[..Math.Min(200, content.Length)],
+                //        ex);
+                //}
+            }
+            //catch (HttpRequestException ex)
+            //{
+            //    _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}",
+            //        requestUri, ex.StatusCode);
+            //    throw new PulseApiException(
+            //        $"Connection failed: {ex.StatusCode}",
+            //        requestUri,
+            //        ex.StatusCode,
+            //        innerException: ex);
+            //}
+            //catch (PulseApiException)
+            //{
+            //    throw; // Re-throw our custom exceptions
+            //}
+            //catch (OperationCanceledException ex)
+            //{
+            //    _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", requestUri);
+            //    throw new PulseApiException("Request was cancelled", requestUri, innerException: ex);
+            //}
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error in PostAsync for {RequestUri}", requestUri);
+                throw new PulseApiException(
+                    $"Unexpected error: {ex.GetType().Name}",
+                    requestUri,
+                    innerException: ex);
+            }
+        }
         public async Task<TResponse?> PostAsync<TRequest, TResponse>(
             string requestUri, 
             TRequest payload, 

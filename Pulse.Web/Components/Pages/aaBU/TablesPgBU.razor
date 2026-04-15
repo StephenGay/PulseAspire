@@ -24,7 +24,6 @@
 @inject AuthService AuthService
 @inject SpeechRecognition SpeechRecognition
 @inject IMessageService MessageService
-@inject IPulseToastService PulseToastService
 @inject IDialogService DialogService
 @inject DataTransferService dtrf
 @inject IMenuService ms
@@ -175,50 +174,42 @@
                        
                         @* </Animation> *@
                     <FluentSpacer />
-                    @if (pdfLoading)
-                    {
-                        <div class="spinner-grow text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                    }
-                    else
-                    {
-                        <FluentButton Id="btnTablesDownload" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:50px; width:50px;" Title="Download" OnClick="() => showDownloadMenu = !showDownloadMenu">
-                            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ArrowDownload().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
-                        </FluentButton>
-                        <FluentPopover Style="width: 200px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.Left" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnTablesDownload" @bind-Open="showDownloadMenu">
-                            @* <Header>Download</Header> *@
-                            <Body>
-                                <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="25">
-                                    <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentTable().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                                    class="btnShadow"
-                                                    BackgroundColor="rgba(0,104,0,1)"
-                                                    Color="rgba(255,255,255,1)"
+                    <FluentButton Id="btnTablesDownload" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:50px; width:50px;" Title="Download" OnClick="() => showDownloadMenu = !showDownloadMenu">
+                        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ArrowDownload().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
+                    </FluentButton>
+                    <FluentPopover Style="width: 200px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.Left" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnTablesDownload" @bind-Open="showDownloadMenu">
+                        @* <Header>Download</Header> *@
+                        <Body>
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="25">
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentTable().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                class="btnShadow"
+                                                BackgroundColor="rgba(0,104,0,1)"
+                                                Color="rgba(255,255,255,1)"
+                                                Style="border: 1px solid white;height:50px;width:80%"
+                                                OnClick="ExportToExcelAsync">
+                                        <strong>XLSX</strong>
+                                </FluentButton>
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                class="btnShadow"
+                                                BackgroundColor="rgba(255,0,0,0.4)"
                                                     Style="border: 1px solid white;height:50px;width:80%"
-                                                    OnClick="ExportToExcelAsync">
-                                            <strong>XLSX</strong>
-                                    </FluentButton>
-                                    <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                                    class="btnShadow"
-                                                    BackgroundColor="rgba(255,0,0,0.4)"
-                                                        Style="border: 1px solid white;height:50px;width:80%"
-                                                    Color="rgba(255,255,255,1)"
-                                                    Loading="@pdfLoading"
-                                                    OnClick="ExportToPdf">
-                                        <strong>PDF</strong>
-                                    </FluentButton>
-                                    <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
-                                                    BackgroundColor="rgba(0,0,0,1)"
-                                                    class="btnShadow"
-                                                                    Style="border: 1px solid white;height:50px;width:80%"
-                                                    Color="rgba(255,255,255,1)">
-                                                    @* OnClick="ExportHtmlFile"> *@
-                                        <strong>HTML</strong>
-                                    </FluentButton>
-                                </FluentStack>
-                            </Body>
-                        </FluentPopover>
-                    }
+                                                Color="rgba(255,255,255,1)"
+                                                Loading="@pdfLoading"
+                                                OnClick="ExportToPdf">
+                                    <strong>PDF</strong>
+                                </FluentButton>
+                                <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                                BackgroundColor="rgba(0,0,0,1)"
+                                                class="btnShadow"
+                                                                Style="border: 1px solid white;height:50px;width:80%"
+                                                Color="rgba(255,255,255,1)">
+                                                @* OnClick="ExportHtmlFile"> *@
+                                    <strong>HTML</strong>
+                                </FluentButton>
+                            </FluentStack>
+                        </Body>
+                    </FluentPopover>
+
                     @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
                         
                     </Animation> *@
@@ -226,60 +217,68 @@
             }
         </FluentStack>
     </div>
-    <div class="aiContent" style="background-color: white">
-        <FluentMessageBarProvider Section="MESSAGES_TOP" />
+
+    <FluentMessageBarProvider Section="MESSAGES_TOP" />
+     @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
+    }
     
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
-        }
-        @if (viewBox)
-        {
-            <div class="aiSidebar">
-                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                    <div class="aiBox">
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour); border-bottom: 1px solid white; padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
-                            <img src="Images/AI/Tables.png" style="width:96px;height:96px" />
+    <div class="divTablesContent">
+       <FluentGrid Style="height:100%"> 
+            @if (viewBox)
+            {
+                <FluentGridItem Style="max-height:100%" xs="12" sm="12" md="6" lg="4" xl="3" xxl="2"> 
+                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                        <div class="myContentDiv" style="overflow-x:hidden">
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
+                            @if(tables != null)
+                            {
+                                @(tables.emoji.ToMarkup("64px")) 
+                            } 
                             <FluentSpacer />
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
-                                <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">QUERY DATABASE</FluentLabel>
-                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Tables</FluentLabel>
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentLabel Typo="Typography.H4">QUERY DATABASE</FluentLabel>
+                                    <FluentLabel Typo="Typography.Body">with Tables</FluentLabel>
                             </FluentStack>
                         </FluentStack>
-                        <StackItem>
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
-                                <FluentSpacer />
-                            </FluentStack>
-                        
-                            <FluentTextArea rows="10" style="border: 1px solid var(--pulse-dark-colour); margin-top: 0px;margin-left: 10px;margin-right: 10px;margin-bottom:20px;width: calc(100% - 20px)" @bind-Value="txtQ" ReadOnly="@SavedQueryMode" PlaceHolder=@(SavedQueryMode ? "Select a saved query to run or edit..." : "What information would you like me to retrieve?...") />
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;"> 
-                                @if (!SavedQueryMode)
-                                {
-                                    @if (this._isListening)
-                                    {
-                                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                            <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="OnClickStop"></FluentButton>
-                                        </Animation>
-                                    }
-                                    else
-                                    {
-                                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                            <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="StartRecClick"></FluentButton>
-                                        </Animation>
-                                    }
-                                }
-                                <FluentSpacer />
-                                @if (SavedQueryMode)
-                                {
-                                    <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                    IconStart="@(new Icons.Filled.Size24.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                    Title="Edit Query"
-                                                    Style="height:50px;width:50px" OnClick="() => SavedQueryMode = false"></FluentButton>
-                                    <FluentSpacer />
-                                }
-                                <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-ok-btn-colour"))"
-                                              Disabled="@string.IsNullOrEmpty(txtQ)" Style="height:50px;width:50px" OnClick="@btnAction"></FluentButton>
-                            </FluentStack> 
+                        <StackItem >
+                            <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" style="margin-top: 0px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;" IsCenter="true">
+                                <HeaderTemplate>
+                                    @(SavedQueryMode ? "Select Query" : "Enter Request")
+                                </HeaderTemplate>
+                                <BodyTemplate>
+                                    <Textarea rows="10" style="width:100%; height:100%" @bind-Value="txtQ" readonly="@SavedQueryMode" PlaceHolder=@(SavedQueryMode ? "Select a saved query to run or edit..." : "What information would you like me to retrieve?...") />
+                                </BodyTemplate>
+                                <FooterTemplate>
+                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding: 10px;"> 
+                                        @if (!SavedQueryMode)
+                                        {
+                                            @if (this._isListening)
+                                            {
+                                                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                                        <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:36px" OnClick="OnClickStop"></FluentButton>
+                                                </Animation>
+                                            }
+                                            else
+                                            {
+                                                <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                                        <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:36px" OnClick="StartRecClick"></FluentButton>
+                                                </Animation>
+                                            }
+                                        }
+                                        <FluentSpacer />
+                                        @if(txtQ != null && txtQ !="")
+                                        {
+                                                @if (SavedQueryMode)
+                                                {
+                                                    <FluentButton Appearance="Appearance.Neutral" class="btnShadow" style="border: 1px solid white;height:36px" IconEnd="@(new Icons.Regular.Size24.Send().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="() => SavedQueryMode = false">Edit</FluentButton>
+                                                }
+                                                <FluentButton Appearance="Appearance.Accent" class="btnShadow" style="border: 1px solid white;height:36px" IconEnd="@(new Icons.Regular.Size24.Send().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" OnClick="@btnAction">@(SavedQueryMode ? "Run" : "Submit")</FluentButton>
+                                        }
+                                    </FluentStack> 
+                                </FooterTemplate>
+                            </Card>
                             @if (_isListening)
                             {
                                 <div>
@@ -291,139 +290,170 @@
                             }
                         </StackItem>
                     </div>
-                </Animation>
-            </div>
-        }
-        <div class="chat-area">
-            <div class="chat-messages" @ref="chatContainer">
-                @if (showResults || isLoading || SavedQueryMode)
-                {
+                    </Animation>
+                </FluentGridItem>
+            }
+            @if (showResults || isLoading || SavedQueryMode)
+            {
+                
+            
+            <FluentGridItem Style="max-height:100%;" xs="12" sm="12" md=@(viewBox ? 6 : 12) lg=@(viewBox ? 8 : 12) xl=@(viewBox ? 9 : 12) xxl=@(viewBox ? 10 : 12)>
                     <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                        @if (isLoading)
-                        {
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" class="divShadow" Style="border-radius:10px; height:100%; width:70%; margin-left:auto;margin-right:auto;margin-top:20px;padding:20px;background-color:white" > 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Width="75%" Style=" margin-right:20px;">
-                                    <FluentLabel Typo="Typography.Body" Style="color:black;">Generating SQL Statement...</FluentLabel>
-                                    <FluentProgress Indeterminate="true" Width="100%" Style="margin:10px" />
-                                            <FluentLabel Typo="Typography.Body" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@strReasoning</FluentLabel>
-                                </FluentStack>
-                                <FluentButton Class="btnShadow" BackgroundColor="red" IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.RecordStop().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" Style="height:32px;margin-top: 10px; margin-bottom: 10px;" OnClick="@CancelQuery"> </FluentButton>
+                    <div class="myContentDiv" style="height:100%; overflow-x:hidden">
+                    @if (isLoading)
+                    {
+                        
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" Style="height:100%;margin:20px" > 
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Width="75%" Style=" margin-right:20px;">
+                                <FluentLabel Typo="Typography.Body" Style="color:black;">Generating SQL Statement...</FluentLabel>
+                                <FluentProgress Indeterminate="true" Width="100%" Style="margin:10px" />
+                                        <FluentLabel Typo="Typography.Body" style="margin-top: 10px;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@strReasoning</FluentLabel>
                             </FluentStack>
-                            <br />
-                        }
-                        @if (SavedQueryMode)
-                        {
+                            <FluentButton Class="btnShadow" BackgroundColor="red" IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size28.RecordStop().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))" Style="height:32px;margin-top: 10px; margin-bottom: 10px;" OnClick="@CancelQuery"> </FluentButton>
+                        </FluentStack>
+                        <br />
+                    }
+                @if (SavedQueryMode)
+                {
                              <FluentLabel Typo="Typography.H6" Style="width:100% ; color: black;margin:10px" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">@(selectedSavedQuery == null ? "Select a Query to Run..." : selectedSavedQuery.Question.ToUpper())</FluentLabel>
-                            @if (showSavedQueries)
-                            {
-                                @if (savedQueries.Any())
-                                {
-                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%"> @* Style="padding-left:10px; padding-right:10px;"> *@
-                                            <FluentDataGrid Items="@savedQueries.AsQueryable()" TGridItem="AiQuery"
-                                                            RowClass="@(context => context == selectedSavedQuery ? "fdgrselected" : "fdgrunselected")"
-                                                            SelectionMode="SelectionMode.Single"
-                                                            SelectedItem="@selectedSavedQuery"
-                                                            OnRowClick="OnSaveQueryRowClick"
-                                                            ResizableColumns="true"
-                                                            Pagination="@pagination"
-                                                                ShowHover="true"
-                                                            AutoFit="true"
-                                                            Style="width: 100%; margin-left:10px; margin-right:10px;" 
-                                                            GenerateHeader="GenerateHeaderOption.Sticky">
-                                                <PropertyColumn Property="@(context => context.AiQueryID)" Title="ID" Align="Align.Center" Sortable="true" />
 
-                                                <TemplateColumn Context="gridContext" Align="Align.Center">
-                                                    <HeaderCellTitleTemplate >
-                                                        <FluentButton class="col-sort-button"  BackgroundColor=@(myFave ? "green" : "#bcd1d4") Color=@(myFave ? "white" : "black") Style="border: 1px solid black;width:100%;height:100%" Title="Filter Favourites" OnClick="ToggleFavourites">
-                                                            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20.Star().WithColor("yellow"))" /> 
-                                                        </FluentButton>
-                                                    </HeaderCellTitleTemplate>
-                                                    <ChildContent>
-                                                        <FluentButton 
-                                                            BackgroundColor="white" 
-                                                            Style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 8px;"
-                                                            IconStart="@(UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID) ? (new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star()) : null)"
-                                                            OnClick="() => btnFaveClick(gridContext.AiQueryID)">
-                                                        </FluentButton>
-                                                    </ChildContent>
-                                                </TemplateColumn>
-                                                <PropertyColumn Property="@(context => context.Question)" Title="Query" Sortable="true" />
-                                                <PropertyColumn Property="@(context => context.UpVote)" Align="Align.Center" Sortable="true">
+                    @if (showSavedQueries)
+                    {
+                        @if (savedQueries.Any())
+                        {
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%"> @* Style="padding-left:10px; padding-right:10px;"> *@
+                                @* <FluentGrid>
+                                    <FluentGridItem  xs="12"> *@
+                                    <FluentDataGrid Items="@savedQueries.AsQueryable()" TGridItem="AiQuery"
+                                                    RowClass="@(context => context == selectedSavedQuery ? "fdgrselected" : "fdgrunselected")"
+                                                    SelectionMode="SelectionMode.Single"
+                                                    SelectedItem="@selectedSavedQuery"
+                                                    OnRowClick="OnSaveQueryRowClick"
+                                                    ResizableColumns="true"
+                                                    Pagination="@pagination"
+                                                        ShowHover="true"
+                                                    AutoFit="true"
+                                                    Style="width: 100%; margin-left:10px; margin-right:10px;" 
+                                                    GenerateHeader="GenerateHeaderOption.Sticky">
+                                        <PropertyColumn Property="@(context => context.AiQueryID)" Title="ID" Align="Align.Center" Sortable="true" />
+
+                                            <TemplateColumn Context="gridContext" Align="Align.Center">
+                                                <HeaderCellTitleTemplate >
+                                                    <FluentButton class="col-sort-button"  BackgroundColor=@(myFave ? "green" : "#bcd1d4") Color=@(myFave ? "white" : "black") Style="border: 1px solid black;width:100%;height:100%" Title="Filter Favourites" OnClick="ToggleFavourites">
+                                                        <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20.Star().WithColor("yellow"))" /> 
+                                                    </FluentButton>
+                                            </HeaderCellTitleTemplate>
+                                
+                                            <ChildContent>
+                                                <FluentButton 
+                                                    BackgroundColor="white" 
+                                                    Style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 8px;"
+                                                    IconStart="@(UserFavouriteQueries.Any(q => q.QueryId == gridContext.AiQueryID) ? (new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Star()) : null)"
+                                                    OnClick="() => btnFaveClick(gridContext.AiQueryID)">
+                                                </FluentButton>
+                                            </ChildContent>
+
+                                        </TemplateColumn>
+                                        <PropertyColumn Property="@(context => context.Question)" Title="Query" Sortable="true" />
+                                        <PropertyColumn Property="@(context => context.UpVote)" Align="Align.Center" Sortable="true">
                                                 <HeaderCellTitleTemplate >
                                                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
                                                     <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ThumbLike())" Style="fill:green" />
                                                 </FluentStack>
-                                                </HeaderCellTitleTemplate>
-                                                </PropertyColumn>
-                                                <PropertyColumn Property="@(context => context.DownVote)" Align="Align.Center" Sortable="true">
-                                                    <HeaderCellTitleTemplate>
-                                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
-                                                            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ThumbDislike())" Style="fill:red" />
-                                                        </FluentStack>
-                                                    </HeaderCellTitleTemplate>
-                                                </PropertyColumn>
-                                            </FluentDataGrid>
-                                            <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; padding:10px ; color: white; width:100%" />
-                                        </FluentStack>
-                                }
-                                else if (isLoadingSaved)
-                                {
-                                    <FluentProgress Indeterminate="true" />
-                                }
-                                else
-                                {
-                                    <FluentMessageBar  Intent="MessageIntent.Info" >
-                                        No saved queries found.
-                                    </FluentMessageBar>
-                                }
-                            }
+                                            </HeaderCellTitleTemplate>
+                                            </PropertyColumn>
+                                            <PropertyColumn Property="@(context => context.DownVote)" Align="Align.Center" Sortable="true">
+                                                <HeaderCellTitleTemplate>
+                                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+                                                    <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.ThumbDislike())" Style="fill:red" />
+                                                </FluentStack>
+                                            </HeaderCellTitleTemplate>
+                                            </PropertyColumn>
+                         
+                                        @* <TemplateColumn Title="SQL Query (Truncated)" Context="gridContext">
+                                            user.UserFavouriteQueries.FirstOrDefault(q => q.QueryId == selectedSavedQuery.AiQueryID)
+                                            @GetTruncatedSql(gridContext.SqlQuery)
+                                        </TemplateColumn> *@
+                                        </FluentDataGrid>
+                                        <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; padding:10px ; color: white; width:100%" />
+                                    @* </FluentGridItem> 
+                        
+                                </FluentGrid> *@
+                            </FluentStack>
+                            @* </div> *@
                         }
-                        @if(showResults && !isLoading)
+                        else if (isLoadingSaved)
                         {
-                            if (rows.Any())
-                            {
-                                <div style="overflow-x: auto; width: 100%; align-content:center; background-color: var(--pulse-light-colour);">
-                                    <FluentDataGrid Items="@rows.AsQueryable()" 
+                            <FluentProgress Indeterminate="true" />
+                        }
+                        else
+                        {
+                            <FluentMessageBar  Intent="MessageIntent.Info" >
+                                No saved queries found.
+                                
+                                </FluentMessageBar>
+                        }
+                
+                    }
+            
+                }
+
+                @if(showResults && !isLoading)
+                {
+                    if (rows.Any())
+                        {
+                            <div style="overflow-x: auto; width: 100%; align-content:center; background-color: var(--pulse-light-colour);">
+
+
+                    
+                            <FluentDataGrid Items="@rows.AsQueryable()" 
                                             ResizableColumns="true" 
                                             GenerateHeader="GenerateHeaderOption.Sticky" 
                                             AutoFit="true" 
                                             AutoItemsPerPage="false"
                                             Pagination="@pagination">
-                                        @foreach (var column in columns)
-                                        {
-                                            var localColumn = column;
-                                            <PropertyColumn Property="@(r => r[localColumn])" Title="@localColumn" Style="background-color: white; color: black;" Sortable="@SavedQueryMode" />
-                                        }
-                                    </FluentDataGrid>
-                                    <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; color: white;padding:10px; border-bottom-left-radius:10px;border-bottom-right-radius:10px; width:100%" />
-                                </div>
-                            }
-                            else
-                            {
-                                <FluentMessageBar Intent="@MessageIntent.Warning" OnClose="() => showSQL = false">
-                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center">
-                                    No Results Found
-                                    <FluentSpacer />
-                                    <FluentButton OnClick="() => showSQL = !showSQL">Show SQL</FluentButton>
-                                    </FluentStack>
-                                </FluentMessageBar>
-                                @if (showSQL)
+
+                                @foreach (var column in columns)
                                 {
-                                    <FluentMessageBar Intent="@MessageIntent.Info" Type="MessageType.Notification" Title="SQL Statement">@strResponse</FluentMessageBar>
+                                    var localColumn = column;
+                                    <PropertyColumn Property="@(r => r[localColumn])" Title="@localColumn" Style="background-color: white; color: black;" Sortable="@SavedQueryMode" />
                                 }
-                                else
-                                {
-                                    SayIt("There was no results for this query. If this is incorrect, try modifying your prompt, then try again.");
-                                }
-                            }
+                            </FluentDataGrid>
+                                
+                                        <FluentPaginator State="@pagination" Style="background-color: var(--pulse-dark-colour) ; color: white;padding:10px; border-bottom-left-radius:10px;border-bottom-right-radius:10px; width:100%" />
+
+                            </div>
+                    }
+                    else
+                    {
+                        <FluentMessageBar Intent="@MessageIntent.Warning" OnClose="() => showSQL = false">
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center">
+                            No Results Found
+                            <FluentSpacer />
+                            <FluentButton OnClick="() => showSQL = !showSQL">Show SQL</FluentButton>
+                            </FluentStack>
+                        </FluentMessageBar>
+                        
+                        @if (showSQL)
+                        {
+                            <FluentMessageBar Intent="@MessageIntent.Info" Type="MessageType.Notification" Title="SQL Statement">@strResponse</FluentMessageBar>
                         }
-                    </Animation>
+                        else
+                        {
+                            SayIt("There was no results for this query. If this is incorrect, try modifying your prompt, then try again.");
+                        }
+                    }
                 }
-            </div>
-        </div>
+                </div>
+                </Animation>
+            </FluentGridItem>
+            }
+        </FluentGrid>
     </div>
     <div class="aiFooter" />
 </div>
+@* </FluentLayout> *@
+@* <FluentMenuProvider /> *@
 
 @code {
     private string query = string.Empty;
@@ -1052,60 +1082,45 @@
     private async Task ExportToExcelAsync()
     {
         if (!rows.Any()) return;
-        try
+
+        using var workbook = new XLWorkbook();
+        var worksheet = workbook.Worksheets.Add("PulseData");
+
+        // Add headers
+        for (int i = 0; i < columns.Count; i++)
         {
+            worksheet.Cell(1, i + 1).Value = columns[i];
+        }
 
-            showDownloadMenu = false;
-            pdfLoading = true;
-            using var workbook = new XLWorkbook();
-            var worksheet = workbook.Worksheets.Add("PulseData");
-
-            // Add headers
-            for (int i = 0; i < columns.Count; i++)
+        // Add data rows
+        for (int r = 0; r < rows.Count; r++)
+        {
+            for (int c = 0; c < columns.Count; c++)
             {
-                worksheet.Cell(1, i + 1).Value = columns[i];
+                var value = rows[r].TryGetValue(columns[c], out var val) ? val : null;
+                worksheet.Cell(r + 2, c + 1).Value = value?.ToString() ?? string.Empty;
             }
-
-            // Add data rows
-            for (int r = 0; r < rows.Count; r++)
-            {
-                for (int c = 0; c < columns.Count; c++)
-                {
-                    var value = rows[r].TryGetValue(columns[c], out var val) ? val : null;
-                    worksheet.Cell(r + 2, c + 1).Value = value?.ToString() ?? string.Empty;
-                }
-            }
-            var tbl = worksheet.Range(worksheet.Cell(1, 1), worksheet.Cell(rows.Count + 1, columns.Count)).CreateTable("tblData");
-            tbl.Theme = XLTableTheme.TableStyleLight16;
-
-            worksheet.Columns(1, columns.Count).AdjustToContents();
-            worksheet.Row(1).InsertRowsAbove(3);
-            worksheet.Row(1).Height = 25;
-            worksheet.Row(2).Height = 25;
-            worksheet.Range("A1:A2").Merge();
-
-            var imgPath = Path.Combine(Env.WebRootPath, "Images/AI/Tables.jpg");
-            var picTbls = worksheet.AddPicture(imgPath)
-                            .MoveTo(worksheet.Cell("A1"))
-                            .WithSize(50, 50);
-
-            using var stream = new MemoryStream();
-            workbook.SaveAs(stream);
-            var content = stream.ToArray();
-            var base64 = Convert.ToBase64String(content);
-
-            await JSRuntime.InvokeVoidAsync("downloadExcel", "Pulse_Export_From_Tables.xlsx", base64);
         }
-        catch(Exception ex)
-        {
-            var errMsg = "There was an error exporting the table.<br />Please try again.";
-            PulseToastService.ShowToast("Error", errMsg, true, true, "Tables");
-            await GlobalAI.AISpeak(errMsg, "Tables");
-        }
-        finally
-        {
-            pdfLoading = false;
-        }
+        var tbl = worksheet.Range(worksheet.Cell(1, 1), worksheet.Cell(rows.Count+1, columns.Count)).CreateTable("tblData");
+        tbl.Theme = XLTableTheme.TableStyleLight16;
+
+        worksheet.Columns(1, columns.Count).AdjustToContents();
+        worksheet.Row(1).InsertRowsAbove(3);
+        worksheet.Row(1).Height = 25;
+        worksheet.Row(2).Height = 25;
+        worksheet.Range("A1:A2").Merge();
+
+        var imgPath = Path.Combine(Env.WebRootPath,"Images/AI/Tables.jpg");
+        var picTbls = worksheet.AddPicture(imgPath)
+                        .MoveTo(worksheet.Cell("A1"))
+                        .WithSize(50, 50);
+
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        var content = stream.ToArray();
+        var base64 = Convert.ToBase64String(content);
+
+        await JSRuntime.InvokeVoidAsync("downloadExcel", "Pulse_Export_From_Tables.xlsx", base64);
     }
 
     private async Task ExecuteSql()

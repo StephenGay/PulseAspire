@@ -792,6 +792,7 @@ namespace Pulse.ApiService.Endpoints
                 
                 // Update the tracked entity properties instead of replacing it
                 dwc.WorkCentreName = workCentre.WorkCentreName;
+                dwc.Description = workCentre.Description;
                 dwc.DivisionID = workCentre.DivisionID;
                 dwc.BranchID = workCentre.BranchID;
                 dwc.Colour = workCentre.Colour;

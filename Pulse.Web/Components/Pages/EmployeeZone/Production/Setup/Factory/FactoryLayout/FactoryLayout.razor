@@ -89,8 +89,8 @@
 </FluentCard>
 
 <Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => { openWC=false ; selectedWC = null ; }" AllowResize="true" width="15%" style="overflow-x:hidden">
-    <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
-        <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
+    <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
             <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px;"
                         IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="() => { openWC=false ; selectedWC = null ; }">
                 Close
@@ -109,7 +109,7 @@
                 @foreach (var wc in wcs)
                 {
                     <div class="wc-card @(selectedWC != wc ? "wc-card-unselected" : "wc-card-selected")" @onclick="@(() => @selectedWC = wc)">
-                        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+                        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
                             <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@wc.WorkCentreName</FluentLabel>
                             <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @wc.WorkCentreId</FluentLabel>
                         </FluentStack>

@@ -32,9 +32,9 @@
         <FluentButton Id="btnMsgFilter" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:40px; width:40px;margin-left:10px;margin-top:8px" Title="Filter" OnClick="() => showFilterMenu = !showFilterMenu">
             <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Filter().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
         </FluentButton>
-        <FluentPopover Style="width: 250px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Right" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnMsgFilter" @bind-Open="showFilterMenu">
+        <FluentPopover Style="width: 250px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="MsFluent.HorizontalPosition.Right" VerticalPosition="MsFluent.VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnMsgFilter" @bind-Open="showFilterMenu">
             <Body>
-                <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="25">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" VerticalGap="25">
                     <FluentButton class=@(messageFilter == MessageFilter.Active ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
                                   Color="var(--pulse-mode-btn-item-colour)"
                                   @onclick="() => SetMessageFilter(MessageFilter.Active)"
@@ -157,18 +157,18 @@
             @if (selectedMessage != null)
             {
                 
-                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalGap="12">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="12">
                         @* <div style="flex: 1;"> *@
-                            <FluentStack Orientation="Orientation.Vertical" VerticalGap="12">
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="12">
                             <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">@selectedMessage.SenderUserName</FluentLabel>
                             <FluentLabel Typo="Typography.Body" Style="color: var(--pulse-dark-colour); font-size: 12px;">@selectedMessage.SentAt.ToString()</FluentLabel>
                             </FluentStack>
                         @* </div> *@
                         
-                        <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="8">
                                 <FluentSpacer />
                             
-                            @* <FluentButton Appearance="Appearance.Outline" @onclick="() => OpenNewMessageDialog()" aria-label="Compose new message">
+                            @* <FluentButton Appearance="MsFluent.Appearance.Outline" @onclick="() => OpenNewMessageDialog()" aria-label="Compose new message">
                                 Broadcast
                             </FluentButton> *@
                         </FluentStack>
@@ -186,15 +186,15 @@
             @if (selectedMessage != null)
             {
                 <FluentCard class="divShadow" Style="padding: 20px">
-                    <FluentStack Orientation="Orientation.Vertical" Style="height:100%" VerticalGap="16">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height:100%" VerticalGap="16">
                         <!-- From -->
-                        @* <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" VerticalGap="0">
+                        @* <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
                             <FluentLabel Style="width: 100px; font-weight: 600;">From:</FluentLabel>
                             <FluentLabel>@selectedMessage.SenderUserName</FluentLabel>
                         </FluentStack> *@
 
                         <!-- To -->
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" VerticalGap="0">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
                             <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
                             <FluentLabel>@selectedMessage.RecipientUserName</FluentLabel>
                             <FluentSpacer />
@@ -209,7 +209,7 @@
                             </FluentButton>
                         </FluentStack>
 
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" VerticalGap="0" Style="padding-bottom: 5px; border-bottom: 1px solid var(--pulse-dark-colour)">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0" Style="padding-bottom: 5px; border-bottom: 1px solid var(--pulse-dark-colour)">
                             <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
                             <FluentLabel>@selectedMessage.Subject</FluentLabel>
                         </FluentStack>

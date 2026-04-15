@@ -1,0 +1,181 @@
+﻿@page "/EmployeeZone/SearchPages/ClientSearch"
+
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI.Tables
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Web.Services
+@using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis
+@inject PulseApiService pApiClient
+@inject NavigationManager Navigation
+@inject DataTransferService dts
+@inject AppState AppState
+@attribute [StreamRendering(true)]
+@rendermode InteractiveServer
+
+<style>
+    
+    /* [data-bs-theme=dark] .table, .table-dark {
+    --bs-table-bg: #365b66 !important;
+        --bs-body-bg: #bcd1d4 !important;
+        --bs-emphasis-color: #fff !important;
+        --bs-table-accent-bg: #bcd1d4 !important;
+        --bs-table-bg: #365b66 !important;
+        --bs-table-striped-bg: #bcd1d4 !important;
+        --bs-table-striped-color: #365b66 !important;
+        --bs-table-hover-bg: #365b66 !important;
+        --bs-table-active-bg: blue !important;
+        --bs-table-active-color: #fff !important;
+        --bs-table-hover-color: #fff !important;
+        
+        
+    } */
+    .rz-grid-table thead th > div:not(.rz-cell-filter) {
+        background-color: var(--pulse-light-colour) !important;
+        color: var(--pulse-dark-colour) !important;
+    }
+
+    .rz-group-header {
+        justify-content: flex-end !important;
+    }
+    .rz-cell-filter {
+        background-color: var(--pulse-dark-colour) !important;
+    }
+
+    .cparent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: calc(100vh - 112px); /* Or whatever height your parent should be, like 100% */
+    }
+
+    .cheader, .cfooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 50px; /* Or min-height if you want flexibility */
+        background: rgba(255,255,255,0);
+        
+    }
+
+    .ccontent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        margin: 10px;
+        padding: 10px;
+        background-color: rgba(255,255,255,0.5);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+</style>
+        
+<div class="cparent">
+    
+    <div class="ccontent">
+        <FluentButton class="myAccentBtn"
+                      BackgroundColor="var(--pulse-accent-btn-bg)"
+                      Color="var(--pulse-accent-btn-colour)"
+                      Style="position:absolute; top:86px; left: 30px; z-index:99; height:50px"
+                      IconStart="@(new Icons.Filled.Size32.Play().WithColor("var(--pulse-accent-btn-colour)"))"
+                      Disabled="@(selectedCustomer == null || selectedCustomer.Count == 0 ? true : false)"
+                      OnClick="btnSelectClick">
+            Select
+        </FluentButton>
+        <RadzenDataGrid @ref="radGrid" 
+                        Data="@_allCustomers" 
+                        FilterMode="FilterMode.Simple" 
+                        AllowFiltering="true" 
+                        AllowPaging="false" 
+                        AllowSorting="true" 
+                        AllowColumnResize="true"
+                        Style="height:100%;border-radius:10px"
+                        AllowVirtualization="true"
+                        AllowColumnPicking="true"
+                        SelectionMode="DataGridSelectionMode.Single"
+                        @bind-Value="@selectedCustomer"
+                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                        LogicalFilterOperator="LogicalFilterOperator.And"
+                        ColumnWidth="200px">
+
+            <Columns>
+                <RadzenDataGridColumn TItem="Customer" Property="FullClientID" Title="Client ID" Width="70px" TextAlign="TextAlign.Center" />
+                <RadzenDataGridColumn TItem="Customer" Property="ClientName" Title="Client Name" />
+                <RadzenDataGridColumn TItem="Customer" Property="Address1" Title="Address 1" />
+                <RadzenDataGridColumn TItem="Customer" Property="Address2" Title="Address 2" />
+                <RadzenDataGridColumn TItem="Customer" Property="Address3" Title="Address 3" />
+                <RadzenDataGridColumn TItem="Customer" Property="Address4" Title="Address 4" />
+                <RadzenDataGridColumn TItem="Customer" Property="Address5" Title="Address 5" />
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+</div>
+
+
+@code {
+    // FluentDataGrid<Customer>? grid;
+    RadzenDataGrid<Customer>? radGrid;
+    string? fltFullClientID;
+
+
+    string? srchName;
+    List<Customer>? _allCustomers;
+    IList<Customer>? selectedCustomer;
+    private Customer? selClient { get; set; }
+    PaginationState pagination = new PaginationState { ItemsPerPage = 20 };
+    Tables? tb;
+    Emoji? emoji;
+    bool useTables = false;
+
+    IQueryable<Customer>? qryCust = Enumerable.Empty<Customer>().AsQueryable();
+
+    private IQueryable<Customer>? FilteredCustomers
+    {
+        get
+        {
+            // grid?.SetLoadingState(true);
+            IQueryable<Customer>? customers = qryCust;
+            if (!string.IsNullOrEmpty(srchName))
+                customers = qryCust?.Where(c => c.ClientName.Contains(srchName, StringComparison.CurrentCultureIgnoreCase));
+            // grid?.SetLoadingState(false);
+
+            if (customers != null)
+                return customers.AsQueryable();
+
+            return null;
+
+        }    
+    }
+
+    private void  ClickRow(FluentDataGridRow<Customer> item)
+    {
+        selClient = item.Item;
+        StateHasChanged();
+
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        tb = await dts.GetgvTables();
+        ShowAiIcon showAi = new ShowAiIcon();
+        showAi.showTables = true;
+        await dts.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await dts.SetgvContextArea(0);
+
+            _allCustomers = await pApiClient.GetAsync<List<Customer>>("/Customers/GetAll");
+            if (_allCustomers == null)
+            {
+                _allCustomers = new();
+            }
+            qryCust = _allCustomers.AsQueryable();
+            StateHasChanged();
+        }
+    }
+    private async Task btnSelectClick()
+    {
+        selClient = await pApiClient.GetAsync<Customer>($"/Customers/Details/{selectedCustomer[0].FullClientID}");
+        await dts.SetgvSelectedClient(selClient);
+        Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard");
+    }
+    
+}

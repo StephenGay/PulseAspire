@@ -21,7 +21,7 @@
     else
     {
         <!-- Search Box -->
-        <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--pulse-dark-colour);">
+        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--pulse-dark-colour);">
             <FluentTextField 
                 @bind-Value="searchQuery"
                 @oninput="OnSearchInput"
@@ -39,16 +39,16 @@
         }
         else
         {
-            <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
+            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
                 @foreach (var user in GetFilteredUsers())
                 {
                     <div style="@($"padding: 8px; border-radius: 6px; cursor: pointer; transition: background-color 0.2s;width:100%; background-color: {(hoveredUserId == user.UserId ? "var(--accent-fill-rest)" : "transparent")}; color: {(hoveredUserId == user.UserId ? "white" : "inherit")};")" 
                          @onmouseover="@((e) => hoveredUserId = user.UserId)" 
                          @onmouseout="@((e) => hoveredUserId = null)"
                          @onclick="@(() => OnUserClicked(user))">
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" Style="gap: 12px;">
                             <FluentPersona Status="@user.EffectiveStatus"
-                                           StatusSize="PresenceBadgeSize.Medium"
+                                           StatusSize="MsFluent.PresenceBadgeSize.Medium"
 
                                            Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
                                            ImageSize="40px">

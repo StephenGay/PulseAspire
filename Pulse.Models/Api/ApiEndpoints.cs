@@ -79,6 +79,7 @@ namespace Pulse.Models.Api
                 public const string SendRequest = $"{FlapperPrefix}/SendRequest";
                 public const string ChatSession = $"{FlapperPrefix}/ChatSession";
                 public const string OllamaChatSession = $"{FlapperPrefix}/OllamaChatSession";
+                public static string GetUserConversationHistory(string userId) => $"{FlapperPrefix}/Conversations/UserHistory/{userId}";
             }
             public static class EndpointsAli
             {
@@ -313,6 +314,12 @@ namespace Pulse.Models.Api
                 /// </summary>
                 public static string GetRollerSpecifications(string clientId) =>
                     $"{Prefix}/Details/{Uri.EscapeDataString(clientId)}/RollerSpecifications";
+            }
+
+            public static class RollerSpecifications 
+            {
+                private const string RollerSpecificationsPrefix = $"{Prefix}/RollerSpecifications";
+                public static string Get3DModel(string rollerSpecId) => $"/3DRoller/{rollerSpecId}";
             }
         }
 

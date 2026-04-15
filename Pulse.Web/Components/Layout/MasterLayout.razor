@@ -71,7 +71,7 @@
             </div>
 
             <div class="MasterLayoutFooter">
-                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height:100%;padding:10px" Width="100%" >
+                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height:100%;padding:10px" Width="100%" >
                     @if (userSettings == null)
                     {
                         <FluentProgressRing Width="32px" Color="var(--pulse-light-colour)"></FluentProgressRing>
@@ -91,7 +91,7 @@
                             <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.End" VerticalPosition="VerticalPosition.Top" AutoFocus="false" AnchorId="btnProfile" @bind-Open="showProfileMenu">
                                 <Header>@_authService.aspireFullName</Header>
                                 <Body>
-                                    <FluentStack Orientation="Orientation.Vertical">
+                                    <FluentStack Orientation="MsFluent.Orientation.Vertical">
                                         <FluentSelect Value="@presence" @onchange="ChangePresence" TOption="string" Label="Status">
                                             <FluentOption Value="3">Available</FluentOption>
                                             <FluentOption Value="2">Away</FluentOption>

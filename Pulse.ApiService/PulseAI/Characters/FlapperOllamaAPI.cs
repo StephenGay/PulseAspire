@@ -7,6 +7,7 @@ using Pulse.ApiService.Hubs;
 using Pulse.ApiService.PulseAI.Services;
 using Pulse.Models.AI;
 using Pulse.Models.AI.Flapper;
+using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.PulseContext;
@@ -29,7 +30,7 @@ public class FlapperOllamaAPI
     private readonly IOllamaApiClient _chatClient;
     private readonly ILogger<FlapperOllamaAPI> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly Flapper flapper = new();
+    //private readonly Flapper flapper = new();
 
     private readonly string _ollamaApiKey;
     private readonly Uri _localBaseAddress;
@@ -149,149 +150,11 @@ public class FlapperOllamaAPI
             throw;
         }
     }
-    //public async Task<IResult> FlapperOllamaChat(
-    //    FlapperChatRequest req,
-    //    AiShared _aiShared,
-    //    FlapperAPI flapperApi,
-    //    TablesAPI tablesApi,           // Your SQL expert
-    //    PulseDbContext db,
-    //    IHubContext<MessageHub> hubContext)
-    //{
-    //    // 1. Load or create conversation
-    //    var conversation = db.FlapperConversations
-    //        .Where(c => c.Id == req.ConversationId && c.UserId == req.UserId)
-    //        .FirstOrDefault();
-
-    //    if (conversation == null)
-    //    {
-    //        conversation = new FlapperConversation
-    //        {
-    //            Id = req.ConversationId,
-    //            UserId = req.UserId,
-    //            Title = "Flapper Chat"
-    //        };
-    //        db.FlapperConversations.Add(conversation);
-    //    }
-
-    //    // 2. Save user message
-    //    db.FlapperMessages.Add(new FlapperMessage
-    //    {
-    //        ConversationId = conversation.Id,
-    //        Sender = "User",
-    //        Content = req.Message,
-    //        SentAt = DateTime.UtcNow
-    //    });
-    //    await db.SaveChangesAsync();
-
-    //    conversation.LastActivity = DateTime.UtcNow;
-
-    //    // 3. Build rich system prompt (with schema)
-    //    var systemMessageData = new SystemMessageData
-    //    {
-    //        CompanyName = "H&M Rollers",
-    //        CompanyInformation = AiPromptHelperService.GetTempCoInfo(),
-    //        UserName = req.PreferredUserName,
-    //        DbSchema = await _aiShared.GetDetailedSchemaAsync(),
-    //        // Add any other fields your BuildSystemMessagev2 needs
-    //    };
-
-    //    var systemPrompt = flapper.BuildSystemMessagev2(systemMessageData);
-
-    //    // 4. Build available tools
-    //    var tools = BuildFlapperOllamaTools();
-
-    //    // 5. Multi-turn reasoning loop (Flapper can call tools multiple times)
-    //    const int MaxTurns = 6;
-    //    int turn = 0;
-    //    FlapperResponse result;
-
-    //    do
-    //    {
-    //        turn++;
-
-    //        result = await OllamaProcessWithToolsAsync(
-    //            conversation,
-    //            req.Message,
-    //            systemPrompt,
-    //            tools, async chunk =>
-    //            {
-    //                // Stream thinking/content chunks to UI in real-time
-    //                var streamMessage = new PulseMessage
-    //                {
-    //                    SenderUserName = "Flapper",
-    //                    RecipientUserId = req.UserId,
-    //                    Role = "Flapper",
-    //                    Subject = "Flapper is thinking...",
-    //                    ContentType = "HTML",
-    //                    Content = chunk,
-    //                    SentAt = DateTime.UtcNow
-    //                };
-    //                await hubContext.Clients.User(req.UserId.ToString())
-    //                    .SendAsync("ReceiveMessage", streamMessage);
-    //            });
-
-    //        // If no tool calls → we're done
-    //        if (result.ToolCalls == null || !result.ToolCalls.Any())
-    //            break;
-
-    //        // Execute each tool call
-    //        foreach (var toolCall in result.ToolCalls)
-    //        {
-    //            string toolResult = toolCall.ToolName switch
-    //            {
-    //                "AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
-    //                "WebSearch" => await ExecuteWebSearchAsync(toolCall.Parameters),
-    //                "WebFetch" => await ExecuteWebFetchAsync(toolCall.Parameters),
-    //                _ => $"Unknown tool: {toolCall.ToolName}"
-    //            };
-
-    //            // Save tool result back into conversation so Flapper can reason again
-    //            db.FlapperMessages.Add(new FlapperMessage
-    //            {
-    //                ConversationId = conversation.Id,
-    //                Sender = "tool",
-    //                Content = toolResult,
-    //                SentAt = DateTime.UtcNow,
-    //                ToolName = toolCall.ToolName
-    //            });
-    //        }
-
-    //        await db.SaveChangesAsync();
-
-    //    } while (turn < MaxTurns);
-
-    //    // 6. Save Flapper's final response
-    //    db.FlapperMessages.Add(new FlapperMessage
-    //    {
-    //        ConversationId = conversation.Id,
-    //        Sender = "Flapper",
-    //        Content = result.Content ?? result.Thinking ?? "No response generated.",
-    //        SentAt = DateTime.UtcNow,
-    //        ContentType = "HTML"
-    //    });
-
-    //    await db.SaveChangesAsync();
-
-    //    // 7. Send final message to UI via your existing hub
-    //    var finalMessage = new PulseMessage
-    //    {
-    //        SenderUserName = "Flapper",
-    //        RecipientUserId = req.UserId,
-    //        Role = "Flapper",
-    //        Subject = "Flapper Reply",
-    //        ContentType = "HTML",
-    //        Content = result.Content ?? result.Thinking ?? "",
-    //        SentAt = DateTime.UtcNow
-    //    };
-
-    //    await hubContext.Clients.User(req.UserId.ToString())
-    //        .SendAsync("ReceiveMessage", finalMessage);
-
-    //    return Results.Ok(result);
-    //}
+    
 
     public async Task<FlapperResponse> OllamaProcessWithToolsAsync(
         FlapperConversation conv,
+        FlapperDTO flapperDTO,
         string userMessage,
         string systemPrompt,
         List<object> tools,
@@ -320,7 +183,7 @@ public class FlapperOllamaAPI
             
             var request = new ChatRequest
             {
-                Model = flapper.Model,
+                Model = flapperDTO.Model,
                 Messages = messages.Select(m => new OllamaSharp.Models.Chat.Message
                 {
                     Role = m.Role switch
@@ -333,12 +196,16 @@ public class FlapperOllamaAPI
                     },
                     Content = m.Content ?? string.Empty
                 }).ToList(),
+                KeepAlive = "30m",
+                Think = flapperDTO.Think,
                 Tools = tools, // Note: Ollama expects tools in the request body, not just system prompt
                 Options = new OllamaSharp.Models.RequestOptions
                 {
-                    Temperature = (float?)flapper.Options.Temperature,
-                    NumCtx = flapper.Options.NumCtx,
-                    NumPredict = 2000
+                    Temperature = (float?)flapperDTO.Options.Temperature,
+                    NumCtx = flapperDTO.Options.NumCtx,
+                    NumPredict = flapperDTO.Options.NumPredict,
+                    RepeatPenalty = (float?)flapperDTO.Options.RepeatPenalty,
+                    PresencePenalty = (float?)flapperDTO.Options.PresencePenalty
                     // Add any other options you want to set globally
                 }
             };
@@ -402,25 +269,6 @@ public class FlapperOllamaAPI
                 RequiresClarification = false,
                 RawContent = rawReply
             };
-
-            //// Correct IChatClient call
-            //var response = await _chatClient.GetResponseAsync(messages, options, ct);
-
-            
-
-            
-
-            //// Extract tool calls (native from IChatClient)
-            //var toolCalls = response.ToolCalls?.Select(tc => new FlapperToolCall
-            //{
-            //    ToolName = tc.Name,
-            //    Parameters = tc.Arguments ?? new Dictionary<string, object>()
-            //}).ToList() ?? new List<FlapperToolCall>();
-
-            //// Clean final content
-            //
-
-
         }
         catch (Exception ex)
         {
@@ -580,52 +428,206 @@ public class FlapperOllamaAPI
         }
     }
 
-    //private static async Task<string> ExecuteAskTablesAsync(TablesAPI tablesApi, Dictionary<string, object> parameters, string originalQuery)
-    //{
-    //    if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
-    //        return "Error: Missing query parameter";
-
-    //    //Call your existing TablesAPI
-    //    PulseAiRequest tablesRequest = new PulseAiRequest
-    //    {
-    //        UserId = "Flapper", // You can pass actual user ID if needed for logging
-    //        AiName = AiName.Tables,
-    //        UserRequest = new OllamaChatMessage { Content = query },
-    //        UserEmail = "flapper@example.com",
-    //        ModelName = "gpt-oss:latest"
-    //    };
-    //    var result = await tablesApi.AskTablesAsync(tablesRequest);
-
-    //    return result.Success
-    //        ? $"Database query results for '{query}':\n{result.Data}"
-    //        : $"Tables error: {result.Message}";
-    //}
-
-    //private static async Task<string> ExecuteWebSearchAsync(Dictionary<string, object> parameters)
-    //{
-    //    if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
-    //        return "Error: Missing 'query' argument";
-
-    //    if (string.IsNullOrEmpty(query))
-    //        return "Error: Query is empty";
-
-    //    //Placeholder implementation -integrate with your actual web search service
-    //    //For now, return a stub response
-    //    return $"Web search results for '{query}': [Integration pending with external search service]";
-    //}
-
-    //private static async Task<string> ExecuteWebFetchAsync(Dictionary<string, object> parameters)
-    //{
-    //    if (!parameters.TryGetValue("url", out var urlObj) || urlObj is not string url)
-    //        return "Error: Missing 'url' argument";
-
-    //    if (string.IsNullOrEmpty(url))
-    //        return "Error: URL is empty";
-
-    //    //Placeholder implementation -integrate with your actual web fetch service
-    //    return $"Web content from '{url}': [Integration pending with external fetch service]";
-    //}
+    
 }
+
+#region Old Code
+
+// public async Task<IResult> FlapperOllamaChat(
+//    FlapperChatRequest req,
+//    AiShared _aiShared,
+//    FlapperAPI flapperApi,
+//    TablesAPI tablesApi,           // Your SQL expert
+//    PulseDbContext db,
+//    IHubContext<MessageHub> hubContext)
+// {
+//    // 1. Load or create conversation
+//    var conversation = db.FlapperConversations
+//        .Where(c => c.Id == req.ConversationId && c.UserId == req.UserId)
+//        .FirstOrDefault();
+
+//    if (conversation == null)
+//    {
+//        conversation = new FlapperConversation
+//        {
+//            Id = req.ConversationId,
+//            UserId = req.UserId,
+//            Title = "Flapper Chat"
+//        };
+//        db.FlapperConversations.Add(conversation);
+//    }
+
+//    // 2. Save user message
+//    db.FlapperMessages.Add(new FlapperMessage
+//    {
+//        ConversationId = conversation.Id,
+//        Sender = "User",
+//        Content = req.Message,
+//        SentAt = DateTime.UtcNow
+//    });
+//    await db.SaveChangesAsync();
+
+//    conversation.LastActivity = DateTime.UtcNow;
+
+//    // 3. Build rich system prompt (with schema)
+//    var systemMessageData = new SystemMessageData
+//    {
+//        CompanyName = "H&M Rollers",
+//        CompanyInformation = AiPromptHelperService.GetTempCoInfo(),
+//        UserName = req.PreferredUserName,
+//        DbSchema = await _aiShared.GetDetailedSchemaAsync(),
+//        // Add any other fields your BuildSystemMessagev2 needs
+//    };
+
+//    var systemPrompt = flapper.BuildSystemMessagev2(systemMessageData);
+
+//    // 4. Build available tools
+//    var tools = BuildFlapperOllamaTools();
+
+//    // 5. Multi-turn reasoning loop (Flapper can call tools multiple times)
+//    const int MaxTurns = 6;
+//    int turn = 0;
+//    FlapperResponse result;
+
+//    do
+//    {
+//        turn++;
+
+//        result = await OllamaProcessWithToolsAsync(
+//            conversation,
+//            req.Message,
+//            systemPrompt,
+//            tools, async chunk =>
+//            {
+//                // Stream thinking/content chunks to UI in real-time
+//                var streamMessage = new PulseMessage
+//                {
+//                    SenderUserName = "Flapper",
+//                    RecipientUserId = req.UserId,
+//                    Role = "Flapper",
+//                    Subject = "Flapper is thinking...",
+//                    ContentType = "HTML",
+//                    Content = chunk,
+//                    SentAt = DateTime.UtcNow
+//                };
+//                await hubContext.Clients.User(req.UserId.ToString())
+//                    .SendAsync("ReceiveMessage", streamMessage);
+//            });
+
+//        // If no tool calls → we're done
+//        if (result.ToolCalls == null || !result.ToolCalls.Any())
+//            break;
+
+//        // Execute each tool call
+//        foreach (var toolCall in result.ToolCalls)
+//        {
+//            string toolResult = toolCall.ToolName switch
+//            {
+//                "AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
+//                "WebSearch" => await ExecuteWebSearchAsync(toolCall.Parameters),
+//                "WebFetch" => await ExecuteWebFetchAsync(toolCall.Parameters),
+//                _ => $"Unknown tool: {toolCall.ToolName}"
+//            };
+
+//            // Save tool result back into conversation so Flapper can reason again
+//            db.FlapperMessages.Add(new FlapperMessage
+//            {
+//                ConversationId = conversation.Id,
+//                Sender = "tool",
+//                Content = toolResult,
+//                SentAt = DateTime.UtcNow,
+//                ToolName = toolCall.ToolName
+//            });
+//        }
+
+//        await db.SaveChangesAsync();
+
+//    } while (turn < MaxTurns);
+
+//    // 6. Save Flapper's final response
+//    db.FlapperMessages.Add(new FlapperMessage
+//    {
+//        ConversationId = conversation.Id,
+//        Sender = "Flapper",
+//        Content = result.Content ?? result.Thinking ?? "No response generated.",
+//        SentAt = DateTime.UtcNow,
+//        ContentType = "HTML"
+//    });
+
+//    await db.SaveChangesAsync();
+
+//    // 7. Send final message to UI via your existing hub
+//    var finalMessage = new PulseMessage
+//    {
+//        SenderUserName = "Flapper",
+//        RecipientUserId = req.UserId,
+//        Role = "Flapper",
+//        Subject = "Flapper Reply",
+//        ContentType = "HTML",
+//        Content = result.Content ?? result.Thinking ?? "",
+//        SentAt = DateTime.UtcNow
+//    };
+
+//    await hubContext.Clients.User(req.UserId.ToString())
+//        .SendAsync("ReceiveMessage", finalMessage);
+
+//    return Results.Ok(result);
+// }
+
+/// <summary>
+/// Processes a user message with tool support using the chat client.
+/// </summary>
+// private static async Task<string> ExecuteAskTablesAsync(TablesAPI tablesApi, Dictionary<string, object> parameters, string originalQuery)
+// {
+//    if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
+//        return "Error: Missing query parameter";
+
+//    //Call your existing TablesAPI
+//    PulseAiRequest tablesRequest = new PulseAiRequest
+//    {
+//        UserId = "Flapper", // You can pass actual user ID if needed for logging
+//        AiName = AiName.Tables,
+//        UserRequest = new OllamaChatMessage { Content = query },
+//        UserEmail = "flapper@example.com",
+//        ModelName = "gpt-oss:latest"
+//    };
+//    var result = await tablesApi.AskTablesAsync(tablesRequest);
+
+//    return result.Success
+//        ? $"Database query results for '{query}':\n{result.Data}"
+//        : $"Tables error: {result.Message}";
+// }
+
+/// <summary>
+/// Processes a user message with tool support using the chat client.
+/// </summary>
+// private static async Task<string> ExecuteWebSearchAsync(Dictionary<string, object> parameters)
+// {
+//    if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
+//        return "Error: Missing 'query' argument";
+
+//    if (string.IsNullOrEmpty(query))
+//        return "Error: Query is empty";
+
+//    //Placeholder implementation -integrate with your actual web search service
+//    //For now, return a stub response
+//    return $"Web search results for '{query}': [Integration pending with external search service]";
+// }
+
+/// <summary>
+/// Processes a user message with tool support using the chat client.
+/// </summary>
+// private static async Task<string> ExecuteWebFetchAsync(Dictionary<string, object> parameters)
+// {
+//    if (!parameters.TryGetValue("url", out var urlObj) || urlObj is not string url)
+//        return "Error: Missing 'url' argument";
+
+//    if (string.IsNullOrEmpty(url))
+//        return "Error: URL is empty";
+
+//    //Placeholder implementation -integrate with your actual web fetch service
+//    return $"Web content from '{url}': [Integration pending with external fetch service]";
+// }
 
 /// <summary>
 /// Processes a user message with tool support using the chat client.
@@ -750,3 +752,5 @@ public class FlapperOllamaAPI
 //        //}
 
 //}
+
+#endregion

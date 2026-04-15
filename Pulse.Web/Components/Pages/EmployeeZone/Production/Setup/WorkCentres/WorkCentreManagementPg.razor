@@ -36,6 +36,7 @@
         border-radius: 8px;
         padding: 12px;
         background: white;
+        cursor: pointer;
         transition: box-shadow 0.2s ease;
     }
 
@@ -123,7 +124,7 @@
                     {
                         @if (pgWCMode == "ViewAll")
                         {
-                            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px; flex-wrap: wrap;">
                                 <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:100px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { selectedWC = new WorkCentre(); pgWCMode = "New"; StateHasChanged() ;})">
                                     <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> New
                                 </FluentButton>
@@ -137,8 +138,8 @@
                                 {
                                     <FluentGridItem xs="12" sm="6" md="4" lg="2" >
                                         <div class="permission-card @(selectedWC == workCentre ? "selected-wc" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedWC = workCentre" >
-                                            <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;">
-                                                <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
+                                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;">
                                                     <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @workCentre.WorkCentreId</FluentLabel>
                                                     <FluentSpacer />
                                                     <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">Active: @(workCentre.IsActive ? "Yes" : "No")</FluentLabel>
@@ -162,7 +163,7 @@
                                         <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="@(selectedWC.TextColour ?? "#000000")" Style="font-weight: bold;padding:10px 5px">@selectedWC.WorkCentreName</FluentLabel>
                                 </div>
                                 
-                                <FluentStack Orientation="Orientation.Vertical" Style="gap: 1px; align-items: flex-start;">
+                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 1px; align-items: flex-start;">
                                     @if(pgWCMode != "ViewSetup")
                                     {
                                         <FluentTextField @bind-Value="selectedWC.WorkCentreName"
@@ -177,11 +178,11 @@
                                             Label="Description"
                                             ReadOnly ="@(pgWCMode == "ViewSetup" ? true : false)"
                                             Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px;" />
-                                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
                                         <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="colorPicker" @bind-value="selectedWC.Colour">
                                         <FluentLabel Typo="Typography.Body">Background Colour</FluentLabel>
                                     </FluentStack>
-                                    <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
                                         <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="textColorPicker" @bind-value="selectedWC.TextColour">
                                         <FluentLabel Typo="Typography.Body">Text Colour</FluentLabel>
                                     </FluentStack>
@@ -190,7 +191,7 @@
                                         <FluentSwitch @bind-Value="selectedWC.ApplyTargets" ReadOnly="@(pgWCMode == "ViewSetup" ? true : false)" Label="Apply Daily Targets" Style="margin-bottom:5px"/>
                                         if (selectedWC.ApplyTargets)
                                         {
-                                            <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                                                 <FluentSpacer />
                                                 <FluentNumberField @bind-Value="selectedWC.TargetMinUnitsPerDay"
                                                 Required="true"
@@ -216,7 +217,7 @@
                                             <FluentLabel Typo="Typography.Body" Weight="FontWeight.Bolder"><em>Targets Not Implemented For This Work Centre</em></FluentLabel>
                                         }
                                     }
-                                        <FluentStack Orientation="Orientation.Horizontal" Style="padding: 12px;">
+                                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding: 12px;">
                                             <FluentSpacer />
                                             @if (pgWCMode == "ViewSetup")
                                             {
@@ -259,7 +260,7 @@
                                          Required="true"
                                          Label="Zone Name"
                                          Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px" />
-                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
                                         <FluentLabel >Daily Target : </FluentLabel>
                                         <FluentNumberField @bind-Value="editZone.TargetMinUnitsPerDay"
                                                            Required="true"
@@ -276,7 +277,7 @@
                                          Required="false"
                                          Label="Notes"
                                          Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px" />
-                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center">
                                         <FluentButton Class="myCancelBtn"
                                                 BackgroundColor="var(--pulse-cancel-btn-bg)"
                                                 Color="var(--pulse-cancel-btn-colour)"
@@ -305,6 +306,7 @@
                                                     RowClass="@(context => context == selZone ? "fdgrselected" : "fdgrunselected")"
                                                     SelectionMode="SelectionMode.Single"
                                                     SelectedItem="@selZone"
+                                                    ShowHover="true"
                                                     OnRowClick="ClickZoneRow"
                                                     >
                                         <PropertyColumn Title="Zone Name" Width="270px" Property="@(context => context.Name)" />
@@ -312,7 +314,7 @@
                                         <PropertyColumn Title="Max" Width="70px" Property="@(context => context.TargetMaxUnitsPerDay)" />
                                         <PropertyColumn Title="Plotted" Width="70px" Property="@(context => context.IsPlotted)" />
                                     </FluentDataGrid>
-                                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 12px;">
+                                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding: 12px;">
                                         <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:30px;padding-right:10px;padding-left:10px" Color="var(--pulse-accent-btn-colour)" OnClick="AddNewZone">
                                             <FluentIcon Value="@(new Icons.Filled.Size20.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> New Zone
                                         </FluentButton>

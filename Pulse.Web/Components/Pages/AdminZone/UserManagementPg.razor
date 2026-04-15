@@ -96,17 +96,17 @@
         @if (pgMode != "List")
         {
             <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-light-colour);" class="@GetAnimationClass()">
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
-                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
                     <!-- User Registration Form -->
                         @if(pgMode != "View")
                         {
-                            <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" Style="gap: 12px;">
                                 <FluentLabel Typo="Typography.H6" Style="width:110px">User ID</FluentLabel>
                                 <FluentLabel Typo="Typography.Body" Style="width:stretch">@(pgMode == "(New)" ? "New" : @editUser?.Id) </FluentLabel>
                             </FluentStack>
                         }
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
                             @if(pgMode == "View")
                             {
                                 <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.FullName</FluentLabel>
@@ -121,7 +121,7 @@
                                         />    
                             }
                         </FluentStack>
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
                         
                             @if (pgMode == "View")
                             {
@@ -137,7 +137,7 @@
                                 Style="width:stretch" />
                             }
                         </FluentStack>
-                        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="gap: 12px;">
                             @if (pgMode == "View")
                                 {
                                     <FluentLabel Typo="Typography.Body" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" Style="width:stretch">@editUser?.PhoneNumber</FluentLabel>
@@ -150,9 +150,9 @@
                                                         Style="width:stretch" />
                                 }
                         </FluentStack>
-                    <FluentStack Orientation="Orientation.Horizontal" Style="margin-top:10px;border-top:1px solid var(--pulse-dark-colour);border-bottom:1px solid var(--pulse-dark-colour);padding-top:5px;padding-bottom:5px" VerticalAlignment="VerticalAlignment.Center">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="margin-top:10px;border-top:1px solid var(--pulse-dark-colour);border-bottom:1px solid var(--pulse-dark-colour);padding-top:5px;padding-bottom:5px" VerticalAlignment="VerticalAlignment.Center">
                             <div style="width:50%">
-                                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                                 @if (editUser.EmailConfirmed)
                                 {
                                     <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
@@ -163,7 +163,7 @@
                                 }
                                 <FluentLabel Typo="Typography.Body">E-Mail Confirmed</FluentLabel>
                                 </FluentStack>
-                                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                                     @if (editUser.LockoutEnabled)
                                     {
                                         <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
@@ -177,7 +177,7 @@
                             </div>
                             
                             <div style="width:50%">
-                                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                                     @if (editUser.RequirePwdChange)
                                     {
                                         <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
@@ -188,7 +188,7 @@
                                     }
                                     <FluentLabel Typo="Typography.Body">Pwd Change On Login</FluentLabel>
                                 </FluentStack>
-                                <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                                     @if (editUser.TwoFactorEnabled)
                                     {
                                         <FluentIcon Value="@(new Icons.Filled.Size20.CheckmarkCircle())" Color="@Microsoft.FluentUI.AspNetCore.Components.Color.Success" />
@@ -203,7 +203,7 @@
                         </FluentStack>
                        
                     <!-- Action Buttons -->
-                    <FluentStack Orientation="Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" HorizontalGap="30" Style="margin-top:10px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" HorizontalGap="30" Style="margin-top:10px;">
                             @if(pgMode == "View")
                             {
                                 <FluentButton Class="myAccentBtn"
@@ -278,7 +278,7 @@
         @if (pgMode == "View" && !isAnimating)
         {
             <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-light-colour);">
-                <FluentStack Orientation="Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="20">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalGap="20">
                     <FluentButton Class="myAccentBtn"
                     BackgroundColor="var(--pulse-accent-btn-bg)"
                     Color="var(--pulse-accent-btn-colour)"
@@ -315,8 +315,8 @@
             }
             else if (users?.Any() == true)
             {
-                <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-start;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; align-items: flex-start;">
                         <FluentButton Class="myAccentBtn" 
                             BackgroundColor="var(--pulse-accent-btn-bg)"
                             Color="var(--pulse-accent-btn-colour)"
@@ -331,7 +331,7 @@
                         </FluentLabel>
                     </FluentStack>
                     <!-- Filter Section -->
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: center;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; align-items: center;">
                         <FluentTextField @bind-Value="filterEmail"
                         Placeholder="Search User Name..."
                         @oninput="@((ChangeEventArgs e) => { filterEmail = e.Value?.ToString() ?? string.Empty; ApplyUserFilter(); })"
@@ -372,7 +372,7 @@
                         </TemplateColumn>
 
                         <TemplateColumn Title="Actions" Context="user">
-                            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;">
                                 <FluentButton Appearance="Appearance.Lightweight"
                                 Size="ButtonSize.Small"
                                 @onclick="() => ViewUser(user)"

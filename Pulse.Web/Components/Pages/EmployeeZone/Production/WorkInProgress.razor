@@ -79,8 +79,8 @@
 
 <div class="cparent">
     <div class="cheader">
-        <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="padding-top:15px;padding-left:15px;padding-right:15px;padding-bottom:0px">
-            <FluentLabel Typo="Typography.Header" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgb(255,255,255)">Work In Progress for Division @Division.DivisionName</FluentLabel>
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" Style="padding-top:15px;padding-left:15px;padding-right:15px;padding-bottom:0px">
+            <FluentLabel Typo="MsFluent.Typography.Header" Color="MsFluent.Color.Custom" CustomColor="rgb(255,255,255)">Work In Progress for Division @Division.DivisionName</FluentLabel>
             <FluentSpacer />
             <FluentButton Appearance="Appearance.Neutral" OnClick="() => showFilter = !showFilter">
                 Filters
@@ -106,7 +106,7 @@
         
         <!-- Filter Section -->
         <div class="filter-section">
-            <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
                 <FluentLabel Typo="Typography.H5">Filters</FluentLabel>
                 
                 <div class="filter-row">
@@ -131,11 +131,11 @@
                                      @oninput="@((ChangeEventArgs e) => { filterStage = e.Value?.ToString() ?? string.Empty; ApplyFilters(); })" />
                 </div>
 
-                <FluentStack Orientation="Orientation.Horizontal" Style="gap: 8px;">
+                <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;">
                     <FluentButton Appearance="Appearance.Neutral" OnClick="ClearFilters">
                         Clear Filters
                     </FluentButton>
-                    <FluentLabel Typo="Typography.Body" Style="color: #666;">
+                    <FluentLabel Typo="MsFluent.Typography.Body" Style="color: #666;">
                         Showing @filteredItems?.Count() of @wipItems?.Count() items
                     </FluentLabel>
                 </FluentStack>

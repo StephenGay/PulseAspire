@@ -246,6 +246,7 @@ builder.Services.AddScoped<TablesAPI>();
 //    .StopPollyTimeouts();
 
 
+//builder.Services.AddScoped<IRollerModelGenerationService, RollerModelGenerationService>();
 
 #endregion
 

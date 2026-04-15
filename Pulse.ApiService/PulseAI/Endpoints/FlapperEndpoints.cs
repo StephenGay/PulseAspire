@@ -7,6 +7,7 @@ using OllamaSharp.Tools;
 using Pulse.ApiService.Hubs;
 using Pulse.ApiService.PulseAI.Characters;
 using Pulse.ApiService.PulseAI.Services;
+using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 using Pulse.Models.AI;
 using Pulse.Models.AI.Flapper;
 using Pulse.Models.Communication;
@@ -16,6 +17,7 @@ using System.Text;
 using System.Text.Json;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static OllamaSharp.Models.Chat.Message;
+using Pulse.Models.Api;
 
 namespace Pulse.ApiService.PulseAI.Endpoints;
 
@@ -35,6 +37,11 @@ public static class FlapperEndpoints
             .WithName("FlapperOllamaChat")
             .WithDescription("Send a message to Flapper and receive a response. Supports streaming responses and clarification questions.")
             .Produces<FlapperResponse>(200);
+
+        group.MapGet("/Conversations/UserHistory/{userId}", GetUserConversationHistory)
+            .WithName("GetUserConversationHistory")
+            .WithDescription("Get the conversation history for a specific user.")
+            .Produces<ApiResponse<List<FlapperConversation>>>(200);
 
     }
 
@@ -236,7 +243,7 @@ public static class FlapperEndpoints
             // Add any other fields your BuildSystemMessagev2 needs
         };
 
-        var systemPrompt = new Flapper().BuildSystemMessagev2(systemMessageData);
+        var systemPrompt = new Flapper().BuildSystemMessagev3(systemMessageData);
 
         // 4. Build available tools
         var tools = flapperOllamaApi.BuildFlapperOllamaTools();
@@ -258,6 +265,7 @@ public static class FlapperEndpoints
 
             result = await flapperOllamaApi.OllamaProcessWithToolsAsync(
                 conversation,
+                req.flapperDTO,
                 req.Message,
                 systemPrompt,
                 tools, async chunk =>
@@ -439,6 +447,22 @@ public static class FlapperEndpoints
         var contextualResult = $"**Content fetched from {url}**:\n\n{content}";
 
         return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
+    }
+
+    private static async Task<IResult> GetUserConversationHistory(string userId, PulseDbContext db)
+    {
+        var conversations = await db.FlapperConversations
+            .Where(c => c.UserId == userId)
+            //.Include(c => c.Messages.OrderBy(m => m.SentAt))
+            .OrderByDescending(c => c.LastActivity)
+            .ToListAsync();
+
+        return Results.Ok(new ApiResponse<List<FlapperConversation>>
+        {
+            Success = true,
+            Data = conversations,
+            Message = $"Retrieved {conversations.Count} conversations for user {userId}"
+        });
     }
 }
 

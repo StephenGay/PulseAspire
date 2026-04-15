@@ -43,11 +43,11 @@
     @* <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: scroll;"> *@
         
     <div style="width:100%; height:95%; padding: 10px; margin:5px; border: 2px solid black; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
-        <FluentStack Orientation="Orientation.Horizontal" Style="flex: 0">
-        <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Bottom">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="flex: 0">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" Width="50%" HorizontalAlignment="MsFluent.HorizontalAlignment.Start" VerticalAlignment="MsFluent.VerticalAlignment.Bottom">
                 <h6>PRODUCTION PLAN</h6>
             </FluentStack>
-            <FluentStack Orientation="Orientation.Horizontal" Width="50%" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.End" VerticalAlignment="VerticalAlignment.Bottom">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Width="50%" HorizontalAlignment="MsFluent.HorizontalAlignment.End" VerticalAlignment="MsFluent.VerticalAlignment.Bottom">
                 <h6>WORK CENTRE </h6>
                 <FluentSelect Items=@workCentres 
                         TOption="WorkCentre"
@@ -70,7 +70,7 @@
         <FluentDivider Style="width: 100%; margin-top:5px;margin-bottom:5px;" Role="DividerRole.Presentation"></FluentDivider>
 
         @* <FluentStack Orientation="Orientation.Horizontal" Style="overflow : scroll;"> *@
-        <FluentStack Orientation="Orientation.Horizontal" Style="flex: 1; overflow: hidden; display: flex;">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="flex: 1; overflow: hidden; display: flex;">
 
             @* <div id='external-events' style="width:10%;"> *@
             <div id='external-events' style="width:10%; height: 100%; overflow-y: auto;">

@@ -30,8 +30,8 @@
             <h2 style="margin: 0; color: white;">Token Diagnostic</h2>
         </FluentHeader>
 
-        <FluentStack Orientation="Orientation.Vertical" Style="gap: 16px;">
-            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 16px;">
+        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 16px;">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 16px;">
                 <!-- Auth Service Status -->
                 <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
                     <h3>AuthService Status</h3>
@@ -56,7 +56,7 @@
                 <!-- Test API Calls -->
                 <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
                     <h3>Test API Requests</h3>
-                    <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px;">
                         <FluentButton Appearance="Appearance.Accent" @onclick="TestGetRolesAsync" Disabled="@isTestingApi">
                             @(isTestingApi ? "Testing..." : "Test GET /roles")
                         </FluentButton>
@@ -93,7 +93,7 @@
                 }
             </FluentStack>
 
-            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 16px;">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 16px;">
                 <!-- JWT Claims -->
                 @if (!string.IsNullOrEmpty(tokenFromHolder))
                 {
@@ -124,12 +124,12 @@
                 <!-- Debug API Methods -->
                 <div style="border: 1px solid #ddd; padding: 12px; border-radius: 10px; background-color:white;">
                     <h3>Debug Methods</h3>
-                    <FluentStack Orientation="Orientation.Vertical" Style="gap: 12px;">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
                     
                         <!-- Check My Roles -->
                         <div>
                             <h4 style="margin-top: 0px;">Check Current User Roles</h4>
-                            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px;">
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px;">
                                 <FluentButton Appearance="Appearance.Accent" 
                                              @onclick="CheckMyRolesAsync" 
                                              Disabled="@isDebugTesting">
@@ -147,7 +147,7 @@
                         <!-- Assign Admin Role -->
                         <div style="border-top: 1px solid #eee; padding-top: 12px;">
                             <h4 style="margin-top: 0;">Assign Admin Role</h4>
-                            <FluentStack Orientation="Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
                                 <div style="flex: 1;">
                                     <FluentTextField @bind-Value="adminAssignEmail"
                                                    Label="User Email"

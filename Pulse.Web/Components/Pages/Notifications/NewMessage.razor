@@ -9,15 +9,15 @@
 <FluentDialogBody>
     @if(Content != null && isLoaded)
     { 
-        <FluentStack Orientation="Orientation.Vertical" VerticalGap="20" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Stretch" Width="100%">
+        <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="20" HorizontalAlignment="MsFluent.HorizontalAlignment.Stretch" Width="100%">
             <!-- Email Header -->
             @* <div style="border-bottom: 2px solid var(--pulse-accent-colour); padding-bottom: 16px;">
-                <FluentLabel Typo="Typography.PageTitle" Style="color:var(--pulse-dark-colour)">New Message</FluentLabel>
+                <FluentLabel Typo="MsFluent.Typography.PageTitle" Style="color:var(--pulse-dark-colour)">New Message</FluentLabel>
             </div> *@
 
             <!-- From Field -->
-            @* <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
-                <FluentLabel Typo="Typography.Body">From</FluentLabel>
+            @* <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="6">
+                <FluentLabel Typo="MsFluent.Typography.Body">From</FluentLabel>
                 <FluentTextField 
                     Value="@Content.SenderUserName" 
                     Readonly="true"
@@ -46,9 +46,9 @@
             </FluentStack> *@
 
             <!-- Message Body -->
-            <FluentStack Orientation="Orientation.Vertical" VerticalGap="6">
+            <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="6">
                 <FluentTextField @bind-Value="Content.Subject" Placeholder="Enter A Subject" Label="Subject" Style="width:100%;color:var(--pulse-dark-colour);" />
-                <FluentLabel Typo="Typography.Body">Message</FluentLabel>
+                <FluentLabel Typo="MsFluent.Typography.Body">Message</FluentLabel>
                 <FluentTextArea 
                     Rows="17" 
                     @bind-Value="Content.Content"

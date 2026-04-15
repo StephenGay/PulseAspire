@@ -1,4 +1,4 @@
-﻿@page "/EmployeeZone/Production/Rollers/View3D/{RollerId}"
+﻿@page "/EmployeeZone/Customers/3DRoller/{RollerId}"
 @using Pulse.Models.Api
 @using Pulse.Models.Rollers
 @using Pulse.Web.Services
@@ -27,15 +27,15 @@
     {
         if (firstRender)
         {
-            // var response = await ApiService.GetAsync<ApiResponse<RollerModel3DDto>>(
-            //     ApiEndpoints.RollerModels.Get(RollerId));
+            var response = await ApiService.GetAsync<ApiResponse<RollerModel3DDto>>(
+                ApiEndpoints.Customers.RollerSpecifications.Get3DModel(RollerId));
 
-            // if (response?.Data != null)
-            // {
-            //     await JS.InvokeVoidAsync("initThreeViewer", containerRef, response.Data);
-            //     isLoading = false;
-            //     StateHasChanged();
-            // }
+            if (response?.Data != null)
+            {
+                await JS.InvokeVoidAsync("initThreeViewer", containerRef, response.Data);
+                isLoading = false;
+                StateHasChanged();
+            }
         }
     }
 }
