@@ -89,10 +89,52 @@
 
 @* <div class="ccontent">
     <FluentCard> *@
-        <FluentHeader Style="background-color: var(--pulse-dark-colour); margin: -16px -16px 16px -16px; padding: 16px;">
+        @* <FluentHeader Style="background-color: var(--pulse-dark-colour); margin: -16px -16px 16px -16px; padding: 16px;">
             <h2 style="margin: 0; color: white;">@pgTitle</h2>
-        </FluentHeader>
-
+        </FluentHeader> *@
+<div style="flex:1;height:100%;background-color:rgba(255,255,255,0);border-radius:10px">
+    <div class="page-header">
+        <div>
+            <h1>Users</h1>
+            <div class="subtitle">Create New Users or Edit Existing Ones</div>
+        </div>
+        <div class="header-actions">
+            <FluentButton Class="myAccentBtn"
+                          BackgroundColor="var(--pulse-accent-btn-bg)"
+                          Color="var(--pulse-accent-btn-colour)"
+                          Style="height:50px"
+                          IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))"
+                          @onclick="AddNewUser">
+                Add New User
+            </FluentButton>
+            <FluentButton Class="myAccentBtn"
+                          BackgroundColor="var(--pulse-accent-btn-bg)"
+                          Color="var(--pulse-accent-btn-colour)"
+                          Style="height:50px"
+                          IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
+                          @onclick="ViewUser">
+                Edit User
+            </FluentButton>
+            @* <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="@(() => { addMode = !addMode; selectedCategory = string.Empty; })">
+                <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> Category
+            </FluentButton>
+            <FluentButton Class="myAccentBtn" Disabled="@(string.IsNullOrEmpty(selectedCategory))" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="() => { selectedPermission = null; addEditPermission = true; }">
+                <FluentIcon Value="@(new Icons.Filled.Size32.AddCircle().WithColor("var(--pulse-accent-btn-colour)"))" /> Permission
+            </FluentButton> *@
+            @* <FluentButton Class="myAccentBtn" Disabled="@(selectedPermission == null)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="() => { newPermissionName = selectedPermission.Name; newPermissionDesc = selectedPermission.Description; ; addEditPermission = true; }">
+                <FluentIcon Value="@(new Icons.Filled.Size32.Edit().WithColor("var(--pulse-accent-btn-colour)"))" /> Edit Permission
+            </FluentButton>
+            <FluentButton Class="myAccentBtn" Disabled="@(selectedPermission == null)" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:50px;width:200px" Color="var(--pulse-accent-btn-colour)" OnClick="ViewPermissionRoles">
+                <FluentIcon Value="@(new Icons.Filled.Size32.People().WithColor("var(--pulse-accent-btn-colour)"))" /> Manage Roles
+            </FluentButton> *@
+            @* <button class="myAccentBtn" style="height:50px;padding-left:10px;padding-right:10px;border-radius:10px" onclick="startNetworkScan()" id="scanBtn">
+                <span>🔍</span> Scan Network
+            </button>
+            <button class="myAccentBtn" style="height:50px;padding-left:10px;padding-right:10px;border-radius:10px" onclick="openAddSensorModal()">
+                <span>+</span> Add Sensor
+            </button> *@
+        </div>
+    </div>
         @if (pgMode != "List")
         {
             <div style="width:98%;max-width:500px;margin:10px;text-align:center;padding:10px;border:1px solid black;border-radius:10px;background-color: var(--pulse-light-colour);" class="@GetAnimationClass()">
@@ -209,7 +251,7 @@
                                 <FluentButton Class="myAccentBtn"
                                               BackgroundColor="var(--pulse-accent-btn-bg)"
                                               Color="var(--pulse-accent-btn-colour)"
-                                              onclick="EditUserDetails"
+                                              @onclick="EditUserDetails"
                                               IconStart="@(new Icons.Filled.Size24.Edit().WithColor("--pulse-accent-btn-colour"))"
                                               Style="height:40px"
                                               >
@@ -316,16 +358,9 @@
             else if (users?.Any() == true)
             {
                 <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 12px;">
-                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; align-items: flex-start;">
-                        <FluentButton Class="myAccentBtn" 
-                            BackgroundColor="var(--pulse-accent-btn-bg)"
-                            Color="var(--pulse-accent-btn-colour)"
-                            Style="height:50px"
-                            IconStart="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size32.AddCircle())"
-                            @onclick="AddNewUser">
-                            Add New User
-                        </FluentButton>
-                        <FluentSpacer />
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 12px; align-items: flex-end;">
+                        
+                        @* <FluentSpacer /> *@
                         <FluentLabel Typo="Typography.Body" Style="color: #666;">
                             Showing @filteredUsers?.Count() of @users?.Count() users
                         </FluentLabel>
@@ -343,11 +378,15 @@
                             Clear
                         </FluentButton>
                     </FluentStack>
-
+                @* //OnRowClick="@ClickUserRow(selUser)" *@
                     <!-- Users Data Grid -->
                     <FluentDataGrid Items="@(filteredUsers?.AsQueryable() ?? new List<ApplicationUserDto>().AsQueryable())"
-                    TItem="ApplicationUserDto"
+                    TGridItem="ApplicationUserDto"
                     ResizableColumns="true"
+                    RowClass="@(context => context == selUser ? "fdgrselected" : "fdgrunselected")"
+                    SelectionMode="SelectionMode.Single"
+                    SelectedItem="@selUser"
+                    OnRowClick="ClickUserRow"
                     Style="width:100%;background-color:white"
                     ShowHover="true"
                     Pagination="@pagination">
@@ -371,7 +410,7 @@
                             }
                         </TemplateColumn>
 
-                        <TemplateColumn Title="Actions" Context="user">
+                        @* <TemplateColumn Title="Actions" Context="user">
                             <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;">
                                 <FluentButton Appearance="Appearance.Lightweight"
                                 Size="ButtonSize.Small"
@@ -388,7 +427,7 @@
                                     DeActivate
                                 </FluentButton>
                             </FluentStack>
-                        </TemplateColumn>
+                        </TemplateColumn> *@
                     </FluentDataGrid>
 
                     <FluentPaginator State="@pagination" Style="margin-top: 20px; width:100%;padding:10px;"></FluentPaginator>
@@ -402,6 +441,7 @@
             }
         
     }
+</div>
     @* </FluentCard>
 </div> *@
 
@@ -412,6 +452,7 @@
     private List<ApplicationUserDto> filteredUsers = new();
     private ApplicationUserDto? editUser;
     private ApplicationUserDto? editCancelledUser;
+    private ApplicationUserDto? selUser { get; set; }
     private string filterEmail = string.Empty;
     private string successMessage = string.Empty;
     private string errorMessage = string.Empty;
@@ -441,6 +482,16 @@
         await SwitchPageMode("Edit");
     }
 
+    private async Task<ApplicationUserDto> ClickUserRow(FluentDataGridRow<ApplicationUserDto> row)
+    {
+        if (row?.Item != null)
+        {
+            selUser = row.Item;           // This will also trigger the RowClass re-evaluation
+                                 // Optional: refresh the grid if needed
+            // await gridRef.RefreshDataAsync();  (if you have a @ref on the grid)
+        }
+        return selUser;
+    }
     private async Task LoadUsersAsync()
     {
         try
@@ -716,15 +767,15 @@
         }
     }
 
-    private void ViewUser(ApplicationUserDto user)
+    private void ViewUser()
     {
         // TODO: Implement edit functionality (could open a dialog)
-        editUser = user;
+        editUser = selUser;
         animationDirection = "left";
         pgMode = "View";
         pgTitle = "View User";
 
-        Logger.LogInformation("Edit user: {Email}", user.Email);
+        Logger.LogInformation("Edit user: {Email}", selUser.Email);
     }
 
     private void ApplyUserFilter()

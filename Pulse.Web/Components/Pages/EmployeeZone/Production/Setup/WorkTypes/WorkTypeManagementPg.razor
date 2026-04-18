@@ -185,7 +185,7 @@
                                                         <FluentSpacer />
                                                         <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">Active: @(workType.IsActive ? "Yes" : "No")</FluentLabel>
                                                     </FluentStack>
-                                    <FluentLabel Typo="Typography.H6" Style="@($"color: {(selectedDivWT != workType ? "var(--pulse-dark-colour)" : "var(--pulse-light-colour)")};font-weight:700")">@workType.WorkType?.WorkTypeName</FluentLabel>
+                                                    <FluentLabel Typo="Typography.H6" Style="@($"color: {(selectedDivWT != workType ? "var(--pulse-dark-colour)" : "var(--pulse-light-colour)")};font-weight:700")">@workType.WorkType?.WorkTypeName</FluentLabel>
                                                     @* <div style="height:fit-content;width:100%;background-color: @(workType.Colour ?? "#660000");border: 1px solid @(workType.TextColour ?? "#ffffff");" >
                                                         <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="@(workType.TextColour ?? "#ffffff")" Style="font-weight: bold;padding:10px 5px;">@workType.WorkTypeName</FluentLabel>
                                                     </div> *@

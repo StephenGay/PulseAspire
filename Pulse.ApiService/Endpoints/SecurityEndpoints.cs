@@ -647,75 +647,7 @@ namespace Pulse.ApiService.Endpoints
             .Produces(StatusCodes.Status500InternalServerError);
 
             // CREATE ROLE ENDPOINT
-            group.MapPost("/roles", async (RoleManager<IdentityRole> roleManager, [FromBody] string roleName, ILoggerFactory loggerFactory) =>
-            {
-                var logger = loggerFactory.CreateLogger("CreateRole");
-
-                if (roleManager == null)
-                {
-                    logger.LogError("RoleManager service is not available");
-                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
-                }
-
-                if (string.IsNullOrWhiteSpace(roleName))
-                {
-                    return Results.BadRequest(new ApiResponse
-                    {
-                        Success = false,
-                        Message = "Role name cannot be empty",
-                        StatusCode = 400
-                    });
-                }
-
-                try
-                {
-                    // Check if role already exists
-                    var existingRole = await roleManager.FindByNameAsync(roleName);
-                    if (existingRole != null)
-                    {
-                        return Results.BadRequest(new ApiResponse
-                        {
-                            Success = false,
-                            Message = $"Role '{roleName}' already exists",
-                            StatusCode = 400
-                        });
-                    }
-
-                    var role = new IdentityRole(roleName);
-                    var result = await roleManager.CreateAsync(role);
-
-                    if (result.Succeeded)
-                    {
-                        logger.LogInformation("Role created: {RoleName}", roleName);
-                        return Results.Ok(new ApiResponse<string>
-                        {
-                            Success = true,
-                            Data = roleName,
-                            Message = $"Role '{roleName}' created successfully",
-                            StatusCode = 200
-                        });
-                    }
-
-                    logger.LogWarning("Failed to create role {RoleName}: {Errors}", roleName, string.Join(", ", result.Errors.Select(e => e.Description)));
-                    return Results.BadRequest(new ApiResponse
-                    {
-                        Success = false,
-                        Message = "Failed to create role",
-                        Errors = result.Errors.ToDictionary(e => "role", e => new[] { e.Description }),
-                        StatusCode = 400
-                    });
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError(ex, "Error creating role {RoleName}", roleName);
-                    return Results.StatusCode(StatusCodes.Status500InternalServerError);
-                }
-            })
-            //.RequireAuthorization(AdminRole)
-            .WithName("CreateRole")
-            .Produces<ApiResponse<string>>(StatusCodes.Status200OK)
-            .Produces<ApiResponse>(StatusCodes.Status400BadRequest)
-            .Produces(StatusCodes.Status500InternalServerError);
+            
 
             group.MapGet("/users/GetByID/{userID}", async (string userID, UserManager<ApplicationUser> userManager, ILoggerFactory loggerFactory) =>
             {

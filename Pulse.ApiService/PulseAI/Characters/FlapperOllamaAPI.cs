@@ -156,7 +156,7 @@ public class FlapperOllamaAPI
         FlapperConversation conv,
         FlapperDTO flapperDTO,
         string userMessage,
-        string systemPrompt,
+
         List<object> tools,
         Func<string, Task> onChunkReceived,
         CancellationToken ct = default)
@@ -173,10 +173,10 @@ public class FlapperOllamaAPI
                  ToolName = m.ToolName // Include tool name if this message is a tool response
             }).ToList();
 
-            var messages = new List<OllamaMessage>
-            {
-                new OllamaMessage { Role = "system", Content = systemPrompt }
-            };
+            var messages = new List<OllamaMessage>();
+            //{
+            //    new OllamaMessage { Role = "system", Content = systemPrompt }
+            //};
             messages.AddRange(history);
             messages.Add(new OllamaMessage { Role = "user", Content = userMessage });
 
@@ -196,7 +196,7 @@ public class FlapperOllamaAPI
                     },
                     Content = m.Content ?? string.Empty
                 }).ToList(),
-                KeepAlive = "30m",
+                KeepAlive = "-1m",
                 Think = flapperDTO.Think,
                 Tools = tools, // Note: Ollama expects tools in the request body, not just system prompt
                 Options = new OllamaSharp.Models.RequestOptions

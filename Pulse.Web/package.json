@@ -2,6 +2,7 @@
   "dependencies": {
     "@fullcalendar/resource": "^6.1.19",
     "@fullcalendar/resource-timeline": "^6.1.19",
-    "fullcalendar": "^6.1.19"
+    "fullcalendar": "^6.1.19",
+    "three": "^0.184.0"
   }
 }

@@ -1057,6 +1057,7 @@
 
             showDownloadMenu = false;
             pdfLoading = true;
+            await Task.Delay(500);
             using var workbook = new XLWorkbook();
             var worksheet = workbook.Worksheets.Add("PulseData");
 

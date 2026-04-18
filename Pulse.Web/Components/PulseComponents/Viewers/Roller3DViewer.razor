@@ -1,110 +1,97 @@
-﻿@using BlazorThreeJS.Viewers
+﻿@using BlazorThreeJS.Geometires
 @using BlazorThreeJS.Objects
-@using BlazorThreeJS.Geometires @* Important: use Geometries, not BufferGeometry directly *@
+@using BlazorThreeJS.Settings
+@using BlazorThreeJS.Viewers
+@* Important: use Geometries, not BufferGeometry directly *@
 @using BlazorThreeJS.Materials
 @using BlazorThreeJS.Lights
 @using BlazorThreeJS.Core
 @using BlazorThreeJS.Maths
+@using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Customers
 @using Pulse.Web.Services
 
 @inject DataTransferService DTrf
 @rendermode InteractiveServer
 
-<FluentCard>
-    <ViewerThreeD @ref="viewer"
-                  CanvasWidth="1800"
-                  CanvasHeight="650"
-                  SceneName="RollerScene"
-                   />
-</FluentCard>
+<div style="display: flex; flex-direction: column; gap: 10px;">
+    <FluentButton Appearance="Appearance.Accent" OnClick="AddRollerToSceneAsync" Disabled="@isRollerLoaded">
+        <FluentIcon Value="@(new Icons.Regular.Size20.Add())" />
+        Add Roller to Scene
+    </FluentButton>
+
+    <FluentCard>
+        <ViewerThreeD @ref="viewer"
+                      CanvasWidth="1800"
+                      CanvasHeight="650"
+                      SceneName="RollerScene">
+                     
+                  </ViewerThreeD>
+                       
+    </FluentCard>
+</div>
 
 @code {
     private ViewerThreeD? viewer;
+    private bool isRollerLoaded = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender && viewer != null)
         {
-            await CreateRollerSceneAsync();
-            await InvokeAsync(() => StateHasChanged());  // Ensure UI updates after scene creation
+            // Add a small delay to ensure Three.js is fully initialized
+            await Task.Delay(500);
+            await CreateSceneWithFloorAsync();
+            await Task.Delay(500);
+            await InvokeAsync(StateHasChanged);
         }
     }
 
-    private async Task CreateRollerSceneAsync()
+    private async Task CreateSceneWithFloorAsync()
     {
-        if (viewer == null) return;
-
-        // Clear any previous scene content (good practice when data changes)
-        //await viewer.ActiveScene.ClearAll();
-        viewer.ActiveScene.BackGroundColor = "#1e1e2e";
-        var roller = await DTrf.GetgvSelectedRollSpec();
-
-        if (roller?.ShellDiameter == null || roller.ShellLength == null)
+        if (viewer?.ActiveScene is null)
         {
-            System.Console.WriteLine("DEBUG: No roller data loaded");
+            System.Console.WriteLine("DEBUG: Viewer or ActiveScene is null");
             return;
         }
-        System.Console.WriteLine($"DEBUG: Roller - Diameter: {roller.ShellDiameter}, Length: {roller.ShellLength}");
-        float radius = (float)roller.ShellDiameter / 2f;
+
+        viewer.ActiveScene.BackGroundColor = "#000000"; // "#1e1e2e";
+
+        var roller = await DTrf.GetgvSelectedRollSpec();
+
+        if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
+        {
+            System.Console.WriteLine("DEBUG: No roller data loaded or incomplete spec");
+            return;
+        }
+
         float height = (float)roller.ShellLength;
+        Scene3D scene = viewer.ActiveScene;
 
-        // 1. Create Cylinder Geometry
-        var geometry = new CylinderGeometry
+        // Add lighting
+        viewer.ActiveScene.AddChild(new AmbientLight
         {
-            RadiusTop = radius,
-            RadiusBottom = radius,
-            Height = height,
-            RadialSegments = 64,           // smoother look
-            HeightSegments = 4
-            //,
-            //OpenEnded = false
-        };
-        
-        // 2. Create Material (MeshStandardMaterial works well with lights)
-        var material = new MeshStandardMaterial
-        {
-            Color = "#a8b5c0",
-            Metalness = 0.78f,
-            Roughness = 0.32f
-        };
+            Color = "#ffffff",
+            Intensity = 0.75f
+        });
 
-        // 3. Create the Mesh
-        var rollerMesh = new Mesh3D
-        {
-            Name = "Roller",
-            Geometry = geometry,
-            Material = material,
-            Transform = new Transform3("RollerTransform")
-            {
-                Position = new Vector3(0, height / 2f, 0),     // sits on top of the floor
-                Rotation = new Euler(MathF.PI / 2, 0, 0),   // or MathF.PI / 2 if you want it horizontal
-                // Scale = Vector3.One
-                Scale = new Vector3(3f, 3f, 3f)
-                //Position = new Vector3(0, 5, 0)
-            }
-        };
-
-        // 4. Add the roller to the scene
-        
-        viewer.ActiveScene.AddChild(rollerMesh);
-
-        // 5. Add helpful lights (very important – without lights the object may be black)
-        viewer.ActiveScene.AddChild(new AmbientLight { Color = "#ffffff", Intensity = 0.75f });
         viewer.ActiveScene.AddChild(new PointLight
         {
             Intensity = 3.8f,
             Color = "#ffffff",
-            Distance = 200f          // optional - how far the light reaches
-        });
-        viewer.ActiveScene.AddChild(new PointLight
-        {
-            Intensity = 2.0f,
-            Color = "#e0f0ff",
-            Distance = 150f
+            Distance = 200f
         });
 
-        // 6. Optional: add a floor/grid for reference
+        // viewer.ActiveScene.AddChild(new PointLight
+        // {
+        //     Intensity = 2.0f,
+        //     Color = "#e0f0ff",
+        //     Distance = 150f
+        // });
+
+        await AddRollerToSceneAsync();
+
+        // Add floor
         var floor = new Mesh3D
         {
             Name = "Floor",
@@ -124,20 +111,86 @@
                 Rotation = new Euler(-MathF.PI / 2, 0, 0)
             }
         };
-        viewer.ActiveScene.AddChild(floor);
+        // viewer.ActiveScene.AddChild(floor);
 
-        // 7. Enable orbit controls so user can rotate/zoom
+        // Set camera position (without roller, looking at center)
         viewer.OrbitControls.Enabled = true;
-        // await viewer.EnableOrbitControlsAsync();
-        await viewer.ActiveScene.SetCameraPosition(new Vector3(0, height * 1.4f, height * 5.5f));   // nice starting view
-        /* await viewer.SetCameraPositionAsync(new Vector3(0, 5, 15));  */  // nice starting view
+        // await viewer.ActiveScene.SetCameraPosition(new Vector3(0, height * 1.4f, height * 5.5f));
+        Task refreshTask = Task.CompletedTask;
+        var refresh = new ImportSettings();
+        refreshTask = viewer.ActiveScene.Request3DSceneRefresh(refresh);
+
         await InvokeAsync(() => StateHasChanged());
     }
 
-    // Optional: expose a method to refresh when the selected roller changes
-    public async Task RefreshRollerAsync()
+    private async Task AddRollerToSceneAsync()
     {
-        if (viewer != null)
-            await CreateRollerSceneAsync();
+        if (viewer?.ActiveScene is null)
+        {
+            System.Console.WriteLine("DEBUG: Viewer or ActiveScene is null");
+            return;
+        }
+
+        var roller = await DTrf.GetgvSelectedRollSpec();
+
+        if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
+        {
+            System.Console.WriteLine("DEBUG: No roller data loaded or incomplete spec");
+            return;
+        }
+
+        System.Console.WriteLine($"DEBUG: Adding Roller - Diameter: {roller.ShellDiameter}, Length: {roller.ShellLength}");
+
+        float radius = (float)roller.ShellDiameter / 2f;
+        float height = (float)roller.ShellLength;
+
+        // Create Cylinder Geometry
+        var geometry = new CylinderGeometry
+        {
+            RadiusTop = radius,
+            RadiusBottom = radius,
+            Height = height,
+            RadialSegments = 64,
+            HeightSegments = 4
+        };
+
+        // Create Material
+        var material = new MeshStandardMaterial
+        {
+            Color = "#a8b5c0",
+            Metalness = 0.78f,
+            Roughness = 0.32f
+        };
+
+        // Create the Mesh
+        var rollerMesh = new Mesh3D
+        {
+            Name = "Roller",
+            Geometry = geometry,
+            Material = material,
+            Transform = new Transform3("RollerTransform")
+            {
+                Position = new Vector3(0, height / 2f, 0),
+                // Position = new Vector3(0, -0.05f, 0),
+                Rotation = new Euler(MathF.PI / 2, 0, 0),
+                Scale = new Vector3(3f, 3f, 3f)
+            }
+        };
+
+        // Add the roller to the scene
+        Object3D roll = rollerMesh;
+        roll.SetDirty(true);
+        // viewer.GetActiveScene().AddChild(rollerMesh);
+        viewer.ActiveScene.AddChild(roll);
+        Task refreshTask = Task.CompletedTask;
+        var refresh = new ImportSettings();
+        viewer.ActiveScene.SetDirty(true);
+        refreshTask = viewer.ActiveScene.Request3DSceneRefresh(refresh);
+
+
+        // isRollerLoaded = true;
+
+        // await InvokeAsync(() => StateHasChanged());
     }
+
 }

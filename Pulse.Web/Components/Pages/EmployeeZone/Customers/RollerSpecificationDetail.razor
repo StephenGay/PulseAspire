@@ -278,9 +278,14 @@
         isLoading = false;
     }
 
-    private void Get3DModel()
+    private async Task Get3DModel()
     {
-        Navigation.NavigateTo($"/EmployeeZone/Customers/3DRoller");
+        // Store the current roller spec in global variables before navigating
+        if (cSpec != null)
+        {
+            await DTrf.SetgvSelectedRollSpec(cSpec);
+            Navigation.NavigateTo("/EmployeeZone/Customers/3DRoller");
+        }
     }
 
     private async Task GetSpecInfo()

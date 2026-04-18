@@ -214,7 +214,7 @@
                                         }
                                         else
                                         {
-                                            <FluentLabel Typo="Typography.Body" Weight="FontWeight.Bolder"><em>Targets Not Implemented For This Work Centre</em></FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Weight="MsFluent.FontWeight.Bolder"><em>Targets Not Implemented For This Work Centre</em></FluentLabel>
                                         }
                                     }
                                         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding: 12px;">
@@ -230,7 +230,7 @@
                                                 <FluentButton Class="myCancelBtn"
                                                         BackgroundColor="var(--pulse-cancel-btn-bg)"
                                                         Color="var(--pulse-cancel-btn-colour)"
-                                                        IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
+                                                        IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("var(--pulse-cancel-btn-colour)"))"
                                                         Style="height:40px"
                                                         onclick="CancelEditDetails">
                                                     Cancel
@@ -240,7 +240,7 @@
                                                         BackgroundColor="var(--pulse-ok-btn-bg)"
                                                         Color="var(--pulse-ok-btn-colour)"
                                                         @onclick="SaveWorkCentre"
-                                                        IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                        IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-ok-btn-colour)"))"
                                                         Style="height:40px;"
                                                         Disabled="@(string.IsNullOrEmpty(selectedWC?.WorkCentreName))">
                                                     Save
@@ -281,7 +281,7 @@
                                         <FluentButton Class="myCancelBtn"
                                                 BackgroundColor="var(--pulse-cancel-btn-bg)"
                                                 Color="var(--pulse-cancel-btn-colour)"
-                                                IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
+                                                IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("var(--pulse-cancel-btn-colour)"))"
                                                 Style="height:40px"
                                                 onclick="() => {editZone = new FactoryZone() ; isAddZone = false ;}">
                                             Cancel
@@ -290,7 +290,7 @@
                                                       BackgroundColor="var(--pulse-ok-btn-bg)"
                                                       Color="var(--pulse-ok-btn-colour)"
                                                       @onclick="SaveZone"
-                                                      IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                      IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-ok-btn-colour)"))"
                                                       Style="height:40px;"
                                                       Disabled="@(string.IsNullOrEmpty(editZone?.Name))">
                                             Save

@@ -243,7 +243,21 @@ public static class FlapperEndpoints
             // Add any other fields your BuildSystemMessagev2 needs
         };
 
-        var systemPrompt = new Flapper().BuildSystemMessagev3(systemMessageData);
+        Flapper flapper = new Flapper();
+        string? systemPrompt;
+        var uMsg = req.Message;
+
+        if (req.flapperDTO.SpokenResponses)
+        {
+            //systemPrompt = flapper.BuildSystemMessagev3(systemMessageData);
+            uMsg = $"[SPEECH] {uMsg}";
+        }
+        else
+        {
+            //systemPrompt = flapper.BuildSystemMessagev2(systemMessageData);
+            uMsg = $"[REPORT] {uMsg}";
+
+        }
 
         // 4. Build available tools
         var tools = flapperOllamaApi.BuildFlapperOllamaTools();
@@ -266,8 +280,8 @@ public static class FlapperEndpoints
             result = await flapperOllamaApi.OllamaProcessWithToolsAsync(
                 conversation,
                 req.flapperDTO,
-                req.Message,
-                systemPrompt,
+                uMsg,
+
                 tools, async chunk =>
                 {
                     if (chunk.StartsWith("[") && string.IsNullOrEmpty(curMsg))

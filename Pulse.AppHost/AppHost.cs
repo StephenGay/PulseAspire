@@ -34,7 +34,7 @@ var PulseAI = builder.AddOllama("PulseAI")
                     .WithGPUSupport()
                     .WithOpenWebUI();
 
-var flapperAI = PulseAI.AddModel("gpt-oss:latest");
+var flapperAI = PulseAI.AddModel("Flapper:latest");
 
 var TablesAI = builder.AddConnectionString("TablesAI");
 

@@ -602,6 +602,7 @@ batchdrone-edge --account HM8R-3F7K --url https://batchdrone.com
             {
                 // Load the JS file only for this page
                 await JS.InvokeVoidAsync("loadScriptOnce", "js/SiteSensorManagement.js");
+                System.Console.Error.WriteLine($"Script loaded");
                 _scriptLoaded = true;
             }
             catch (Exception ex)

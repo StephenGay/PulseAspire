@@ -87,6 +87,7 @@
                         Style="height:100%;border-radius:10px"
                         AllowVirtualization="true"
                         AllowColumnPicking="true"
+                        IsLoading = "@isLoading"
                         SelectionMode="DataGridSelectionMode.Single"
                         @bind-Value="@selectedCustomer"
                         FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
@@ -111,6 +112,7 @@
     // FluentDataGrid<Customer>? grid;
     RadzenDataGrid<Customer>? radGrid;
     string? fltFullClientID;
+    private bool isLoading = true;
 
 
     string? srchName;
@@ -168,6 +170,7 @@
                 _allCustomers = new();
             }
             qryCust = _allCustomers.AsQueryable();
+            isLoading = false;
             StateHasChanged();
         }
     }

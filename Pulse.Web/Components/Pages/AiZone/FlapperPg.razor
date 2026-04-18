@@ -64,7 +64,7 @@
                               BackgroundColor="white"
                               Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
                               OnClick="() => viewBox = !viewBox">
-                    @if (flapper != null)
+                    @if (flapper is not null)
                     {
                         @(flapper.emoji.ToMarkup("45px"))
                     }
@@ -79,6 +79,11 @@
                           IconStart="@(new Icons.Filled.Size24.History().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
                           Title="Toggle History"
                           OnClick="ToggleHistory"></FluentButton>
+            <FluentButton Appearance="Appearance.Accent" class=@(!SpokenResponse ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                          Color="var(--pulse-mode-btn-item-colour)"
+                          IconStart="@(new Icons.Filled.Size24.PersonVoice().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
+                          Title="Toggle Spoken Responses"
+                          OnClick="() => SpokenResponse = !SpokenResponse"></FluentButton>
                 <AuthorizeView Roles="Admin">
                     <Authorized>
                         <!-- Create Role Form (only shown to admins) -->
@@ -188,7 +193,7 @@
                             @if (!ViewSettings)
                             {
                                 <StackItem >
-                                    @if (IsAwaitingClarification && CurrentClarificationQuestion != null)
+                                    @if (IsAwaitingClarification && CurrentClarificationQuestion is not null)
                                     {
                                         <div style="padding: 16px; background-color: var(--neutral-layer-2); border-top: 2px solid var(--accent-fill-rest);">
                                             <p><strong>Flapper asks:</strong> @CurrentClarificationQuestion</p>
@@ -306,7 +311,7 @@
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                 <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
                                     <div style="color: black;">
-                                        @((MarkupString)AddMUcss(ParseToHtml(CurrentFlapperResponse)))
+                                        @CurrentFlapperResponse
                                     </div>
                                 </FluentLabel>
                             </FluentStack>
@@ -331,7 +336,7 @@
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
                                             <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                        <div style="color: black;">@((MarkupString)AddMUcss(ParseToHtml(message.Content))) </div>
+                                        <div style="color: black;">@message.Content</div>
                                     </FluentLabel>
                                 </FluentStack>
                             }
@@ -349,7 +354,7 @@
 @code {
     private Flapper? flapper;
     private FlapperDTO? flapperDTO;
-    private List<FlapperMessageDto> Messages { get; set; } = new();
+    private List<FlapperMessageDto> Messages { get; set; } = [];
     private string CurrentUserMessage { get; set; } = string.Empty;
     private bool IsAwaitingClarification { get; set; } = false;
     private bool isStreamingResponse = true;
@@ -357,7 +362,8 @@
     private string CurrentFlapperResponse { get; set; } = string.Empty;
     private Guid CurrentConversationId { get; set; } = Guid.NewGuid();
     private bool viewHistory = false;
-    private List<FlapperConversation> ConversationHistory = new();
+    private List<FlapperConversation> ConversationHistory = [];
+    private bool SpokenResponse = false;
 
     private string? flapperSystemPrompt = string.Empty;
     private string query = string.Empty;
@@ -396,8 +402,8 @@
     // Dynamic models for select
     // private List<string>? ollamaModels = new();
     // Multi-turn chat history
-    private List<OllamaMessage> chatHistory = new();
-    private List<OllamaMessage> currMsgs = new();
+    private List<OllamaMessage> chatHistory = [];
+    private List<OllamaMessage> currMsgs = [];
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
     private bool _isListening = false;
@@ -406,13 +412,11 @@
     // Saved Queries state
     private bool isLoadingSaved = false;
     private string? uName;
-    private HttpClient? ollamaClient;
+    // private HttpClient? ollamaClient;
     // FluentTextArea? txtQ;
 
 
     #region Page Lifecycle and Initialization
-
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -423,7 +427,6 @@
         MsgHubService.OnReceiveFlapperChunk +=
                 OnFlapperMessageChunkReceived;
         uName = await dtrf.GetgvUserFirstName();
-        ollamaClient = HttpClientFactory.CreateClient("OllamaClient");
     }
 
     #endregion
@@ -443,6 +446,7 @@
                 MaxRecursionDepth = flapper.MaxRecursionDepth,
                 MaxFailedAttempts = flapper.MaxFailedAttempts,
                 MaxToolRetries = flapper.MaxToolRetries,
+                SpokenResponses = SpokenResponse,
                 Options = flapper.Options
             };
         flapperThinking = "";
@@ -471,13 +475,13 @@
         {
             var fContent = await fResponse.Content.ReadAsStringAsync();
             var fResult = JsonSerializer.Deserialize<FlapperResponse>(fContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (fResult != null)
+            if (fResult is not null)
             {
                 if (fResult.RequiresClarification)
                 {
                     CurrentFlapperResponse = "<p><strong>Flapper Asked For The Following Clarification:</strong></p><p>" + fResult.ClarificationQuestion + "</p>";
                     var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
-                    if (lastMsg != null)
+                    if (lastMsg is not null)
                         lastMsg.Content = CurrentFlapperResponse;
                 }
                 // flapperThinking = "";
@@ -544,21 +548,6 @@
         {
             return;
         }
-        // Clarification detection
-        // if (msg.Content.StartsWith("[CLARIFICATION]"))
-        // {
-        //     IsAwaitingClarification = true;
-        //     CurrentClarificationQuestion = msg.Content.Replace("[CLARIFICATION]", "").Trim();
-        //     CurrentFlapperResponse = "";
-
-        //     // Clear the "..." placeholder
-        //     // var placeholder = Messages.LastOrDefault(m => m.Sender == "Flapper" && m.Content == "...");
-        //     // if (placeholder != null)
-        //     //     Messages.Remove(placeholder);
-
-        //     StateHasChanged();
-        //     return;
-        // }
 
         var msgContent = msg.Content;
 
@@ -582,7 +571,7 @@
         else
         {
             CurrentFlapperResponse += msgContent;
-            await SpeakIncremental(msgContent);
+            if(SpokenResponse) await SpeakIncremental(msgContent);
         }
 
 
@@ -612,7 +601,7 @@
         if (msg.Subject?.Contains("Clarification", StringComparison.OrdinalIgnoreCase) == true)
         {
             IsAwaitingClarification = true;
-            CurrentClarificationQuestion = msg.Content;
+            CurrentClarificationQuestion = msg.Content.Replace($"<thinking>{flapperThinking}</thinking>", "").Trim();
         }
         else
         {
@@ -685,6 +674,7 @@
 
         return text;
     }
+
     protected override void OnInitialized()
     {
         // Subscribe to state changes
@@ -770,7 +760,7 @@
             pdfLoading = true;
             if (!ViewAll)
             {
-                cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{ParseToHtml(flapperAnswer)}";
+                cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{flapperAnswer}";
                 if (stream) { cnt += $"<hr><p><i>{flapperThinking}</i></p><hr>"; }
             }
             else
@@ -812,8 +802,8 @@
         //     pdfLoading = true;
         //     if (!ViewAll)
         //     {
-        //         cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{ParseToHtml(flapperAnswer)}";
-        //         if (stream) { cnt += $"<hr>{ParseToHtml(flapperThinking)}< hr >"; }
+        //         cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{flapperAnswer}";
+        //         if (stream) { cnt += $"<hr><p><i>{flapperThinking}</i></p><hr>"; }
         //     }
         //     else
         //     {
@@ -861,7 +851,7 @@
     private async Task ExportToPulseMsg()
     {
 
-        if (Messages == null)
+        if (Messages is null)
         {
             return;
         }
@@ -941,15 +931,13 @@
                 cnt += @message.Content;
             }
 
-            var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".pdf";
+            var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".html";
 
-            var Html = ParseToHtml(cnt);
-            // Call JavaScript function to download the file
-            await JSRuntime.InvokeVoidAsync("downloadHTMLFile", $"{fileName}.html", Html.Replace("h5","h3"));
+            var Html = cnt;
+            await GlobalFunctions.ExportHtmlFile(Html, fileName);
         }
         catch (Exception ex)
         {
-            await SayIt("I'm sorry, there was a problem exporting the conversation.", "Flapper");
             return;
         }
         finally
@@ -958,67 +946,7 @@
         }
     }
 
-    private string ParseToHtml(string markdownContent)
-    {
-        if(string.IsNullOrEmpty(markdownContent))
-        {
-            return string.Empty;
-        }
-        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build(); // Customize extensions (e.g., syntax highlighting)
-        var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
-
-        html = System.Text.RegularExpressions.Regex.Replace(
-            html,
-            @"<a\s+href=""([^""]*)""",
-            @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
-        );
-
-        return html;
-    }
-
-    private string AddMUcss(string html)
-    {
-        return html
-            .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\">")
-            .Replace("<th>", "<th style=\"background-color: var(--pulse-light-colour) ; color: var(--pulse-dark-colour); border: 1px solid var(--pulse-dark-colour);\">")
-            .Replace("</table>", "</table><br />")
-            .Replace("<hr />", "")
-            .Replace("<h3", "<hr /><h3")
-            .Replace("</table><br /><hr />", "</table><hr />")
-            .Replace("h2", "h5")
-         .Replace("h3", "h5");
-    }
-
-    private string AddExportMUcss(string html)
-    {
-        var css = @"
-            <style>
-                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
-                h1, h2, h3 { color: hsl(0,100%,20%); }
-                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-                th { background-color: hsl(0,100%,20%); color: white; padding: 8px; text-align: left; }
-                td { border: 1px solid #ddd; padding: 8px; }
-                tr:nth-child(even) { background-color: #f9f9f9; }
-                tr:hover { background-color: #f1f1f1; }
-            </style>";
-
-        var htmlHeader = "<div style=\"display:flex;width: 100% ; padding: 8px; border-bottom: 1px solid hsl(0,100%,20%); justify-content: start; \">";
-        htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Flapper.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Conversation With Flapper</h3></div>";
-
-
-        return css + htmlHeader + html;
-        // return html
-        //     .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\" style=\"border-collapse:collapse\">")
-        //     .Replace("<th>", "<th style=\"background-color: grey ; color: white; border: 1px solid grey;\">")
-        //     .Replace("<td>", "<td style=\"border: 1px solid grey; padding:5px;\">")
-        //      // .Replace("<hr />", "")
-        //      .Replace("h4", "h2")
-        //      .Replace("h5", "h2")
-        //      .Replace("h3", "h2");
-    }
-
     #endregion
-
 
     private async Task ClearChatHistory()
     {
@@ -1035,7 +963,6 @@
     {
         txtQ = userQry;
         fromRetryBtn = true;
-        await SubmitQuery();
     }
 
     private async Task CancelQuery()
@@ -1081,884 +1008,4 @@
             await InvokeAsync(StateHasChanged);
         }
     }
-
-
-
-
-
-
-
-    private async Task SayIt(string text,string V = "User")
-    {
-        await GlobalAI.AISpeak(text, "Flapper");
-    }
-
-
-    private async Task SubmitQuery()
-    {
-        if (string.IsNullOrWhiteSpace(txtQ))
-        {
-            PulseToastService.ShowToast("Warning", "You have not entered anything for me to respond to?", false, true, "Flapper");
-            await GlobalAI.AISpeak("You have not entered anything for me to respond to?", "Flapper");
-            return;
-        }
-
-        // Set Variables
-        userQry = query = txtQ;
-        flapperAnswer = string.Empty;
-        flapperThinking = string.Empty;
-        isLoading = true;
-        retryBtn = false;
-
-        // reload Flapper config in case settings were changed
-        flapper = await dtrf.GetgvFlapper();
-
-        // check if this is a retry, we don't want to add the query again to the history if so as it was already added when the query was first submitted
-
-
-        cts = new CancellationTokenSource();
-
-        if (stream)
-        {
-            await FlapperChatStream(cts.Token);
-        }
-        else
-        {
-            await FlapperChatNonStream(cts.Token);
-        }
-        query = txtQ = string.Empty;
-        txtQ = string.Empty;
-        isLoading = false;
-        StateHasChanged();
-        return;
-    }
-
-    #region Flapper Chat Stream
-
-    private async Task FlapperChatStream(CancellationToken cToken = default)
-    {
-        Company c = await dtrf.GetgvCompany();
-        List<OllamaMessage> newMsgs = new List<OllamaMessage>();
-
-        if (!fromRetryBtn)
-        {
-            chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
-        }
-        else
-        {
-            var lastMsg = $@"""This is a repeat of the last query as there was either an error or the user was not satisfied with the response. 
-                        Query: {query}""";
-            chatHistory.Add(new OllamaMessage { Role = "user", Content = lastMsg });
-        }
-        fromRetryBtn = false;
-
-        try
-        {
-            var systemMessageData = new SystemMessageData
-            {
-                DbStructure = AiPrompts.GetDatabaseStructure(),
-                DbSchema = await pAI.GetDetailedSchemaAsync(cToken),
-                DbExamples = await pAI.GetAiExamplesAsync(cToken),
-                CompanyName = c.CompanyName,
-                CompanyInformation = AiPrompts.GetTempCoInfo(),
-                SqlGuidelines = AiPrompts.GetSqlGuidelines(),
-                UserName = uName,
-                Tools = AiPrompts.GetToolsGuidelines(AdminMode),
-                UserQuery = txtQ
-            };
-
-            flapperSystemPrompt = flapper?.BuildSystemMessagev2(systemMessageData);
-
-            // ✅ Create QueryContext with original user query
-            var context = new QueryContext 
-            { 
-                OriginalUserQuery = userQry  // Store the original query!
-            };
-
-            await foreach (var chunk in FlapperStream(chatHistory, context, cToken))
-            {
-                if (string.IsNullOrEmpty(chunk)) continue;
-                if(chunk.StartsWith("Error:"))
-                {
-                    flapperAnswer = chunk.Substring("Error:".Length);
-                    PulseToastService.ShowToast("Error", flapperAnswer, true, true, "Flapper");
-                    await GlobalAI.AISpeak(flapperAnswer, "Flapper");
-                    return;
-                }
-
-                // Check for thinking marker
-                if (chunk.StartsWith("__THINKING__"))
-                {
-                    var thinking = chunk.Substring("__THINKING__".Length);
-                    if (!string.IsNullOrEmpty(thinking))
-                    {
-                        flapperThinking += thinking;
-                        StateHasChanged();
-                        await Task.Delay(5);
-                    }
-                }
-                else if (chunk.StartsWith("__FINAL_ANSWER__"))
-                {
-                    var answer = chunk.Substring("__FINAL_ANSWER__".Length);
-                    flapperAnswer += answer;
-                    StateHasChanged();
-                    await Task.Delay(5);
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            PulseToastService.ShowToast("Warning", "Response cancelled.", false, true, "Flapper");
-            await GlobalAI.AISpeak("Response cancelled.", "Flapper");
-        }
-        catch (Exception ex)
-        {
-            PulseToastService.ShowToast("Error", $"There was an error processing your request.<br />{ex.Message}", true, true, "Flapper");
-            await GlobalAI.AISpeak("There was an error processing your request. Please try again.", "Flapper");
-            retryBtn = true;
-        }
-    }
-
-    // Update FlapperStream signature to accept QueryContext
-    private async IAsyncEnumerable<string> FlapperStream(
-        List<OllamaMessage> newMessages,
-        QueryContext context,  // ← Add QueryContext parameter
-        [EnumeratorCancellation] CancellationToken ct = default,
-        int qryLoop = 0,
-        bool inThinking = false,
-        int failedAttempts = 0)
-    {
-        if (!AdminMode && qryLoop >= flapper.MaxRecursionDepth) // MAX_RECURSION_DEPTH)
-        {
-            yield return $"Error: I have reached the maximum recursion limit.<br />Try breaking the query into smaller steps.";
-            yield break;
-        }
-
-        if (!AdminMode && failedAttempts >= flapper.MaxFailedAttempts) // MAX_FAILED_ATTEMPTS)
-        {
-            yield return $"Error: The failed attempts limit has been reached.<br />Please rephrase or try a different query.";
-            yield break;
-        }
-
-        var tools = BuildFlapperTools();
-        currMsgs = new List<OllamaMessage>();
-
-        currMsgs.Add(new OllamaMessage { Role = "system", Content = flapperSystemPrompt });
-        currMsgs.AddRange(newMessages);
-
-        var ollamaRequest = new
-        {
-            model = flapper!.Model,
-            messages = currMsgs.ToArray(),
-            tools = tools.ToArray(),
-            think = flapper.Think,
-            keep_alive = "30m",
-            stream = true,
-            options = new
-            {
-                temperature = flapper.Options.Temperature,
-                num_ctx = flapper.Options.NumCtx,
-                repeat_penalty = flapper.Options.RepeatPenalty,
-                frequency_penalty = flapper.Options.FrequencyPenalty,
-                presence_penalty = flapper.Options.PresencePenalty
-            }
-        };
-
-        var accumulatedMessage = new OllamaMessage { Role = "assistant" };
-        bool hasYieldedContent = false;
-        string? pendingError = null;
-
-        // Get the stream - handle initialization errors
-        HttpResponseMessage? response = null;
-        try
-        {
-            response = await ollamaClient!.PostAsJsonAsync("/api/chat", ollamaRequest, ct);
-            response.EnsureSuccessStatusCode();
-        }
-        catch (OperationCanceledException)
-        {
-            pendingError = "Request cancelled.";
-        }
-        catch (Exception ex)
-        {
-            pendingError = $"Error connecting to Ollama: {ex.Message}";
-        }
-
-        // Yield initialization error outside catch
-        if (pendingError != null)
-        {
-            yield return pendingError;
-            yield break;
-        }
-
-        Stream? contentStream = null;
-        try
-        {
-            contentStream = await response.Content.ReadAsStreamAsync(ct);
-        }
-        catch (Exception ex)
-        {
-            pendingError = $"Error reading response: {ex.Message}";
-        }
-
-        if (pendingError != null)
-        {
-            yield return pendingError;
-            yield break;
-        }
-
-        using var reader = new StreamReader(contentStream!);
-
-        // Process stream line by line
-        while (true)
-        {
-            string? line = null;
-            bool readerDone = false;
-
-            try
-            {
-                line = await reader.ReadLineAsync(ct);
-                readerDone = line == null;
-            }
-            catch (OperationCanceledException)
-            {
-                pendingError = "Request cancelled.";
-                break;
-            }
-            catch (Exception ex)
-            {
-                pendingError = $"Stream error: {ex.Message}";
-                break;
-            }
-
-            if (readerDone) break;
-            if (string.IsNullOrWhiteSpace(line)) continue;
-
-            OllamaChatChunk? chunk = null;
-            try
-            {
-                chunk = JsonSerializer.Deserialize<OllamaChatChunk>(line, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            }
-            catch (JsonException ex)
-            {
-                pendingError = $"Failed to parse response: {ex.Message}";
-                break;
-            }
-
-            if (chunk == null) continue;
-
-            // Accumulate tool calls first
-            if (chunk.Message?.ToolCalls != null)
-            {
-                accumulatedMessage.ToolCalls ??= new List<OllamaToolCall>();
-                accumulatedMessage.ToolCalls.AddRange(chunk.Message.ToolCalls);
-            }
-
-            // Handle thinking content
-            if (!string.IsNullOrEmpty(chunk.Message?.Thinking))
-            {
-                accumulatedMessage.Thinking = (accumulatedMessage.Thinking ?? string.Empty) + chunk.Message.Thinking;
-                if (!inThinking)
-                {
-                    inThinking = true;
-                    // flapperThinking += $"Thinking:\n";
-                    yield return "__THINKING__Thinking:\n";
-                }
-                // flapperThinking += chunk.Message.Thinking;
-                hasYieldedContent = true;
-                yield return $"__THINKING__{chunk.Message.Thinking}";
-                // StateHasChanged();
-                // await Task.Delay(5, ct);
-
-            }
-
-
-
-            // Handle answer content - ONLY if no tool calls are present
-            if (!string.IsNullOrEmpty(chunk.Message?.Content))
-            {
-                accumulatedMessage.Content = (accumulatedMessage.Content ?? string.Empty) + chunk.Message.Content;
-
-                if (accumulatedMessage.ToolCalls == null || accumulatedMessage.ToolCalls.Count == 0)
-                {
-                    if (inThinking)
-                    {
-                        inThinking = false;
-                        // flapperAnswer += "Answer:\n";
-                        yield return "__FINAL_ANSWER__";
-                    }
-                    hasYieldedContent = true;
-                    // flapperAnswer += chunk.Message.Content;
-                    // StateHasChanged();
-                    // await Task.Delay(5, ct);
-                    yield return $"__FINAL_ANSWER__{chunk.Message.Content}";
-                }
-            }
-
-            // Only break when Done=true, regardless of content type
-            // Ollama sends thinking first, then content, both with Done=false except the last chunk
-            if (chunk.Done)
-            {
-                // ✅ ALWAYS add the assistant message to history
-                accumulatedMessage.Role = "assistant";
-                currMsgs.Add(accumulatedMessage);
-                // chatHistory.Add(accumulatedMessage);
-
-                if (accumulatedMessage.ToolCalls is { Count: > 0 })
-                {
-                    if (!hasYieldedContent)
-                    {
-                        // flapperThinking += "Analyzing query and preparing tools...\n";
-                        yield return "__THINKING__Analyzing query and preparing tools...\n";
-                    }
-                    else
-                    {
-                        // flapperThinking += "\nTool calls detected. Processing...\n";
-                        yield return "__THINKING__\nTool calls detected. Processing...\n";
-                    }
-                    // StateHasChanged();
-                    // await Task.Delay(5, ct);
-
-                    // Process tool calls (they'll add results to newMessages)
-                    var toolError = await ProcessToolCallsAsync(accumulatedMessage.ToolCalls,context, ct);
-                    if (toolError != null)
-                    {
-                        yield return $"Error: {toolError}";
-                        yield break;
-                    }
-
-                    // Recursive call with updated history (WITHOUT system message)
-                    await foreach (var recursiveChunk in FlapperStream(
-                        currMsgs,
-                        context,  // ← Pass context to recursive call
-                        ct,
-                        qryLoop + 1,
-                        inThinking,
-                        failedAttempts))
-                    {
-                        yield return recursiveChunk;
-                    }
-                    // Recursive call with updated history (WITHOUT system message)
-                    // FlapperStream(currMsgs, context, ct, qryLoop + 1, inThinking, failedAttempts);
-                }
-                break;
-            }
-        }
-
-        // Yield any pending error outside the loop
-        if (pendingError != null)
-        {
-            yield return pendingError;
-            yield break;
-        }
-
-        if (!hasYieldedContent && accumulatedMessage.ToolCalls is not { Count: > 0 })
-        {
-            yield return "Error: No response from Ollama.";
-        }
-        accumulatedMessage.Role = "assistant";
-        chatHistory.Add(accumulatedMessage);
-        // ✅ DON'T yield final accumulated answer here!
-        // We already yielded individual chunks, so accumulating and yielding the whole thing causes duplication
-    }
-    #endregion
-
-    #region Flapper Chat Non-Stream
-
-    private async Task FlapperChatNonStream(CancellationToken cToken = default)
-    {
-
-        try
-        {
-            if (!fromRetryBtn)
-            {
-                chatHistory.Add(new OllamaMessage { Role = "user", Content = query });
-            }
-            fromRetryBtn = false;
-            flapperAnswer = await pAI.ChatWithOllamaAsync(chatHistory, flapper.Model, true, query, cToken);
-
-            if (string.IsNullOrEmpty(flapperAnswer))
-            {
-                PulseToastService.ShowToast("Error", "I didn't receive any response.<br />Please try again.", true, true, "Flapper");
-                await GlobalAI.AISpeak("I didn't receive any response. Please try again.", "Flapper");
-                retryBtn = true;
-            }
-            else if (flapperAnswer.StartsWith("Error:"))
-            {
-                PulseToastService.ShowToast("Error", "I'm sorry, there was a problem responding to your question.<br />Please try again.", true, true, "Flapper");
-                await GlobalAI.AISpeak("I'm sorry, there was a problem responding to your question. Please try again.", "Flapper");
-                retryBtn = true;
-            }
-            else
-            {
-                // Add assistant response to history
-                chatHistory.Add(new OllamaMessage { Role = "assistant", Content = flapperAnswer });
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            PulseToastService.ShowToast("Warning", "Response cancelled.", false, true, "Flapper");
-            await GlobalAI.AISpeak("Response cancelled.", "Flapper");
-        }
-        catch (Exception ex)
-        {
-            PulseToastService.ShowToast("Error", $"There was an error processing your request.<br />{ex.Message}", true, true, "Flapper");
-            await GlobalAI.AISpeak("There was an error processing your request. Please try again.", "Flapper");
-            retryBtn = true;
-        }
-    }
-
-    #endregion 
-
-
-
-    private string FormatMessageToHtml(string content) //, string role, string toolName)
-    {
-        if (string.IsNullOrEmpty(content)) return "";
-
-        // Basic Markdown-like to HTML (customize for your needs)
-        var html = content
-            .Replace("\n", "<br>")
-            .Replace("**", "<strong>")
-            .Replace("`", "<code>")
-            .Replace("```sql", "<pre><code>")
-            .Replace("```", "</code></pre>")
-            .Replace("* ", "<li>"); // Simple list support
-
-        // Style based on role or tool
-        // string style = role switch
-        // {
-        //     "user" => "color: navy;",
-        //     "assistant" => "color: darkgreen;",
-        //     "tool" => $"color: purple; font-style: italic;{(toolName == "web_search" ? " background-color: #f0f8ff;" : "")}",
-        //     _ => ""
-        // };
-
-        // return $"<div style='{style}'>{html}</div>";
-        return html;
-    }
-
-
-
-    /// <summary>
-    /// Prepares context for streaming chat - handles exceptions safely.
-    /// </summary>
-    private async Task<(string? Schema, string? Examples, string? Error)> PrepareStreamContextAsync(CancellationToken ct)
-    {
-        try
-        {
-            var schemaText = await pAI.GetDetailedSchemaAsync(ct);
-            if (string.IsNullOrEmpty(schemaText))
-            {
-                return (null, null, "Error: Unable to retrieve database schema information.");
-            }
-
-            var examples = await pAI.GetAiExamplesAsync(ct);
-            return (schemaText, examples, null);
-        }
-        catch (OperationCanceledException)
-        {
-            return (null, null, "Request cancelled.");
-        }
-        catch (Exception ex)
-        {
-            return (null, null, $"Error during setup: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Streams chat chunks with proper error handling.
-    /// </summary>
-    private static string NormaliseToolNamev3(string? toolName)
-    {
-        if (string.IsNullOrEmpty(toolName))
-            return "unknown";
-
-        var normalized = toolName.ToLowerInvariant().Trim();
-        return ToolNames.All.FirstOrDefault(t => normalized.Contains(t)) ?? normalized;
-    }
-
-    /// <summary>
-    /// Processes tool calls with error handling.
-    /// </summary>
-    private async Task<string?> ProcessToolCallsAsync(
-    List<OllamaToolCall> toolCalls,
-    QueryContext context,  // ← Add QueryContext parameter
-    CancellationToken ct)
-    {
-        try
-        {
-            foreach (var toolCall in toolCalls)
-            {
-                string toolName = NormaliseToolNamev3(toolCall.Function?.Name);
-
-                if (!ToolNames.All.Contains(toolName))
-                {
-                    currMsgs.Add(new OllamaMessage
-                    {
-                        Role = "tool",
-                        Content = $"Invalid tool '{toolName}'. Available: {string.Join(", ", ToolNames.All)}",
-                        ToolName = toolName
-                    });
-                    continue;
-                }
-
-                if (!context.ShouldRetryTool(toolName, flapper.MaxToolRetries))
-                {
-                    currMsgs.Add(new OllamaMessage
-                    {
-                        Role = "tool",
-                        Content = $"Tool '{toolName}' exceeded maximum retry attempts.",
-                        ToolName = toolName
-                    });
-                    continue;
-                }
-
-                flapperThinking += $"\n🔧 Executing: {toolName}...\n";
-                StateHasChanged();
-                await Task.Delay(5, ct);
-
-                // ✅ Pass QueryContext to ExecuteToolAsync
-                var toolResult = await ExecuteToolAsyncv3(
-                    toolName, 
-                    toolCall.Function?.Arguments ?? default, 
-                    context,  // ← Pass context!
-                    ct);
-
-                currMsgs.Add(new OllamaMessage
-                {
-                    Role = "tool",
-                    Content = toolResult,
-                    ToolName = toolName
-                });
-
-                flapperThinking += $"✓ {toolName} completed.\n";
-                StateHasChanged();
-                await Task.Delay(5, ct);
-            }
-
-            return null;
-        }
-        catch (OperationCanceledException)
-        {
-            return "Request cancelled.";
-        }
-        catch (Exception ex)
-        {
-            return $"{ex.Message}";
-        }
-    }
-
-    private async Task<string> ExecuteToolAsyncv3(string toolName, JsonElement args, QueryContext context, CancellationToken ct)
-    {
-        try
-        {
-            return toolName switch
-            {
-                ToolNames.AskTables => await AskTablesAsync(args, context, ct),
-                ToolNames.WebSearch => await WebSearchAsync(args, context, ct),
-                ToolNames.WebFetch => await WebFetchAsync(args, context, ct),
-                ToolNames.ExecuteActionSql => await ExecuteActionSqlToolAsync(args, context, ct),
-                _ => $"Unknown tool: {toolName}"
-            };
-        }
-        catch (Exception ex)
-        {
-            // _logger.LogError(ex, "Tool {Tool} failed", toolName);
-            return $"Tool error: {ex.Message}";
-        }
-    }
-
-    private async Task<string> AskTablesAsync(JsonElement args, QueryContext context, CancellationToken ct)
-    {
-        if (!args.TryGetProperty("query", out var queryProp))
-            return "Error: Missing 'query' argument";
-
-        var query = queryProp.GetString()?.Trim();
-        if (string.IsNullOrEmpty(query))
-            return "Error: Query is empty";
-
-
-        // _logger.LogInformation("Asking Tables: {Query}", query[..Math.Min(100, query.Length)]);
-
-        try
-        {
-            Tables tbl = await dtrf.GetgvTables();
-
-            var req = new PulseAiRequest
-                {
-                    UserId = "Flapper",
-                    UserEmail = "flapper@pulseai.ste",
-                    ModelName = tbl.Model,
-                    AiName = AiName.Tables,
-                    UserRequest = new OllamaChatMessage
-                    {
-                        Role = "user",
-                        Content = query
-                    }
-                };
-
-            var response = await pulseApiClient.PostAsync<PulseAiRequest, ApiResponse<List<Dictionary<string, object>>>>(ApiEndpoints.PulseAi.EndpointsTables.SendRequest, req, ct);
-
-
-            // Check for HTTP errors
-            if (!response.Success)
-            {
-                var errorContent = response.Message;
-                // _logger.LogError("SQL execution returned {StatusCode}: {Error}", response.StatusCode, errorContent[..Math.Min(200, errorContent.Length)]);
-                return $"❌ __SQL_ERROR__ ❌\n\n" +
-                   $"**User asked**: {context.OriginalUserQuery}\n\n" +
-                   $"**Error**: {errorContent}\n\n" +
-                   $"Rephrase your query and try again, OR use web_search if the query cannot be fixed.";
-            }
-
-            JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
-            var result = response.Data;
-            
-
-            // ✅ Check if result is empty (no data found)
-            if (result == null || !result.Any())
-            {
-                // _logger.LogWarning("SQL query returned no results");
-                return $"⚠️ __SQL_NO_RESULTS__ ⚠️\n\n" +
-                   $"**User asked**: {context.OriginalUserQuery}\n\n" +
-                   $"**SQL query executed successfully but returned NO DATA from the database**\n\n" +
-                   $"This means the requested data does not exist in our database.\n\n" +
-                   $"You MUST now use web_search to find this information externally.";
-            }
-
-            //return result;
-            // ✅ Include user query context in successful SQL results
-            return $"**User asked**: {context.OriginalUserQuery}\n\n" +
-                   $"**Data from database**:\n{JsonSerializer.Serialize(result, _jsonOptions)}";
-        }
-        catch (HttpRequestException ex)
-        {
-            // _logger.LogError(ex, "SQL execution failed with HTTP error");
-            return $"__SQL_ERROR__\n\n**User asked**: {context.OriginalUserQuery}\n\n" +
-                   $"Database connection failed: {ex.Message}";
-        }
-        catch (Exception ex)
-        {
-            // _logger.LogError(ex, "SQL execution failed");
-            return $"__SQL_ERROR__\n\n**User asked**: {context.OriginalUserQuery}\n\n" +
-                   $"SQL error: {ex.Message}";
-        }
-    }
-
-    /// <summary>
-    /// Executes an action SQL query (INSERT, UPDATE, DELETE) with contextual information.
-    /// </summary>
-    private async Task<string> ExecuteActionSqlToolAsync(JsonElement args, QueryContext context, CancellationToken ct)
-    {
-        string sql = args.TryGetProperty("sql", out var sqlProp) ? sqlProp.GetString() ?? "" : "";
-        if (string.IsNullOrEmpty(sql))
-        {
-            sql = args.TryGetProperty("query", out var sqlProp2) ? sqlProp2.GetString() ?? "" : "";
-            if (string.IsNullOrEmpty(sql))
-            {
-                sql = args.TryGetProperty("arguments", out var sqlProp3) ? sqlProp3.GetString() ?? "" : "";
-            }
-        }
-
-        if (string.IsNullOrEmpty(sql))
-        {
-            return "Error: Missing 'sql' argument.";
-        }
-
-        try
-        {
-            // _logger.LogInformation("Executing SQL Action tool: {Sql}", sql);
-            // var response = await pulseApiClient.GetAsync($"/AI/ExecuteAiUpdateInsertQry:{sql}", ct);
-            // response.EnsureSuccessStatusCode();
-            var json = 0; // await response.Content.ReadAsStringAsync(ct);
-
-            // ✅ Include context in action SQL results
-            return $"**User asked**: {context.OriginalUserQuery}\n\n" +
-                   $"**Action SQL Executed**:\n```sql\n{sql}\n```\n\n" +
-                   $"**Result**: {json} rows affected";
-        }
-        catch (Exception ex)
-        {
-            // _logger.LogError(ex, "SQL tool execution error.");
-            return $"Error executing SQL for query '{context.OriginalUserQuery}': {ex.Message}";
-        }
-    }
-
-    /// <summary>
-    /// Performs web search with contextual information.
-    /// </summary>
-    private async Task<string> WebSearchAsync(JsonElement args, QueryContext context, CancellationToken ct)
-    {
-        if (!args.TryGetProperty("query", out var queryProp))
-            return "Error: Missing 'query' argument";
-
-        var query = queryProp.GetString();
-        if (string.IsNullOrEmpty(query))
-            return "Error: Query is empty";
-
-        // var searchUrl = _configuration["OllamaApi:WebSearchEndpoint"]
-        //     ?? "https://ollama.com/api/web_search";
-        var searchUrl = "https://ollama.com/api/web_search";
-
-        var response = await _ollamaService.PostAsync<OllamaWebSearchResponse>(
-            searchUrl, new { query }, ct);
-
-        if (response?.Results is not { Count: > 0 })
-            return $"No search results found for '{query}' related to user question: {context.OriginalUserQuery}";
-
-        var results = string.Join(" | ", response.Results.Select(r =>
-            $"[{r.Title}]({r.Url}): {r.Snippet}"));
-
-        // ✅ Include original user query in the tool result
-        var contextualResult = $"**User asked**: {context.OriginalUserQuery}\n\n" +
-                              $"**Web search results for '{query}'**:\n{results}";
-
-        return contextualResult.Length > 8000 ? contextualResult[..8000] + "..." : contextualResult;
-    }
-
-    /// <summary>
-    /// Fetches web page content with contextual information.
-    /// </summary>
-    private async Task<string> WebFetchAsync(JsonElement args, QueryContext context, CancellationToken ct)
-    {
-        if (!args.TryGetProperty("url", out var urlProp))
-            return "Error: Missing 'url' argument";
-
-        var url = urlProp.GetString();
-        if (string.IsNullOrEmpty(url))
-            return "Error: URL is empty";
-
-        // var fetchUrl = _configuration["OllamaApi:WebFetchEndpoint"]
-        //     ?? "https://ollama.com/api/web_fetch";
-        var fetchUrl = "https://ollama.com/api/web_fetch";
-
-        var response = await _ollamaService.PostAsync<OllamaWebFetchResponse>(
-            fetchUrl, new { url }, ct);
-
-        var content = response?.Content ?? "";
-
-        // ✅ Include original user query and URL context in the tool result
-        var contextualResult = $"**Original user question**: {context.OriginalUserQuery}\n\n" +
-                              $"**Content fetched from {url}**:\n\n{content}";
-
-        return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
-    }
-
-
-    /// <summary>
-    /// Builds the tools list for Flapper.
-    /// </summary>
-    private List<object> BuildFlapperTools()
-    {
-        var tools = new List<object>();
-        
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.WebSearch,
-                description = "Search the web for current information.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { query = new { type = "string", description = "Search query" } },
-                    required = new[] { "query" }
-                }
-            }
-        });
-
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.WebFetch,
-                description = "Fetch full content from a URL.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { url = new { type = "string", description = "URL to fetch" } },
-                    required = new[] { "url" }
-                }
-            }
-        });
-
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.AskTables,
-                description = "Ask Tables for information from the database.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { query = new { type = "string", description = "NL query" } },
-                    required = new[] { "query" }
-                }
-            }
-        });
-
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.AskUser,
-                description = "Ask the user a Yes/No question.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { question = new { type = "string", description = "NL question" } },
-                    required = new[] { "question" }
-                }
-            }
-        });
-
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.ExecuteSql,
-                description = "Execute a SELECT SQL query against the dbPulse database and return results.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { sql = new { type = "string", description = "The SQL query to execute" } },
-                    required = new[] { "sql" }
-                }
-            }
-        });
-
-        if (AdminMode)
-        {
-            tools.Add(new
-            {
-                type = "function",
-                function = new
-                {
-                    name = ToolNames.ExecuteActionSql,
-                    description = "Execute an UPDATE, INSERT or DELETE SQL query against the dbPulse database and return results.",
-                    parameters = new
-                    {
-                        type = "object",
-                        properties = new { sql = new { type = "string", description = "The SQL query to execute" } },
-                        required = new[] { "sql" }
-                    }
-                }
-            });
-        }
-
-        return tools;
-    }
-
-
-
-        }
+}

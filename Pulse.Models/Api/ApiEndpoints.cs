@@ -55,6 +55,7 @@ namespace Pulse.Models.Api
             {
                 private const string RolesPrefix = $"{Prefix}/Roles";
                 public const string GetAll = $"{RolesPrefix}/GetAll";
+                public const string Create = $"{RolesPrefix}/Add";
 
             }
         }
