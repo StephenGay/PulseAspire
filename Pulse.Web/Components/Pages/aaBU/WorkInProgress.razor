@@ -1,4 +1,4 @@
-﻿@page "/EmployeeZone/Production/WorkInProgress"
+﻿@page "/EmployeeZone/Production/WorkInProgressBU"
 @using Pulse.Models.Misc
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
@@ -144,40 +144,7 @@
         }
         <!-- Data Grid -->
         <div class="ccontent">
-
-            <RadzenDataGrid @ref="radWIPGrid"
-                            Data="@wipItems"
-                            FilterMode="FilterMode.CheckBoxList"
-                            AllowFiltering="true"
-                            AllowPaging="false"
-                            AllowSorting="true"
-                            AllowColumnResize="true"
-                            Style="height:100%;border-radius:10px"
-                            AllowVirtualization="true"
-                            AllowColumnPicking="true"
-                            IsLoading="@isLoading"
-                            SelectionMode="DataGridSelectionMode.Single"
-                            @bind-Value="@selectedWO"
-                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                            LogicalFilterOperator="LogicalFilterOperator.And"
-                            ColumnWidth="200px">
-
-                <Columns>
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="WorksOrderNo" Title="WO No" Width="70px" TextAlign="TextAlign.Center" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="WorkTypeName" Title="Work Type" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="ClientName" Title="Client Name" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Description" Title="Address 1" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address2" Title="Address 2" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address3" Title="Address 3" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address4" Title="Address 4" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address5" Title="Address 5" />
-                </Columns>
-            </RadzenDataGrid>
-
-
-
-
-            @* <FluentDataGrid Items="@filteredItemsQueryable" 
+            <FluentDataGrid Items="@filteredItemsQueryable" 
                 TGridItem="WorkInProgressDto" 
                 GenerateHeader="GenerateHeaderOption.Sticky" 
                 SelectionMode="SelectionMode.Single"
@@ -198,22 +165,18 @@
                     <FluentIcon Value="@(new Icons.Filled.Size32.CalendarEdit().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Accent))" OnClick="() => AddToPlan(context)" />
                 </TemplateColumn>
             </FluentDataGrid>
-            <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%" /> *@
+            <FluentPaginator State="@pagination" Style="background-color: #365b66 ; padding:10px ; color: white; width:100%" />
         </div>
     }
 </div>
 
 
 @code {
-    private RadzenDataGrid<WorkInProgressDto>? radWIPGrid;
-    private Division? Division;
+    public Division? Division;
     private List<WorkInProgressDto>? wipItems;
-    private bool isLoading = true;
-    private IList<WorkInProgressDto>? selectedWO;
-
     private List<WorkInProgressDto>? filteredItems;
     private IQueryable<WorkInProgressDto>? filteredItemsQueryable;
-    
+    private WorkInProgressDto? selectedWO;
     private PaginationState pagination = new PaginationState { ItemsPerPage = 23 };
     private IDialogReference? _dialog;
 
@@ -249,7 +212,6 @@
             await dataTrf.SetgvSelectedDivisionWIP(wipItems);
             filteredItems = wipItems?.ToList() ?? new();
             filteredItemsQueryable = filteredItems.AsQueryable();
-            isLoading = false;
             StateHasChanged();
         }
     }
@@ -295,7 +257,7 @@
     {
         try
         {
-            // selectedWO = args.Item;
+            selectedWO = args.Item;
             StateHasChanged();
         }
         catch (Exception ex)

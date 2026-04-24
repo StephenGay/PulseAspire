@@ -361,10 +361,10 @@ window.RollerViewer3D = {
             console.log(`   Cover  Z range: ${coverMin.z.toFixed(2)} to ${coverMax.z.toFixed(2)} (length: ${(coverMax.z - coverMin.z).toFixed(2)})`);
 
             // Enable slow auto-rotate and roller spin
-            if (this.controls) {
-                this.controls.autoRotate = true;
-                this.controls.autoRotateSpeed = 1.0;
-            }
+            //if (this.controls) {
+            //    this.controls.autoRotate = true;
+            //    this.controls.autoRotateSpeed = 1.0;
+            //}
             this.animateRoller = true;
 
             console.log(`✅ Scale and positioning applied`);
