@@ -287,22 +287,24 @@ public static class FlapperEndpoints
                     if (chunk.StartsWith("[") && string.IsNullOrEmpty(curMsg))
                     {
                         isClarification = true;
-                        turn = MaxTurns;
+                        //turn = MaxTurns;
                     }
-                    // Stream thinking/content chunks to UI in real-time
-                    var streamMessage = new PulseMessage
-                    {
-                        SenderUserName = "Flapper",
-                        RecipientUserId = req.UserId,
-                        Role = "Flapper",
-                        Subject = "Flapper is thinking...",
-                        ContentType = "HTML",
-                        Content = chunk,
-                        SentAt = DateTime.UtcNow
-                    };
                     curMsg += chunk;
+
                     if (!isClarification)
                     {
+                        // Stream thinking/content chunks to UI in real-time
+                        var streamMessage = new PulseMessage
+                        {
+                            SenderUserName = "Flapper",
+                            RecipientUserId = req.UserId,
+                            Role = "Flapper",
+                            Subject = "Flapper is thinking...",
+                            ContentType = "HTML",
+                            Content = chunk,
+                            SentAt = DateTime.UtcNow
+                        };
+                    
                         await hubContext.Clients.User(req.UserId.ToString())
                         .SendAsync("ReceiveFlapperChunk", streamMessage);
                     }

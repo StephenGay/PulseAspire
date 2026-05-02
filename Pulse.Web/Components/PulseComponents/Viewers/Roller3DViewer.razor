@@ -1,12 +1,9 @@
-﻿@using BlazorThreeJS.Geometires
+﻿@* @using BlazorThreeJS.Geometires
 @using BlazorThreeJS.Objects
 @using BlazorThreeJS.Settings
 @using BlazorThreeJS.Viewers
 @* Important: use Geometries, not BufferGeometry directly *@
-@using BlazorThreeJS.Materials
-@using BlazorThreeJS.Lights
-@using BlazorThreeJS.Core
-@using BlazorThreeJS.Maths
+
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Customers
 @using Pulse.Web.Services
@@ -15,177 +12,177 @@
 @rendermode InteractiveServer
 
 <div style="display: flex; flex-direction: column; gap: 10px;">
-    <FluentButton Appearance="Appearance.Accent" OnClick="AddRollerToSceneAsync" Disabled="@isRollerLoaded">
+    @* <FluentButton Appearance="Appearance.Accent" OnClick="AddRollerToSceneAsync" Disabled="@isRollerLoaded">
         <FluentIcon Value="@(new Icons.Regular.Size20.Add())" />
         Add Roller to Scene
-    </FluentButton>
+    </FluentButton> *@
 
     <FluentCard>
-        <ViewerThreeD @ref="viewer"
+       @*  <ViewerThreeD @ref="viewer"
                       CanvasWidth="1800"
                       CanvasHeight="650"
-                      SceneName="RollerScene">
+                      SceneName="RollerScene"> *@
                      
-                  </ViewerThreeD>
+                  @* </ViewerThreeD> *@
                        
     </FluentCard>
 </div>
 
 @code {
-    private ViewerThreeD? viewer;
-    private bool isRollerLoaded = false;
+    // private ViewerThreeD? viewer;
+    // private bool isRollerLoaded = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender && viewer != null)
-        {
-            // Add a small delay to ensure Three.js is fully initialized
-            await Task.Delay(500);
-            await CreateSceneWithFloorAsync();
-            await Task.Delay(500);
-            await InvokeAsync(StateHasChanged);
-        }
-    }
+    // protected override async Task OnAfterRenderAsync(bool firstRender)
+    // {
+    //     if (firstRender && viewer != null)
+    //     {
+    //         // Add a small delay to ensure Three.js is fully initialized
+    //         await Task.Delay(500);
+    //         await CreateSceneWithFloorAsync();
+    //         await Task.Delay(500);
+    //         await InvokeAsync(StateHasChanged);
+    //     }
+    // }
 
-    private async Task CreateSceneWithFloorAsync()
-    {
-        if (viewer?.ActiveScene is null)
-        {
-            System.Console.WriteLine("DEBUG: Viewer or ActiveScene is null");
-            return;
-        }
+    // private async Task CreateSceneWithFloorAsync()
+    // {
+    //     if (viewer?.ActiveScene is null)
+    //     {
+    //         System.Console.WriteLine("DEBUG: Viewer or ActiveScene is null");
+    //         return;
+    //     }
 
-        viewer.ActiveScene.BackGroundColor = "#000000"; // "#1e1e2e";
+    //     viewer.ActiveScene.BackGroundColor = "#000000"; // "#1e1e2e";
 
-        var roller = await DTrf.GetgvSelectedRollSpec();
+    //     var roller = await DTrf.GetgvSelectedRollSpec();
 
-        if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
-        {
-            System.Console.WriteLine("DEBUG: No roller data loaded or incomplete spec");
-            return;
-        }
+    //     if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
+    //     {
+    //         System.Console.WriteLine("DEBUG: No roller data loaded or incomplete spec");
+    //         return;
+    //     }
 
-        float height = (float)roller.ShellLength;
-        Scene3D scene = viewer.ActiveScene;
+    //     float height = (float)roller.ShellLength;
+    //     Scene3D scene = viewer.ActiveScene;
 
-        // Add lighting
-        viewer.ActiveScene.AddChild(new AmbientLight
-        {
-            Color = "#ffffff",
-            Intensity = 0.75f
-        });
+    //     // Add lighting
+    //     viewer.ActiveScene.AddChild(new AmbientLight
+    //     {
+    //         Color = "#ffffff",
+    //         Intensity = 0.75f
+    //     });
 
-        viewer.ActiveScene.AddChild(new PointLight
-        {
-            Intensity = 3.8f,
-            Color = "#ffffff",
-            Distance = 200f
-        });
+    //     viewer.ActiveScene.AddChild(new PointLight
+    //     {
+    //         Intensity = 3.8f,
+    //         Color = "#ffffff",
+    //         Distance = 200f
+    //     });
 
-        // viewer.ActiveScene.AddChild(new PointLight
-        // {
-        //     Intensity = 2.0f,
-        //     Color = "#e0f0ff",
-        //     Distance = 150f
-        // });
+    //     // viewer.ActiveScene.AddChild(new PointLight
+    //     // {
+    //     //     Intensity = 2.0f,
+    //     //     Color = "#e0f0ff",
+    //     //     Distance = 150f
+    //     // });
 
-        await AddRollerToSceneAsync();
+    //     await AddRollerToSceneAsync();
 
-        // Add floor
-        var floor = new Mesh3D
-        {
-            Name = "Floor",
-            Geometry = new PlaneGeometry
-            {
-                Width = MathF.Max(150, height * 5),
-                Height = MathF.Max(150, height * 5)
-            },
-            Material = new MeshStandardMaterial
-            {
-                Color = "#2a2a2a",
-                Roughness = 1f
-            },
-            Transform = new Transform3("FloorTransform")
-            {
-                Position = new Vector3(0, -0.05f, 0),
-                Rotation = new Euler(-MathF.PI / 2, 0, 0)
-            }
-        };
-        // viewer.ActiveScene.AddChild(floor);
+    //     // Add floor
+    //     var floor = new Mesh3D
+    //     {
+    //         Name = "Floor",
+    //         Geometry = new PlaneGeometry
+    //         {
+    //             Width = MathF.Max(150, height * 5),
+    //             Height = MathF.Max(150, height * 5)
+    //         },
+    //         Material = new MeshStandardMaterial
+    //         {
+    //             Color = "#2a2a2a",
+    //             Roughness = 1f
+    //         },
+    //         Transform = new Transform3("FloorTransform")
+    //         {
+    //             Position = new Vector3(0, -0.05f, 0),
+    //             Rotation = new Euler(-MathF.PI / 2, 0, 0)
+    //         }
+    //     };
+    //     // viewer.ActiveScene.AddChild(floor);
 
-        // Set camera position (without roller, looking at center)
-        viewer.OrbitControls.Enabled = true;
-        // await viewer.ActiveScene.SetCameraPosition(new Vector3(0, height * 1.4f, height * 5.5f));
-        Task refreshTask = Task.CompletedTask;
-        var refresh = new ImportSettings();
-        refreshTask = viewer.ActiveScene.Request3DSceneRefresh(refresh);
+    //     // Set camera position (without roller, looking at center)
+    //     viewer.OrbitControls.Enabled = true;
+    //     // await viewer.ActiveScene.SetCameraPosition(new Vector3(0, height * 1.4f, height * 5.5f));
+    //     Task refreshTask = Task.CompletedTask;
+    //     var refresh = new ImportSettings();
+    //     refreshTask = viewer.ActiveScene.Request3DSceneRefresh(refresh);
 
-        await InvokeAsync(() => StateHasChanged());
-    }
+    //     await InvokeAsync(() => StateHasChanged());
+    // }                   
 
     private async Task AddRollerToSceneAsync()
     {
-        if (viewer?.ActiveScene is null)
-        {
-            System.Console.WriteLine("DEBUG: Viewer or ActiveScene is null");
-            return;
-        }
+        // if (viewer?.ActiveScene is null)
+        // {
+        //     System.Console.WriteLine("DEBUG: Viewer or ActiveScene is null");
+        //     return;
+        // }
 
-        var roller = await DTrf.GetgvSelectedRollSpec();
+        // var roller = await DTrf.GetgvSelectedRollSpec();
 
-        if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
-        {
-            System.Console.WriteLine("DEBUG: No roller data loaded or incomplete spec");
-            return;
-        }
+        // if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
+        // {
+        //     System.Console.WriteLine("DEBUG: No roller data loaded or incomplete spec");
+        //     return;
+        // }
 
-        System.Console.WriteLine($"DEBUG: Adding Roller - Diameter: {roller.ShellDiameter}, Length: {roller.ShellLength}");
+        // System.Console.WriteLine($"DEBUG: Adding Roller - Diameter: {roller.ShellDiameter}, Length: {roller.ShellLength}");
 
-        float radius = (float)roller.ShellDiameter / 2f;
-        float height = (float)roller.ShellLength;
+        // float radius = (float)roller.ShellDiameter / 2f;
+        // float height = (float)roller.ShellLength;
 
-        // Create Cylinder Geometry
-        var geometry = new CylinderGeometry
-        {
-            RadiusTop = radius,
-            RadiusBottom = radius,
-            Height = height,
-            RadialSegments = 64,
-            HeightSegments = 4
-        };
+        // // Create Cylinder Geometry
+        // var geometry = new CylinderGeometry
+        // {
+        //     RadiusTop = radius,
+        //     RadiusBottom = radius,
+        //     Height = height,
+        //     RadialSegments = 64,
+        //     HeightSegments = 4
+        // };
 
         // Create Material
-        var material = new MeshStandardMaterial
-        {
-            Color = "#a8b5c0",
-            Metalness = 0.78f,
-            Roughness = 0.32f
-        };
+        // var material = new MeshStandardMaterial
+        // {
+        //     Color = "#a8b5c0",
+        //     Metalness = 0.78f,
+        //     Roughness = 0.32f
+        // };
 
-        // Create the Mesh
-        var rollerMesh = new Mesh3D
-        {
-            Name = "Roller",
-            Geometry = geometry,
-            Material = material,
-            Transform = new Transform3("RollerTransform")
-            {
-                Position = new Vector3(0, height / 2f, 0),
-                // Position = new Vector3(0, -0.05f, 0),
-                Rotation = new Euler(MathF.PI / 2, 0, 0),
-                Scale = new Vector3(3f, 3f, 3f)
-            }
-        };
+        // // Create the Mesh
+        // var rollerMesh = new Mesh3D
+        // {
+        //     Name = "Roller",
+        //     Geometry = geometry,
+        //     Material = material,
+        //     Transform = new Transform3("RollerTransform")
+        //     {
+        //         Position = new Vector3(0, height / 2f, 0),
+        //         // Position = new Vector3(0, -0.05f, 0),
+        //         Rotation = new Euler(MathF.PI / 2, 0, 0),
+        //         Scale = new Vector3(3f, 3f, 3f)
+        //     }
+        // };
 
         // Add the roller to the scene
-        Object3D roll = rollerMesh;
-        roll.SetDirty(true);
-        // viewer.GetActiveScene().AddChild(rollerMesh);
-        viewer.ActiveScene.AddChild(roll);
-        Task refreshTask = Task.CompletedTask;
-        var refresh = new ImportSettings();
-        viewer.ActiveScene.SetDirty(true);
-        refreshTask = viewer.ActiveScene.Request3DSceneRefresh(refresh);
+        // Object3D roll = rollerMesh;
+        // roll.SetDirty(true);
+        // // viewer.GetActiveScene().AddChild(rollerMesh);
+        // viewer.ActiveScene.AddChild(roll);
+        // Task refreshTask = Task.CompletedTask;
+        // var refresh = new ImportSettings();
+        // viewer.ActiveScene.SetDirty(true);
+        // refreshTask = viewer.ActiveScene.Request3DSceneRefresh(refresh);
 
 
         // isRollerLoaded = true;
@@ -193,4 +190,4 @@
         // await InvokeAsync(() => StateHasChanged());
     }
 
-}
+} 

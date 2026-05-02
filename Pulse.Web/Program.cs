@@ -11,7 +11,6 @@
 
 using Aspire.StackExchange.Redis;
 using BlazorAnimation;
-using BlazorThreeJS.Solutions;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server.Circuits;
@@ -60,11 +59,13 @@ builder.Services.AddSingleton<IMouseService, MouseService>();
 #endregion
 
 #region HttpClients (Consolidated)
-var ollamaEndpoint = builder.Configuration["OllamaApi:EndpointHttp"]
-    ?? throw new InvalidOperationException("Missing configuration for OllamaApi:EndpointHttp");
+var ollamaEndpoint = builder.Configuration["Aspire:Services:PulseAI:Endpoint:0"]
+    ?? builder.Configuration["OllamaApi:EndpointHttp"]
+    ?? throw new InvalidOperationException("Missing OllamaApi endpoint");
 
-var pulseApiEndpoint = builder.Configuration["PulseApi:Endpoint"]
-    ?? throw new InvalidOperationException("Missing configuration for PulseApi:Endpoint");
+var pulseApiEndpoint = builder.Configuration["Aspire:Services:PulseApi:Http:0"]
+    ?? builder.Configuration["PulseApi:Endpoint"]
+    ?? throw new InvalidOperationException("Missing PulseApi endpoint");
 
 builder.Services.AddScoped<OllamaService>();
 
@@ -167,17 +168,6 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MessageHubService>();
 #endregion
 
-//builder.Services.AddScoped<BlazorComponentBus.ComponentBus>();
-//builder.Services.AddScoped<BlazorComponentBus.IComponentBus>(sp =>
-//    sp.GetRequiredService<BlazorComponentBus.ComponentBus>());
-//builder.Services.AddScoped<BlazorThreeJS.Solutions.IThreeDService, BlazorThreeJS.Solutions.ThreeDService>();
-
-
-builder.Services.AddScoped<BlazorComponentBus.ComponentBus>();
-builder.Services.AddScoped<BlazorComponentBus.IComponentBus>(sp =>
-    sp.GetRequiredService<BlazorComponentBus.ComponentBus>());
-builder.Services.AddScoped<BlazorThreeJS.Solutions.IThreeDService, BlazorThreeJS.Solutions.ThreeDService>();
-//builder.Services.AddScoped<IThreeDService, ThreeDService>();   // if you have a using directive
 // Add IMemoryCache if not already registered
 builder.Services.AddMemoryCache();
 
@@ -195,7 +185,7 @@ if (!app.Environment.IsDevelopment())
 using (var scope = app.Services.CreateScope())
 {
     var ollamaService = scope.ServiceProvider.GetRequiredService<OllamaService>();
-    var isValid = await ollamaService.ValidateConnectionAsync("gpt-oss:latest");
+    var isValid = await ollamaService.ValidateConnectionAsync("Flapper:latest");
 
     if (!isValid)
     {

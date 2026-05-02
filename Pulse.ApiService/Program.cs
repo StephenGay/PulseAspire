@@ -38,7 +38,22 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.AddRedisDistributedCache("cache");
+builder.AddOllamaApiClient("PulseAI");
 
+// CRITICAL FIX: Ensure Ollama connection is available
+try
+{
+    var ollamaConnection = builder.Configuration["Aspire:Services:PulseAI:Endpoint:0"];
+    if (string.IsNullOrEmpty(ollamaConnection))
+    {
+        System.Console.WriteLine("⚠️  WARNING: Ollama endpoint not found in Aspire configuration!");
+        System.Console.WriteLine($"Configuration keys: {string.Join(", ", builder.Configuration.AsEnumerable().Select(x => x.Key).Where(k => k.Contains("Ollama", StringComparison.OrdinalIgnoreCase)))}");
+    }
+}
+catch (Exception ex)
+{
+    System.Console.WriteLine($"❌ Error checking Ollama config: {ex.Message}");
+}
 #endregion
 
 #region Database
@@ -217,7 +232,9 @@ builder.Services.AddScoped<AliOllamaAPI>(sp =>
     var logger = sp.GetRequiredService<ILogger<AliOllamaAPI>>();
     return new AliOllamaAPI (aliOllamaClient, logger, httpClientFactory);
 });
-var pulseAiLocation = builder.Configuration["Aspire:Services:PulseAI:Http:0"] ?? "http://localhost:11434";
+
+var pulseAiLocation = builder.Configuration["Aspire:Services:PulseAI:Http:0"]; // ?? "http://localhost:11434";
+//var pulseAiLocation = "http://localhost:11434";
 
 builder.Services.AddHttpClient("AliApiClient", client =>
 {
@@ -238,6 +255,9 @@ builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
     }));
 
 builder.Services.AddScoped<TablesAPI>();
+
+builder.Services.AddHostedService<FlapperWarmUp>();
+
 //builder.Services.AddHttpClient<TablesAPI>("tablesClient", client =>
 //{
 //    client.BaseAddress = new Uri(remoteTablesUrl);
@@ -264,7 +284,7 @@ builder.Services.Configure<EmailConfiguration>(emailConfig);
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordGeneratorService, PasswordGeneratorService>();
-builder.Services.AddHostedService<AliAnalysisWorker>();
+//builder.Services.AddHostedService<AliAnalysisWorker>();
 
 // AI Services
 builder.Services.AddScoped<TablesSQL>();

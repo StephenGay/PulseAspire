@@ -16,8 +16,8 @@
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var model = _config["Ollama:Model"] ?? "llama3.2:latest"; // or your sqlcoder / fine-tuned model
-            var baseUrl = _config["Ollama:Url"] ?? "http://localhost:11434";
+            var model = _config["PulseAI:Model"] ?? "Flapper:latest"; // or your sqlcoder / fine-tuned model
+            var baseUrl = _config["PulseAI:Url"] ?? "http://localhost:11434";
 
             try
             {
@@ -25,7 +25,8 @@
                 var payload = new
                 {
                     model = model,
-                    keep_alive = -1,           // forever
+                    keep_alive = -1
+                    
                                                // You can also set options here if needed: num_ctx, temperature, etc.
                 };
 

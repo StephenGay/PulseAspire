@@ -311,7 +311,8 @@
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                 <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
                                     <div style="color: black;">
-                                        @CurrentFlapperResponse
+                                        @((MarkupString)FlapperParseToHtml(CurrentFlapperResponse))
+                                        @* @CurrentFlapperResponse *@
                                     </div>
                                 </FluentLabel>
                             </FluentStack>
@@ -336,7 +337,7 @@
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
                                             <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                        <div style="color: black;">@message.Content</div>
+                                        <div style="color: black;">@((MarkupString)GlobalFunctions.ParseToHtml(message.Content))</div>
                                     </FluentLabel>
                                 </FluentStack>
                             }
@@ -469,8 +470,8 @@
             _authService.aspireFullName, isStreamingResponse = stream
         );
 
-        using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
-        var fResponse = await flapperClient.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
+        // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
+        var fResponse = await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
         if(fResponse.IsSuccessStatusCode)
         {
             var fContent = await fResponse.Content.ReadAsStringAsync();
@@ -525,8 +526,8 @@
             _authService.aspireFullName   // Yes / No becomes the next user message
         );
 
-        using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
-        await flapperClient.PostAsJsonAsync("https://localhost:5475" + ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
+        // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
+        await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
         // await PulseApi.PostAsync<FlapperChatRequest, object>(ApiEndpoints.PulseAi.Flapper.Chat, request);
 
         // Reset clarification UI
@@ -570,8 +571,9 @@
         }
         else
         {
+            if (SpokenResponse) await SpeakIncremental(msgContent);
             CurrentFlapperResponse += msgContent;
-            if(SpokenResponse) await SpeakIncremental(msgContent);
+            
         }
 
 
@@ -944,6 +946,24 @@
         {
             pdfLoading = false;
         }
+    }
+
+    private string FlapperParseToHtml(string markdownContent)
+    {
+        if (string.IsNullOrEmpty(markdownContent))
+        {
+            return string.Empty;
+        }
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
+
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"<a\s+href=""([^""]*)""",
+            @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
+        );
+
+        return html;
     }
 
     #endregion
