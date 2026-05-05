@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
 using Pulse.ApiService.PulseAI.Services;
@@ -134,9 +135,12 @@ public class TablesAPI
             {
                 //chat = new Chat((IOllamaApiClient)_tablesClient)
                 var client = _aiClientFactory.GetClient("TablesClient");
+                
+
                 chat = new Chat(client)
                 {
                     Model = modelName
+                    
                 };
                 _sessions[sessionId] = chat;
                 _logger.LogInformation("Created new chat session: {SessionId}", sessionId);

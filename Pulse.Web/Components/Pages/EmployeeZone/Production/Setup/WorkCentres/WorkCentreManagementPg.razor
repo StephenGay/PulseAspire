@@ -157,7 +157,8 @@
                         }
                         else
                         {
-                            <div class="pulse-column-grid" >
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal">
+                            @* <div class="pulse-column-grid" > *@
                             <div class="@(pgWCMode == "ViewSetup" ? "viewWCSetup" : "editWCSetup")" style="min-width: 200px;max-width:500px;width:95%;border-radius:10px;padding:10px;margin: 10px 0 0 10px;">
                                 <div style="height:fit-content;width:100%;background-color: @(selectedWC.Colour ?? "#ffffff");border: 1px solid @(selectedWC.TextColour ?? "#000000");margin-bottom:5px" >
                                         <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="@(selectedWC.TextColour ?? "#000000")" Style="font-weight: bold;padding:10px 5px">@selectedWC.WorkCentreName</FluentLabel>
@@ -324,8 +325,11 @@
                                     </FluentStack>
                                 }
                             </div>   
+                            <div class="viewWCSetup" style="min-width: 500px;max-width:500px;width:95%;border-radius:10px;padding:10px;margin: 10px 0 0 10px;">
+                                <WorkCentreFunctionsPg wcID="@(selectedWC.WorkCentreId)"></WorkCentreFunctionsPg>
                             </div>
-                            
+                            @* </div> *@
+                            </FluentStack>
                         }
                     }
 

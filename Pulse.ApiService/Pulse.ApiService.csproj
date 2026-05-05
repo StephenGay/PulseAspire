@@ -56,6 +56,7 @@
   <!-- Folder Structure -->
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Folder Include="Documentation\" />
     <Folder Include="PulseAI\Functions\" />
   </ItemGroup>
 

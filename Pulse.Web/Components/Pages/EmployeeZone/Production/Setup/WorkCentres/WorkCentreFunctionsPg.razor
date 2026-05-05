@@ -1,0 +1,55 @@
+﻿@using Pulse.Web.Services
+@using Pulse.Models.Production
+@inject PulseApiService pApiClient
+
+<h5>Functions</h5>
+
+@if (_allWCFunctions == null)
+{
+    <p>Loading work centre functions...</p>
+}
+else
+{
+    
+
+<FluentDataGrid Items="_allWCFunctions.AsQueryable()"
+                        TGridItem="WorkCentreFunctions"
+                        Style="font-size:10px;width:480px;background-color:white"
+                        AutoFit="false"
+                    
+                        ShowHover="true">
+    
+        <PropertyColumn Title="Stage ID" Width="20%" Property="@(context => context.ProductionStageID)" />
+        <PropertyColumn Title="Work Type" Width="40%" Property="@(context => context.ProductionStage.WorkType.WorkTypeName)" />
+        <PropertyColumn Title="Stage" Width="40%" Property="@(context => context.ProductionStage.ProductionStageName)" />
+    
+            
+           
+        </FluentDataGrid>
+}
+  
+@code {
+    [Parameter]
+    public int wcID { get; set; }
+    private List<WorkCentreFunctions>? _allWCFunctions;
+
+    protected override async void OnParametersSet()
+    {
+        if (wcID != 0)
+        {
+            _allWCFunctions = await pApiClient.GetAsync<List<WorkCentreFunctions>>($"/Divisions/Production/GetWorkCentreFunctionsByID/{wcID}");
+        }
+
+        StateHasChanged();
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        // d = await dTrf.GetgvSelectedDivision();
+        // await dTrf.SetgvContextArea(0);
+        // WC = await pApiClient.GetAsync<WorkCentre>($"/Divisions/Production/GetWorkCentreByID/{wcID}");
+        
+        // allDivPS = await pApiClient.GetAsync<List<ProductionStage>>($"/Divisions/{d.DivisionID}/GetAllProductionStagesByDiv");
+        // await FilterStage();
+    }
+
+}

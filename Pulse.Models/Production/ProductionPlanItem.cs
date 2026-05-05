@@ -23,6 +23,8 @@ namespace Pulse.Models.Production
         public int ProductionStageID { get; set; }
         [MaxLength(10)]
         public string? EquipmentItemID { get; set; }
+        //public string? ZoneId { get; set; } 
+        //public int? WorkCentreID { get; set; }
         public DateTime? PlannedStartTime { get; set; }
         public DateTime? PlannedEndTime { get; set; }
         public DateTime? ActualStartTime { get; set; }
