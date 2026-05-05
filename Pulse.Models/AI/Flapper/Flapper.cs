@@ -37,7 +37,7 @@ namespace Pulse.Models.AI.Flapper
             TopP = 0.7,
             RepeatPenalty = 2,
             NumThread = Environment.ProcessorCount,
-            NumGpu = -1,
+            NumGpu = 25,
 
             FrequencyPenalty = 2,
             PresencePenalty = 2

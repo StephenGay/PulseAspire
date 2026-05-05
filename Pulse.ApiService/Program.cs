@@ -38,34 +38,19 @@ var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.AddRedisDistributedCache("cache");
-builder.AddOllamaApiClient("PulseAI");
 
-// CRITICAL FIX: Ensure Ollama connection is available
-try
-{
-    var ollamaConnection = builder.Configuration["Aspire:Services:PulseAI:Endpoint:0"];
-    if (string.IsNullOrEmpty(ollamaConnection))
-    {
-        System.Console.WriteLine("⚠️  WARNING: Ollama endpoint not found in Aspire configuration!");
-        System.Console.WriteLine($"Configuration keys: {string.Join(", ", builder.Configuration.AsEnumerable().Select(x => x.Key).Where(k => k.Contains("Ollama", StringComparison.OrdinalIgnoreCase)))}");
-    }
-}
-catch (Exception ex)
-{
-    System.Console.WriteLine($"❌ Error checking Ollama config: {ex.Message}");
-}
 #endregion
 
 #region Database
 
-builder.AddSqlServerDbContext<PulseDbContext>("dbPulse",  
+builder.AddSqlServerDbContext<PulseDbContext>("dbPulse",
     configureDbContextOptions: options =>
     {
         options.UseSqlServer(
         sqlOptions => sqlOptions.MigrationsAssembly("Pulse.ApiService")
         );
     });
-builder.Services.AddDbContextFactory<PulseDbContext>( options =>
+builder.Services.AddDbContextFactory<PulseDbContext>(options =>
     options.UseSqlServer());
 
 #endregion
@@ -143,7 +128,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowBlazor", policyBuilder =>
     {
         var blazorOrigin = builder.Configuration["Aspire:Services:PulseWebUI:Http:0"] ?? "https://localhost:7219";
-            //?? throw new InvalidOperationException("Missing Blazor UI endpoint configuration");
+        //?? throw new InvalidOperationException("Missing Blazor UI endpoint configuration");
 
         policyBuilder
             .WithOrigins(blazorOrigin)
@@ -230,11 +215,9 @@ builder.Services.AddScoped<AliOllamaAPI>(sp =>
     var aliOllamaClient = sp.GetRequiredService<IOllamaApiClient>();
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var logger = sp.GetRequiredService<ILogger<AliOllamaAPI>>();
-    return new AliOllamaAPI (aliOllamaClient, logger, httpClientFactory);
+    return new AliOllamaAPI(aliOllamaClient, logger, httpClientFactory);
 });
-
-var pulseAiLocation = builder.Configuration["Aspire:Services:PulseAI:Http:0"]; // ?? "http://localhost:11434";
-//var pulseAiLocation = "http://localhost:11434";
+var pulseAiLocation = builder.Configuration["Aspire:Services:PulseAI:Http:0"] ?? "http://localhost:11434";
 
 builder.Services.AddHttpClient("AliApiClient", client =>
 {
@@ -245,7 +228,7 @@ builder.Services.AddHttpClient("AliApiClient", client =>
 var remoteTablesUrl = builder.Configuration.GetConnectionString("RemoteAI")
                    ?? "http://127.0.0.1:11434";
 
-var TablesAIUrl = builder.Configuration.GetConnectionString("RemoteAI") ?? "http://127.0.0.1:11434";
+var TablesAIUrl = "http://192.168.0.6:11434"; // builder.Configuration.GetConnectionString("RemoteAI") ?? "http://127.0.0.1:11434";
 
 builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
     new PulseAiClientFactory(new Dictionary<string, string>
@@ -255,8 +238,8 @@ builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
     }));
 
 builder.Services.AddScoped<TablesAPI>();
-
 builder.Services.AddHostedService<FlapperWarmUp>();
+
 
 //builder.Services.AddHttpClient<TablesAPI>("tablesClient", client =>
 //{
@@ -284,7 +267,7 @@ builder.Services.Configure<EmailConfiguration>(emailConfig);
 builder.Services.AddScoped<IEmailTemplateService, EmailTemplateService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IPasswordGeneratorService, PasswordGeneratorService>();
-//builder.Services.AddHostedService<AliAnalysisWorker>();
+builder.Services.AddHostedService<AliAnalysisWorker>();
 
 // AI Services
 builder.Services.AddScoped<TablesSQL>();

@@ -16,24 +16,31 @@
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            var model = _config["PulseAI:Model"] ?? "Flapper:latest"; // or your sqlcoder / fine-tuned model
+            var model = _config["PulseAI:Model"] ?? "Flapper:latest";
             var baseUrl = _config["PulseAI:Url"] ?? "http://localhost:11434";
 
             try
             {
-                // Simple preload with keep_alive forever
+                // Add a small delay to ensure Ollama container is fully ready
+                await Task.Delay(2000, stoppingToken);
+
+                // Preload with keep_alive forever and GPU options to preserve layer offloading
                 var payload = new
                 {
                     model = model,
-                    keep_alive = -1
-                    
-                                               // You can also set options here if needed: num_ctx, temperature, etc.
+                    keep_alive = -1,
+                    stream = false,
+                    options = new
+                    {
+                        num_gpu = 25,  // Match your GPU layer configuration
+                        num_ctx = 32000
+                    }
                 };
 
                 var response = await _httpClient.PostAsJsonAsync($"{baseUrl}/api/generate", payload, stoppingToken);
                 response.EnsureSuccessStatusCode();
 
-                _logger.LogInformation("Ollama model {Model} preloaded and kept alive indefinitely.", model);
+                _logger.LogInformation("Ollama model {Model} preloaded and kept alive indefinitely with GPU support.", model);
             }
             catch (Exception ex)
             {

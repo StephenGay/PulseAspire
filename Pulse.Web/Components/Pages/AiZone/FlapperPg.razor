@@ -311,7 +311,7 @@
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                 <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
                                     <div style="color: black;">
-                                        @((MarkupString)FlapperParseToHtml(CurrentFlapperResponse))
+                                        @((MarkupString)FlapperAddMUcss(FlapperParseToHtml(CurrentFlapperResponse)))
                                         @* @CurrentFlapperResponse *@
                                     </div>
                                 </FluentLabel>
@@ -337,7 +337,7 @@
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
                                             <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                        <div style="color: black;">@((MarkupString)GlobalFunctions.ParseToHtml(message.Content))</div>
+                                        <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
                                     </FluentLabel>
                                 </FluentStack>
                             }
@@ -437,6 +437,11 @@
     private async Task SendMessageAsync()
     {
         if (string.IsNullOrWhiteSpace(CurrentUserMessage)) return;
+
+        // Reset speech tracking for new response
+        _answerBuilder.Clear();
+        _lastSpokenCharIndex = 0;
+        _isSpeaking = false;
 
         isLoading = true;
         flapper = await dtrf.GetgvFlapper();
@@ -573,7 +578,7 @@
         {
             if (SpokenResponse) await SpeakIncremental(msgContent);
             CurrentFlapperResponse += msgContent;
-            
+
         }
 
 
@@ -603,12 +608,36 @@
         if (msg.Subject?.Contains("Clarification", StringComparison.OrdinalIgnoreCase) == true)
         {
             IsAwaitingClarification = true;
-            CurrentClarificationQuestion = msg.Content.Replace($"<thinking>{flapperThinking}</thinking>", "").Trim();
+            int ind = msg.Content.LastIndexOf("</thinking>");
+            if(ind > -1)
+            {
+                CurrentClarificationQuestion = msg.Content.Substring(ind + 10).Trim();
+            }
+            else
+            {
+                CurrentClarificationQuestion = msg.Content;
+            }
         }
         else
         {
             CurrentFlapperResponse = msg.Content;
         }
+        // ====================== FINAL FLUSH ======================
+        if (SpokenResponse && _answerBuilder.Length > _lastSpokenCharIndex)
+        {
+            string remainingText = _answerBuilder.ToString().Substring(_lastSpokenCharIndex).Trim();
+
+            if (!string.IsNullOrWhiteSpace(remainingText))
+            {
+                string cleanText = PrepareForSpeech(remainingText);
+                await GlobalAI.AISpeak(cleanText, "Flapper");
+            }
+        }
+
+        // Reset for next conversation turn
+        _answerBuilder.Clear();
+        _lastSpokenCharIndex = 0;
+
         isLoading = false;
         await InvokeAsync(StateHasChanged);
     }
@@ -848,6 +877,19 @@
         // {
         //     return;
         // }
+    }
+
+    private string FlapperAddMUcss(string html)
+    {
+        return html
+            .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\">")
+            .Replace("<th>", "<th style=\"background-color: var(--pulse-light-colour) ; color: var(--pulse-dark-colour); border: 1px solid var(--pulse-dark-colour);white-space: pre-wrap !important; vertical-align: top;\">")
+            .Replace("</table>", "</table><br />")
+            .Replace("<hr />", "")
+            .Replace("<h3", "<hr /><h3")
+            .Replace("</table><br /><hr />", "</table><hr />")
+            .Replace("h2", "h5")
+         .Replace("h3", "h5");
     }
 
     private async Task ExportToPulseMsg()

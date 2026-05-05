@@ -445,6 +445,7 @@ a, .btn-link {
 .fdgrselected {
     background-color: var(--pulse-dark-t50-colour) !important; /* blue !important;*/
     color: white !important; /* var(--pulse-dark-colour) !important;*/
+    cursor: pointer;
 }
 
 /*.bb-dg-row-highlight {
@@ -461,14 +462,15 @@ a, .btn-link {
 .fdgrunselected {
     background-color: white;
     color: var(--pulse-dark-colour) !important;
+    cursor: pointer;
     /* border-top: 1px solid rgb(54,91,102) !important;*/
 }
 
-    /*.fdgrunselected :hover {
+    .fdgrunselected :hover {
         cursor: pointer;
-        background-color: var(--pulse-dark-colour) !important;
-        color: var(--pulse-light-colour) !important;
-    }*/
+        /*background-color: var(--pulse-dark-colour) !important;
+        color: var(--pulse-light-colour) !important;*/
+    }
 .table-virtualize-demo {
     /*height: auto;*/
     margin: 15px;

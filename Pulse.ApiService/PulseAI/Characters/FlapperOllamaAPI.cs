@@ -333,37 +333,37 @@ public class FlapperOllamaAPI
             }
         });
 
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.AskUser,
-                description = "Ask the user a Yes/No question.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { question = new { type = "string", description = "NL question" } },
-                    required = new[] { "question" }
-                }
-            }
-        });
+        //tools.Add(new
+        //{
+        //    type = "function",
+        //    function = new
+        //    {
+        //        name = ToolNames.AskUser,
+        //        description = "Ask the user a Yes/No question.",
+        //        parameters = new
+        //        {
+        //            type = "object",
+        //            properties = new { question = new { type = "string", description = "NL question" } },
+        //            required = new[] { "question" }
+        //        }
+        //    }
+        //});
 
-        tools.Add(new
-        {
-            type = "function",
-            function = new
-            {
-                name = ToolNames.ExecuteSql,
-                description = "Execute a SELECT SQL query against the dbPulse database and return results.",
-                parameters = new
-                {
-                    type = "object",
-                    properties = new { sql = new { type = "string", description = "The SQL query to execute" } },
-                    required = new[] { "sql" }
-                }
-            }
-        });
+        //tools.Add(new
+        //{
+        //    type = "function",
+        //    function = new
+        //    {
+        //        name = ToolNames.ExecuteSql,
+        //        description = "Execute a SELECT SQL query against the dbPulse database and return results.",
+        //        parameters = new
+        //        {
+        //            type = "object",
+        //            properties = new { sql = new { type = "string", description = "The SQL query to execute" } },
+        //            required = new[] { "sql" }
+        //        }
+        //    }
+        //});
 
         //if (AdminMode)
         //{

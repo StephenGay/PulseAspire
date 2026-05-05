@@ -268,17 +268,17 @@
 
     private async Task AddToPlan(WorkInProgressDto wipWO)
     {
-        _dialog = await DialogService.ShowPanelAsync<WOPlanDialog>(wipWO, new DialogParameters<WorkInProgressDto>()
-        {
-            Content = wipWO,
-            Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left,
-            Title = "Work Order Production Plan",
-            PrimaryAction = "Add To Plan",
-            SecondaryAction = "Cancel",
-            Width = "50%",
-        });
-        Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
-        HandlePanel(result);
+        // _dialog = await DialogService.ShowPanelAsync<PlanByWODrawer>(wipWO, new DialogParameters<WorkInProgressDto>()
+        // {
+        //     Content = wipWO,
+        //     Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left,
+        //     Title = "Work Order Production Plan",
+        //     PrimaryAction = "Add To Plan",
+        //     SecondaryAction = "Cancel",
+        //     Width = "50%",
+        // });
+        // Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
+        // HandlePanel(result);
     }
 
     private static void HandlePanel(Microsoft.FluentUI.AspNetCore.Components.DialogResult result)

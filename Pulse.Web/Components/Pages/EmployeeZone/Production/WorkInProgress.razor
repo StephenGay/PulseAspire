@@ -82,8 +82,8 @@
         <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" Style="padding-top:15px;padding-left:15px;padding-right:15px;padding-bottom:0px">
             <FluentLabel Typo="MsFluent.Typography.Header" Color="MsFluent.Color.Custom" CustomColor="rgb(255,255,255)">Work In Progress for Division @Division.DivisionName</FluentLabel>
             <FluentSpacer />
-            <FluentButton Appearance="Appearance.Neutral" OnClick="() => showFilter = !showFilter">
-                Filters
+            <FluentButton Appearance="Appearance.Neutral" id="btnPlanByWO" data-bs-toggle="offcanvas" data-bs-target="#WOPlan"> @*  OnClick="() => AddToPlan(selectedWO[0])"> *@
+                WO Details
             </FluentButton>
         </FluentStack>
     </div>
@@ -147,7 +147,7 @@
 
             <RadzenDataGrid @ref="radWIPGrid"
                             Data="@wipItems"
-                            FilterMode="FilterMode.CheckBoxList"
+                            FilterMode="FilterMode.Simple"
                             AllowFiltering="true"
                             AllowPaging="false"
                             AllowSorting="true"
@@ -155,6 +155,7 @@
                             Style="height:100%;border-radius:10px"
                             AllowVirtualization="true"
                             AllowColumnPicking="true"
+                            onh
                             IsLoading="@isLoading"
                             SelectionMode="DataGridSelectionMode.Single"
                             @bind-Value="@selectedWO"
@@ -164,17 +165,25 @@
 
                 <Columns>
                     <RadzenDataGridColumn TItem="WorkInProgressDto" Property="WorksOrderNo" Title="WO No" Width="70px" TextAlign="TextAlign.Center" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="WorkTypeName" Title="Work Type" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="WorkTypeName" Title="Work Type" FilterMode="FilterMode.CheckBoxList" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="WorkCentreName" Title="Work Centre" Pickable="true" FilterMode="FilterMode.CheckBoxList" />
                     <RadzenDataGridColumn TItem="WorkInProgressDto" Property="ClientName" Title="Client Name" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Description" Title="Address 1" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address2" Title="Address 2" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address3" Title="Address 3" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address4" Title="Address 4" />
-                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Address5" Title="Address 5" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="Description" Title="Description" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="UndelQty" Title="Qty" Filterable="false" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="ProductionStageName" Title="Stage" Pickable="true" FilterMode="FilterMode.CheckBoxList" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="MaterialCost" Title="Material Cost" Filterable="false" Visible="false" />
+                    <RadzenDataGridColumn TItem="WorkInProgressDto" Property="SellPrice" Title="Sell Price" Pickable="true" Filterable="false" Visible="false" />
+
                 </Columns>
             </RadzenDataGrid>
 
-
+            <div class="offcanvas offcanvas-bottom" style="width:100%; height:calc(100vh - 112px)" tabindex="-1" id="WOPlan" aria-labelledby="woLabel">
+                <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                                IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+                    Close
+                </FluentButton>
+                <PlanByWODrawer SelectedWorkOrder="@selectedWO?.FirstOrDefault()" />
+            </div>
 
 
             @* <FluentDataGrid Items="@filteredItemsQueryable" 
@@ -306,17 +315,17 @@
 
     private async Task AddToPlan(WorkInProgressDto wipWO)
     {
-        _dialog = await DialogService.ShowPanelAsync<WOPlanDialog>(wipWO, new DialogParameters<WorkInProgressDto>()
-        {
-            Content = wipWO,
-            Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left,
-            Title = "Work Order Production Plan",
-            PrimaryAction = "Add To Plan",
-            SecondaryAction = "Cancel",
-            Width = "50%",
-        });
-        Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
-        HandlePanel(result);
+        // _dialog = await DialogService.ShowPanelAsync<PlanByWODrawer>(wipWO, new DialogParameters<WorkInProgressDto>()
+        // {
+        //     Content = wipWO,
+        //     Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left,
+        //     Title = "Work Order Production Plan",
+        //     PrimaryAction = "Add To Plan",
+        //     SecondaryAction = "Cancel",
+        //     Width = "50%",
+        // });
+        // Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
+        // HandlePanel(result);
     }
 
     private static void HandlePanel(Microsoft.FluentUI.AspNetCore.Components.DialogResult result)
