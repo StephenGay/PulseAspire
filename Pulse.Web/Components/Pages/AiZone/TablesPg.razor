@@ -226,13 +226,14 @@
             }
         </FluentStack>
     </div>
+    <FluentMessageBarProvider Section="MESSAGES_TOP" />
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
+    }
     <div class="aiContent" style="background-color: white">
-        <FluentMessageBarProvider Section="MESSAGES_TOP" />
-    
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
-        }
+        
         @if (viewBox)
         {
             <div class="aiSidebar">

@@ -44,7 +44,7 @@ public class TablesAPI
     {
         var response = new TablesResponse
         {
-            ModelUsed = "Tables:latest", // request.ModelName ?? "llama3.2",
+            ModelUsed = request.ModelName ?? "llama3.2",
             SessionId = request.SessionId ?? Guid.NewGuid().ToString(),
             Timestamp = DateTime.UtcNow
         }; 
@@ -57,19 +57,19 @@ public class TablesAPI
             // Get or create chat session
             var chat = GetOrCreateChatSession(response.SessionId, response.ModelUsed);
 
-            // Initialize system prompt if this is a new session
-            //if (chat.Messages.Count == 0)
-            //{
-            //    string systemPrompt = await GetTablesSystemMessageAsync();
+            //Initialize system prompt if this is a new session
+            if (chat.Messages.Count == 0)
+            {
+                string systemPrompt = await GetTablesSystemMessageAsync();
 
-            //    // Send system message using streaming and collect response
-            //    await foreach (var chunk in chat.SendAsync(systemPrompt, CancellationToken.None))
-            //    {
-            //        // Just consume the stream to complete the system message
-            //    }
+                // Send system message using streaming and collect response
+                await foreach (var chunk in chat.SendAsync(systemPrompt, CancellationToken.None))
+                {
+                    // Just consume the stream to complete the system message
+                }
 
-            //    _logger.LogInformation("System prompt initialized for session {SessionId}", response.SessionId);
-            //}
+                _logger.LogInformation("System prompt initialized for session {SessionId}", response.SessionId);
+            }
 
             // Send user question and get SQL query
             var sqlQueryResponseBuilder = new StringBuilder();

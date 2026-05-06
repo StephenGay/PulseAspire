@@ -204,7 +204,7 @@
                     else
                     {
                         <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showAli" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
-                            <FluentButton Id="mnuAliBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiAli">
+                            <FluentButton Id="mnuAliBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" Enabled="showAi.showAli" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiAli">
                                 @* @(mAli.emoji.ToMarkup("40px")) *@
                                 <img src="Images/AI/Ali.jpg" alt="Ali" style="height:40px;width:40px" />
                             </FluentButton>
@@ -590,7 +590,7 @@
                 return;
             case "Production":
                 prodSel = true;
-                Navigation.NavigateTo("/EmployeeZone/Production/DashboardFH");
+                Navigation.NavigateTo("/EmployeeZone/Production/ProductionDashboard");
                 return;
             case "Admin":
                 adminSel = true;

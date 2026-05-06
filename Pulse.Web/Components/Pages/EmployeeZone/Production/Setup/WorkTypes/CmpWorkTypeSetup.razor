@@ -1,0 +1,82 @@
+﻿@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using Pulse.Models.Production.WorkTypes
+
+@using Pulse.Web.Services
+
+@inject PulseApiService pApiClient
+@inject DataTransferService dTrf
+
+<div class="divShadow" style="background-color:white;border: 1px solid black;width:fit-content;border-radius:10px;">
+    @if (isLoading)
+    {
+        <RadzenProgressBar Mode="ProgressBarMode.Indeterminate" />
+    }
+    else
+    {
+        <div style="align-items:center;text-align:center;width:100%;padding:10px"><strong>Default Target Times</strong></div>
+        <RadzenTimeline Orientation="Radzen.Orientation.Vertical" LinePosition="LinePosition.Center" Reverse="false" class="rz-m-4">
+            <Items>
+                @foreach (var ps in _reqPS)
+                {
+                    <RadzenTimelineItem>
+                        <LabelContent>
+                            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0" Style="color: var(--pulse-dark-colour)">@ps.TargetTime</RadzenText>
+                        </LabelContent>
+                        <ChildContent>
+                            @ps.ProductionStageName 
+                        </ChildContent>
+                    </RadzenTimelineItem>
+                }
+                
+            </Items>
+        </RadzenTimeline>
+    }
+</div>
+
+@code {
+    Radzen.Orientation Orientation = Radzen.Orientation.Vertical;
+    LinePosition position = LinePosition.Center;
+    bool reverse;
+
+    [Parameter]
+    public DivisionWorkType divWT { get; set; }
+    List<ProductionStage>? _allWTPS;
+    List<ProductionStageDto>? _reqPS = new List<ProductionStageDto>();
+    Division? d;
+    bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // d = await dTrf.GetgvSelectedDivision();
+        await dTrf.SetgvContextArea(0);
+        // _allWTPS = await pApiClient.GetAsync<List<ProductionStage>>($"/Divisions/{d.DivisionID}/GetProductionStagesByWorkType/{wtID}");
+    }
+    protected override async void OnParametersSet()
+    {
+        if (divWT != null)
+        {
+            _reqPS.Clear();
+            d = await dTrf.GetgvSelectedDivision();
+            _allWTPS = await pApiClient.GetAsync<List<ProductionStage>>($"/Divisions/{d.DivisionID}/GetProductionStagesByWorkType/{divWT.WorkTypeID}");
+            foreach (var ps in _allWTPS)
+            {
+                if (ps.IsOptional || !ps.IsActive)
+                {
+                    continue; // Skip optional and inactive stages
+                }
+                // Map ProductionStage to ProductionStageDto
+                var dto = new ProductionStageDto
+                {
+                    ProductionStageName = ps.ProductionStageName,
+                    StepNo = ps.StepNo,
+                    ProcessPercentage = ps.ProcessPercentage,
+                    TargetTime = TimeSpan.FromHours((divWT.TargetWorkingDays * 9) * (ps.ProcessPercentage / 100)).ToString(@"dd\:hh\:mm")
+                };
+                _reqPS.Add(dto);
+            }
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+}

@@ -54,4 +54,29 @@ namespace Pulse.Models.Production
         public ICollection<EquipmentCapability>? EquipmentCapabilities { get; set; }
 
     }
+
+    public class ProductionStageDto
+    {
+        //public int ProductionStageId { get; set; }
+        public string ProductionStageName { get; set; } = string.Empty;
+        //public string DivisionID { get; set; } = string.Empty;
+        //public int WorkTypeID { get; set; }
+        public int StepNo { get; set; }
+        //public bool HasMaterial { get; set; }
+        //public bool IsDefault { get; set; }
+        //public bool IsOptional { get; set; }
+        //public string? ResultsPage { get; set; }
+        //public bool RequiresSignOff { get; set; }
+        //public bool RequiresPlanning { get; set; }
+        public double ProcessPercentage { get; set; }
+        public string? TargetTime { get; set; }
+        //public bool IsActive { get; set; }
+        //public string? DifficultyMeasurement { get; set; }
+        //public decimal BaseValue { get; set; }
+        //public int BaseMinutesAtStage { get; set; }
+        //public Division? Division { get; set; }
+        //public WorkType? WorkType { get; set; }
+        //public DivisionWorkType? DivisionWorkType { get; set; }
+        //public ICollection<EquipmentCapability>? EquipmentCapabilities { get; set; }
+    }
 }

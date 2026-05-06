@@ -29,17 +29,25 @@ namespace Pulse.Web.Services
                 _logger.LogWarning("✗ NO JWT token in holder for {Method} {Path}", 
                     request.Method, request.RequestUri?.PathAndQuery);
             }
-
-            var response = await base.SendAsync(request, cancellationToken);
-            
-            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            try
             {
-                _logger.LogError("✗ 401 Unauthorized on {Method} {Path} - Token was: {TokenStatus}", 
-                    request.Method, request.RequestUri?.PathAndQuery, 
-                    string.IsNullOrEmpty(token) ? "MISSING" : "PRESENT");
-            }
+                var response = await base.SendAsync(request, cancellationToken);
+            
+                if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    _logger.LogError("✗ 401 Unauthorized on {Method} {Path} - Token was: {TokenStatus}", 
+                        request.Method, request.RequestUri?.PathAndQuery, 
+                        string.IsNullOrEmpty(token) ? "MISSING" : "PRESENT");
+                }
 
-            return response;
+                return response;
+            }
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Request cancelled for {Method} {Path}",
+                    request.Method, request.RequestUri?.PathAndQuery);
+                throw;
+            }
         }
     }
 }

@@ -166,13 +166,14 @@
                 }
         </FluentStack>
     </div>
+    <FluentMessageBarProvider Section="MESSAGES_TOP" />
+
+    @if (!string.IsNullOrEmpty(errorMessage))
+    {
+        <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
+    }
     <div class="aiContent" style="background-color: white">
-        <FluentMessageBarProvider Section="MESSAGES_TOP" />
-    
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
-        }
+        
         @if (viewBox)
         {
             <div class="aiSidebar">
@@ -196,7 +197,7 @@
                                     @if (IsAwaitingClarification && CurrentClarificationQuestion is not null)
                                     {
                                         <div style="padding: 16px; background-color: var(--neutral-layer-2); border-top: 2px solid var(--accent-fill-rest);">
-                                            <p><strong>Flapper asks:</strong> @CurrentClarificationQuestion</p>
+                                            <p><strong>Flapper asks:</strong></p><p>@CurrentClarificationQuestion</p>
             
                                             <FluentStack Orientation="MsFluent.Orientation.Horizontal" >
                                                 <FluentButton Appearance="Appearance.Accent"@OnClick="() => SendQuickReplyAsync("Yes")">Yes</FluentButton>
@@ -291,7 +292,8 @@
                         @foreach (var convo in ConversationHistory)
                         {
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel>
+                                @* <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" onclick=$"()=>LoadHistoryConversation("{@convo.Id}")">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel> *@
+                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" @onclick="() => LoadHistoryConversation(convo.Id)">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel>
                             </FluentStack>
                         }
                     }
@@ -320,7 +322,7 @@
                         @if (stream && !string.IsNullOrEmpty(flapperThinking))
                         {
                             <br />
-                                <FluentLabel Typo="Typography.Body" class="divShadow" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@flapperThinking</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@flapperThinking</FluentLabel>
                         }
                     }
                     else
@@ -336,9 +338,19 @@
                             else
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
-                                            <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                        <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
-                                    </FluentLabel>
+                                    @if (message.IsThinking)
+                                    {
+                                        if (stream)
+                                        {
+                                            <FluentLabel Typo="Typography.Body" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@message.Content.Replace("<thinking>","")</FluentLabel>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                            <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
+                                        </FluentLabel>
+                                    }
                                 </FluentStack>
                             }
                         }
@@ -434,6 +446,22 @@
 
     #region Message Handling
 
+    private async Task LoadHistoryConversation(Guid conversationId)
+    {
+        CurrentConversationId = conversationId;
+        var response = await pulseApiClient.GetAsync<ApiResponse<List<FlapperMessageDto>>>(ApiEndpoints.PulseAi.EndpointsFlapper.GetConversationMessages(conversationId));
+        if (response.Success)
+        {
+            Messages = response.Data ?? new List<FlapperMessageDto>();
+            viewHistory = false;
+        }
+        else
+        {
+            PulseToastService.ShowToast("Error","Failed to load conversation history.",true,true,"Flapper");
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
     private async Task SendMessageAsync()
     {
         if (string.IsNullOrWhiteSpace(CurrentUserMessage)) return;
@@ -444,6 +472,7 @@
         _isSpeaking = false;
 
         isLoading = true;
+        cts = new CancellationTokenSource();
         flapper = await dtrf.GetgvFlapper();
         flapperDTO = new FlapperDTO
             {
@@ -465,53 +494,76 @@
         CurrentFlapperResponse = "";
         StateHasChanged();
 
-        // Send to API
-        var request = new FlapperChatRequest
-        (
-            flapperDTO,
-            _authService.aspireUserId,
-            CurrentConversationId,
-            userQry,
-            _authService.aspireFullName, isStreamingResponse = stream
-        );
-
-        // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
-        var fResponse = await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
-        if(fResponse.IsSuccessStatusCode)
+        try
         {
-            var fContent = await fResponse.Content.ReadAsStringAsync();
-            var fResult = JsonSerializer.Deserialize<FlapperResponse>(fContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-            if (fResult is not null)
+
+
+            // Send to API
+            var request = new FlapperChatRequest
+            (
+                flapperDTO,
+                _authService.aspireUserId,
+                CurrentConversationId,
+                userQry,
+                _authService.aspireFullName, isStreamingResponse = stream
+            );
+
+            // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
+            var fResponse = await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request, cts.Token);
+            if (fResponse.IsSuccessStatusCode)
             {
-                if (fResult.RequiresClarification)
+                var fContent = await fResponse.Content.ReadAsStringAsync();
+                var fResult = JsonSerializer.Deserialize<FlapperResponse>(fContent, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                if (fResult is not null)
                 {
-                    CurrentFlapperResponse = "<p><strong>Flapper Asked For The Following Clarification:</strong></p><p>" + fResult.ClarificationQuestion + "</p>";
-                    var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
-                    if (lastMsg is not null)
-                        lastMsg.Content = CurrentFlapperResponse;
+                    if (fResult.RequiresClarification)
+                    {
+                        CurrentFlapperResponse = "<p><strong>Flapper Asked For The Following Clarification:</strong></p><p>" + fResult.ClarificationQuestion + "</p>";
+                        var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+                        if (lastMsg is not null)
+                            lastMsg.Content = CurrentFlapperResponse;
+                    }
+                    // flapperThinking = "";
+                    flapperAnswer = CurrentFlapperResponse;
+                    retryBtn = false;
                 }
-                // flapperThinking = "";
-                flapperAnswer = CurrentFlapperResponse;
-                retryBtn = false;
+                else
+                {
+                    CurrentFlapperResponse = "Error: Unable to parse response.";
+                    var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+                    if (lastMsg != null)
+                        lastMsg.Content = CurrentFlapperResponse;
+                    retryBtn = true;
+                }
             }
             else
             {
-                CurrentFlapperResponse = "Error: Unable to parse response.";
+                CurrentFlapperResponse = "Error: No response from server.";
                 var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
                 if (lastMsg != null)
                     lastMsg.Content = CurrentFlapperResponse;
                 retryBtn = true;
             }
         }
-        else
+        catch(OperationCanceledException)
         {
-            CurrentFlapperResponse = "Error: No response from server.";
+            // Request was cancelled by user
+            CurrentFlapperResponse = "Request cancelled by user.";
             var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
             if (lastMsg != null)
                 lastMsg.Content = CurrentFlapperResponse;
             retryBtn = true;
+            // errorMessage = "Your request was cancelled.";
         }
-
+        catch (Exception ex)
+        {
+            CurrentFlapperResponse = $"Error: {ex.Message}";
+            var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+            if (lastMsg != null)
+                lastMsg.Content = CurrentFlapperResponse;
+            retryBtn = true;
+            // errorMessage = ex.Message;
+        }
     }
 
     private async Task SendQuickReplyAsync(string answer)
@@ -531,15 +583,17 @@
             _authService.aspireFullName   // Yes / No becomes the next user message
         );
 
+        // Reset clarification UI
+        IsAwaitingClarification = false;
+        CurrentClarificationQuestion = null;
+        isLoading = true;
+        StateHasChanged();
+
         // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
         await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
         // await PulseApi.PostAsync<FlapperChatRequest, object>(ApiEndpoints.PulseAi.Flapper.Chat, request);
 
-        // Reset clarification UI
-        IsAwaitingClarification = false;
-        CurrentClarificationQuestion = null;
-
-        StateHasChanged();
+        
     }
 
     private async Task SendCustomReplyAsync()
@@ -888,6 +942,7 @@
             .Replace("<hr />", "")
             .Replace("<h3", "<hr /><h3")
             .Replace("</table><br /><hr />", "</table><hr />")
+            .Replace("h1", "h5")
             .Replace("h2", "h5")
          .Replace("h3", "h5");
     }
@@ -1012,7 +1067,11 @@
 
     private async Task ClearChatHistory()
     {
+        Messages.Clear();
         chatHistory.Clear();
+        CurrentClarificationQuestion = string.Empty;
+        CurrentFlapperResponse = string.Empty;
+        CurrentConversationId = Guid.NewGuid();
         flapperAnswer = string.Empty;
         flapperThinking = string.Empty;
         aiSQL = string.Empty;

@@ -9,34 +9,40 @@
  @rendermode InteractiveServer
 
 
-<div style="margin-top:150px;margin-left:150px">
-    @if (start)
-    {
-        @* <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2)">
-        <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button Size="Size.ExtraLarge" OnClick="btnStartWIP" Color="BootstrapBlazor.Components.Color.Success">Start</Button></div>
-        </Animation> *@
-    }
-    else if (ti)
-    {
-        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-        <FluentStack Orientation="MsFluent.Orientation.Vertical" >
-        <FlipClock ViewMode="FlipClockViewMode.Count" ></FlipClock>
-            
-            <div class="col-6 col-sm-4 col-md-3 col-lg-auto"><Button Size="Size.ExtraLarge" style="margin-top:20px;" OnClick="() => ti = false" Color="BootstrapBlazor.Components.Color.Danger">Stop</Button></div>
+@if (wcGrps.Count == 0)
+{
+    <div style="display:flex; align-items:center; justify-content:center; height:200px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 12px;">
+            <FluentProgressRing IsActive="true" />
+            <FluentLabel Typo="Typography.Body">Loading work centres...</FluentLabel>
         </FluentStack>
-        </Animation>
-    }
-    else
-    {
-        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
-        <h1 class="display-1" style="color:white">Good Job!!!</h1>
-        </Animation>    
-        <Animation Effect="@Effect.FadeInRightBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(2.5)">
-        <h1 class="display-1" style="color:white">Happy Now?</h1>
-        </Animation>
-    }
-    
-</div>
+    </div>
+}
+else
+{
+    <FluentGrid Style="margin:10px">
+        @foreach (var wC in wcGrps)
+        {
+            <FluentGridItem xs="12" sm="6" md="4" lg="2">
+                @* <div class="permission-card @(selectedDivWT == wC ? "box" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedDivWT = wC"> *@
+                <div class="permission-card divShadow" style=" margin-bottom:10px; border-radius: 8px;">
+                    
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap:1px;background-color: var(--pulse-light-colour); border-radius: 8px; padding: 12px;")">
+                        <FluentLabel Typo="Typography.H6" Style="color: var(--pulse-dark-colour); font-weight:700;margin-bottom:10px;">@wC.wcName</FluentLabel>
+                        @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;"> *@
+                        @* <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;"> *@
+                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">WO at Work Centre : @wC.woCount</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">Planned For Today : xx</FluentLabel>
+                            @* <FluentSpacer /> *@
+                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">Completed : @wC.woCount</FluentLabel>
+                        <div style="background-color:rgba(0,255,0,0.5);width:30%;height:10px;" />
+                        @* </FluentStack> *@
+                    </FluentStack>
+                </div>
+            </FluentGridItem>
+        }
+        </FluentGrid>
+}
 @* <AuthorizeView Roles="admin">
     <Authorized>
         <FluentButton>Admin Action</FluentButton>
@@ -49,24 +55,36 @@
     private bool start = true;
     private bool stop = false;
     private bool ti = true;
+    private List<wcGrp> wcGrps = new List<wcGrp>();
+
     protected override async Task OnInitializedAsync()
     {
         await dt.SetgvContextArea(0);
     }
-    private async void btnStartWIP()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        List<WorkInProgressDto> wp = await pApiClient.GetAsync<List<WorkInProgressDto>>("/Divisions/150/GetWIP");
-        foreach (var item in wp)
+        if (firstRender)
         {
-            var p = pApiClient.GetAsync<List<ProductionPlanItem>>($"/Divisions/Production/WorkOrder/{item.WorksOrderNo}/CreateProductionPlan");
+            List<WorkInProgressDto> wp = await pApiClient.GetAsync<List<WorkInProgressDto>>("/Divisions/150/GetWIP");
+            wcGrps = wp.GroupBy(w => w.WorkCentreName).Select(g => new wcGrp { wcName = g.Key , woCount = g.Count() }).ToList();
+            await InvokeAsync(StateHasChanged);
         }
-        ti = true;
+        // foreach (var item in wp)
+        // {
+        //     var p = pApiClient.GetAsync<List<ProductionPlanItem>>($"/Divisions/Production/WorkOrder/{item.WorksOrderNo}/CreateProductionPlan");
+        // }
+        // ti = true;
     }
     // private async Task CallApi()
     // {
     //     var response = await DownstreamApi.PostForUserAsync<MyResponse>("MyApi", "/api/query", new NaturalLanguageQuery ("Show all users"));
     //     // Process response (e.g., display in FluentDataGrid)
     // }
-
+    private record wcGrp
+    {
+        public int wcID { get; set; }
+        public string wcName { get; set; }
+        public int woCount { get; set; } = 0;
+    }
 
 }

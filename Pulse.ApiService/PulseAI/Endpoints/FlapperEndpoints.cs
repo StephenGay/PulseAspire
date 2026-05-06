@@ -43,6 +43,11 @@ public static class FlapperEndpoints
             .WithDescription("Get the conversation history for a specific user.")
             .Produces<ApiResponse<List<FlapperConversation>>>(200);
 
+        group.MapGet("/Conversations/GetMessages/{conversationId}", GetConversationMessages)
+            .WithName("GetConversationMessages")
+            .WithDescription("Get the messages for a specific conversation.")
+            .Produces<ApiResponse<List<FlapperMessageDto>>>(200);
+
     }
 
     private static async Task<IResult> FlapperChat(
@@ -170,6 +175,23 @@ public static class FlapperEndpoints
         return Results.Ok(result);
     }
 
+    private static async Task<IResult> GetConversationMessages(Guid conversationId, PulseDbContext db)
+    {
+        var messages = await db.FlapperMessages
+            .Where(m => m.ConversationId == conversationId && m.Sender != "tool")
+            .OrderBy(m => m.SentAt)
+            .ToListAsync();
+
+        var messageDtos = messages.Select(m => new FlapperMessageDto
+        {
+            Sender = m.Sender,
+            Content = m.Content,
+            IsThinking = m.Content.StartsWith("<thinking>") ? true : false,
+        }).ToList();
+
+        return Results.Ok(new ApiResponse<List<FlapperMessageDto>>(messageDtos));
+    }
+
     // Place this in your FlapperEndpoints.cs or as a static helper method
     // Add this method in FlapperEndpoints.cs or a static helper
     private static IEnumerable<AIFunction> BuildFlapperTools()
@@ -202,187 +224,212 @@ public static class FlapperEndpoints
         FlapperOllamaAPI flapperOllamaApi,
         TablesAPI tablesApi,           // Your SQL expert
         PulseDbContext db,
-        IHubContext<MessageHub> hubContext)
+        IHubContext<MessageHub> hubContext,
+    CancellationToken cancellationToken)
     {
-        // 1. Load or create conversation
-        var conversation = db.FlapperConversations
-            .Where(c => c.Id == req.ConversationId && c.UserId == req.UserId)
-            .FirstOrDefault();
-
-        if (conversation == null)
+        try
         {
-            conversation = new FlapperConversation
+
+
+            // 1. Load or create conversation
+            var conversation = db.FlapperConversations
+                .Where(c => c.Id == req.ConversationId && c.UserId == req.UserId)
+                .FirstOrDefault();
+
+            if (conversation == null)
             {
-                Id = req.ConversationId,
-                UserId = req.UserId,
-                Title = "Flapper Chat"
-            };
-            db.FlapperConversations.Add(conversation);
-        }
-
-        // 2. Save user message
-        db.FlapperMessages.Add(new FlapperMessage
-        {
-            ConversationId = conversation.Id,
-            Sender = "User",
-            Content = req.Message,
-            SentAt = DateTime.UtcNow
-        });
-        await db.SaveChangesAsync();
-
-        conversation.LastActivity = DateTime.UtcNow;
-
-        // 3. Build rich system prompt (with schema)
-        var systemMessageData = new SystemMessageData
-        {
-            CompanyName = "H&M Rollers",
-            CompanyInformation = AiPromptHelperService.GetTempCoInfo(),
-            UserName = req.PreferredUserName,
-            DbSchema = await _aiShared.GetDetailedSchemaAsync(),
-            UserQuery = req.Message
-            // Add any other fields your BuildSystemMessagev2 needs
-        };
-
-        Flapper flapper = new Flapper();
-        string? systemPrompt;
-        var uMsg = req.Message;
-
-        if (req.flapperDTO.SpokenResponses)
-        {
-            //systemPrompt = flapper.BuildSystemMessagev3(systemMessageData);
-            uMsg = $"[SPEECH] {uMsg}";
-        }
-        else
-        {
-            //systemPrompt = flapper.BuildSystemMessagev2(systemMessageData);
-            uMsg = $"[REPORT] {uMsg}";
-
-        }
-
-        // 4. Build available tools
-        var tools = flapperOllamaApi.BuildFlapperOllamaTools();
-
-        // 5. Multi-turn reasoning loop (Flapper can call tools multiple times)
-        const int MaxTurns = 6;
-        int turn = 0;
-        FlapperResponse result;
-        bool isClarification = false;
-        string curMsg = string.Empty;
-        do
-        {
-            turn++;
-            curMsg = string.Empty;
-            conversation.Messages = await db.FlapperMessages
-                .Where(c => c.ConversationId == conversation.Id)
-                .OrderBy(m => m.SentAt)
-                .ToListAsync();
-
-            result = await flapperOllamaApi.OllamaProcessWithToolsAsync(
-                conversation,
-                req.flapperDTO,
-                uMsg,
-
-                tools, async chunk =>
+                conversation = new FlapperConversation
                 {
-                    if (chunk.StartsWith("[") && string.IsNullOrEmpty(curMsg))
-                    {
-                        isClarification = true;
-                        //turn = MaxTurns;
-                    }
-                    curMsg += chunk;
+                    Id = req.ConversationId,
+                    UserId = req.UserId,
+                    Title = req.Message.Length > 50 ? req.Message.Substring(0, 50) + "..." : req.Message
+                };
+                db.FlapperConversations.Add(conversation);
+            }
 
-                    if (!isClarification)
-                    {
-                        // Stream thinking/content chunks to UI in real-time
-                        var streamMessage = new PulseMessage
-                        {
-                            SenderUserName = "Flapper",
-                            RecipientUserId = req.UserId,
-                            Role = "Flapper",
-                            Subject = "Flapper is thinking...",
-                            ContentType = "HTML",
-                            Content = chunk,
-                            SentAt = DateTime.UtcNow
-                        };
-                    
-                        await hubContext.Clients.User(req.UserId.ToString())
-                        .SendAsync("ReceiveFlapperChunk", streamMessage);
-                    }
-                });
-
-            // If no tool calls → we're done
-            if (result.ToolCalls == null || !result.ToolCalls.Any() || isClarification)
-                break;
-
+            // 2. Save user message
             db.FlapperMessages.Add(new FlapperMessage
             {
                 ConversationId = conversation.Id,
-                Sender = "Flapper",
-                Content = curMsg,
+                Sender = "User",
+                Content = req.Message,
                 SentAt = DateTime.UtcNow
             });
             await db.SaveChangesAsync();
 
-            // Execute each tool call
-            foreach (var toolCall in result.ToolCalls)
-            {
-                string toolResult = toolCall.ToolName switch
-                {
-                    "ask_tables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
-                    "web_search" => await ExecuteWebSearchAsync(toolCall.Parameters, flapperOllamaApi),
-                    "web_fetch" => await ExecuteWebFetchAsync(toolCall.Parameters, flapperOllamaApi),
-                    _ => $"Unknown tool: {toolCall.ToolName}"
-                };
+            conversation.LastActivity = DateTime.UtcNow;
 
-                // Save tool result back into conversation so Flapper can reason again
+            // 3. Build rich system prompt (with schema)
+            var systemMessageData = new SystemMessageData
+            {
+                CompanyName = "H&M Rollers",
+                CompanyInformation = AiPromptHelperService.GetTempCoInfo(),
+                UserName = req.PreferredUserName,
+                DbSchema = await _aiShared.GetDetailedSchemaAsync(),
+                UserQuery = req.Message
+                // Add any other fields your BuildSystemMessagev2 needs
+            };
+
+            Flapper flapper = new Flapper();
+            string? systemPrompt;
+            var uMsg = req.Message;
+
+            if (req.flapperDTO.SpokenResponses)
+            {
+                //systemPrompt = flapper.BuildSystemMessagev3(systemMessageData);
+                uMsg = $"[SPEECH] {uMsg}";
+            }
+            else
+            {
+                //systemPrompt = flapper.BuildSystemMessagev2(systemMessageData);
+                uMsg = $"[REPORT] {uMsg}";
+
+            }
+
+            // 4. Build available tools
+            var tools = flapperOllamaApi.BuildFlapperOllamaTools();
+
+            // 5. Multi-turn reasoning loop (Flapper can call tools multiple times)
+            const int MaxTurns = 6;
+            int turn = 0;
+            FlapperResponse result;
+            bool isClarification = false;
+            string curMsg = string.Empty;
+            do
+            {
+                turn++;
+                cancellationToken.ThrowIfCancellationRequested();
+                curMsg = string.Empty;
+                conversation.Messages = await db.FlapperMessages
+                    .Where(c => c.ConversationId == conversation.Id)
+                    .OrderBy(m => m.SentAt)
+                    .ToListAsync(cancellationToken);
+
+                result = await flapperOllamaApi.OllamaProcessWithToolsAsync(
+                    conversation,
+                    req.flapperDTO,
+                    uMsg,
+
+                    tools, async chunk =>
+                    {
+                        if (chunk.StartsWith("[") && string.IsNullOrEmpty(curMsg))
+                        {
+                            isClarification = true;
+                            //turn = MaxTurns;
+                        }
+                        curMsg += chunk;
+
+                        if (!isClarification)
+                        {
+                            // Stream thinking/content chunks to UI in real-time
+                            var streamMessage = new PulseMessage
+                            {
+                                SenderUserName = "Flapper",
+                                RecipientUserId = req.UserId,
+                                Role = "Flapper",
+                                Subject = "Flapper is thinking...",
+                                ContentType = "HTML",
+                                Content = chunk,
+                                SentAt = DateTime.UtcNow
+                            };
+
+                            await hubContext.Clients.User(req.UserId.ToString())
+                            .SendAsync("ReceiveFlapperChunk", streamMessage);
+                        }
+                    }, cancellationToken);
+
+                // If no tool calls → we're done
+                if (result.ToolCalls == null || !result.ToolCalls.Any() || isClarification)
+                    break;
+
                 db.FlapperMessages.Add(new FlapperMessage
                 {
                     ConversationId = conversation.Id,
-                    Sender = "tool",
-                    Content = toolResult,
-                    SentAt = DateTime.UtcNow,
-                    ToolName = toolCall.ToolName
+                    Sender = "Flapper",
+                    Content = curMsg,
+                    SentAt = DateTime.UtcNow
                 });
+                await db.SaveChangesAsync();
+
+                // Execute each tool call
+                foreach (var toolCall in result.ToolCalls)
+                {
+                    string toolResult = toolCall.ToolName switch
+                    {
+                        "ask_tables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
+                        "web_search" => await ExecuteWebSearchAsync(toolCall.Parameters, flapperOllamaApi),
+                        "web_fetch" => await ExecuteWebFetchAsync(toolCall.Parameters, flapperOllamaApi),
+                        _ => $"Unknown tool: {toolCall.ToolName}"
+                    };
+
+                    // Save tool result back into conversation so Flapper can reason again
+                    db.FlapperMessages.Add(new FlapperMessage
+                    {
+                        ConversationId = conversation.Id,
+                        Sender = "tool",
+                        Content = toolResult,
+                        SentAt = DateTime.UtcNow,
+                        ToolName = toolCall.ToolName
+                    });
+                }
+
+                await db.SaveChangesAsync();
+
+            } while (turn < MaxTurns);
+
+            if (result.Content.StartsWith("[CLARIFICATION] ["))
+            {
+                isClarification = true;
             }
+            // 6. Save Flapper's final response
+            db.FlapperMessages.Add(new FlapperMessage
+            {
+                ConversationId = conversation.Id,
+                Sender = "Flapper",
+                Content = result.Content ?? result.Thinking ?? "No response generated.",
+                SentAt = DateTime.UtcNow,
+                ContentType = isClarification ? "Clarification" : "HTML",
+                IsClarificationQuestion = isClarification
+            });
 
             await db.SaveChangesAsync();
 
-        } while (turn < MaxTurns);
+            // 7. Send final message to UI via your existing hub
+            var finalMessage = new PulseMessage
+            {
+                SenderUserName = "Flapper",
+                RecipientUserId = req.UserId,
+                Role = "Flapper",
+                Subject = isClarification ? "Clarification" : "Flapper Reply",
+                ContentType = "HTML",
+                Content = isClarification ? curMsg.Replace("[CLARIFICATION] [", "").TrimEnd("]").ToString() : result.Content ?? result.Thinking ?? "",
+                SentAt = DateTime.UtcNow
+            };
 
-        if (result.Content.StartsWith("[CLARIFICATION] ["))
-        {
-            isClarification = true;
+            await hubContext.Clients.User(req.UserId.ToString())
+                .SendAsync("ReceiveMessage", finalMessage);
+
+            return Results.Ok(result);
+        
         }
-        // 6. Save Flapper's final response
-        db.FlapperMessages.Add(new FlapperMessage
+        catch (OperationCanceledException)
         {
-            ConversationId = conversation.Id,
-            Sender = "Flapper",
-            Content = result.Content ?? result.Thinking ?? "No response generated.",
-            SentAt = DateTime.UtcNow,
-            ContentType = isClarification ? "Clarification" : "HTML",
-            IsClarificationQuestion = isClarification
-        });
-
-        await db.SaveChangesAsync();
-
-        // 7. Send final message to UI via your existing hub
-        var finalMessage = new PulseMessage
+            return Results.Ok(new FlapperResponse
+            {
+        Success = false,
+                Content = "The operation was cancelled."
+            });
+        }
+        catch (Exception ex)
         {
-            SenderUserName = "Flapper",
-            RecipientUserId = req.UserId,
-            Role = "Flapper",
-            Subject = isClarification ? "Clarification" : "Flapper Reply",
-            ContentType = "HTML",
-            Content = isClarification ? curMsg.Replace("[CLARIFICATION] [","").TrimEnd("]").ToString() : result.Content ?? result.Thinking ?? "",
-            SentAt = DateTime.UtcNow
-        };
-
-        await hubContext.Clients.User(req.UserId.ToString())
-            .SendAsync("ReceiveMessage", finalMessage);
-
-        return Results.Ok(result);
+            return Results.Ok(new FlapperResponse
+            {
+    Success = false,
+                Content = $"An error occurred: {ex.Message}"
+            });
+        }
     }
+
     private static async Task<string> ExecuteAskTablesAsync(TablesAPI tablesApi, Dictionary<string, object> parameters, string originalQuery)
     {
         if (!parameters.TryGetValue("query", out var queryObj))

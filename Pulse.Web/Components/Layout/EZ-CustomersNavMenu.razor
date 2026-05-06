@@ -545,7 +545,7 @@ else
 
                 Example Information to include in your summary:
                 1) Do we have a long standing relationship with the client or is it a new client?
-                2) Is the account active? i.e. Are Sales Consistent, Dropping Off, or InActive for a long period. No Sales for the last 3 years means the client is InActive.
+                2) Is the account active? i.e. Are Sales Consistent, Dropping Off, or InActive for a long period. No Sales for the last 3 years from todays date means the client is InActive.
                 3) How valuable in terms of contribution to Sales is the client?
                 4) Which months are typically high sales months and which are low sales months?
                 5) Any other relevant information you can find from the sales history.
@@ -668,7 +668,7 @@ else
                 {blankBud}
 
                 Update the BudgetedSales figure for each item then return the list in exactly the same format. 
-                If the Customer has no sales for the previous three years, and {customer.CreatedDate} is older than three years then 
+                If the Customer has no sales for the previous three years from todays date, and {customer.CreatedDate} is older than three years then 
                 return only the string 'NoSales'
                 
                 """;

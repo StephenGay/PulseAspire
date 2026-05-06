@@ -199,7 +199,11 @@
                         }
                         else
                         {
-                            <CmpWorkTypeProductionStages wtID="selectedDivWT?.WorkTypeID ?? 0" />
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Top" Style="gap: 12px;">
+                                <CmpWorkTypeSetup divWT="selectedDivWT" />
+
+                                <CmpWorkTypeProductionStages wtID="selectedDivWT?.WorkTypeID ?? 0" />
+                            </FluentStack>
                         }
                     }
             </div>

@@ -81,6 +81,7 @@ namespace Pulse.Models.Api
                 public const string ChatSession = $"{FlapperPrefix}/ChatSession";
                 public const string OllamaChatSession = $"{FlapperPrefix}/OllamaChatSession";
                 public static string GetUserConversationHistory(string userId) => $"{FlapperPrefix}/Conversations/UserHistory/{userId}";
+                public static string GetConversationMessages(Guid conversationId) => $"{FlapperPrefix}/Conversations/GetMessages/{conversationId}";
             }
             public static class EndpointsAli
             {
