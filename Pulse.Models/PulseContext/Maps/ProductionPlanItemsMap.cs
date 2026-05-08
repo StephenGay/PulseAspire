@@ -35,6 +35,9 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasColumnType("int")
                 .IsRequired();
 
+            builder.Property(p => p.WorkCentreID)
+                .HasColumnType("int");
+
             builder.Property(p => p.EquipmentItemID)
                 .HasColumnType("nvarchar(10)")
                 .HasMaxLength(10);
@@ -52,7 +55,10 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasColumnType("datetime2");
 
             builder.Property(p => p.ClosedByUserID)
-                .HasColumnType("int");
+                .HasColumnType("nvarchar(MAX)");
+
+            builder.Property(p => p.ZoneId)
+                .HasColumnType("nvarchar(MAX)");
 
             builder.Property(p => p.Status)
                 .HasColumnType("nvarchar(15)")

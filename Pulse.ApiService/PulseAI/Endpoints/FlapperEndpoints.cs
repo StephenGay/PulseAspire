@@ -477,7 +477,7 @@ public static class FlapperEndpoints
         //var contextualResult = $"**User asked**: {context.OriginalUserQuery}\n\n" +
         var contextualResult = $"**Web search results for '{query}'**:\n{results}";
 
-        return contextualResult.Length > 8000 ? contextualResult[..8000] + "..." : contextualResult;
+        return contextualResult.Length > 15000 ? contextualResult[..15000] + "..." : contextualResult;
         //if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
         //    return "Error: Missing 'query' argument";
 
@@ -507,7 +507,7 @@ public static class FlapperEndpoints
 
         // ✅ Include original user query and URL context in the tool result
         //var contextualResult = $"**Original user question**: {context.OriginalUserQuery}\n\n" +
-        var contextualResult = $"**Content fetched from {url}**:\n\n{content}";
+        var contextualResult = $"**Content fetched from {url}**:\n{content}";
 
         return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
     }

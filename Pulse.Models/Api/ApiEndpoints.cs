@@ -263,6 +263,8 @@ namespace Pulse.Models.Api
                     /// </summary>
                     public static string CreateProductionPlan(int workOrderNumber) =>
                         $"{ProductionPrefix}/WorkOrder/{workOrderNumber}/CreateProductionPlan";
+                    public static string RemoveProductionPlan(int workOrderNumber) =>
+                        $"{ProductionPrefix}/WorkOrder/{workOrderNumber}/RemoveProductionPlan";
                 }
             }
 
@@ -344,6 +346,11 @@ namespace Pulse.Models.Api
                     public static string Add(string divisionId) => $"{DivisionPrefix}/{Uri.EscapeDataString(divisionId)}/Add";
                 }
             }
+            ////public static class ProductionPlanning
+            ////{
+            ////    private const string ProductionPlanItemsPrefix = $"{Prefix}/ProductionPlanItems";
+            ////    public static string Update(int planItemId) => $"{ProductionPlanItemsPrefix}/Update/{planItemId}";
+            ////}
         }
 
         #endregion

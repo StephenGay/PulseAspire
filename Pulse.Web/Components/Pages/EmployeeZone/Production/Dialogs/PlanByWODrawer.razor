@@ -38,6 +38,8 @@
                 <FluentSpacer />
                 <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.PauseCircle().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" style="height:56px" class="btnShadow" OnClick="completeStage"></FluentButton>
                 <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.PlayCircle().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="startStage"></FluentButton>
+                <FluentSpacer />
+                <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowRedo().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" style="height:56px" class="btnShadow" OnClick="RedoPlan"></FluentButton>
             </FluentStack>
         @* </Animation> *@
         <br />
@@ -61,7 +63,7 @@
 @* </FluentDialogBody> *@
 
 
-    @code {
+@code {
     [Parameter]
     public WorkInProgressDto? SelectedWorkOrder { get; set; }
     List<ProductionPlanItem>? productionPlanItems;
@@ -69,7 +71,7 @@
     ProductionPlanItem? selectedItem;
     ProductionStage? selectedStage;
     private bool showOpt = false;
-    
+
 
     protected override async void OnParametersSet()
     {
@@ -81,6 +83,24 @@
         }
 
         StateHasChanged();
+    }
+
+    private async Task RedoPlan()
+    {
+        var result = await pApi.DeleteAsync(ApiEndpoints.Divisions.Production.WorkOrder.RemoveProductionPlan(SelectedWorkOrder.WorksOrderNo));
+        if(!result)
+        {
+            // Handle error (e.g., show a message to the user)
+            // return false;
+        }
+        
+        
+            productionPlanItems = null;
+            productionPlanItems = await pApi.GetAsync<List<ProductionPlanItem>>(ApiEndpoints.Divisions.Production.WorkOrder.CreateProductionPlan(SelectedWorkOrder.WorksOrderNo));
+                productionPlanItems = await pApi.GetWorkOrderProductionPlanAsync(SelectedWorkOrder.WorksOrderNo);
+        
+        
+        await InvokeAsync(StateHasChanged);
     }
 
     private void OnPlanRowClick(FluentDataGridRow<ProductionPlanItem> args)

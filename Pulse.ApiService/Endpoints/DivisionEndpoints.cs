@@ -18,13 +18,13 @@ namespace Pulse.ApiService.Endpoints
     {
         internal const string BasePath = "/Divisions";
         internal const string ByDivIdPath = "/{divisionid}";
-        
+
 
         public static void MapDivisionEndpoints(this IEndpointRouteBuilder routes)
         {
             var group = routes.MapGroup(BasePath).WithTags("Divisions");
 
-            group.MapGet("/GetAll", async ( PulseDbContext db) =>
+            group.MapGet("/GetAll", async (PulseDbContext db) =>
                 await db.DivisionMaster
                 .ToListAsync())
                 .WithName("GetAllDivisions")
@@ -57,7 +57,7 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetAllWorkTypes")
                 .Produces<List<WorkType>>(StatusCodes.Status200OK);
 
-            group.MapGet(ByDivIdPath + "/GetProductionStagesByWorkType/{workTypeId}", async(string divisionId, int workTypeId, PulseDbContext db) =>
+            group.MapGet(ByDivIdPath + "/GetProductionStagesByWorkType/{workTypeId}", async (string divisionId, int workTypeId, PulseDbContext db) =>
                 await db.ProductionStageMaster
                 .Where(w => w.IsActive && w.WorkTypeID == workTypeId && w.DivisionID == divisionId)
                 .OrderBy(e => e.StepNo)
@@ -134,7 +134,7 @@ namespace Pulse.ApiService.Endpoints
                 .AsNoTracking()
                 .Where(w => w.ProductionStageID == productionStageId)
                 .Include(e => e.EquipmentItem)
-                    .ThenInclude(i => i.EquipmentCategory!) 
+                    .ThenInclude(i => i.EquipmentCategory!)
                 .ToListAsync())
                 .WithName("GetProdStageEquipment")
                 .Produces<List<EquipmentCapability>>(StatusCodes.Status200OK);
@@ -143,7 +143,7 @@ namespace Pulse.ApiService.Endpoints
             {
                 dbContext.EquipmentCapabilities.Add(equipCap);
                 await dbContext.SaveChangesAsync();
-                return Results.Created("Divisions/Equipment/Capabilities/Add/",equipCap);
+                return Results.Created("Divisions/Equipment/Capabilities/Add/", equipCap);
             });
 
             group.MapPost("/WorkCentre/Functions/Add/", async (WorkCentreFunctions wcFunc, PulseDbContext dbContext) =>
@@ -224,12 +224,16 @@ namespace Pulse.ApiService.Endpoints
                 foreach (var item in wtPS)
                 {
                     sNo++;
+                    var wcFunc = await db.WorkCentreFunctionsMaster
+                        .Where(wcf => wcf.ProductionStageID == item.ProductionStageId)
+                        .FirstOrDefaultAsync();
                     var ppi = new ProductionPlanItem()
                     {
                         WorkOrderNo = WO.WorksOrderNo,
                         DivisionID = WO.DivisionID,
                         StepNo = sNo,
                         ProductionStageID = item.ProductionStageId,
+                        WorkCentreID = wcFunc != null ? wcFunc.WorkCentreID : (int?)null,
                         Status = "Unplanned",
                     };
                     db.ProductionPlanItems.Add(ppi);
@@ -254,22 +258,22 @@ namespace Pulse.ApiService.Endpoints
                     WHERE   wo.DivisionID = @divisionId
                       AND   wo.UndelQty > 0";
 
-                            var param = new SqlParameter("@divisionId", divisionId);
+                var param = new SqlParameter("@divisionId", divisionId);
 
-                            var events = await db.Database
-                                .SqlQueryRaw<CalendarEvent>(sql, param)
-                                .ToListAsync();
+                var events = await db.Database
+                    .SqlQueryRaw<CalendarEvent>(sql, param)
+                    .ToListAsync();
 
-                            return Results.Ok(events);
-                        })
+                return Results.Ok(events);
+            })
             .WithName("GetWipPlan");
 
             group.MapGet(ByDivIdPath + "/GetWIP/PlanItems", async (string divisionId, PulseDbContext db) =>
             {
                 TimeSpan d = new TimeSpan(0, 30, 0);
-                
+
                 var items = await db.ProductionPlanItems
-                    .Where(p => p.DivisionID == divisionId && (p.Status == "Planned" || p.Status=="Started"))
+                    .Where(p => p.DivisionID == divisionId && (p.Status == "Planned" || p.Status == "Started"))
                     .Include(wo => wo.WorksOrder)
                         .ThenInclude(c => c.Customer)
 
@@ -416,10 +420,10 @@ namespace Pulse.ApiService.Endpoints
                     .Select(wcf => wcf.ProductionStageID)
                     .ToListAsync();
 
-                    if (!supportedStageIds.Any())
-                    {
-                        return Results.BadRequest($"Work centre {workCentreId} has no allocated production stages.");
-                    }
+                if (!supportedStageIds.Any())
+                {
+                    return Results.BadRequest($"Work centre {workCentreId} has no allocated production stages.");
+                }
 
                 var items = await db.ProductionPlanItems
                     .Where(p => (p.Status == "Planned" || p.Status == "Started") && supportedStageIds.Contains(p.ProductionStageID))
@@ -433,9 +437,9 @@ namespace Pulse.ApiService.Endpoints
                         Title = p.WorkOrderNo.ToString(),
                         Start = p.PlannedStartTime,
                         End = p.PlannedEndTime,
-                        
-                
-                    BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
+
+
+                        BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
                         ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
                         Description = p.WorksOrder != null ? p.WorksOrder.Description : null
                     })
@@ -451,7 +455,7 @@ namespace Pulse.ApiService.Endpoints
                     .Where(p => p.ProductionPlanItemID == itemID)
                     .Include(wo => wo.WorksOrder)
                         .ThenInclude(c => c.Customer)
-                    
+
                     .Select(p => new ProductionPlanEvent
                     {
                         Id = p.ProductionPlanItemID,
@@ -483,12 +487,12 @@ namespace Pulse.ApiService.Endpoints
                     .Include(p => p.ProductionStage)
                     .Include(e => e.EquipmentItem)
                     .FirstOrDefaultAsync();
-                    if (item == null)
-                    {
-                        return Results.NotFound($"No Plan Item found with ID {itemID}");
-                    }
-                    return Results.Ok(item);
-                })
+                if (item == null)
+                {
+                    return Results.NotFound($"No Plan Item found with ID {itemID}");
+                }
+                return Results.Ok(item);
+            })
                 .WithName("GetWipPlanItemById");
 
             group.MapGet("/Production/GetProductionStageByID/{itemID}", async (int itemID, PulseDbContext db) =>
@@ -566,9 +570,23 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(pp);
             })
                 .WithName("GetPlanByWO");
-        }
 
-        private static async Task<IResult> SaveFactoryLayout(
+
+            group.MapDelete("/Production/WorkOrder/{WorkOrderNo}/RemoveProductionPlan", async (int WorkOrderNo, PulseDbContext dbContext) =>
+                {
+                    var items = await dbContext.ProductionPlanItems
+                        .Where(p => p.WorkOrderNo == WorkOrderNo)
+                        .ToListAsync();
+                    if (items == null || items.Count == 0)
+                    {
+                        return Results.NotFound($"No Production Plan Items found for Work Order {WorkOrderNo}");
+                    }
+                    dbContext.ProductionPlanItems.RemoveRange(items);
+                    await dbContext.SaveChangesAsync();
+                    return Results.Ok($"Production Plan Items for Work Order {WorkOrderNo} have been deleted.");
+                });
+        }
+private static async Task<IResult> SaveFactoryLayout(
             string divisionid,
             string parentId,
             List<FactoryZone> zones,

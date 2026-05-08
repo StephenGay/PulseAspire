@@ -159,7 +159,7 @@ namespace Pulse.Models.CustomComponents
         [JsonPropertyName("url")]
         public string Url { get; set; } = string.Empty;
 
-        [JsonPropertyName("snippet")]
+        [JsonPropertyName("content")]
         public string Snippet { get; set; } = string.Empty;
     }
 

@@ -593,7 +593,7 @@
         await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
         // await PulseApi.PostAsync<FlapperChatRequest, object>(ApiEndpoints.PulseAi.Flapper.Chat, request);
 
-        
+
     }
 
     private async Task SendCustomReplyAsync()
@@ -630,7 +630,10 @@
         }
         else
         {
-            if (SpokenResponse) await SpeakIncremental(msgContent);
+            if (SpokenResponse){
+                // string cleanText = PrepareForSpeech(msgContent);
+                await SpeakIncremental(msgContent);
+            }
             CurrentFlapperResponse += msgContent;
 
         }
@@ -697,21 +700,97 @@
     }
 
     #endregion
+    // private async Task SpeakIncremental(string newDelta)
+    // {
+    //     if (string.IsNullOrWhiteSpace(newDelta)) return;
 
+    //     newDelta = newDelta.Replace(" U.S.", " United States");
+    //     _answerBuilder.Append(newDelta);
+
+    //     string fullText = _answerBuilder.ToString();
+
+    //     // Find real sentence endings: . ! ? followed by space or end of text
+    //     var matches = System.Text.RegularExpressions.Regex.Matches(
+    //         fullText.Substring(_lastSpokenCharIndex),
+    //         @"[^.!?]+[.!?]+(?:\s+|$)",
+    //         System.Text.RegularExpressions.RegexOptions.Compiled);
+
+    //     foreach (System.Text.RegularExpressions.Match match in matches)
+    //     {
+    //         string sentence = match.Value.Trim();
+
+    //         if (string.IsNullOrWhiteSpace(sentence)) continue;
+
+    //         // Skip common false positives (version numbers, abbreviations, etc.)
+    //         if (IsLikelyNotSentenceEnd(sentence))
+    //             continue;
+
+    //         string cleanSentence = PrepareForSpeech(sentence);
+
+    //         if (!string.IsNullOrWhiteSpace(cleanSentence))
+    //         {
+    //             _isSpeaking = true;
+    //             await InvokeAsync(StateHasChanged);
+
+    //             await GlobalAI.AISpeak(cleanSentence, "Flapper");
+
+    //             // Move the index forward
+    //             _lastSpokenCharIndex += match.Index + match.Length;
+    //         }
+    //     }
+
+    //     // Fallback: Speak in chunks if no sentence break for a long time
+    //     if (fullText.Length - _lastSpokenCharIndex > 280)
+    //     {
+    //         string chunk = fullText.Substring(_lastSpokenCharIndex, 280);
+    //         string cleanChunk = PrepareForSpeech(chunk);
+    //         await GlobalAI.AISpeak(cleanChunk, "Flapper");
+    //         _lastSpokenCharIndex += 280;
+    //     }
+
+    //     _isSpeaking = false;
+    //     await InvokeAsync(StateHasChanged);
+    // }
+    // private bool IsLikelyNotSentenceEnd(string text)
+    // {
+    //     if (string.IsNullOrWhiteSpace(text)) return true;
+
+    //     // Skip decimals (2.5), versions (v1.2.3), etc.
+    //     if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\d+\.\d"))
+    //         return true;
+
+    //     // Common abbreviations
+    //     if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(U\.S\.|Dr\.|Mr\.|Mrs\.|Ms\.|Prof\.|Rev\.|etc\.)\b",
+    //             System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+    //         return true;
+
+    //     return false;
+    // }
     private async Task SpeakIncremental(string newDelta)
     {
-        newDelta = newDelta.Replace(" U.S.", " United States");
+        // newDelta = newDelta.Replace("U.S.", " United States");
         _answerBuilder.Append(newDelta);
 
         string full = _answerBuilder.ToString();
 
         // Find last complete sentence end
         int boundary = full.LastIndexOfAny(new[] { '!', '?', '\n' });
+        // int boundary = GetLastRealSentenceBoundary(full);
+
+        // // if (boundary < 1 && full.Length - _lastSpokenCharIndex > 150)
+        // // {
+        // //     boundary = _lastSpokenCharIndex + 150;
+        // //     // string chunk = full.Substring(_lastSpokenCharIndex, 300);
+        // //     // chunk = PrepareForSpeech(chunk);
+        // //     // await GlobalAI.AISpeak(chunk, "Flapper");
+        // //     // _lastSpokenCharIndex += 300;
+        // // }
         if (boundary < _lastSpokenCharIndex) return; // nothing new to speak
 
         string toSpeak = full.Substring(_lastSpokenCharIndex, boundary - _lastSpokenCharIndex + 1).Trim();
 
         if (string.IsNullOrWhiteSpace(toSpeak)) return;
+        // toSpeak = PrepareForSpeech(toSpeak);
 
         _isSpeaking = true;
         await InvokeAsync(StateHasChanged);
@@ -732,7 +811,16 @@
         _isSpeaking = false;
         await InvokeAsync(StateHasChanged);
     }
+    private int GetLastRealSentenceBoundary(string text)
+    {
+        // Look for .!? followed by space or end
+        var match = System.Text.RegularExpressions.Regex.Match(
+            text,
+            @"[.!?](?=\s|$)",
+            System.Text.RegularExpressions.RegexOptions.RightToLeft);
 
+        return match.Success ? match.Index : -1;
+    }
     private string PrepareForSpeech(string text)
     {
         if (string.IsNullOrWhiteSpace(text))
@@ -740,7 +828,7 @@
 
         text = text
             .Replace("\n\n", "\n")           // reduce big gaps
-            .Replace("\n", " ")              // turn newlines into spaces
+            // .Replace("\n", " ")              // turn newlines into spaces
             .Replace("  ", " ")              // collapse spaces
             .Replace("*", "")                // remove asterisks
             .Replace("**", "")
@@ -750,7 +838,7 @@
             .Replace("### ", "")
             .Replace("## ", "")
             .Replace("#### ", "")
-            .Replace(" U.S. ", " United States ")
+            // // .Replace(" U.S.", " United States ")
             .Trim();
 
         // Optional: make it even more spoken
@@ -1111,6 +1199,7 @@
             isSuccess = response?.Success == true ? true : false;
             if (isSuccess)
             {
+                await ClearChatHistory();
                 ConversationHistory = response?.Data?.ToList();
             }
         }

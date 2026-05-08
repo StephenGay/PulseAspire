@@ -23,13 +23,13 @@ namespace Pulse.Models.Production
         public int ProductionStageID { get; set; }
         [MaxLength(10)]
         public string? EquipmentItemID { get; set; }
-        //public string? ZoneId { get; set; } 
-        //public int? WorkCentreID { get; set; }
+        public string? ZoneId { get; set; }
+        public int? WorkCentreID { get; set; }
         public DateTime? PlannedStartTime { get; set; }
         public DateTime? PlannedEndTime { get; set; }
         public DateTime? ActualStartTime { get; set; }
         public DateTime? ActualEndTime { get; set; }
-        public int? ClosedByUserID { get; set; }
+        public string? ClosedByUserID { get; set; }
         [Required, MaxLength(15)]
         [DefaultValue("Unplanned")]
         public string Status { get; set; } = "Unplanned";
