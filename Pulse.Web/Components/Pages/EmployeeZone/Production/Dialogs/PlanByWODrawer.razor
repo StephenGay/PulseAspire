@@ -7,7 +7,7 @@
 @* <FluentDialogBody> *@
     @if(productionPlanItems != null)
     {
-        <div style="max-width:500px">
+        <div style="width:fit-content;margin:10px">
         @* <Animation Effect="@Effect.FadeInLeftBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> *@
         <FluentDataGrid TGridItem="ProductionPlanItem" Items="@productionPlanItems.AsQueryable()" 
                         GenerateHeader="GenerateHeaderOption.Sticky"
@@ -18,8 +18,11 @@
 
             @* <PropertyColumn Property="@(context => context.ProductionPlanItemID)" Title="ID" Align="Align.Center" Sortable="false" /> *@
             <PropertyColumn Property="@(context => context.StepNo)" Title="Step No" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.WorkCentreID)" Title="Work Centre ID" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.ProductionStage.ProductionStageName)" Title="Stage" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.ZoneId)" Title="Zone ID" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.PlannedStartTime)" Title="Planned" Format="dd/MM/yy" Align="Align.Center" Sortable="false" />
+            <PropertyColumn Property="@(context => context.EquipmentItemID)" Title="Equipment ID" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.ActualStartTime)" Title="Started" Format="dd/MM/yy HH:MM" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.ActualEndTime)" Title="Completed" Format="dd/MM/yy HH:MM" Align="Align.Center" Sortable="false" />
             <PropertyColumn Property="@(context => context.Status)" Title="Status" Align="Align.Center" Sortable="false" />
@@ -27,7 +30,7 @@
         @* </Animation> *@
         <br />
         @* <Animation Effect="@Effect.FadeInUpBig" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> *@
-            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding:10px">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding:10px; width:100%">
                 <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowCircleUp().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="togPlan"></FluentButton>
                 <FluentButton Appearance="Appearance.Neutral" IconStart="@(new Icons.Filled.Size48.ArrowCircleDown().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" style="height:56px" class="btnShadow" OnClick="startStage"></FluentButton>
                 <FluentSpacer />
@@ -59,6 +62,16 @@
         @* </Animation> *@
         }
         </div>
+        @* @if(selectedItem != null)
+        {
+        
+    
+            <div style="max-width:500px;margin:10px;border: 1px solid var(--pulse-dark-colour)">
+                <EditForm id="PlanWOForm" Model="@selectedItem">
+                    <input type="submit" value="Submit" class="btn btn-primary" />
+                </EditForm>
+            </div>
+        } *@
     }
 @* </FluentDialogBody> *@
 

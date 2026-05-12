@@ -27,6 +27,10 @@ namespace Pulse.ApiService.PulseAI.Characters;
 
 public class FlapperOllamaAPI
 {
+    private const int MAX_CHUNK_SIZE = 4096;
+    private const int MAX_DATABASE_RESULT_SIZE = 100000;
+    private const string TRUNCATION_INDICATOR = "\n... [result truncated due to size limits] ...";
+
     private readonly IOllamaApiClient _chatClient;
     private readonly ILogger<FlapperOllamaAPI> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
@@ -37,33 +41,32 @@ public class FlapperOllamaAPI
     private readonly Uri _cloudBaseAddress;
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public FlapperOllamaAPI(IOllamaApiClient chatClient, ILogger<FlapperOllamaAPI> logger, IHttpClientFactory httpClientFactory)
+    public FlapperOllamaAPI(IOllamaApiClient chatClient, ILogger<FlapperOllamaAPI> logger, IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _chatClient = chatClient;
         _logger = logger;
         _httpClientFactory = httpClientFactory;
-        _ollamaApiKey = "76c15b3643ba413aac7429bbb64e119a._BO65S6KcVBYl9PpsPwSc5WI"; // configuration["OllamaApi:Key"] ?? string.Empty;
+        _ollamaApiKey = configuration["OllamaApi:Key"] ?? string.Empty;
+        _localBaseAddress = new Uri(configuration["OllamaApi:EndpointHttp"] ?? "http://localhost:11434");
+        _cloudBaseAddress = new Uri("https://ollama.com");
         _jsonOptions = new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true,
             DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
         };
-        // Overall timeout
-
     }
 
-    public async Task<OllamaWebFetchResponse?> FetchWebPage(object searchFor, CancellationToken ct = default)
+    public async Task<OllamaWebFetchResponse?> FetchWebPage(string url, CancellationToken ct = default)
     {
         var searchUrl = "https://ollama.com/api/web_fetch";
 
-
-        ArgumentNullException.ThrowIfNull(searchFor);
+        ArgumentNullException.ThrowIfNull(url);
 
         try
         {
-            
             using var request = new HttpRequestMessage(HttpMethod.Post, searchUrl);
-            var jsonPayload = JsonSerializer.Serialize(searchFor, _jsonOptions);
+            var requestPayload = new { url };
+            var jsonPayload = JsonSerializer.Serialize(requestPayload, _jsonOptions);
             request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
             if (!string.IsNullOrEmpty(_ollamaApiKey))
             {
@@ -102,17 +105,43 @@ public class FlapperOllamaAPI
         }
     }
 
-    public async Task<OllamaWebSearchResponse?> SearchWeb(object searchFor, CancellationToken ct = default)
+    private async Task ChunkAndSendAsync(
+        string content,
+        Func<string, Task> onChunkReceived,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(content))
+            return;
+
+        if (content.Length > MAX_DATABASE_RESULT_SIZE)
+        {
+            content = content.Substring(0, MAX_DATABASE_RESULT_SIZE) + TRUNCATION_INDICATOR;
+            _logger.LogWarning("Large result truncated to {MaxSize} characters", MAX_DATABASE_RESULT_SIZE);
+        }
+
+        for (int i = 0; i < content.Length; i += MAX_CHUNK_SIZE)
+        {
+            var chunk = content.Substring(i, Math.Min(MAX_CHUNK_SIZE, content.Length - i));
+            await onChunkReceived(chunk);
+
+            if (i + MAX_CHUNK_SIZE < content.Length)
+            {
+                await Task.Delay(10, ct);
+            }
+        }
+    }
+
+    public async Task<OllamaWebSearchResponse?> SearchWeb(string query, CancellationToken ct = default)
     {
         var searchUrl = "https://ollama.com/api/web_search";
 
-        
-        ArgumentNullException.ThrowIfNull(searchFor);
+        ArgumentNullException.ThrowIfNull(query);
 
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Post, searchUrl);
-            var jsonPayload = JsonSerializer.Serialize(searchFor, _jsonOptions);
+            var requestPayload = new { query };
+            var jsonPayload = JsonSerializer.Serialize(requestPayload, _jsonOptions);
             request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
             if (!string.IsNullOrEmpty(_ollamaApiKey))
             {
@@ -178,7 +207,7 @@ public class FlapperOllamaAPI
             //    new OllamaMessage { Role = "system", Content = systemPrompt }
             //};
             messages.AddRange(history);
-            messages.Add(new OllamaMessage { Role = "user", Content = userMessage });
+            //messages.Add(new OllamaMessage { Role = "user", Content = userMessage });
 
             
             var request = new ChatRequest
@@ -385,6 +414,104 @@ public class FlapperOllamaAPI
         //}
 
         return tools;
+    }
+
+    public async Task<string> ProcessToolResultAsync(
+        string toolName,
+        Dictionary<string, object> parameters,
+        Func<string, Task> onChunkReceived,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            return toolName switch
+            {
+                ToolNames.WebSearch => await ExecuteWebSearchAsync(parameters, onChunkReceived, ct),
+                ToolNames.WebFetch => await ExecuteWebFetchAsync(parameters, onChunkReceived, ct),
+                ToolNames.AskTables => await ExecuteAskTablesAsync(parameters, onChunkReceived, ct),
+                _ => $"Error: Unknown tool '{toolName}'"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing tool: {ToolName}", toolName);
+            return $"Error executing tool '{toolName}': {ex.Message}";
+        }
+    }
+
+    private async Task<string> ExecuteWebSearchAsync(
+        Dictionary<string, object> parameters,
+        Func<string, Task> onChunkReceived,
+        CancellationToken ct = default)
+    {
+        if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
+            return "Error: Missing 'query' parameter for web search";
+
+        try
+        {
+            var result = await SearchWeb(query, ct);
+            if (result != null)
+            {
+                var jsonResult = JsonSerializer.Serialize(result, _jsonOptions);
+                await ChunkAndSendAsync(jsonResult, onChunkReceived, ct);
+                return $"Web search completed for query: '{query}'";
+            }
+
+            return $"No web search results for: '{query}'";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Web search failed");
+            return $"Web search error: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ExecuteWebFetchAsync(
+        Dictionary<string, object> parameters,
+        Func<string, Task> onChunkReceived,
+        CancellationToken ct = default)
+    {
+        if (!parameters.TryGetValue("url", out var urlObj) || urlObj is not string url)
+            return "Error: Missing 'url' parameter for web fetch";
+
+        try
+        {
+            var result = await FetchWebPage(url, ct);
+            if (result != null)
+            {
+                var jsonResult = JsonSerializer.Serialize(result, _jsonOptions);
+                await ChunkAndSendAsync(jsonResult, onChunkReceived, ct);
+                return $"Web page fetched: {url}";
+            }
+
+            return $"Failed to fetch: {url}";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Web fetch failed");
+            return $"Web fetch error: {ex.Message}";
+        }
+    }
+
+    private async Task<string> ExecuteAskTablesAsync(
+        Dictionary<string, object> parameters,
+        Func<string, Task> onChunkReceived,
+        CancellationToken ct = default)
+    {
+        if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
+            return "Error: Missing 'query' parameter";
+
+        try
+        {
+            var result = $"Tables query executed: {query}\n[Database query results would be inserted here]\n[Size-limited to prevent truncation]";
+            await ChunkAndSendAsync(result, onChunkReceived, ct);
+            return "Database query completed";
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tables query failed");
+            return $"Tables error: {ex.Message}";
+        }
     }
 
     /// <summary>

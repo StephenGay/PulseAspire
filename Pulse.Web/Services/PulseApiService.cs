@@ -511,7 +511,7 @@ namespace Pulse.Web.Services
         {
             ArgumentNullException.ThrowIfNull(prompt);
             return await PostAsync<ContextualPrompt, ContextualPrompt>(
-                ApiEndpoints.Ai.ContextualPrompt, prompt, ct);
+                ApiEndpoints.PulseAi.EndpointsAli.CustomPrompts.Add, prompt, ct);
         }
 
         public async Task<bool> RecordQueryVoteAsync(

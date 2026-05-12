@@ -448,7 +448,8 @@ public static class FlapperEndpoints
         var result = await tablesApi.AskTablesAsync(tablesRequest);
         if (result.Success)
         {
-            return $"**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
+            var tblResponse = $"**User asked**: {originalQuery}\n**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
+            return tblResponse;
         }
         else
         {
@@ -465,7 +466,7 @@ public static class FlapperEndpoints
         if (string.IsNullOrEmpty(query))
             return "Error: Query is empty";
 
-        var response = await flapperOllamaAPI.SearchWeb(new { query } );
+        var response = await flapperOllamaAPI.SearchWeb(query);
 
         if (response?.Results is not { Count: > 0 })
             return $"No search results found for '{query}' related to user question"; //: {context.OriginalUserQuery}";
@@ -493,7 +494,7 @@ public static class FlapperEndpoints
     {
         
 
-        
+
         if (!parameters.TryGetValue("url", out var urlObj))
             return "Error: Missing 'url' argument";
 
@@ -501,7 +502,7 @@ public static class FlapperEndpoints
         if (string.IsNullOrEmpty(url))
             return "Error: URL is empty";
 
-        var response = await flapperOllamaAPI.FetchWebPage(new { url });
+        var response = await flapperOllamaAPI.FetchWebPage(url);
         //Placeholder implementation -integrate with your actual web fetch service
         var content = response?.Content ?? "";
 

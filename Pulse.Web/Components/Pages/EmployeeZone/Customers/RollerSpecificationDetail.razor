@@ -4,11 +4,13 @@
 @using Pulse.Models.Customers
 @using Pulse.Models.Industries
 @using Pulse.Models.Misc
+@using Pulse.Models.Api
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
 @using Pulse.Models.Rollers
 @using Pulse.Web.Services
 
+@inject RollerDataTransferService RollerDTrf
 @inject DataTransferService DTrf
 @inject NavigationManager Navigation
 @inject AppState AppState
@@ -302,17 +304,24 @@
         {
             industryProcesses = await pApiClient.GetAsync<List<IndustryProcess>>($"/Technical/IndustryProcess/GetByIndustry/{customer.IndustryID}");
         }
-        
+        var shaftsResponse = await pApiClient.GetAsync<ApiResponse<List<RollerShaft>>>(ApiEndpoints.Customers.RollerSpecifications.GetActiveRollerShafts(tmpSpec.ClientRollerSpecificationID.ToString()));
+        if (shaftsResponse.Success)
+        {
+            List<RollerShaft> shafts = shaftsResponse.Data;
+            await RollerDTrf.SetgvSelectedRollerShafts(shafts);
+        }
         if(tmpSpec.ClientRollers == null)
         {
-            var rollers = await Http.GetFromJsonAsync<ICollection<ClientRollerDto>>($"http://localhost:7466/Customers/RollerSpecifications/AllDetailsBySpecID/{tmpSpec.ClientRollerSpecificationID}");
+            var rollers = await pApiClient.GetAsync<ICollection<ClientRollerDto>>(ApiEndpoints.Customers.RollerSpecifications.GetAllDetailsBySpecID(tmpSpec.ClientRollerSpecificationID.ToString()));
             rollers2 = rollers?.ToList();
             tmpSpec.ClientRollers = rollers.ToClientRollers();
             foreach(var roller in tmpSpec.ClientRollers)
             {
-                roller.WorksOrders = await Http.GetFromJsonAsync<ICollection<WorksOrder>>($"http://localhost:7466/Customers/RollerSpecifications/GetWOByRollerID/{roller.ClientRollerID}") ?? new List<WorksOrder>();
+                roller.WorksOrders = await pApiClient.GetAsync<ICollection<WorksOrder>>(ApiEndpoints.Customers.RollerSpecifications.GetWorkOrdersByRollNumber(roller.ClientRollerID)) ?? new List<WorksOrder>();
             }
-            tmpSpec.WorksOrders = await Http.GetFromJsonAsync<ICollection<WorksOrder>>($"http://localhost:7466/Customers/RollerSpecifications/GetWOBySpecID/{tmpSpec.ClientRollerSpecificationID}") ?? new List<WorksOrder>();
+            tmpSpec.WorksOrders = await pApiClient.GetAsync<ICollection<WorksOrder>>(ApiEndpoints.Customers.RollerSpecifications.GetWorkOrdersBySpecificationID(tmpSpec.ClientRollerSpecificationID.ToString())) ?? new List<WorksOrder>();
+            
+            
             await DTrf.SetgvSelectedRollSpec(tmpSpec);
         }
         cSpec = tmpSpec;

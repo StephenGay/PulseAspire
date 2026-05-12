@@ -1,203 +1,200 @@
-﻿//using Pulse.Models.Customers;
-//using Pulse.Models.Rollers;
-//using System.Numerics;
+﻿using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
+using Pulse.Models.Customers;
+using Pulse.Models.Rollers;
 
-//namespace Pulse.Web.Services;
+namespace Pulse.Web.Services;
 
-//public interface IRollerModelGenerationService
-//{
-//    Task<RollerModel3DDto> GenerateRollerModelAsync(string rollerId, ClientRoller rollerData);
-//}
+public class RollerModelGenerationService : IAsyncDisposable
+{
+    private readonly IJSRuntime _js;
+    private bool _initialized = false;
 
-//public class RollerModelGenerationService : IRollerModelGenerationService
-//{
-//    private readonly ILogger<RollerModelGenerationService> _logger;
-//    private readonly Pulse_AI pApi; // or your AI service
+    public RollerModelGenerationService(IJSRuntime js)
+    {
+        _js = js;
+    }
 
-//    public RollerModelGenerationService(
-//        ILogger<RollerModelGenerationService> logger,
-//        Pulse_AI pApi)
-//    {
-//        _logger = logger;
-//        this.pApi = pApi;
-//    }
+    /// <summary>
+    /// Initialize the 3D viewer
+    /// </summary>
+    public async Task<bool> InitializeViewerAsync(ElementReference container)
+    {
+        try
+        {
+            var success = await _js.InvokeAsync<bool>("RollerViewer3D.init", container);
+            if (success)
+                _initialized = true;
 
-//    public async Task<RollerModel3DDto> GenerateRollerModelAsync(string rollerId, ClientRoller rollerData)
-//    {
-//        try
-//        {
-//            _logger.LogInformation("Generating 3D model for roller: {RollerId}", rollerId);
+            return success;
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to initialize 3D viewer: {ex.Message}");
+            return false;
+        }
+    }
 
-//            // Build prompt for AI to generate roller specifications
-//            var prompt = BuildRollerPrompt(rollerData);
+    /// <summary>
+    /// Main method - Load complete roller with all components
+    /// </summary>
+    public async Task LoadRollerAsync(
+        ClientRollerSpecification roller,
+        List<RollerShaft> shafts)
+    {
+        if (!_initialized)
+            throw new InvalidOperationException("3D Viewer must be initialized first.");
 
-//            // Get AI response with specifications
-//            var aiResponse = await pApi.AskPulseAIAsync(prompt);
+        if (roller == null)
+            throw new ArgumentNullException(nameof(roller));
 
-//            // Parse AI response and generate geometry
-//            var geometry = GenerateGeometry(rollerData, aiResponse);
-//            var material = GenerateMaterial(rollerData);
-//            var components = GenerateComponents(rollerData);
+        await ClearSceneAsync();
 
-//            return new RollerModel3DDto
-//            {
-//                RollerId = rollerId,
-//                RollerName = rollerData.ClientRollerNumber,
-//                Geometry = geometry,
-//                Material = material,
-//                Components = components
-//            };
-//        }
-//        catch (Exception ex)
-//        {
-//            _logger.LogError(ex, "Failed to generate 3D model for roller {RollerId}", rollerId);
-//            throw;
-//        }
-//    }
+        // 1. Add Roller Shell
+        if (roller.ShellDiameter.HasValue && roller.ShellLength.HasValue)
+        {
+            await _js.InvokeVoidAsync("RollerViewer3D.addRoller",
+                (float)roller.ShellDiameter.Value,
+                (float)roller.ShellLength.Value);
+        }
 
-//    private string BuildRollerPrompt(ClientRoller roller)
-//    {
-//        return $@"Generate 3D roller specifications for:
-//Name: {roller.ClientRollerNumber}
-//Type: {roller.}
-//Diameter: {roller.Diameter}mm
-//Length: {roller.Length}mm
-//Compound: {roller.Compound}
-//Shell: {roller.Shell}
-//Hardness: {roller.Hardness}
+        // 2. Add Rubber Cover
+        if (roller.CoverDiameter.HasValue && roller.CoverLength.HasValue)
+        {
+            // Line 64 - Change 2.0 to 2.0m
+            float thickness = (float)((roller.CoverDiameter.Value - roller.ShellDiameter!.Value) / 2.0m);
+            float coverLength = (float)(roller.CoverLength.Value - 30); // slight inset
 
-//Provide technical specifications in JSON format with:
-//- surface_features: [list of features]
-//- layer_thicknesses: {{compound: X, shell: Y}}
-//- stress_points: [critical areas]";
-//    }
+            await _js.InvokeVoidAsync("RollerViewer3D.addRubberCover",
+                (float)(roller.CoverLeftOffset ?? 0),
+                coverLength,
+                thickness,
+                0x1a1a1a); // dark rubber
+        }
 
-//    private RollerGeometryDto GenerateGeometry(ClientRoller roller, string aiResponse)
-//    {
-//        // Generate cylinder geometry for roller
-//        var (vertices, indices, normals) = GenerateCylinderGeometry(
-//            roller.Diameter / 2f,  // radius
-//            roller.Length,
-//            segments: 32);
+        // 3. Add Shafts
+        if (shafts != null && shafts.Any())
+        {
+            double halfLength = (double)(roller.ShellLength!.Value / 2.0m);
 
-//        return new RollerGeometryDto
-//        {
-//            Vertices = vertices,
-//            Indices = indices,
-//            Normals = normals,
-//            Radius = roller.Diameter / 2f,
-//            Length = roller.Length
-//        };
-//    }
+            foreach (var shaft in shafts.Where(s => s.OuterDiameter > 0 && s.Length > 0))
+            {
+                double axialPos = shaft.AxialPosition;
 
-//    private RollerMaterialDto GenerateMaterial(ClientRoller roller)
-//    {
-//        // Map compound type to color
-//        var colorMap = new Dictionary<string, string>
-//        {
-//            { "natural", "#D2B48C" },
-//            { "black", "#1a1a1a" },
-//            { "green", "#228B22" },
-//            { "blue", "#4169E1" }
-//        };
+                // Alternative if you store position from left end:
+                // double axialPos = (shaft.PositionFromLeft ?? halfLength) - halfLength;
 
-//        return new RollerMaterialDto
-//        {
-//            Color = colorMap.TryGetValue(roller.Compound?.ToLower() ?? "natural", out var color)
-//                ? color
-//                : "#808080",
-//            Roughness = 0.6f,
-//            Metalness = 0.2f,
-//            Opacity = 1.0f
-//        };
-//    }
+                await _js.InvokeVoidAsync("RollerViewer3D.addShaft",
+                    (float)shaft.OuterDiameter,
+                    (float)shaft.Length,
+                    (float)axialPos,
+                    shaft.ShaftPosition?.ToLower() ?? "center",
+                    (float)(shaft.RadialOffset ?? 0),
+                    shaft.Id.ToString());
+            }
+        }
 
-//    private List<RollerComponentDto> GenerateComponents(ClientRoller roller)
-//    {
-//        var components = new List<RollerComponentDto>();
+        // 4. Final positioning + camera
+        await _js.InvokeVoidAsync("RollerViewer3D.applyFinalPositioning");
+        await _js.InvokeVoidAsync("RollerViewer3D.debugPositions");
+    }
 
-//        // Add shell component
-//        //if (!string.IsNullOrEmpty(roller.Shell))
-//        {
-//            components.Add(new RollerComponentDto
-//            {
-//                Name = "Shell",
-//                Type = "shell",
-//                Position = new float[] { 0, 0, 0 },
-//                Color = "#C0C0C0",
-//                //Properties = new() { { "material", roller.Shell } }
-//            });
-//        }
+    // ====================== ANIMATION CONTROLS ======================
+    public async Task SetSpinSpeedAsync(float speed = 0.004f)
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.setSpinSpeed", speed);
+    }
 
-//        // Add compound layer
-//        //if (!string.IsNullOrEmpty(roller.Compound))
-//        {
-//            components.Add(new RollerComponentDto
-//            {
-//                Name = "Compound",
-//                Type = "compound",
-//                Position = new float[] { 0, 0, 0 },
-//                //Color = GetCompoundColor(roller.Compound),
-//                //Properties = new() { { "type", roller.Compound } }
-//            });
-//        }
+    public async Task StartSpinAsync() => await _js.InvokeVoidAsync("RollerViewer3D.startSpin");
+    public async Task StopSpinAsync() => await _js.InvokeVoidAsync("RollerViewer3D.stopSpin");
 
-//        // Add stress points as visual indicators
-//        components.Add(new RollerComponentDto
-//        {
-//            Name = "Stress Point",
-//            Type = "indicator",
-//            Position = new float[] { roller.Diameter / 4f, 0, 0 },
-//            Color = "#FF6B6B",
-//            Properties = new() { { "severity", "medium" } }
-//        });
+    public async Task<bool> ToggleSpinAsync()
+    {
+        return await _js.InvokeAsync<bool>("RollerViewer3D.toggleSpin");
+    }
 
-//        return components;
-//    }
+    // ====================== CAMERA CONTROLS ======================
+    public async Task ResetCameraAsync() => await _js.InvokeVoidAsync("RollerViewer3D.resetCamera");
 
-//    private (float[], int[], float[]) GenerateCylinderGeometry(float radius, float length, int segments)
-//    {
-//        var vertices = new List<float>();
-//        var indices = new List<int>();
-//        var normals = new List<float>();
+    public async Task SetCameraPresetAsync(string preset)
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.setCameraPreset", preset);
+    }
 
-//        // Generate cylinder vertices
-//        for (int i = 0; i <= segments; i++)
-//        {
-//            float angle = (i / (float)segments) * 2 * MathF.PI;
-//            float x = radius * MathF.Cos(angle);
-//            float z = radius * MathF.Sin(angle);
+    public async Task ZoomToFitAsync() => await _js.InvokeVoidAsync("RollerViewer3D.zoomToFit");
+    public async Task ClearSceneAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.clearScene");
+    }
 
-//            // Top circle
-//            vertices.AddRange(new[] { x, length / 2f, z });
-//            normals.AddRange(new[] { x / radius, 0, z / radius });
+    public async Task ReloadAsync(ElementReference container, ClientRollerSpecification roller, List<RollerShaft> shafts)
+    {
+        await ClearSceneAsync();
+        await Task.Delay(50); // Small delay for cleanup
+        await LoadRollerAsync(roller, shafts);
+    }
+    public async Task AddDimensionLinesAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.addDimensionLines");
+    }
 
-//            // Bottom circle
-//            vertices.AddRange(new[] { x, -length / 2f, z });
-//            normals.AddRange(new[] { x / radius, 0, z / radius });
-//        }
+    public async Task RemoveDimensionLinesAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.removeDimensionLines");
+    }
 
-//        // Generate indices for cylinder sides
-//        for (int i = 0; i < segments; i++)
-//        {
-//            int a = i * 2;
-//            int b = a + 1;
-//            int c = ((i + 1) % segments) * 2;
-//            int d = c + 1;
+    public async Task EnableInteractivityAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.enableInteractivity");
+    }
+    // ====================== ADVANCED FEATURES ======================
+    public async Task<bool> ToggleExplodedViewAsync()
+    {
+        try
+        {
+            return await _js.InvokeAsync<bool>("RollerViewer3D.toggleExplodedView");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Error toggling exploded view: {ex.Message}");
+            return false;
+        }
+    }
 
-//            indices.AddRange(new[] { a, b, c });
-//            indices.AddRange(new[] { b, d, c });
-//        }
+    public async Task SetExplodedFactorAsync(double factor)
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.explodeView", factor);
+    }
 
-//        return (vertices.ToArray(), indices.ToArray(), normals.ToArray());
-//    }
+    public async Task CaptureScreenshotAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.captureScreenshot");
+    }
 
-//    private string GetCompoundColor(string compoundType) => compoundType?.ToLower() switch
-//    {
-//        "natural" => "#D2B48C",
-//        "black" => "#1a1a1a",
-//        "green" => "#228B22",
-//        "blue" => "#4169E1",
-//        _ => "#808080"
-//    };
-//}
+    public async Task AddMeasurementLabelsAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.addMeasurementLabels");
+    }
+
+    public async Task RemoveMeasurementLabelsAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.removeMeasurementLabels");
+    }
+    public async Task EnableAdvancedInteractivityAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.enableAdvancedInteractivity");
+    }
+
+    public async Task HideInfoPanelAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.hideInfoPanel");
+    }
+    public async ValueTask DisposeAsync()
+    {
+        try
+        {
+            await _js.InvokeVoidAsync("RollerViewer3D.dispose");
+        }
+        catch { /* Ignore if already disposed */ }
+    }
+}

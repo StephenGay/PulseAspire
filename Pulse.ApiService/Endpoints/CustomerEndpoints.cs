@@ -1,8 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Pulse.Models.Api;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
+using Pulse.Models.Rollers;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static System.Net.WebRequestMethods;
 
@@ -149,6 +151,10 @@ namespace Pulse.ApiService.Endpoints
             })
                 .WithName("GetRollerWObyId")
                 .Produces<List<WorksOrder>>(200);
+
+            group.MapGet("/RollerSpecifications/GetActiveRollerShafts/{specId}", GetActiveShaftsForRoller)
+                .WithName("GetActiveRollerShaftsBySpecId")
+                .Produces<ApiResponse<List<RollerShaft>>>(200);
 
             group.MapGet("/RollerSpecifications/AllDetailsBySpecID/{specId}", async (int specId, PulseDbContext db) =>
             {
@@ -339,6 +345,19 @@ namespace Pulse.ApiService.Endpoints
     .Accepts<CustomerUpdateDto>("application/json");
 
             #endregion
+        }
+
+        private static async Task<IResult> GetActiveShaftsForRoller(int specId, PulseDbContext db)
+        {
+            var shafts = await db.RollerShaftMaster
+                    .Where(s => s.ClientRollerSpecificationID == specId && s.IsActive)
+                    .ToListAsync();
+
+            if(shafts == null)
+            {
+                shafts = new List<RollerShaft>();
+            }
+            return Results.Ok(new ApiResponse<List<RollerShaft>>(shafts));
         }
     }
 }

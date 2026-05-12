@@ -19,12 +19,15 @@
             <Items>
                 @foreach (var ps in _reqPS)
                 {
-                    <RadzenTimelineItem>
+                    <RadzenTimelineItem PointSize="PointSize.Medium" PointStyle="PointStyle.Success" PointVariant="Variant.Outlined" PointShadow="5">
+                        <PointContent>
+                            <RadzenIcon Icon="alarm_on" />
+                        </PointContent>
                         <LabelContent>
                             <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0" Style="color: var(--pulse-dark-colour)">@ps.TargetTime</RadzenText>
                         </LabelContent>
                         <ChildContent>
-                            @ps.ProductionStageName 
+                            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0" Style="color: var(--pulse-dark-colour)">@ps.ProductionStageName</RadzenText>
                         </ChildContent>
                     </RadzenTimelineItem>
                 }

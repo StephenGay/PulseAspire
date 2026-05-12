@@ -44,12 +44,12 @@ public static class AliAiEndpoints
         //    return Results.Ok(prompt);
         //});
 
-        //group.MapPost("/ContextualPrompt", async (ContextualPrompt prompt, PulseDbContext dbContext) =>
-        //{
-        //    dbContext.ContextualPromptMaster.Add(prompt);
-        //    await dbContext.SaveChangesAsync();
-        //    return Results.Created($"/AI/ContextualPrompt/{prompt.ContextualPromptId}", prompt);
-        //});
+        group.MapPost("/CustomPrompts/Add", async (ContextualPrompt prompt, PulseDbContext dbContext) =>
+        {
+            dbContext.ContextualPromptMaster.Add(prompt);
+            await dbContext.SaveChangesAsync();
+            return Results.Created($"/AI/ContextualPrompt/{prompt.ContextualPromptId}", prompt);
+        });
 
         //group.MapGet("/GetCustomPromptsByAreaId/{areaid}", async (int areaid, PulseDbContext dbContext) =>
         //{

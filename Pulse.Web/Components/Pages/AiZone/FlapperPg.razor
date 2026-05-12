@@ -640,9 +640,9 @@
 
 
         var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
-        if (lastMsg != null)
-            lastMsg.Content = CurrentFlapperResponse;
-        else
+        if (lastMsg == null)
+            // lastMsg.Content = CurrentFlapperResponse;
+        // else
             Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
         // isLoading = false;
         await InvokeAsync(StateHasChanged);
@@ -668,7 +668,7 @@
             int ind = msg.Content.LastIndexOf("</thinking>");
             if(ind > -1)
             {
-                CurrentClarificationQuestion = msg.Content.Substring(ind + 10).Trim();
+                CurrentClarificationQuestion = msg.Content.Substring(ind + 11).Trim();
             }
             else
             {

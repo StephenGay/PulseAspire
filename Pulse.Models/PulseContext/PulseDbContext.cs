@@ -84,6 +84,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<AnalysisRequest> AnalysisRequests { get; set; }
         public DbSet<FlapperConversation> FlapperConversations { get; set; }
         public DbSet<FlapperMessage> FlapperMessages { get; set; }  
+        public DbSet<RollerShaft> RollerShaftMaster { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

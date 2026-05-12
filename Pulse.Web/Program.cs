@@ -50,6 +50,8 @@ builder.Services.AddScoped<Pulse_AI>();
 builder.Services.AddScoped<PulseApiService>();
 builder.Services.AddScoped<OllamaService>();
 builder.Services.AddScoped<DataTransferService>();
+builder.Services.AddScoped<RollerModelGenerationService>();
+builder.Services.AddScoped<RollerDataTransferService>();
 builder.Services.AddScoped<Global_AI_Functions>();
 builder.Services.AddScoped<GlobalFunctions>();
 builder.Services.AddScoped<ApiErrorHandler>();

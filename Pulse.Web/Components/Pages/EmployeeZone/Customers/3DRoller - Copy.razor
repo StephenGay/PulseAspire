@@ -1,0 +1,207 @@
+﻿@page "/EmployeeZone/Customers/3DRollerBackup"
+
+@using Pulse.Web.Services
+@using Pulse.Models.Customers
+
+@inject DataTransferService DTrf
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<style>
+.cparent {
+  display: flex;
+  flex-direction: column;
+  /* height: 100%; */
+  width: 100%;
+}
+
+.button-container {
+  padding: 10px;
+  background: #f5f5f5;
+  flex-shrink: 0;
+}
+
+.viewer-container {
+  flex: 1;
+  overflow: hidden;
+  width: 100%;
+  min-height: 400px;
+}
+
+</style>
+
+<div class="cparent">
+    @* <div class="button-container">
+        @if (isRollerLoaded)
+        {
+            <span class="badge bg-success">✓ Roller Loaded</span>
+        }
+        else
+        {
+            <span class="text-muted">Loading 3D Viewer...</span>
+        }
+    </div> *@
+    <div class="viewer-container">
+        <div @ref="viewerContainer" style="width: 100%; height: 100%;"></div>
+    </div>
+</div>
+
+@code {
+    private ElementReference viewerContainer;
+    private bool isRollerLoaded = false;
+    private ClientRollerSpecification? roller;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("console.log", "🔷 OnAfterRenderAsync - initializing Three.js viewer");
+            await InitializeViewerAsync();
+        }
+    }
+
+    private async Task InitializeViewerAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("console.log", "🔷 Initializing viewer...");
+
+            // Initialize the Three.js viewer - it will use container dimensions
+            bool success = await JS.InvokeAsync<bool>("RollerViewer3D.init", viewerContainer);
+
+            if (success)
+            {
+                await JS.InvokeVoidAsync("console.log", "✅ Viewer initialized successfully");
+
+                // Automatically add the roller on initialization (without scaling)
+                bool rollerSuccess = await AddRollerToSceneAsync();
+                bool coverSuccess = await AddRollerCoverToSceneAsync();
+
+                if (rollerSuccess && coverSuccess)
+                {
+                    // Now apply scaling and positioning after both are added
+                    await ApplyScalingAndPositioningAsync();
+                    isRollerLoaded = true;
+                    await InvokeAsync(() => StateHasChanged());
+                }
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("console.warn", "⚠️ Failed to initialize viewer");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"❌ Error initializing viewer: {ex.Message}");
+        }
+    }
+
+    private async Task<bool> AddRollerToSceneAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("console.log", "🔷 AddRollerToSceneAsync called");
+
+            roller = await DTrf.GetgvSelectedRollSpec();
+
+            if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
+            {
+                await JS.InvokeVoidAsync("console.warn", "⚠️ No roller data loaded or incomplete spec");
+                return false;
+            }
+
+            await JS.InvokeVoidAsync("console.log", $"🔷 Adding Roller - Diameter: {roller.ShellDiameter}, Length: {roller.ShellLength}");
+
+            float diameter = (float)roller.ShellDiameter;
+            float length = (float)roller.ShellLength;
+            float scale = 1f; // Scale will be applied after cover is added
+
+            // Add roller to scene without scaling yet
+            bool success = await JS.InvokeAsync<bool>("RollerViewer3D.addRoller", diameter, length, scale);
+
+            if (success)
+            {
+                await JS.InvokeVoidAsync("console.log", "✅ Roller added to scene (scaling to be applied after cover)");
+                return true;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("console.warn", "⚠️ Failed to add roller to scene");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"❌ ERROR in AddRollerToSceneAsync: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task<bool> AddRollerCoverToSceneAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("console.log", "🔷 AddRollerCoverToSceneAsync called");
+
+            if (roller is null || roller.ShellDiameter is null || roller.ShellLength is null)
+            {
+                await JS.InvokeVoidAsync("console.warn", "⚠️ No roller data loaded or incomplete spec");
+                return false;
+            }
+
+            await JS.InvokeVoidAsync("console.log", $"🔷 Adding Roller Cover - Diameter: {roller.CoverDiameter}, Length: {roller.CoverLength}");
+
+            float thickness = (float)((roller.CoverDiameter - roller.ShellDiameter)/ 2);
+            float length = (float)(roller.CoverLength - 30);
+
+            // Add rubber cover to scene (scaling to be applied after)
+            bool success = await JS.InvokeAsync<bool>("RollerViewer3D.addRubberCover", 
+                roller.CoverLeftOffset, 
+                length, 
+                thickness, 
+                0xFF0000
+            );
+
+            if (success)
+            {
+                await JS.InvokeVoidAsync("console.log", "✅ Roller Cover added to scene (scaling to be applied next)");
+                return true;
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("console.warn", "⚠️ Failed to add roller cover to scene");
+                return false;
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"❌ ERROR in AddRollerCoverToSceneAsync: {ex.Message}");
+            return false;
+        }
+    }
+
+    private async Task ApplyScalingAndPositioningAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("console.log", "🔷 ApplyScalingAndPositioningAsync called");
+
+            float scale = 1f; // Adjust if needed
+            bool success = await JS.InvokeAsync<bool>("RollerViewer3D.applyScalingAndPositioning", scale);
+
+            if (success)
+            {
+                await JS.InvokeVoidAsync("console.log", "✅ Scaling and positioning applied successfully");
+            }
+            else
+            {
+                await JS.InvokeVoidAsync("console.warn", "⚠️ Failed to apply scaling and positioning");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JS.InvokeVoidAsync("console.error", $"❌ ERROR in ApplyScalingAndPositioningAsync: {ex.Message}");
+        }
+    }
+}
+

@@ -1,0 +1,13 @@
+﻿.cparent {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: calc(100vh - 60px); /* Adjust based on your layout */
+}
+
+.viewer-container {
+    flex: 1;
+    overflow: hidden;
+    background: #0a0a0a;
+    border: 1px solid #333;
+}

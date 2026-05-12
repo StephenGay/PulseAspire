@@ -546,7 +546,7 @@
             Saving = false;
             txtQ = custTitle = custDesc = string.Empty;
             showSave = false;
-            // ContextPrompts.Add(newP);
+            await LoadAreas();
             StateHasChanged();
             return;
         }
@@ -733,7 +733,7 @@
                 The Roller Specification and it's subjects are here followed by the users query.
 
                 Data:
-                {dataText}
+    {dataText}
 
                 Query: {qry}
                 """;
@@ -766,7 +766,7 @@
                 Note: All Sales Amounts are in ZAR (South African Rands)
 
                 Data:
-            {dataText}
+    {dataText}
 
                 Query: {qry}
                 """;
@@ -795,13 +795,21 @@
         ollamaClient = HttpClientFactory.CreateClient("OllamaClient");
     }
 
+    private async Task LoadAreas()
+    {
+        isLoadingAreas = true;
+        var response = await pApiClient.GetAsync<ApiResponse<List<ContextualArea>>>(ApiEndpoints.PulseAi.EndpointsAli.CustomPrompts.GetAll);
+        contextualAreas = response.Data ?? new List<ContextualArea>();
+        isLoadingAreas = false;
+    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             ali = await dtrf.GetgvAli();
-            var response = await pApiClient.GetAsync<ApiResponse<List<ContextualArea>>>(ApiEndpoints.PulseAi.EndpointsAli.CustomPrompts.GetAll);
-            contextualAreas = response.Data ?? new List<ContextualArea>();
+            await LoadAreas();
+            // var response = await pApiClient.GetAsync<ApiResponse<List<ContextualArea>>>(ApiEndpoints.PulseAi.EndpointsAli.CustomPrompts.GetAll);
+            // contextualAreas = response.Data ?? new List<ContextualArea>();
             this._available = await this.SpeechRecognition.IsAvailableAsync();
             isLoadingAreas = false;
             StateHasChanged();

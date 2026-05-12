@@ -12,53 +12,53 @@ namespace Pulse.Models.Api
 
         #region Security Endpoints
 
-        public static class Security
-        {
-            private const string Prefix = $"{ApiPrefix}/Security";
-
-            public const string Login = $"{Prefix}/login";
-            public const string Register = $"{Prefix}/register";
-            public const string UpdateUser = $"{Prefix}/UpdateUser";
-            public const string Logout = $"{Prefix}/logout";
-            public const string RefreshToken = $"{Prefix}/refresh-token";
-            public const string CreateRole = $"{Prefix}/roles";
-            public const string GetAllUsers = $"{Prefix}/users";
-            public const string AssignRole = $"{Prefix}/assign-role";
-            public const string RemoveRole = $"{Prefix}/remove-role";
-            public const string GetRoles = $"{Prefix}/roles";
-            public const string ChangePassword = $"{Prefix}/change-password";
-
-            public static class Permissions
+            public static class Security
             {
-                private const string PermissionsPrefix = $"{Prefix}/permissions";
-                public const string GetAll = $"{PermissionsPrefix}/GetAll";
-                public const string Create = $"{PermissionsPrefix}/Create";
-                public const string Update = $"{PermissionsPrefix}/Update";
-                //public const string Delete = $"{PermissionsPrefix}/Delete";
-                public static string GetByRoleID(string roleId) => $"{PermissionsPrefix}/GetByRole/{roleId}";
-                public static string GetAssignedRoles(int permissionId) => $"{PermissionsPrefix}/GetAssignedRoles/{permissionId}";
-                public const string AssignToRole = $"{PermissionsPrefix}/AssignToRole";
-                public static string RemoveFromRole(string roleId, int permissionId) => $"{PermissionsPrefix}/RemoveFromRole/{roleId}/{permissionId}";
-                public static string GetByCategory(string category) => $"{PermissionsPrefix}/GetByCategory/{Uri.EscapeDataString(category)}";
+                private const string Prefix = $"{ApiPrefix}/Security";
 
-                public static class Categories
+                public const string Login = $"{Prefix}/login";
+                public const string Register = $"{Prefix}/register";
+                public const string UpdateUser = $"{Prefix}/UpdateUser";
+                public const string Logout = $"{Prefix}/logout";
+                public const string RefreshToken = $"{Prefix}/refresh-token";
+                public const string CreateRole = $"{Prefix}/roles";
+                public const string GetAllUsers = $"{Prefix}/users";
+                public const string AssignRole = $"{Prefix}/assign-role";
+                public const string RemoveRole = $"{Prefix}/remove-role";
+                public const string GetRoles = $"{Prefix}/roles";
+                public const string ChangePassword = $"{Prefix}/change-password";
+
+                public static class Permissions
                 {
-                    private const string CategoriesPrefix = $"{PermissionsPrefix}/categories";
-                    public const string GetAll = $"{CategoriesPrefix}/GetAll";
-                    public const string Create = $"{CategoriesPrefix}/Create";
-                    //public const string Update = $"{CategoriesPrefix}/Update";
-                    //public const string Delete = $"{CategoriesPrefix}/Delete";
+                    private const string PermissionsPrefix = $"{Prefix}/permissions";
+                    public const string GetAll = $"{PermissionsPrefix}/GetAll";
+                    public const string Create = $"{PermissionsPrefix}/Create";
+                    public const string Update = $"{PermissionsPrefix}/Update";
+                    //public const string Delete = $"{PermissionsPrefix}/Delete";
+                    public static string GetByRoleID(string roleId) => $"{PermissionsPrefix}/GetByRole/{roleId}";
+                    public static string GetAssignedRoles(int permissionId) => $"{PermissionsPrefix}/GetAssignedRoles/{permissionId}";
+                    public const string AssignToRole = $"{PermissionsPrefix}/AssignToRole";
+                    public static string RemoveFromRole(string roleId, int permissionId) => $"{PermissionsPrefix}/RemoveFromRole/{roleId}/{permissionId}";
+                    public static string GetByCategory(string category) => $"{PermissionsPrefix}/GetByCategory/{Uri.EscapeDataString(category)}";
+
+                    public static class Categories
+                    {
+                        private const string CategoriesPrefix = $"{PermissionsPrefix}/categories";
+                        public const string GetAll = $"{CategoriesPrefix}/GetAll";
+                        public const string Create = $"{CategoriesPrefix}/Create";
+                        //public const string Update = $"{CategoriesPrefix}/Update";
+                        //public const string Delete = $"{CategoriesPrefix}/Delete";
+                    }
+                }
+
+                public static class Roles
+                {
+                    private const string RolesPrefix = $"{Prefix}/Roles";
+                    public const string GetAll = $"{RolesPrefix}/GetAll";
+                    public const string Create = $"{RolesPrefix}/Add";
+
                 }
             }
-
-            public static class Roles
-            {
-                private const string RolesPrefix = $"{Prefix}/Roles";
-                public const string GetAll = $"{RolesPrefix}/GetAll";
-                public const string Create = $"{RolesPrefix}/Add";
-
-            }
-        }
 
         #endregion
 
@@ -92,6 +92,8 @@ namespace Pulse.Models.Api
                 {
                     private const string CustomPromptsPrefix = $"{AliPrefix}/CustomPrompts";
                     public const string GetAll = $"{CustomPromptsPrefix}/GetAll";
+                    public const string Add = $"{CustomPromptsPrefix}/Add";
+
                 }
 
                 public static class Analysis
@@ -324,7 +326,12 @@ namespace Pulse.Models.Api
             {
                 private const string RollerSpecificationsPrefix = $"{Prefix}/RollerSpecifications";
                 public static string Get3DModel(string rollerSpecId) => $"/3DRoller/{rollerSpecId}";
+                public static string GetActiveRollerShafts(string rollerSpecId) => $"{RollerSpecificationsPrefix}/GetActiveRollerShafts/{Uri.EscapeDataString(rollerSpecId)}";
+                public static string GetAllDetailsBySpecID(string rollerSpecId) => $"{RollerSpecificationsPrefix}/AllDetailsBySpecID/{Uri.EscapeDataString(rollerSpecId)}";
+                public static string GetWorkOrdersByRollNumber(int ClientRollerID) => $"{RollerSpecificationsPrefix}/GetWOByRollerID/{ClientRollerID}";
+                public static string GetWorkOrdersBySpecificationID(string rollerSpecId) => $"{RollerSpecificationsPrefix}/GetWOBySpecID/{Uri.EscapeDataString(rollerSpecId)}";
             }
+        
         }
 
         #endregion

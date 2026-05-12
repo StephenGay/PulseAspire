@@ -158,7 +158,8 @@ builder.Services.AddScoped<FlapperOllamaAPI>(sp =>
     var flapperOllamaClient = sp.GetRequiredService<IOllamaApiClient>();
     var logger = sp.GetRequiredService<ILogger<FlapperOllamaAPI>>();
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
-    return new FlapperOllamaAPI(flapperOllamaClient, logger, httpClientFactory);
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    return new FlapperOllamaAPI(flapperOllamaClient, logger, httpClientFactory, configuration);
 });
 
 builder.Services.AddHttpClient("FlapperApiClient", client =>
@@ -258,7 +259,11 @@ builder.Services.AddHostedService<FlapperWarmUp>();
 builder.Services.AddMemoryCache();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddSingleton<PresenceService>();
-builder.Services.AddSignalR(options => options.EnableDetailedErrors = true);
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+    options.MaximumReceiveMessageSize = 1024 * 1024; // 1MB limit for large responses
+});
 builder.Services.AddScoped<UserManager<ApplicationUser>>();
 builder.Services.AddSingleton<AiShared>();
 // Email Configuration

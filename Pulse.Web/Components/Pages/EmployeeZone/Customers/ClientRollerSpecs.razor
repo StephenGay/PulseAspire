@@ -1,10 +1,12 @@
 ﻿@page "/EmployeeZone/Customers/ClientRollerSpecs"
 @using Pulse.Models.Customers
+@using Pulse.Models.Rollers
 @using System.Text.Json
 @using Pulse.Models.Misc
 @using Pulse.Web.Services
 @using Microsoft.FluentUI.AspNetCore.Components
 
+@inject RollerDataTransferService rTrf
 @inject DataTransferService DTrf
 @inject Pulse.Web.Services.Pulse_AI pAI
 @inject NavigationManager Navigation
@@ -85,7 +87,7 @@ else
 </Animation>
 </div>
     </div>
-@code {
+    @code {
     Customer? _client;
     private bool isLoading = true;
     string? descFilter;
@@ -128,7 +130,7 @@ else
     {
         if(selSpec != null)
         {
-
+            await rTrf.SetgvSelectedRollerShafts(new List<RollerShaft>());
             await DTrf.SetgvSelectedRollSpec(selSpec);
             Navigation.NavigateTo("/EmployeeZone/Customers/RollerSpecificationDetail");
         }

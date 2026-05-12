@@ -1,4 +1,6 @@
-﻿// Direct Three.js viewer that works without BlazorThreeJS wrapper
+﻿
+
+// Direct Three.js viewer that works without BlazorThreeJS wrapper
 window.RollerViewer3D = {
     scene: null,
     camera: null,
@@ -209,91 +211,6 @@ window.RollerViewer3D = {
         }
     },
 
-    /**
- * Add a shaft to the scene with positioning
- * @param {number} outerDiameter - Shaft outer diameter in mm
- * @param {number} length - Shaft length in mm
- * @param {number} boreDiameter - Bearing bore diameter in mm
- * @param {string} shaftName - Unique name for this shaft
- * @param {number} axialPosition - Position along roller axis in mm (0 = left end)
- * @param {string} position - Side positioning: "left", "center", or "right"
- * @param {number} radialOffset - Radial offset from centerline in mm
- */
-    addShaft: function (outerDiameter, length, boreDiameter, shaftName = "shaft", yPosition = 0, position = "center", radialOffset = 0) {
-        try {
-            console.log(`🔷 Adding shaft '${shaftName}': outer=${outerDiameter}mm, length=${length}mm, bore=${boreDiameter}mm`);
-
-            // Use raw values - NO conversion (matching addRoller approach)
-            const outerRadius = outerDiameter / 2;
-            // const axialPos = axialPosition;
-            const radialOff = radialOffset;
-
-            // Create shaft geometry (cylinder)
-            const shaftGeom = new THREE.CylinderGeometry(
-                outerRadius,      // radiusTop
-                outerRadius,      // radiusBottom
-                length,           // height
-                64,               // radialSegments
-                1                 // heightSegments
-            );
-
-            // Create material with steel-like appearance
-            const shaftMaterial = new THREE.MeshStandardMaterial({
-                color: 0x555555,
-                metalness: 0.8,
-                roughness: 0.2
-            });
-
-            // Create mesh
-            const shaftMesh = new THREE.Mesh(shaftGeom, shaftMaterial);
-            shaftMesh.castShadow = true;
-            shaftMesh.receiveShadow = true;
-            shaftMesh.name = shaftName;
-
-            // DO NOT rotate here - rotate with roller/cover in applyScalingAndPositioning
-            // shaftMesh.rotation.x = Math.PI / 2;  ❌ REMOVE THIS
-
-            // Apply positioning (raw values, no conversion)
-            this.positionShaft(shaftMesh, position, yPosition, radialOff);
-            // in addShaft, after this.positionShaft(...)
-            shaftMesh.userData.axialPos = yPosition;
-            // Add to scene
-            this.scene.add(shaftMesh);
-            this.meshes.push(shaftMesh);
-
-            console.log(`✅ Shaft '${shaftName}' added at position: ${position}, y: ${yPosition}mm, radial: ${radialOffset}mm`);
-            console.log(`   - Radius: ${outerRadius}mm, Length: ${length}mm`);
-            console.log(`   - Position: x=${shaftMesh.position.x.toFixed(2)}, y=${shaftMesh.position.y.toFixed(2)}, z=${shaftMesh.position.z.toFixed(2)}`);
-            console.log(`   Total meshes in scene: ${this.meshes.length}`);
-            return true;
-        } catch (e) {
-            console.error(`❌ Error adding shaft:`, e);
-            return false;
-        }
-    },
-
-    /**
-     * Position shaft based on side and offsets
-     */
-    positionShaft: function (mesh, position, yPosition, radialOffset) {
-        const positionStr = position.toLowerCase();
-
-        // Y positioning: Use the calculated position directly (already accounts for roller length and shaft length)
-        mesh.position.y = yPosition;
-
-        // X positioning (radial/side offset) ** If shaft not in centre of shell
-        if (positionStr === "left") {
-            mesh.position.x = -(radialOffset);
-        } else {
-            mesh.position.x = radialOffset;
-        }
-
-        console.log(`📍 Shaft positioned (before rotation):`);
-        console.log(`   Position type: ${positionStr}`);
-        console.log(`   Y (axial before rotation): ${yPosition}mm`);
-        console.log(`   X (radial): ${radialOffset}mm`);
-        console.log(`   Final coords: x=${mesh.position.x.toFixed(2)}, y=${mesh.position.y.toFixed(2)}, z=${mesh.position.z.toFixed(2)}`);
-    },
     addRoller: function (diameter, length, scale) {
         try {
             if (typeof THREE === 'undefined') {
@@ -342,7 +259,6 @@ window.RollerViewer3D = {
             // Add to scene
             this.scene.add(roller);
             this.meshes.push(roller);
-            // this.mesh.rotation.x = Math.PI / 2;
 
             console.log(`✅ Roller added to scene`);
             console.log(`   - Meshes: ${this.meshes.length}`);
@@ -363,15 +279,18 @@ window.RollerViewer3D = {
                 return false;
             }
 
-            const roller = this.meshes.find(m => m.name === 'Roller');
-            const cover = this.meshes.find(m => m.name === 'RubberCover');
-
-            if (!roller || !cover) {
-                console.error('❌ Roller or cover not found');
-                return false;
-            }
+            const roller = this.meshes[0];
+            const cover = this.meshes[1];
 
             console.log(`🔷 Applying scale and positioning: scale=${scale}`);
+
+            // Apply scale to both
+            //roller.scale.set(scale, scale, scale);
+            //cover.scale.set(scale, scale, scale);
+
+            // Now rotate both to horizontal position
+            //roller.rotation.x = Math.PI / 2;
+            //cover.rotation.x = Math.PI / 2;
 
             // Get dimensions for camera positioning
             const bbox = new THREE.Box3().setFromObject(roller);
@@ -394,50 +313,62 @@ window.RollerViewer3D = {
 
             this.setCameraPosition(cameraX, cameraHeight, cameraZ);
 
-            // Rotate roller and cover to horizontal position
-            // console.log(`🔷 Rotating roller and cover to horizontal...`);
-            // roller.rotation.x = Math.PI / 2;
-            // cover.rotation.x = Math.PI / 2;
+            // Lift everything off the floor BEFORE rotating
+            const rollerRadius = roller.geometry.parameters.radiusTop;
+            //const coverRadiusOuter = rollerRadius + cover.geometry.parameters.coverRadiusOuter;
+            //const liftHeight = coverRadiusOuter + 50;
 
-            // Rotate all parts into same frame
-            for (let i = 0; i < this.meshes.length; i++) {
-                const mesh = this.meshes[i];
-                mesh.rotation.x = Math.PI / 2;
-                mesh.rotation.y = 0;
-            }
+             // liftHeight;
+            //cover.position.y = cover.position.y + 50; // liftHeight;
 
-            // Lift baseline
-            const liftHeight = (cover.userData.coverRadiusOuter || 63) + 10;
+            // Now rotate both to horizontal position
+            // Both are along Y axis, so rotate on X axis
+            roller.rotation.x = Math.PI / 2;
+            cover.rotation.x = Math.PI / 2;
 
-            // Position parts consistently on world axes
-            for (let i = 0; i < this.meshes.length; i++) {
-                const mesh = this.meshes[i];
+            // Lift both off the floor after rotation
+            // After X rotation, the radius extends in Y, so lift by the cover's outer radius
+            const liftHeight = cover.userData.coverRadiusOuter + 10;
+            roller.position.y = liftHeight;
+            cover.position.y = liftHeight;
 
-                // baseline lift
-                mesh.position.y = liftHeight;
+            // Debug: Log all coordinates after rotation
+            const rollerBbox = new THREE.Box3().setFromObject(roller);
+            const rollerMin = rollerBbox.min;
+            const rollerMax = rollerBbox.max;
+            console.log(`📐 DEBUG - Roller after rotation:`);
+            console.log(`   Position: (${roller.position.x.toFixed(2)}, ${roller.position.y.toFixed(2)}, ${roller.position.z.toFixed(2)})`);
+            console.log(`   Rotation: (${roller.rotation.x.toFixed(4)}, ${roller.rotation.y.toFixed(4)}, ${roller.rotation.z.toFixed(4)})`);
+            console.log(`   BBox min: (${rollerMin.x.toFixed(2)}, ${rollerMin.y.toFixed(2)}, ${rollerMin.z.toFixed(2)})`);
+            console.log(`   BBox max: (${rollerMax.x.toFixed(2)}, ${rollerMax.y.toFixed(2)}, ${rollerMax.z.toFixed(2)})`);
+            console.log(`   Roller radius: ${roller.geometry.parameters.radiusTop}`);
+            console.log(`   Roller length: ${roller.geometry.parameters.height}`);
 
-                // shafts: place along roller axis (Z) using stored axial position
-                if (mesh.name.startsWith("shaft_")) {
-                    mesh.position.z = mesh.userData.axialPos ?? 0;
-                    
-                }
-            }
+            const coverBbox = new THREE.Box3().setFromObject(cover);
+            const coverMin = coverBbox.min;
+            const coverMax = coverBbox.max;
+            console.log(`📐 DEBUG - Cover after rotation:`);
+            console.log(`   Position: (${cover.position.x.toFixed(2)}, ${cover.position.y.toFixed(2)}, ${cover.position.z.toFixed(2)})`);
+            console.log(`   Rotation: (${cover.rotation.x.toFixed(4)}, ${cover.rotation.y.toFixed(4)}, ${cover.rotation.z.toFixed(4)})`);
+            console.log(`   BBox min: (${coverMin.x.toFixed(2)}, ${coverMin.y.toFixed(2)}, ${coverMin.z.toFixed(2)})`);
+            console.log(`   BBox max: (${coverMax.x.toFixed(2)}, ${coverMax.y.toFixed(2)}, ${coverMax.z.toFixed(2)})`);
+            console.log(`   Cover userData.leftOffset: ${cover.userData.leftOffset}`);
 
-            // Debug logging
-            console.log(`📐 DEBUG - Objects after rotation and lift:`);
-            for (let i = 0; i < this.meshes.length; i++) {
-                const mesh = this.meshes[i];
-                const meshBbox = new THREE.Box3().setFromObject(mesh);
-                console.log(`   ${mesh.name}:`);
-                console.log(`      Position: (${mesh.position.x.toFixed(2)}, ${mesh.position.y.toFixed(2)}, ${mesh.position.z.toFixed(2)})`);
-                console.log(`      Rotation: (${mesh.rotation.x.toFixed(4)}, ${mesh.rotation.y.toFixed(4)}, ${mesh.rotation.z.toFixed(4)})`);
-                console.log(`      BBox: [${meshBbox.min.x.toFixed(2)}, ${meshBbox.min.y.toFixed(2)}, ${meshBbox.min.z.toFixed(2)}] → [${meshBbox.max.x.toFixed(2)}, ${meshBbox.max.y.toFixed(2)}, ${meshBbox.max.z.toFixed(2)}]`);
-            }
+            console.log(`📐 DEBUG - Overlap check:`);
+            console.log(`   Roller X range: ${rollerMin.x.toFixed(2)} to ${rollerMax.x.toFixed(2)} (diameter: ${(rollerMax.x - rollerMin.x).toFixed(2)})`);
+            console.log(`   Cover  X range: ${coverMin.x.toFixed(2)} to ${coverMax.x.toFixed(2)} (diameter: ${(coverMax.x - coverMin.x).toFixed(2)})`);
+            console.log(`   Roller Z range: ${rollerMin.z.toFixed(2)} to ${rollerMax.z.toFixed(2)} (length: ${(rollerMax.z - rollerMin.z).toFixed(2)})`);
+            console.log(`   Cover  Z range: ${coverMin.z.toFixed(2)} to ${coverMax.z.toFixed(2)} (length: ${(coverMax.z - coverMin.z).toFixed(2)})`);
 
-            // Enable roller spin animation
+            // Enable slow auto-rotate and roller spin
+            //if (this.controls) {
+            //    this.controls.autoRotate = true;
+            //    this.controls.autoRotateSpeed = 1.0;
+            //}
             this.animateRoller = true;
 
             console.log(`✅ Scale and positioning applied`);
+
             return true;
         } catch (error) {
             console.error('❌ Error applying scaling and positioning:', error);
@@ -445,6 +376,7 @@ window.RollerViewer3D = {
             return false;
         }
     },
+
     addRubberCover: function (leftOffset, coverLength, coverThickness, coverColor) {
         try {
             if (typeof THREE === 'undefined') {
@@ -465,7 +397,7 @@ window.RollerViewer3D = {
             console.log(`🔷 Adding rubber cover: offset=${leftOffset}, length=${coverLength}, thickness=${coverThickness}, color=${coverColor}`);
 
             // Get the roller mesh to match its dimensions
-            const roller = this.meshes.find(m => m.name === 'Roller');
+            const roller = this.meshes[0];
             const rollerRadius = roller.geometry.parameters.radiusTop;
             const rollerLength = roller.geometry.parameters.height;
             // Cover starts at shell radius and extends by thickness (already radius difference)
@@ -537,7 +469,6 @@ window.RollerViewer3D = {
             // Add to scene
             this.scene.add(coverGroup);
             this.meshes.push(coverGroup);
-            // this.meshes.rotation.x = Math.PI / 2;
 
             console.log(`✅ Rubber cover added to scene`);
             console.log(`   - Roller radius (inner): ${rollerRadius.toFixed(2)}`);
@@ -586,13 +517,11 @@ window.RollerViewer3D = {
     animate: function () {
         requestAnimationFrame(() => this.animate());
 
-        // Spin ALL meshes around their length axis (Z after rotation)
-        if (this.animateRoller && this.meshes.length > 0) {
+        // Spin the roller and cover around their length axis (Z after rotation)
+        if (this.animateRoller && this.meshes.length >= 2) {
             const spinSpeed = 0.003;
-            for (let i = 0; i < this.meshes.length; i++) {
-                this.meshes[i].rotation.z += spinSpeed;
-            }
-            console.debug(`🔄 Spinning ${this.meshes.length} meshes`);
+            this.meshes[0].rotation.z += spinSpeed;
+            this.meshes[1].rotation.z += spinSpeed;
         }
 
         if (this.controls && this.controls.update) {
@@ -645,17 +574,6 @@ window.initThreeViewer = function (container, modelData) {
         viewer.meshes.push(mesh);
     }
 };
-
-
-
-
-
-
-
-
-
-
-
 
 
 

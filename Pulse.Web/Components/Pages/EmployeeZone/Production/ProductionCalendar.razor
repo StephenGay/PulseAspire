@@ -3,7 +3,7 @@
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
 @using Pulse.Web.Services
-@* @using Microsoft.JSInterop *@
+@using Microsoft.JSInterop
 @inject IJSRuntime JS
 @inject NavigationManager Navigation
 @inject PulseApiService pApi
@@ -18,18 +18,18 @@
         /* height: auto; */
         /* max-height: 600px; */
         overflow: auto;
-        border: 1px solid #ccc;
+        border: 1px solid var(--pulse-dark-colour);
         border-radius: 10px;
-        background: #bcd1d4;
+        background: var(--pulse-light-colour);
         text-align: center;
     }
     #external-events .fc-event {
         margin: 10px 0;
         cursor: pointer;
         padding: 4px;
-            background-color: #365b66;
-        color: white;
-        border-radius: 3px;
+            background-color: white;
+        color: black;
+        border-radius: 10px;
         }
     .wcSelect{
         border: 1px solid black;
@@ -42,7 +42,7 @@
 @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Width="100%" Style="height: 100%; padding: 10px;"> *@
     @* <div style="width:100%; height:100%; padding: 20px;border: 2px solid black; border-radius: 10px; background-color:white; overflow: scroll;"> *@
         
-    <div style="width:100%; height:95%; padding: 10px; margin:5px; border: 2px solid black; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
+    <div style="width:100%; height:100%; padding: 10px; margin:5px; border: 2px solid black; border-radius: 10px; background-color:white; display: flex; flex-direction: column; overflow: hidden;">
         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="flex: 0">
         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Width="50%" HorizontalAlignment="MsFluent.HorizontalAlignment.Start" VerticalAlignment="MsFluent.VerticalAlignment.Bottom">
                 <h6>PRODUCTION PLAN</h6>
@@ -71,23 +71,30 @@
 
         @* <FluentStack Orientation="Orientation.Horizontal" Style="overflow : scroll;"> *@
         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="flex: 1; overflow: hidden; display: flex;">
-
-            @* <div id='external-events' style="width:10%;"> *@
-            <div id='external-events' style="width:10%; height: 100%; overflow-y: auto;">
+        
+            
+        
+        @* <div id='external-events' style="width:10%;"> *@
+        <div id='external-events' style="width: 10%; height: 100%; overflow-y: auto;">
+            @if (workCentre != null)
+            {
                 @if(unplannedWO != null)
                 {
                     foreach( var item in unplannedWO)
-                        {
-                        string eventInfo = $"{item.ClientName}<br />{item.Description}<br />{item.Stage}";
-                            <Popover Placement="Placement.Bottom" Title="@item.Title" Content="@eventInfo" IsHtml="true">
-                    <div id="@item.Id" class="fc-event" >@item.Title</div>
-                        </Popover>
-                    
-                        }
+                    {
+                        <div id="@item.Id" class="fc-event btnShadow">
+                        <div style="width:stretch;text-align:left;padding-left:5px;font-size: 0.75rem;background-color:var(--pulse-dark-colour);color:var(--pulse-light-colour);margin: -4px -4px 0 -4px;border-top-left-radius:10px;border-top-right-radius:10px;">@item.Title</div>
+                            <div style="width:100%;text-align:left;padding-left:5px;font-size: 0.75rem;">@item.ClientName</div>
+                            <div style="width:100%;text-align:left;padding-left:5px;font-size: 0.75rem;">@item.Description</div>
+                            <div style="width:100%;text-align:left;padding-left:5px;font-size: 0.75rem;">@item.Stage</div>
+                        </div>
+                    }
                 }
+            }
             </div>
+        
             @* <div id='calendar' style="width:90%;"></div> *@
-            <div id='calendar' style="width:90%; height: 100%; overflow-y: auto;"></div>
+            <div id='calendar' style="width:stretch; height: 100%; overflow-y: auto;"></div>
         </FluentStack>
     </div>
 @*  </FluentStack> *@
@@ -102,13 +109,25 @@
             <div>WO No: @selectedItem.WorkOrderNo.ToString()</div>
             <div>@selectedItem.WorksOrder.WorkType.WorkTypeName</div>
             <div>@selectedItem.ProductionStage.ProductionStageName</div> 
-            <div>Planned Start: @selectedItem.PlannedStartTime</div>
-            <div>Planned End: @selectedItem.PlannedEndTime</div>
             <div>Equipment: @(selectedItem.EquipmentItem == null ? "Unassigned" : selectedItem.EquipmentItem.EquipmentItemDescription)</div>
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="margin-top:15px">
+                Planned:
+                <FluentSpacer />
+                Start: @selectedItem.PlannedStartTime
+                <FluentSpacer />
+                End: @selectedItem.PlannedEndTime
+            </FluentStack>
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="margin-top:15px">
+                Actual:
+                <FluentSpacer />
+                Start: @selectedItem.ActualStartTime
+                <FluentSpacer />
+                End: @selectedItem.ActualEndTime
+            </FluentStack>
         }
-        <FluentButton Appearance="Appearance.Accent" Autofocus="true" @onclick="OnCloseDialog">Close dialog</FluentButton>
-        <FluentButton>Another button</FluentButton>
-
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" >
+            <FluentButton Appearance="Appearance.Accent" Style="margin-top:10px" Autofocus="true" @onclick="OnCloseDialog">Close</FluentButton>
+        </FluentStack>
     </FluentDialog>
 </div>
 
@@ -144,7 +163,17 @@
         unplannedWO = null;
         events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
         resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
-        await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+
+        try
+        {
+            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected - component will be disposed anyway
+            return;
+        }
+
         unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/{DivisionId}/GetWIP/UnPlannedItems");
         StateHasChanged();
     }
@@ -174,6 +203,12 @@
         {
             return;
         }
+        if (wc == null)
+        {
+            selWC = string.Empty;
+            workCentre = null;
+            return;
+        }
         workCentre = wc;
         selWC = wc.WorkCentreId.ToString();
         unplannedWO = null;
@@ -181,7 +216,17 @@
         resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
         events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/GetWIP/PlanItems/ByWorkCentre/{selWC}");
         unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/GetWIP/UnPlannedItems/ByWorkCentre/{selWC}");
-        await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+
+        try
+        {
+            await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
+        }
+        catch (JSDisconnectedException)
+        {
+            // Circuit disconnected - component will be disposed anyway
+            return;
+        }
+
         StateHasChanged();
     }
 
