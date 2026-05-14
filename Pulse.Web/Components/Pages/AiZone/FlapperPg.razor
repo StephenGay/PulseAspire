@@ -83,7 +83,7 @@
                           Color="var(--pulse-mode-btn-item-colour)"
                           IconStart="@(new Icons.Filled.Size24.PersonVoice().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
                           Title="Toggle Spoken Responses"
-                          OnClick="() => SpokenResponse = !SpokenResponse"></FluentButton>
+                          OnClick="ToggleSpeechOutput"></FluentButton>
                 <AuthorizeView Roles="Admin">
                     <Authorized>
                         <!-- Create Role Form (only shown to admins) -->
@@ -444,7 +444,17 @@
 
     #endregion
 
+    private async Task ToggleSpeechOutput()
+    {
+        SpokenResponse = !SpokenResponse;
+        flapper = await dtrf.GetgvFlapper();
+        flapper.Options.ResponseFormat = SpokenResponse ? "Speech" : "Report";
+        await dtrf.SetgvFlapper(flapper);
+    }
+
     #region Message Handling
+
+
 
     private async Task LoadHistoryConversation(Guid conversationId)
     {
@@ -509,7 +519,8 @@
             );
 
             // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
-            var fResponse = await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request, cts.Token);
+            // var chatType = stream ? ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession : ApiEndpoints.PulseAi.EndpointsFlapper.ChatSession;
+            var fResponse = await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.ChatSession, request, cts.Token);
             if (fResponse.IsSuccessStatusCode)
             {
                 var fContent = await fResponse.Content.ReadAsStringAsync();

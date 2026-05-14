@@ -189,6 +189,32 @@ public class RollerModelGenerationService : IAsyncDisposable
     {
         await _js.InvokeVoidAsync("RollerViewer3D.hideInfoPanel");
     }
+
+    // ====================== PART VISIBILITY ======================
+    public async Task<List<RollerModelPartVisibility>> GetPartsListAsync()
+    {
+        return await _js.InvokeAsync<List<RollerModelPartVisibility>>("RollerViewer3D.getPartsList");
+    }
+
+    public async Task ToggleVisibilityAsync(string meshName, bool visible)
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.toggleVisibility", meshName, visible);
+    }
+
+    public async Task SetAllVisibilityAsync(bool visible)
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.setAllVisibility", visible);
+    }
+
+    public async Task SetOpacityAsync(string meshName, float opacity)
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.setOpacity", meshName, opacity);
+    }
+
+    public async Task ResetAllOpacitiesAsync()
+    {
+        await _js.InvokeVoidAsync("RollerViewer3D.resetAllOpacities");
+    }
     public async ValueTask DisposeAsync()
     {
         try

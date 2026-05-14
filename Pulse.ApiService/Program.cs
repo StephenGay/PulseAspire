@@ -200,7 +200,9 @@ builder.Services.AddScoped<FlapperAPI>(sp =>
 {
     var flapperClient = sp.GetRequiredService<IChatClient>();
     var logger = sp.GetRequiredService<ILogger<FlapperAPI>>();
-    return new FlapperAPI(flapperClient, logger);
+    var configuration = sp.GetRequiredService<IConfiguration>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    return new FlapperAPI(flapperClient, logger, configuration, httpClientFactory);
 });
 
 builder.Services.AddScoped<AliAPI>(sp =>

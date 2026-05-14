@@ -1,8 +1,10 @@
 ﻿// Pulse.ApiService/PulseAI/Characters/FlapperAPI.cs
 using Microsoft.Extensions.AI;
 using Pulse.Models.AI.Flapper;
+using Pulse.Models.CustomComponents;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,17 +15,40 @@ public class FlapperAPI
 {
     private readonly IChatClient _chatClient;
     private readonly ILogger<FlapperAPI> _logger;
+    private readonly string _ollamaApiKey;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly JsonSerializerOptions _jsonOptions;
 
-    public FlapperAPI(IChatClient chatClient, ILogger<FlapperAPI> logger)
+    public FlapperAPI(IChatClient chatClient, ILogger<FlapperAPI> logger, IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         _chatClient = chatClient;
         _logger = logger;
+        _httpClientFactory = httpClientFactory;
+        _jsonOptions = new JsonSerializerOptions
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = true
+        };
+        _ollamaApiKey = configuration["OllamaApi:Key"] ?? string.Empty;
     }
 
+    /// <summary>
+    /// Gets streaming response from chat client.
+    /// </summary>
+    public async IAsyncEnumerable<ChatResponseUpdate> GetChatClientStreamAsync(
+        IEnumerable<ChatMessage> messages,
+        ChatOptions options,
+        [EnumeratorCancellation] CancellationToken ct = default)
+    {
+        await foreach (var update in _chatClient.GetStreamingResponseAsync(messages, options, ct))
+        {
+            yield return update;
+        }
+    }
     public async Task<FlapperResponse> ProcessWithToolsAsync(
         FlapperConversation conv,
         string userMessage,
-        string systemPrompt,
+      FlapperDTO flapperDTO,
         IEnumerable<AITool> tools,
         CancellationToken ct = default)
     {
@@ -31,20 +56,21 @@ public class FlapperAPI
         {
             // Build conversation history
             var history = conv.Messages.Select(m => new ChatMessage(
-                role: m.Sender == "User" ? ChatRole.User : ChatRole.Assistant,
+                role: m.Sender == "User" ? ChatRole.User : (m.Sender == "tool" ? ChatRole.Tool : ChatRole.Assistant),
                 content: m.Content
+                
             )).ToList();
 
-            var messages = new List<ChatMessage>
-            {
-                new ChatMessage(ChatRole.System, systemPrompt)
-            };
+            
+            var messages = new List<ChatMessage>();
             messages.AddRange(history);
-            messages.Add(new ChatMessage(ChatRole.User, userMessage));
+            //messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
             var options = new ChatOptions
             {
+                ModelId = flapperDTO.Model,
                 Temperature = 0.2f,
+                
                 Tools = tools?.ToList() ?? new List<AITool>()
             };
 
@@ -56,26 +82,66 @@ public class FlapperAPI
             // Extract thinking (if Flapper used <thinking> tags)
             var thinking = ExtractBetween(rawReply, "<thinking>", "</thinking>");
 
-            // Extract tool calls (native from IChatClient)
-            //var toolCalls = response.ToolCalls?.Select(tc => new FlapperToolCall
-            //{
-            //    ToolName = tc.Name,
-            //    Parameters = tc.Arguments ?? new Dictionary<string, object>()
-            //}).ToList() ?? new List<FlapperToolCall>();
+            // Updated: Extract tool calls from RawRepresentation
+            var toolCalls = new List<FlapperToolCall>();
 
-            // Clean final content
-            var finalContent = rawReply
+            foreach (var message in response.Messages ?? new List<ChatMessage>())
+            {
+                if (message.Contents != null)
+                {
+                    foreach (var content in message.Contents)
+                    {
+                        if (content is FunctionCallContent functionCall)
+                        {
+                            toolCalls.Add(new FlapperToolCall
+                            {
+                                ToolName = functionCall.Name,
+                                Parameters = (Dictionary<string, object>)(functionCall.Arguments ?? new Dictionary<string, object>())
+                            });
+                        }
+                    }
+                }
+            }
+                //if (response.RawRepresentation is JsonElement rawJson)
+                //{
+                //    // The JSON field that contains the tool calls may differ
+                //    // (e.g., "tool_calls" or "functions").  Adjust the key name as needed.
+                //    if (rawJson.TryGetProperty("tool_calls", out JsonElement callsArray))
+                //    {
+                //        foreach (var callElem in callsArray.EnumerateArray())
+                //        {
+                //            var name = callElem.GetProperty("name").GetString() ?? string.Empty;
+
+                //            // Some back‑ends use "arguments" or "params" for the payload
+                //            string argumentsKey = callElem.TryGetProperty("arguments", out _) ? "arguments" : "params";
+                //            var argumentsJson = callElem.GetProperty(argumentsKey);
+
+                //            var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(argumentsJson.GetRawText())
+                //                            ?? new Dictionary<string, object>();
+
+                //            toolCalls.Add(new FlapperToolCall
+                //            {
+                //                ToolName   = name,
+                //                Parameters = parameters
+                //            });
+                //        }
+                //    }
+                //}
+
+                // Clean final content
+                var finalContent = rawReply
                 .Replace($"<thinking>{thinking}</thinking>", "")
                 .Trim();
 
+            // Return the response object
             return new FlapperResponse
             {
-                Success = true,
-                Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
-                //ToolCalls = toolCalls.Any() ? toolCalls : null,
-                Content = finalContent,
+                Success            = true,
+                Thinking           = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
+                ToolCalls        = toolCalls.Any() ? toolCalls : null,   // uncomment if you want to expose them
+                Content            = finalContent,
                 RequiresClarification = false,
-                RawContent = rawReply
+                RawContent          = rawReply
             };
         }
         catch (Exception ex)
@@ -131,6 +197,106 @@ public class FlapperAPI
             return new Dictionary<string, object>();
         }
     }
+
+    public async Task<OllamaWebSearchResponse?> IClientSearchWeb(string query, CancellationToken ct = default)
+    {
+        var searchUrl = "https://ollama.com/api/web_search";
+
+        ArgumentNullException.ThrowIfNull(query);
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, searchUrl);
+            var requestPayload = new { query };
+            var jsonPayload = JsonSerializer.Serialize(requestPayload, _jsonOptions);
+            request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+            if (!string.IsNullOrEmpty(_ollamaApiKey))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
+                _logger.LogDebug("Added API key header for cloud endpoint");
+            }
+            else
+            {
+                _logger.LogWarning("Cloud endpoint requested but no API key configured");
+            }
+
+            _logger.LogDebug("POST request to {RequestUri}", searchUrl);
+            using var flapperClient = _httpClientFactory.CreateClient("FlapperApiClient");
+            using var response = await flapperClient.SendAsync(request, ct);
+
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            return JsonSerializer.Deserialize<OllamaWebSearchResponse>(responseContent, _jsonOptions);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}",
+                searchUrl, ex.StatusCode);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize response from {RequestUri}", searchUrl);
+            throw;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", searchUrl);
+            throw;
+        }
+    }
+
+    public async Task<OllamaWebFetchResponse?> IClientFetchWebPage(string url, CancellationToken ct = default)
+    {
+        var searchUrl = "https://ollama.com/api/web_fetch";
+
+        ArgumentNullException.ThrowIfNull(url);
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, searchUrl);
+            var requestPayload = new { url };
+            var jsonPayload = JsonSerializer.Serialize(requestPayload, _jsonOptions);
+            request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+            if (!string.IsNullOrEmpty(_ollamaApiKey))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
+                _logger.LogDebug("Added API key header for cloud endpoint");
+            }
+            else
+            {
+                _logger.LogWarning("Cloud endpoint requested but no API key configured");
+            }
+
+            _logger.LogDebug("POST request to {RequestUri}", searchUrl);
+            using var flapperClient = _httpClientFactory.CreateClient("FlapperApiClient");
+            using var response = await flapperClient.SendAsync(request, ct);
+
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            return JsonSerializer.Deserialize<OllamaWebFetchResponse>(responseContent, _jsonOptions);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}",
+                searchUrl, ex.StatusCode);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize response from {RequestUri}", searchUrl);
+            throw;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", searchUrl);
+            throw;
+        }
+    }
+
+
 }
 
 /// <summary>

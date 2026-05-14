@@ -221,7 +221,7 @@
         catch (PulseApiException ex)
         {
             Logger.LogError(ex, "API error during login: {UserMessage}", ex.UserMessage);
-            
+
             // Provide specific error messages based on category
             errorForgotMessage = ex.Category switch
             {
@@ -250,7 +250,7 @@
         isLoading = true;
         StateHasChanged();
 
-        
+
 
         try
         {
@@ -305,7 +305,7 @@
         catch (PulseApiException ex)
         {
             Logger.LogError(ex, "API error during login: {UserMessage}", ex.UserMessage);
-            
+
             // Provide specific error messages based on category
             errorMessage = ex.Category switch
             {
@@ -340,7 +340,7 @@
                 if (voice != null)
                 {
                     await DataTransfer.SetgvUserAIVoice(voice);
-                    await AISpeakAsync($"Hey {userSettings.PreferredUserName}, welcome back!", voice);
+                    bool success = await AISpeakAsync($"Hey {userSettings.PreferredUserName}, welcome back!", voice);
                 }
             }
 
@@ -354,6 +354,7 @@
 
             Flapper flapper = new Flapper();
             flapper._Voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == flapper._VoiceId);
+            flapper.Options.PreferredName = userSettings.PreferredUserName ?? "User";
             await DataTransfer.SetgvFlapper(flapper);
 
             var showAiIcon = new ShowAiIcon();
@@ -373,16 +374,18 @@
         return Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == voiceId);
     }
 
-    private async Task AISpeakAsync(string text, SpeechSynthesisVoice voice)
+    private async Task<bool> AISpeakAsync(string text, SpeechSynthesisVoice voice)
     {
         try
         {
             var utterance = new SpeechSynthesisUtterance { Text = text, Voice = voice };
-            await SpeechSynthesis.SpeakAsync(utterance);
+            await SpeechSynthesis.SpeakAsync(utterance).ConfigureAwait(false);
+            return true;
         }
         catch (Exception ex)
         {
             Logger.LogWarning(ex, "Failed to speak text");
+            return false;
         }
     }
 }

@@ -339,6 +339,12 @@ namespace Pulse.Models.CustomComponents
 
         [JsonPropertyName("presence_penalty")]
         public double PresencePenalty { get; set; } = 2;
+
+        [JsonPropertyName("response_format")]
+        public string ResponseFormat { get; set; } = "Report";
+
+        [JsonPropertyName("preferred_name")]
+        public string PreferredName { get; set; } = string.Empty;
     }
 
     /// <summary>

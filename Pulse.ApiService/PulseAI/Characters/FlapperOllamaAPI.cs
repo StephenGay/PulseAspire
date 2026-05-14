@@ -234,7 +234,8 @@ public class FlapperOllamaAPI
                     NumCtx = flapperDTO.Options.NumCtx,
                     NumPredict = flapperDTO.Options.NumPredict,
                     RepeatPenalty = (float?)flapperDTO.Options.RepeatPenalty,
-                    PresencePenalty = (float?)flapperDTO.Options.PresencePenalty
+                    PresencePenalty = (float?)flapperDTO.Options.PresencePenalty,
+                    
                     // Add any other options you want to set globally
                 }
             };

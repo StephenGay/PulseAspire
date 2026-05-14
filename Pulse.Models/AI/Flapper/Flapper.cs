@@ -355,7 +355,7 @@ namespace Pulse.Models.AI.Flapper
     public class FlapperDTO
     {
         [JsonPropertyName("model")]
-        public string Model { get; set; } = "gpt-oss:latest";
+        public string Model { get; set; } = "Flapper:latest";
         [JsonPropertyName("think")]
         public string Think { get; set; } = "medium";
         public int MaxRecursionDepth { get; set; } = 5;

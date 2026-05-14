@@ -22,9 +22,10 @@
         <FluentButton @onclick="() => Roller3D.StopSpinAsync()">⏸️ Stop</FluentButton>
 
         <div style="width: 200px; margin-left: 12px;">
-            <FluentSlider Min="0" Max="0.015" Step="0.0005"
-                          @bind-Value="spinSpeed"
-                          @onchange="OnSpinSpeedChanged" />
+            <FluentSlider TValue="float" Min="0f" Max="0.015f" Step="0.005f"
+                            Value="@spinSpeed"
+                            ValueChanged="@(newVal => OnSpinSpeedChanged(newVal))"
+                           />
                         <span style="width:50px; font-size:0.9em;">@(spinSpeed.ToString("0.000"))</span>
         </div>
 
@@ -51,8 +52,41 @@
                       @onchange="OnCameraPresetChanged" />
 
         <FluentButton @onclick="() => Roller3D.ResetCameraAsync()">Reset Camera</FluentButton>
+        <FluentButton @onclick="ToggleAllVisibility">
+            @(allVisible ? "Hide All" : "Show All")
+        </FluentButton>
     </FluentToolbar>
-
+    <!-- Parts Visibility Panel -->
+    <FluentCard Width="280px" Style="position:absolute; top:280px; right:20px; z-index:100; max-height:70vh; overflow:auto;">
+        <FluentTitle Style="padding:12px 16px; border-bottom:1px solid #eee;">Parts Visibility</FluentTitle>
+    
+        <div style="padding:12px;">
+            @if (parts?.Any() == true)
+            {
+                @foreach (var part in parts)
+                {
+                    <hr />
+                    <FluentLabel Style="font-weight:bold;">@part.DisplayName</FluentLabel>
+                    <br />
+                    <FluentSwitch Label="Visible" 
+                                  @bind-Value="part.Visible"
+                                  @onchange="() => OnPartVisibilityChanged(part)" />
+                    <br />
+                    <span style="font-size:0.85em; width:100%; color:#555;">Opacity: @((part.Opacity * 100).ToString("0"))%</span>
+                    <FluentSlider TValue="float"
+                                  Min="0.1f"
+                                  Max="1f"
+                                  Step="0.05f"
+                                  Value="@part.Opacity"
+                                  ValueChanged="@(newVal => OnOpacityValueChanged(part, newVal))" />
+                }
+            }
+            else
+            {
+                <p style="color:#666; font-style:italic;">No parts loaded</p>
+            }
+        </div>
+    </FluentCard>
     <!-- 3D Viewer -->
     <div class="viewer-container">
         <div @ref="viewerContainer" style="width:100%; height:100%;"></div>
@@ -66,11 +100,13 @@
     private bool dimensionsVisible = false;
     private bool labelsVisible = false;
 
-    private double spinSpeed = 0.004;
+    private float spinSpeed = 0.004f;
     private string? selectedPreset = "isometric";
 
     private ClientRollerSpecification? roller;
     private List<RollerShaft>? shafts;
+    private List<RollerModelPartVisibility> parts = new();
+    private bool allVisible = true;
 
     // ✅ Correct way with Fluent UI Blazor
     private readonly List<string> cameraPresetOptions = new()
@@ -95,6 +131,7 @@
         shafts = await RollerDTrf.GetgvSelectedRollerShafts();
 
         await Roller3D.LoadRollerAsync(roller!, shafts ?? new());
+        await LoadPartsListAsync();
 
         await Roller3D.SetSpinSpeedAsync((float)spinSpeed);
         await Roller3D.StartSpinAsync();
@@ -103,9 +140,60 @@
         isLoaded = true;
         StateHasChanged();
     }
-    private async Task OnSpinSpeedChanged()
+
+    private async Task LoadPartsListAsync()
     {
-        await Roller3D.SetSpinSpeedAsync((float)spinSpeed);
+        try
+        {
+            var list = await Roller3D.GetPartsListAsync();
+            parts = list?.Select(p => new RollerModelPartVisibility
+            {
+                Name = p.Name,
+                DisplayName = p.DisplayName,
+                Visible = p.Visible,
+                Opacity = 1.0f
+            }).ToList() ?? new List<RollerModelPartVisibility>();
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            System.Console.Error.WriteLine($"Error loading parts list: {ex.Message}");
+            parts = new List<RollerModelPartVisibility>();
+        }
+    }
+
+    private async Task OnPartVisibilityChanged(RollerModelPartVisibility part)
+    {
+        await Roller3D.ToggleVisibilityAsync(part.Name, part.Visible);
+    }
+
+    private async Task ToggleAllVisibility()
+    {
+        allVisible = !allVisible;
+        await Roller3D.SetAllVisibilityAsync(allVisible);
+
+        // Refresh list
+        await LoadPartsListAsync();
+    }
+
+    private async Task OnOpacityValueChanged(RollerModelPartVisibility part, float newValue)
+    {
+        part.Opacity = newValue;
+        await Roller3D.SetOpacityAsync(part.Name, newValue);
+    }
+
+    private async Task ResetAllOpacities()
+    {
+        await Roller3D.ResetAllOpacitiesAsync();
+        foreach (var p in parts) p.Opacity = 1.0f;
+        StateHasChanged();
+    }
+
+    private async Task OnSpinSpeedChanged(float newValue)
+    {
+        spinSpeed = newValue;
+        await Roller3D.SetSpinSpeedAsync(newValue);
         StateHasChanged();
     }
     private async Task OnExplodedChanged()

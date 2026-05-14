@@ -315,7 +315,7 @@ window.RollerViewer3D = {
         this.renderer.setSize(width, height);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.shadowMap.type = THREE.PCFShadowMap;
         this.renderer.outputColorSpace = THREE.SRGBColorSpace;
         this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
         this.renderer.toneMappingExposure = 1.1;
@@ -323,10 +323,9 @@ window.RollerViewer3D = {
         containerElement.appendChild(this.renderer.domElement);
         const floorGeometry = new THREE.PlaneGeometry(10000, 10000);
         const floorMaterial = new THREE.MeshStandardMaterial({
-            color: 0xf0f2f5,        // Very light gray - matches light background
-            roughness: 0.75,
-            metalness: 0.05,
-            side: THREE.FrontSide
+            color: 0xf0f2f5,
+            roughness: 0.8,
+            metalness: 0.02,
         });
 
         const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -335,6 +334,13 @@ window.RollerViewer3D = {
         floor.rotation.x = -Math.PI / 2;
         floor.position.y = -200;     // Keep this or adjust if needed
         this.scene.add(floor);
+
+        // Subtle grid helper
+        const grid = new THREE.GridHelper(2000, 50, 0xcccccc, 0xdddddd);
+        grid.position.y = -199.5;
+        grid.material.opacity = 0.5;
+        grid.material.transparent = true;
+        this.scene.add(grid);
         this._setupLightsAndEnvironment();
         this._initializeOrbitControls();
         this._setupResizeHandler(containerElement);
@@ -346,7 +352,98 @@ window.RollerViewer3D = {
         return true;
     },
 
-    
+    // Get all toggleable parts
+    getPartsList: function () {
+        return this.meshes
+            .filter(mesh => mesh.name && !mesh.name.startsWith('label_') && !mesh.name.startsWith('dimension'))
+            .map(mesh => ({
+                name: mesh.name,
+                displayName: this._getDisplayName(mesh.name),
+                visible: mesh.visible !== true
+            }));
+    },
+
+    _getDisplayName: function (name) {
+        if (name === 'Roller') return 'Roller Shell';
+        if (name === 'RubberCover') return 'Rubber Cover';
+        if (name.startsWith('shaft_')) return 'Shaft ' + name.replace('shaft_', '');
+        return name;
+    },
+
+    toggleVisibility: function (meshName, visible) {
+        const mesh = this.meshes.find(m => m.name === meshName);
+        if (mesh) {
+            mesh.visible = visible;
+            console.log(`👁️ ${meshName} visibility set to ${visible}`);
+            return true;
+        }
+        console.warn(`⚠️ Mesh '${meshName}' not found`);
+        return false;
+    },
+
+    setAllVisibility: function (visible) {
+        this.meshes.forEach(mesh => {
+            if (mesh.name && !mesh.name.startsWith('label_') && !mesh.name.startsWith('dimension')) {
+                mesh.visible = visible;
+            }
+        });
+        console.log(`👁️ All parts visibility set to ${visible}`);
+    },
+
+    // Set opacity for a specific mesh
+    setOpacity: function (meshName, opacity) {
+        const mesh = this.meshes.find(m => m.name === meshName);
+        if (!mesh) {
+            console.warn(`⚠️ Mesh '${meshName}' not found for opacity change`);
+            return false;
+        }
+
+        // Support both single material and group (RubberCover)
+        const meshesToUpdate = mesh.name === 'RubberCover'
+            ? mesh.children
+            : [mesh];
+
+        meshesToUpdate.forEach(m => {
+            if (m.material) {
+                if (Array.isArray(m.material)) {
+                    m.material.forEach(mat => this._applyOpacity(mat, opacity));
+                } else {
+                    this._applyOpacity(m.material, opacity);
+                }
+            }
+        });
+
+        console.log(`🎨 ${meshName} opacity set to ${opacity}`);
+        return true;
+    },
+
+    _applyOpacity: function (material, opacity) {
+        material.transparent = true;
+        material.opacity = Math.max(0.1, Math.min(1.0, opacity));
+        material.needsUpdate = true;
+    },
+
+    // Reset all opacities to 1.0
+    resetAllOpacities: function () {
+        this.meshes.forEach(mesh => {
+            const meshesToReset = mesh.name === 'RubberCover' ? mesh.children : [mesh];
+            meshesToReset.forEach(m => {
+                if (m.material) {
+                    if (Array.isArray(m.material)) {
+                        m.material.forEach(mat => {
+                            mat.transparent = false;
+                            mat.opacity = 1.0;
+                        });
+                    } else {
+                        m.material.transparent = false;
+                        m.material.opacity = 1.0;
+                    }
+                }
+            });
+        });
+        console.log('🔄 All opacities reset to 1.0');
+    },
+
     _setupLightsAndEnvironment: function () {
         // Clear existing lights
         this.lights.forEach(light => this.scene.remove(light));
@@ -451,6 +548,7 @@ window.RollerViewer3D = {
         roller.name = 'Roller';
         roller.castShadow = true;
         roller.receiveShadow = true;
+        
 
         this.scene.add(roller);
         this.meshes.push(roller);
@@ -500,6 +598,7 @@ window.RollerViewer3D = {
         group.add(outer, inner, topRing, bottomRing);
         group.position.y = leftOffset;           // axial offset
         group.userData.coverRadiusOuter = outerR;
+        
 
         this.scene.add(group);
         this.meshes.push(group);
@@ -529,6 +628,7 @@ window.RollerViewer3D = {
         shaft.userData.axialPos = axialPosition;
         shaft.userData.radialOffset = radialOffset;
         shaft.userData.side = side.toLowerCase();
+        
 
         this.scene.add(shaft);
         this.meshes.push(shaft);
@@ -554,12 +654,31 @@ window.RollerViewer3D = {
             // Lift above floor
             mesh.position.y = liftHeight;
 
-            // Position shafts along the length (Z)
+            // Position shafts along the length (Z) and radially (X, Y)
             if (mesh.name.startsWith("shaft_")) {
                 mesh.position.z = mesh.userData.axialPos || 0;
 
                 const offset = mesh.userData.radialOffset || 0;
-                mesh.position.x = (mesh.userData.side === "left") ? -offset : offset;
+                const side = mesh.userData.side || "center";
+
+                // Position shaft radially based on side
+                if (side === "left") {
+                    mesh.position.x = -offset;
+                    mesh.position.y = liftHeight;
+                } else if (side === "right") {
+                    mesh.position.x = offset;
+                    mesh.position.y = liftHeight;
+                } else if (side === "top") {
+                    mesh.position.x = 0;
+                    mesh.position.y = liftHeight + offset;
+                } else if (side === "bottom") {
+                    mesh.position.x = 0;
+                    mesh.position.y = liftHeight - offset;
+                } else {
+                    // "center" or default - centered on roller axis
+                    mesh.position.x = 0;
+                    mesh.position.y = liftHeight;
+                }
             }
             else {
                 // Roller and Cover stay centered
