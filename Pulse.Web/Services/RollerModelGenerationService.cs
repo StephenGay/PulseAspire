@@ -75,20 +75,33 @@ public class RollerModelGenerationService : IAsyncDisposable
         // 3. Add Shafts
         if (shafts != null && shafts.Any())
         {
-            double halfLength = (double)(roller.ShellLength!.Value / 2.0m);
+            double shellHalf = (double)(roller.ShellLength!.Value / 2.0m);
+            double currentLeftPos = -shellHalf;   // Start from left end of shell
+            double currentRightPos = shellHalf;
 
-            foreach (var shaft in shafts.Where(s => s.OuterDiameter > 0 && s.Length > 0))
+            foreach (var shaft in shafts.OrderBy(s => s.ShaftPosition))
             {
-                double axialPos = shaft.AxialPosition;
+                string side = (shaft.ShaftPosition?.ToLower() ?? "center");
+                double axialPos;
 
+                if (side == "left")
+                {
+                    axialPos = currentLeftPos - (shaft.Length / 2.0);   // Center of shaft
+                    currentLeftPos -= shaft.Length;                     // Move further left for next shaft
+                }
+                else // right or center
+                {
+                    axialPos = currentRightPos + (shaft.Length / 2.0);
+                    currentRightPos += shaft.Length;
+                }
                 // Alternative if you store position from left end:
-                // double axialPos = (shaft.PositionFromLeft ?? halfLength) - halfLength;
+                // double axialPos = (shaft.PositionFromLeft ?? shellHalf) - shellHalf;
 
                 await _js.InvokeVoidAsync("RollerViewer3D.addShaft",
                     (float)shaft.OuterDiameter,
                     (float)shaft.Length,
                     (float)axialPos,
-                    shaft.ShaftPosition?.ToLower() ?? "center",
+                    side,
                     (float)(shaft.RadialOffset ?? 0),
                     shaft.Id.ToString());
             }
@@ -102,7 +115,14 @@ public class RollerModelGenerationService : IAsyncDisposable
     // ====================== ANIMATION CONTROLS ======================
     public async Task SetSpinSpeedAsync(float speed = 0.004f)
     {
-        await _js.InvokeVoidAsync("RollerViewer3D.setSpinSpeed", speed);
+        try
+        {
+            await _js.InvokeVoidAsync("RollerViewer3D.setSpinSpeed", speed);
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"Failed to set spin speed: {ex.Message}");
+        }
     }
 
     public async Task StartSpinAsync() => await _js.InvokeVoidAsync("RollerViewer3D.startSpin");

@@ -633,7 +633,7 @@ window.RollerViewer3D = {
         this.scene.add(shaft);
         this.meshes.push(shaft);
 
-        console.log(`✅ Shaft added: ${shaftName} at axial ${axialPosition}mm`);
+        console.log(`✅ Shaft added: ${shaftName} | Axial: ${axialPosition.toFixed(1)}mm | Side: ${side}`);
         return true;
     },
 
@@ -646,42 +646,24 @@ window.RollerViewer3D = {
         const liftHeight = 90;
 
         this.meshes.forEach(mesh => {
-            // Rotate cylinders so they lie along Z-axis
+            // Rotate all cylinders to lie horizontally along Z-axis
             mesh.rotation.x = Math.PI / 2;
             mesh.rotation.y = 0;
             mesh.rotation.z = 0;
 
-            // Lift above floor
+            // Lift everything above the floor
             mesh.position.y = liftHeight;
 
-            // Position shafts along the length (Z) and radially (X, Y)
             if (mesh.name.startsWith("shaft_")) {
+                // Shafts are already positioned correctly via axialPos (outward from shell ends)
                 mesh.position.z = mesh.userData.axialPos || 0;
 
+                // Apply radial offset (if shaft is not perfectly centered)
                 const offset = mesh.userData.radialOffset || 0;
-                const side = mesh.userData.side || "center";
+                mesh.position.x = (mesh.userData.side === "left") ? -offset : offset;
 
-                // Position shaft radially based on side
-                if (side === "left") {
-                    mesh.position.x = -offset;
-                    mesh.position.y = liftHeight;
-                } else if (side === "right") {
-                    mesh.position.x = offset;
-                    mesh.position.y = liftHeight;
-                } else if (side === "top") {
-                    mesh.position.x = 0;
-                    mesh.position.y = liftHeight + offset;
-                } else if (side === "bottom") {
-                    mesh.position.x = 0;
-                    mesh.position.y = liftHeight - offset;
-                } else {
-                    // "center" or default - centered on roller axis
-                    mesh.position.x = 0;
-                    mesh.position.y = liftHeight;
-                }
-            }
-            else {
-                // Roller and Cover stay centered
+            } else {
+                // Roller Shell and Rubber Cover stay centered
                 mesh.position.x = 0;
                 mesh.position.z = 0;
             }
@@ -690,50 +672,40 @@ window.RollerViewer3D = {
         this._positionCamera();
         this.animateRoller = true;
 
-        console.log('✅ Final positioning applied (liftHeight = 90)');
+        console.log('✅ Final positioning applied - Shafts extending outward from shell ends');
         return true;
     },
-
-        
 
     _positionCamera: function () {
         const roller = this.meshes.find(m => m.name === 'Roller');
         if (!roller) return;
 
-        const liftHeight = 90;   // ← This was missing
-
+        const liftHeight = 90;
         const bbox = new THREE.Box3().setFromObject(roller);
         const size = bbox.getSize(new THREE.Vector3());
-        const maxDim = Math.max(size.x, size.y, size.z);
 
-        const distance = maxDim * 1.9;
+        // Make camera distance larger to account for long shafts
+        const distance = Math.max(size.z * 1.8, 800);
 
-        this.camera.position.set(
-            distance * 0.6,
-            liftHeight + maxDim * 0.8,
-            distance * 0.8
-        );
-
+        this.camera.position.set(distance * 0.7, liftHeight + size.y * 1.2, distance * 0.9);
         this.camera.lookAt(0, liftHeight, 0);
 
         if (this.controls) {
             this.controls.target.set(0, liftHeight, 0);
             this.controls.update();
         }
-
-        console.log(`📷 Camera positioned with liftHeight = ${liftHeight}`);
     },
-
     // ===================================================================
     // ANIMATION & UTILITIES
     // ===================================================================
     animate: function () {
         requestAnimationFrame(() => this.animate());
 
-        if (this.animateRoller) {
-            const speed = 0.004;
+        if (this.animateRoller && this.meshes.length > 0) {
+            const speed = this.spinSpeed || 0.004;
             this.meshes.forEach(mesh => {
-                if (mesh.name === 'Roller' || mesh.name === 'RubberCover') {
+                if (mesh.name === 'Roller' || mesh.name === 'RubberCover' || mesh.name.startsWith('shaft_'))
+                {
                     mesh.rotation.z += speed;
                 }
             });
