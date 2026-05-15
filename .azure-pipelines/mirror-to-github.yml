@@ -9,8 +9,7 @@ trigger:
 pool:
   vmImage: 'ubuntu-latest'
 
-variables:
-  - group: GitHub-Mirror-Variables   # Optional: Use variable group for secrets
+
 
 steps:
 - checkout: self
