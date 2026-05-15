@@ -145,7 +145,17 @@ namespace Pulse.Models.Api
                 public const string Update = $"{SettingsPrefix}/Update";
             }
             
-
+            public static class SpeedDial
+            {
+                private const string SpeedDialPrefix = $"{Prefix}/SpeedDial";
+                public static string GetByUserId(string userId) => $"{SpeedDialPrefix}/GetByUserId/{userId}";
+                public const string Add = $"{SpeedDialPrefix}/Add/";
+                /// <summary>
+                /// Delete a speed dial item.
+                /// Usage: {Delete}/{itemId}
+                /// </summary>
+                public static string Delete(int itemId) => $"{SpeedDialPrefix}/Delete/{itemId}";
+            }
             public static class Favourites
             {
                 private const string FavouritePrefix = $"{Prefix}/Favourites";

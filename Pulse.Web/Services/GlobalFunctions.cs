@@ -4,6 +4,7 @@ using Microsoft.JSInterop;
 using Pulse.Models.Api;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Users;
 using Pulse.Web.Services;
 
 public class GlobalFunctions
@@ -14,6 +15,7 @@ public class GlobalFunctions
     private readonly AuthService _authService;
     private readonly MessageHubService _msgHubService;
     private readonly IJSRuntime _jsRuntime;
+    private readonly DataTransferService _dTrf;
 
     public GlobalFunctions(
         Global_AI_Functions globalAI,
@@ -21,12 +23,14 @@ public class GlobalFunctions
         PulseApiService apiService,
         AuthService authService,
         MessageHubService msgHubService,
-        IJSRuntime jsRuntime)
+        IJSRuntime jsRuntime,
+        DataTransferService dTrf)
     {
         _global_AI = globalAI;
         _pulseToastService = pulseToastService;
         _apiService = apiService;
         _authService = authService;
+        _dTrf = dTrf;
         _msgHubService = msgHubService;
         _jsRuntime = jsRuntime;
     }
@@ -37,6 +41,32 @@ public class GlobalFunctions
         await _global_AI.AISpeak(errMsg, "PulseAI");
     }
 
+    public async Task SetUserSpeedDial()
+    {
+        bool isSuccess = false;
+        try
+        {
+            var speedDialResponse = await _apiService.GetAsync<ApiResponse<List<ApplicationUserSpeedDial>>>(ApiEndpoints.User.SpeedDial.GetByUserId(_authService.aspireUserId));
+            if (speedDialResponse != null && speedDialResponse.Success && speedDialResponse.Data != null)
+            {
+                var speedDials = speedDialResponse.Data;
+                await _dTrf.SetgvUserSpeedDial(speedDials);
+                isSuccess = true;
+            }
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (!isSuccess)
+            {
+                await _dTrf.SetgvUserSpeedDial(new List<ApplicationUserSpeedDial>());
+                await showError("There was a problem loading your speed dial.<br />Please refresh the page.");
+            }
+        }
+    }
     public string ParseToHtml(string markdownContent)
     {
         if (string.IsNullOrEmpty(markdownContent))

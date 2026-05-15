@@ -75,6 +75,7 @@ public static class FlapperEndpoints
 					Title = req.Message.Length > 50 ? req.Message.Substring(0, 50) + "..." : req.Message
 				};
 				db.FlapperConversations.Add(conversation);
+				await db.SaveChangesAsync();
 			}
 
 			// 2. Save user message
@@ -86,81 +87,83 @@ public static class FlapperEndpoints
 				SentAt = DateTime.Now
 			});
 
-
 			conversation.LastActivity = DateTime.Now;
 			db.Update(conversation);
 			await db.SaveChangesAsync();
 
-			// 3. Build rich system prompt (with schema)
-			var systemMessageData = new SystemMessageData
-			{
-				//CompanyName = "H&M Rollers",
-				//CompanyInformation = AiPromptHelperService.GetTempCoInfo(),
-				//UserName = req.PreferredUserName,
-				//DbSchema = await _aiShared.GetDetailedSchemaAsync(),
-				// Add any other fields your BuildSystemMessagev2 needs
-			};
-
-			//var systemPrompt = new Flapper().BuildSystemMessagev2(systemMessageData);
-
-			// 4. Build available tools
+			// 3. Build available tools
 			var tools = BuildFlapperTools();
 
-			// 5. Multi-turn reasoning loop (Flapper can call tools multiple times)
+			// 4. Multi-turn reasoning loop with tool invocation
 			int MaxTurns = req.flapperDTO.MaxToolRetries;
 			int turn = 0;
-			FlapperResponse result;
+			FlapperResponse result = new FlapperResponse { Success = true };
 			bool isClarification = false;
-			string curMsg = string.Empty;
 
 			do
 			{
 				turn++;
+				System.Diagnostics.Debug.WriteLine($"=== Tool Loop Turn {turn}/{MaxTurns} ===");
 				cancellationToken.ThrowIfCancellationRequested();
-				curMsg = string.Empty;
+
+				// Reload conversation messages
 				conversation.Messages = await db.FlapperMessages
 					.Where(c => c.ConversationId == conversation.Id)
 					.OrderBy(m => m.SentAt)
 					.ToListAsync(cancellationToken);
 
+				// Stream the response and collect tool calls
 				result = await ProcessWithToolsStreamingAsync(
 					flapperApi,
 					conversation,
 					req.Message,
-				  req.flapperDTO,
+					req.flapperDTO,
 					tools,
 					hubContext,
 					req.UserId,
 					accumulatedContent => accumulatedContent,
 					cancellationToken);
 
-				// If no tool calls → we're done
-				if (result.ToolCalls == null || !result.ToolCalls.Any())
-					break;
+				System.Diagnostics.Debug.WriteLine($"Response content length: {result.Content?.Length ?? 0}");
 
-				// Execute each tool call
-				foreach (var toolCall in result.ToolCalls)
+				// Check for tool calls in the response content using non-streaming approach
+				var toolCalls = ExtractToolCallsFromStreamingContent(result.Content ?? result.RawContent ?? "");
+
+				if (toolCalls.Count > 0)
 				{
-					string toolResult = toolCall.ToolName switch
-					{
-						"AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
-						"WebSearch" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
-						"WebFetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
-						_ => $"Unknown tool: {toolCall.ToolName}"
-					};
+					System.Diagnostics.Debug.WriteLine($"Found {toolCalls.Count} tool calls in response");
 
-					// Save tool result back into conversation so Flapper can reason again
-					db.FlapperMessages.Add(new FlapperMessage
+					// Execute each tool call
+					foreach (var toolCall in toolCalls)
 					{
-						ConversationId = conversation.Id,
-						Sender = "tool",
-						Content = toolResult,
-						SentAt = DateTime.Now,
-						ToolName = toolCall.ToolName
-					});
+						System.Diagnostics.Debug.WriteLine($"Executing tool: {toolCall.ToolName}");
+
+						string toolResult = toolCall.ToolName switch
+						{
+							"AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
+							"WebSearch" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
+							"WebFetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
+							_ => $"Unknown tool: {toolCall.ToolName}"
+						};
+
+						// Save tool result back into conversation so Flapper can reason again
+						db.FlapperMessages.Add(new FlapperMessage
+						{
+							ConversationId = conversation.Id,
+							Sender = "tool",
+							Content = toolResult,
+							SentAt = DateTime.Now,
+							ToolName = toolCall.ToolName
+						});
+					}
+
+					await db.SaveChangesAsync();
 				}
-
-				await db.SaveChangesAsync();
+				else
+				{
+					System.Diagnostics.Debug.WriteLine("No tool calls found in response, exiting loop");
+					break;
+				}
 
 			} while (turn < MaxTurns);
 
@@ -168,6 +171,7 @@ public static class FlapperEndpoints
 			{
 				isClarification = true;
 			}
+
 			// 6. Save Flapper's final response
 			db.FlapperMessages.Add(new FlapperMessage
 			{
@@ -189,7 +193,7 @@ public static class FlapperEndpoints
 				Role = "Flapper",
 				Subject = isClarification ? "Clarification" : "Flapper Reply",
 				ContentType = "HTML",
-				Content = isClarification ? curMsg.Replace("[CLARIFICATION] [", "").TrimEnd("]").ToString() : result.Content ?? result.Thinking ?? "",
+				Content = result.Content ?? result.Thinking ?? "",
 				SentAt = DateTime.Now
 			};
 
@@ -198,106 +202,237 @@ public static class FlapperEndpoints
 
 			return Results.Ok(result);
 		}
-        catch (Exception ex)
-        {
-            return Results.Ok(new FlapperResponse
-            {
-                Success = false,
-                Content = $"An error occurred: {ex.Message}"
-            });
-        }
-    }
+		catch (Exception ex)
+		{
+			return Results.Ok(new FlapperResponse
+			{
+				Success = false,
+				Content = $"An error occurred: {ex.Message}"
+			});
+		}
+	}
 
-    /// <summary>
-    /// Processes chat with streaming support.
-    /// </summary>
-    private static async Task<FlapperResponse> ProcessWithToolsStreamingAsync(
-        FlapperAPI flapperApi,
-        FlapperConversation conversation,
-        string userMessage,
-        FlapperDTO flapperDTO,
-        IEnumerable<AITool> tools,
-        IHubContext<MessageHub> hubContext,
-        string userId,
-        Func<string, string> onChunk,
-        CancellationToken ct)
-    {
-        try
-        {
-            // Build messages
-            var history = conversation.Messages.Select(m => new ChatMessage(
-                role: m.Sender == "User" ? ChatRole.User : (m.Sender == "tool" ? ChatRole.Tool : ChatRole.Assistant),
-                content: m.Content
-            )).ToList();
+	/// <summary>
+	/// Processes chat with streaming support and automatic tool invocation.
+	/// </summary>
+	private static async Task<FlapperResponse> ProcessWithToolsStreamingAsync(
+		FlapperAPI flapperApi,
+		FlapperConversation conversation,
+		string userMessage,
+		FlapperDTO flapperDTO,
+		IEnumerable<AITool> tools,
+		IHubContext<MessageHub> hubContext,
+		string userId,
+		Func<string, string> onChunk,
+		CancellationToken ct)
+	{
+		try
+		{
+			// Build messages
+			var history = conversation.Messages.Select(m => new ChatMessage(
+				role: m.Sender == "User" ? ChatRole.User : (m.Sender == "tool" ? ChatRole.Tool : ChatRole.Assistant),
+				content: m.Content
+			)).ToList();
 
-            var messages = new List<ChatMessage>();
-            messages.AddRange(history);
-            //messages.Add(new ChatMessage(ChatRole.User, userMessage));
+			var messages = new List<ChatMessage>();
+			messages.AddRange(history);
+			messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
-            var options = new ChatOptions
-            {
-                ModelId = flapperDTO.Model,
-                Temperature = 0.2f,
-                Tools = tools?.ToList() ?? new List<AITool>()
-            };
+			var toolList = tools?.ToList() ?? new List<AITool>();
 
-            var accumulatedText = new StringBuilder();
-            var accumulatedToolCalls = new List<FlapperToolCall>();
+			var options = new ChatOptions
+			{
+				ModelId = flapperDTO.Model,
+				Temperature = 0.2f,
+				Tools = toolList
+			};
+
+			var accumulatedText = new StringBuilder();
 			bool inThinking = false;
 
-            // ✅ Stream the response
-            await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
-            {
-				if (!string.IsNullOrEmpty(((OllamaSharp.Models.Chat.ChatResponseStream)update.RawRepresentation).Message.Thinking))
+			// ✅ Stream the response
+			await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
+			{
+				var streamTxt = string.Empty;
+
+				try
 				{
-					inThinking = true;
+					var ollama = ((OllamaSharp.Models.Chat.ChatResponseStream)update.RawRepresentation);
+					if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
+					{
+						var thinkingText = ollama.Message.Thinking;
+						if (!inThinking)
+						{
+							inThinking = true;
+							thinkingText = $"<thinking>{thinkingText}";
+						}
+						streamTxt = thinkingText;
+					}
+					if (!string.IsNullOrEmpty(ollama.Message?.Content))
+					{
+						if (inThinking)
+						{
+							inThinking = false;
+							streamTxt += "</thinking>";
+						}
+						streamTxt += ollama.Message.Content;
+					}
 				}
-                if (!string.IsNullOrEmpty(update.Text))
-                {
-                    accumulatedText.Append(update.Text);
+				catch
+				{
+					// If RawRepresentation access fails, try the standard text
+					streamTxt = update.Text ?? string.Empty;
+				}
 
-                    // Stream chunk to UI in real-time
-                    var streamMessage = new PulseMessage
-                    {
-                        SenderUserName = "Flapper",
-                        RecipientUserId = userId.ToString(),
-                        Role = "Flapper",
-                        Subject = "Flapper is thinking...",
-                        ContentType = "HTML",
-                        Content = update.Text,
-                        SentAt = DateTime.Now
-                    };
+				accumulatedText.Append(streamTxt);
 
-                    await hubContext.Clients.User(userId.ToString())
-                        .SendAsync("ReceiveFlapperChunk", streamMessage);
-                }
-            }
+				// Stream chunk to UI in real-time
+				if (!string.IsNullOrEmpty(streamTxt))
+				{
+					var streamMessage = new PulseMessage
+					{
+						SenderUserName = "Flapper",
+						RecipientUserId = userId.ToString(),
+						Role = "Flapper",
+						Subject = "Flapper is thinking...",
+						ContentType = "HTML",
+						Content = streamTxt,
+						SentAt = DateTime.Now
+					};
 
-            var rawReply = accumulatedText.ToString().Trim();
-            var thinking = ExtractReasoningFromText(rawReply);
-            var finalContent = rawReply
-                .Replace($"<thinking>{thinking}</thinking>", "")
-                .Trim();
+					await hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveFlapperChunk", streamMessage);
+				}
+			}
 
-            return new FlapperResponse
-            {
-                Success = true,
-                Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
-                ToolCalls = accumulatedToolCalls.Any() ? accumulatedToolCalls : null,
-                Content = finalContent,
-                RequiresClarification = false,
-                RawContent = rawReply
-            };
-        }
-        catch (Exception ex)
-        {
-            return new FlapperResponse
-            {
-                Success = false,
-                Content = $"Error: {ex.Message}"
-            };
-        }
-    }
+			var rawReply = accumulatedText.ToString().Trim();
+			var thinking = ExtractReasoningFromText(rawReply);
+			var finalContent = rawReply
+				.Replace($"<thinking>{thinking}</thinking>", "")
+				.Trim();
+
+			return new FlapperResponse
+			{
+				Success = true,
+				Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
+				ToolCalls = null, // Let the outer loop handle tool calls via the response content
+				Content = finalContent,
+				RequiresClarification = false,
+				RawContent = rawReply
+			};
+		}
+		catch (Exception ex)
+		{
+			System.Diagnostics.Debug.WriteLine($"Error in ProcessWithToolsStreamingAsync: {ex.Message}");
+			return new FlapperResponse
+			{
+				Success = false,
+				Content = $"Error: {ex.Message}"
+			};
+		}
+	}
+
+	/// <summary>
+	/// Extracts tool calls from response content (handles multiple formats).
+	/// </summary>
+	private static List<FlapperToolCall> ExtractToolCallsFromStreamingContent(string content)
+	{
+		var toolCalls = new List<FlapperToolCall>();
+		if (string.IsNullOrEmpty(content)) return toolCalls;
+
+		System.Diagnostics.Debug.WriteLine($"Extracting tool calls from content of length: {content.Length}");
+
+		// Pattern 1: [TOOL_CALL]...[/TOOL_CALL] format
+		var toolCallBlockPattern = @"\[TOOL_CALL\](.*?)\[/TOOL_CALL\]";
+		var matches1 = System.Text.RegularExpressions.Regex.Matches(content, toolCallBlockPattern, System.Text.RegularExpressions.RegexOptions.Singleline);
+
+		foreach (System.Text.RegularExpressions.Match match in matches1)
+		{
+			var jsonStr = match.Groups[1].Value.Trim();
+			try
+			{
+				using (var doc = JsonDocument.Parse(jsonStr))
+				{
+					var root = doc.RootElement;
+					if (root.TryGetProperty("tool_name", out var toolNameElem) && root.TryGetProperty("parameters", out var paramsElem))
+					{
+						var toolName = toolNameElem.GetString();
+						var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(paramsElem.GetRawText()) 
+							?? new Dictionary<string, object>();
+
+						if (!string.IsNullOrEmpty(toolName))
+						{
+							toolCalls.Add(new FlapperToolCall
+							{
+								ToolName = toolName,
+								Parameters = parameters
+							});
+							System.Diagnostics.Debug.WriteLine($"Extracted tool: {toolName}");
+						}
+					}
+				}
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to parse tool (format 1): {ex.Message}");
+			}
+		}
+
+		// Pattern 2: Standard JSON with tool_name
+		var toolCallPattern2 = @"\{\s*""tool_name"":\s*""([^""]+)""\s*,\s*""parameters"":\s*(\{[^}]*\})";
+		var matches2 = System.Text.RegularExpressions.Regex.Matches(content, toolCallPattern2);
+
+		foreach (System.Text.RegularExpressions.Match match in matches2)
+		{
+			var toolName = match.Groups[1].Value;
+			var parametersJson = match.Groups[2].Value;
+
+			try
+			{
+				var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(parametersJson)
+					?? new Dictionary<string, object>();
+
+				toolCalls.Add(new FlapperToolCall
+				{
+					ToolName = toolName,
+					Parameters = parameters
+				});
+				System.Diagnostics.Debug.WriteLine($"Extracted tool: {toolName}");
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to parse tool (format 2): {ex.Message}");
+			}
+		}
+
+		// Pattern 3: Ollama format with 'name'
+		var toolCallPattern3 = @"""name"":\s*""([^""]+)""\s*,\s*""parameters"":\s*(\{[^}]*\})";
+		var matches3 = System.Text.RegularExpressions.Regex.Matches(content, toolCallPattern3);
+
+		foreach (System.Text.RegularExpressions.Match match in matches3)
+		{
+			var toolName = match.Groups[1].Value;
+			var parametersJson = match.Groups[2].Value;
+
+			try
+			{
+				var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(parametersJson)
+					?? new Dictionary<string, object>();
+
+				toolCalls.Add(new FlapperToolCall
+				{
+					ToolName = toolName,
+					Parameters = parameters
+				});
+				System.Diagnostics.Debug.WriteLine($"Extracted tool: {toolName}");
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine($"Failed to parse tool (format 3): {ex.Message}");
+			}
+		}
+
+		return toolCalls;
+	}
 
     /// <summary>
     /// Helper method to extract reasoning from text (for backward compatibility).

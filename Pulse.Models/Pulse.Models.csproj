@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <Folder Include="PulseContext\Configurations\" />
+    <Folder Include="Users\Configuration\" />
   </ItemGroup>
 
 </Project>

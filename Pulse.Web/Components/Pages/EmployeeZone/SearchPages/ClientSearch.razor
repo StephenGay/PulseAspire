@@ -5,6 +5,7 @@
 @using Pulse.Models.Customers
 @using Pulse.Models.Misc
 @using Pulse.Web.Services
+@using Pulse.Models.Users
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis
 @inject PulseApiService pApiClient
 @inject NavigationManager Navigation
@@ -61,39 +62,71 @@
         <FluentButton class="myAccentBtn"
                       BackgroundColor="var(--pulse-accent-btn-bg)"
                       Color="var(--pulse-accent-btn-colour)"
-                      Style="position:absolute; top:86px; left: 30px; z-index:99; height:50px"
+                      Style="position:absolute; top:86px; left: 30px; z-index:99; height:50px; width: 105px;"
                       IconStart="@(new Icons.Filled.Size32.Play().WithColor("var(--pulse-accent-btn-colour)"))"
                       Disabled="@(selectedCustomer == null || selectedCustomer.Count == 0 ? true : false)"
                       OnClick="btnSelectClick">
             Select
         </FluentButton>
-        <RadzenDataGrid @ref="radGrid" 
-                        Data="@_allCustomers" 
-                        FilterMode="FilterMode.Simple" 
-                        AllowFiltering="true" 
-                        AllowPaging="false" 
-                        AllowSorting="true" 
-                        AllowColumnResize="true"
-                        Style="height:100%;border-radius:10px"
-                        AllowVirtualization="true"
-                        AllowColumnPicking="true"
-                        IsLoading = "@isLoading"
-                        SelectionMode="DataGridSelectionMode.Single"
-                        @bind-Value="@selectedCustomer"
-                        FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-                        LogicalFilterOperator="LogicalFilterOperator.And"
-                        ColumnWidth="200px">
+        <FluentButton Appearance="Appearance.Accent" class=@(!ViewSpeeddial ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)"
+                      IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                      Style="position:absolute; top:86px; left: 150px; z-index:99; height:50px;"
+                      Title="Speed Dial"
+                      OnClick="() => ViewSpeeddial = !ViewSpeeddial">Speed Dial</FluentButton>
+@if (!ViewSpeeddial)
+        {
 
-            <Columns>
-                <RadzenDataGridColumn TItem="Customer" Property="FullClientID" Title="Client ID" Width="70px" TextAlign="TextAlign.Center" />
-                <RadzenDataGridColumn TItem="Customer" Property="ClientName" Title="Client Name" />
-                <RadzenDataGridColumn TItem="Customer" Property="Address1" Title="Address 1" />
-                <RadzenDataGridColumn TItem="Customer" Property="Address2" Title="Address 2" />
-                <RadzenDataGridColumn TItem="Customer" Property="Address3" Title="Address 3" />
-                <RadzenDataGridColumn TItem="Customer" Property="Address4" Title="Address 4" />
-                <RadzenDataGridColumn TItem="Customer" Property="Address5" Title="Address 5" />
-            </Columns>
-        </RadzenDataGrid>
+
+            <RadzenDataGrid @ref="radGrid" 
+            Data="@_allCustomers" 
+            FilterMode="FilterMode.Simple" 
+            AllowFiltering="true" 
+            AllowPaging="false" 
+            AllowSorting="true" 
+            AllowColumnResize="true"
+            Style="height:100%;border-radius:10px"
+            AllowVirtualization="true"
+            AllowColumnPicking="true"
+            IsLoading = "@isLoading"
+            SelectionMode="DataGridSelectionMode.Single"
+            @bind-Value="@selectedCustomer"
+            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+            LogicalFilterOperator="LogicalFilterOperator.And"
+            ColumnWidth="200px">
+
+                <Columns>
+                    <RadzenDataGridColumn TItem="Customer" Property="FullClientID" Title="Client ID" Width="70px" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="Customer" Property="ClientName" Title="Client Name" />
+                    <RadzenDataGridColumn TItem="Customer" Property="Address1" Title="Address 1" />
+                    <RadzenDataGridColumn TItem="Customer" Property="Address2" Title="Address 2" />
+                    <RadzenDataGridColumn TItem="Customer" Property="Address3" Title="Address 3" />
+                    <RadzenDataGridColumn TItem="Customer" Property="Address4" Title="Address 4" />
+                    <RadzenDataGridColumn TItem="Customer" Property="Address5" Title="Address 5" />
+                </Columns>
+            </RadzenDataGrid>
+        }
+        else
+        {
+            if (speedDialList != null && speedDialList.Count > 0)
+            {
+                <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px;margin-top:150px;">
+                    @foreach (var item in speedDialList)
+                    {
+                        <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
+                                      OnClick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
+                            @item.ItemName
+                        </FluentButton>
+                    }
+                </div>
+            }
+            else
+            {
+                <div style="padding:20px; text-align:center; color:var(--pulse-text-secondary);">
+                    No speed dial entries found.
+                </div>
+            }
+        }
     </div>
 </div>
 
@@ -103,8 +136,8 @@
     RadzenDataGrid<Customer>? radGrid;
     string? fltFullClientID;
     private bool isLoading = true;
-
-
+    private bool ViewSpeeddial = false;
+    private List<ApplicationUserSpeedDial>? speedDialList;
     string? srchName;
     List<Customer>? _allCustomers;
     IList<Customer>? selectedCustomer;
@@ -160,6 +193,7 @@
                 _allCustomers = new();
             }
             qryCust = _allCustomers.AsQueryable();
+            speedDialList = await dts.GetgvUserSpeedDial("Customer");
             isLoading = false;
             StateHasChanged();
         }
@@ -170,5 +204,14 @@
         await dts.SetgvSelectedClient(selClient);
         Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard");
     }
-    
+    private async Task btnSelectClickSpeedDial(string itemCode)
+    {
+        selClient = _allCustomers?.FirstOrDefault(c => c.FullClientID == itemCode);
+        if (selClient == null)
+        {
+            selClient = await pApiClient.GetAsync<Customer>($"/Customers/Details/{itemCode}");
+        }
+        await dts.SetgvSelectedClient(selClient);
+        Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard");
+    }
 }

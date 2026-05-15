@@ -39,6 +39,7 @@ namespace Pulse.Web.Services
 
         public string gv_AIModel { get; set; } = "gpt-oss:latest";
         public string gv_User_Theme { get; set; } = "pulse";
+        public List<ApplicationUserSpeedDial> gv_UserSpeedDial { get; set; }
         public    int gv_Context_Area { get; set; }
         public ShowAiIcon gvShowAI {  get; set; }
         public SpeechSynthesisVoice gv_User_AI_Voice { get; set; }
@@ -57,6 +58,15 @@ namespace Pulse.Web.Services
         public async Task<List<PulseMessage>> GetgvUserMessages()
         {
             return gv_UserMessages;
+        }
+        public async Task SetgvUserSpeedDial(List<ApplicationUserSpeedDial> speedDial)
+        {
+            gv_UserSpeedDial = speedDial;
+            await Task.CompletedTask;
+        }
+        public async Task<List<ApplicationUserSpeedDial>> GetgvUserSpeedDial(string category)
+        {
+            return gv_UserSpeedDial.Where(sd => sd.Category == category).ToList();
         }
         public async Task AddgvUserMessage(PulseMessage msg)
         {
@@ -277,6 +287,8 @@ namespace Pulse.Web.Services
         //public Task<User> GetgvUser();
         public Task<List<PulseMessage>> GetgvUserMessages();
         public Task SetgvUserMessages(List<PulseMessage> messages);
+        public Task SetgvUserSpeedDial(List<ApplicationUserSpeedDial> speedDial);
+        public Task<List<ApplicationUserSpeedDial>> GetgvUserSpeedDial(string category);
         public Task SetgvIsMuted(bool isMuted);
         public Task<bool> GetgvIsMuted();
         public Task AddgvUserMessage(PulseMessage msg);

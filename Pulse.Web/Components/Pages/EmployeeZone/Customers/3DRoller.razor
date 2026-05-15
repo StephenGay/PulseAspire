@@ -22,7 +22,7 @@
         <FluentButton @onclick="() => Roller3D.StopSpinAsync()">⏸️ Stop</FluentButton>
 
         <div style="width: 200px; margin-left: 12px;">
-            <FluentSlider TValue="float" Min="0f" Max="0.015f" Step="0.005f"
+            <FluentSlider TValue="float" Min="0f" Max="0.1f" Step="0.01f"
                             Value="@spinSpeed"
                             ValueChanged="@(newVal => OnSpinSpeedChanged(newVal))"
                            />

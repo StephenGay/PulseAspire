@@ -55,6 +55,32 @@ th {
     padding: 10px;
 }
 
+    .chat-messages img {
+        max-width: 90%;
+        height: auto;
+    }
+
+.flapper-response-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: block;
+}
+
+/* For Flapper's response messages */
+.flapper-response {
+    overflow-wrap: break-word;
+    word-break: break-word;
+}
+
+    .flapper-response img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 10px 0;
+    }
 .flapOn {
     border-color: #1D722A;
 }

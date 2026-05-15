@@ -54,7 +54,50 @@
 @inject IHttpClientFactory HttpClientFactory
 @inject AiPromptService AiPrompts 
 
+<style>
+    .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid var(--pulse-dark-colour);
+        background-color: var(--pulse-dark-t25-colour);
+        border-radius: 8px;
+    }
 
+    .chat-messages {
+        flex: 1;
+        overflow: auto;
+        padding: 10px;
+    }
+
+        .chat-messages img {
+            max-width: 25%;
+            height: auto;
+        }
+
+    .flapper-response-image {
+        max-width: 25%;
+        height: auto;
+        border-radius: 8px;
+        margin: 10px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        display: block;
+    }
+
+    /* For Flapper's response messages */
+    .flapper-response {
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+        .flapper-response img {
+            max-width: 25%;
+            height: auto;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+</style>
 
 <div class="aiParent">
     <div class="aiHeader" />
@@ -99,6 +142,12 @@
                                       IconStart="@(new Icons.Filled.Size24.PersonEdit().WithColor("var(--pulse-mode-btn-item-colour)"))"
                                       Title="Admin Mode"
                                       OnClick="() => AdminMode = !AdminMode"></FluentButton>
+                    <FluentButton Appearance="Appearance.Accent" class=@(!useIChat ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                                  Style="height:50px;width:50px"
+                                  Title="Use IChat Client"
+                                  OnClick="() => useIChat = !useIChat"></FluentButton>
                     </Authorized>
                 </AuthorizeView>
                 <FluentSpacer />
@@ -311,8 +360,8 @@
                         @if (!string.IsNullOrEmpty(CurrentFlapperResponse))
                         {
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                <FluentLabel class="divShadow" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
-                                    <div style="color: black;">
+                                <FluentLabel class="divShadow flapper-response" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                    <div style="color: black; word-break: break-word;">
                                         @((MarkupString)FlapperAddMUcss(FlapperParseToHtml(CurrentFlapperResponse)))
                                         @* @CurrentFlapperResponse *@
                                     </div>
@@ -419,6 +468,7 @@
     private List<OllamaMessage> currMsgs = [];
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
+    public bool useIChat = false;
     private bool _isListening = false;
     private bool _inThinking = false;
     private CancellationTokenSource? cts;
@@ -519,8 +569,8 @@
             );
 
             // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
-            // var chatType = stream ? ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession : ApiEndpoints.PulseAi.EndpointsFlapper.ChatSession;
-            var fResponse = await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.ChatSession, request, cts.Token);
+            var chatType = !useIChat ? ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession : ApiEndpoints.PulseAi.EndpointsFlapper.ChatSession;
+            var fResponse = await pulseApiClient.PostJsonAsync(chatType, request, cts.Token);
             if (fResponse.IsSuccessStatusCode)
             {
                 var fContent = await fResponse.Content.ReadAsStringAsync();
@@ -1043,7 +1093,8 @@
             .Replace("</table><br /><hr />", "</table><hr />")
             .Replace("h1", "h5")
             .Replace("h2", "h5")
-         .Replace("h3", "h5");
+         .Replace("h3", "h5")
+          .Replace("<img ", "<img class=\"flapper-response-image\" ");
     }
 
     private async Task ExportToPulseMsg()
@@ -1158,7 +1209,12 @@
             @"<a\s+href=""([^""]*)""",
             @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
         );
-
+        // ✅ Add image styling and responsive sizing
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"<img\s+src=""([^""]*)""\s+alt=""([^""]*)""",
+            @"<img src=""$1"" alt=""$2"" class=""flapper-response-image"" style=""max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"""
+        );
         return html;
     }
 

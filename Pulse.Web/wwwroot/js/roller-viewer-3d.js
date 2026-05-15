@@ -14,6 +14,7 @@ window.RollerViewer3D = {
     // Add these properties with other state variables
     dimensionLines: [],
     raycaster: null,
+    assemblyGroup: null,
     mouse: null,
     highlightedMesh: null,
     tooltipElement: null,
@@ -76,7 +77,7 @@ window.RollerViewer3D = {
             const outerR = mesh.userData.coverRadiusOuter || mesh.children[0]?.geometry?.parameters?.radiusTop || 0;
             details = `Type: Rubber Lining<br>Thickness: ${(outerR - (outerR - 15)).toFixed(1)} mm<br>Color: Dark`;
         }
-        else if (mesh.name.startsWith("shaft_")) {
+        else if (mesh.userData.isShaft) {
             title = "Shaft";
             details = `Type: ${mesh.name}<br>Diameter: ${(mesh.geometry.parameters.radiusTop * 2).toFixed(1)} mm<br>Length: ${mesh.geometry.parameters.height.toFixed(1)} mm`;
         }
@@ -119,45 +120,58 @@ window.RollerViewer3D = {
     addDimensionLines: function () {
         this.removeDimensionLines();
 
-        const roller = this.meshes.find(m => m.name === 'Roller');
+        const roller = this.meshes.find(m => m.name === 'Roller') ||
+            (this.assemblyGroup ? this.assemblyGroup.children.find(m => m.name === 'Roller') : null);
+
         if (!roller) return false;
 
         const length = roller.geometry.parameters.height;
         const radius = roller.geometry.parameters.radiusTop;
-        const lift = 90;
+        const liftHeight = 90;
+
+        // Create dimension group
+        const dimGroup = new THREE.Group();
+        dimGroup.name = 'dimension_lines';
 
         // Length dimension (along Z)
         this._createDimensionLine(
-            new THREE.Vector3(-radius - 60, lift + 80, -length / 2),
-            new THREE.Vector3(-radius - 60, lift + 80, length / 2),
-            `${length.toFixed(0)} mm`
+            new THREE.Vector3(-radius - 60, liftHeight + 80, -length / 2),
+            new THREE.Vector3(-radius - 60, liftHeight + 80, length / 2),
+            `${length.toFixed(0)} mm`,
+            dimGroup
         );
 
-        // Diameter dimension (vertical)
+        // Diameter dimension
         this._createDimensionLine(
-            new THREE.Vector3(radius + 40, lift - 20, 0),
-            new THREE.Vector3(radius + 40, lift + 20 + radius * 2, 0),
-            `Ø ${(radius * 2).toFixed(0)} mm`
+            new THREE.Vector3(radius + 40, liftHeight - 20, 0),
+            new THREE.Vector3(radius + 40, liftHeight + 20 + radius * 2, 0),
+            `Ø ${(radius * 2).toFixed(0)} mm`,
+            dimGroup
         );
 
-        console.log('📐 Dimension lines with arrows added');
+        // Add dimension group to assembly (so it rotates with everything)
+        if (this.assemblyGroup) {
+            this.assemblyGroup.add(dimGroup);
+        } else {
+            this.scene.add(dimGroup);
+        }
+
+        this.dimensionLines.push(dimGroup);
+        console.log('📐 Dimension lines added to assembly');
         return true;
     },
 
-    _createDimensionLine: function (start, end, text) {
+    _createDimensionLine: function (start, end, text, parentGroup) {
         const material = new THREE.LineBasicMaterial({ color: 0xFFFF00 });
         const points = [start, end];
         const geometry = new THREE.BufferGeometry().setFromPoints(points);
         const line = new THREE.Line(geometry, material);
-        line.name = 'dimension_line';
-        this.scene.add(line);
-        this.dimensionLines.push(line);
+        parentGroup.add(line);
 
         // Arrow heads
         const arrowHead1 = this._createArrowHead(start, end);
         const arrowHead2 = this._createArrowHead(end, start);
-        this.scene.add(arrowHead1, arrowHead2);
-        this.dimensionLines.push(arrowHead1, arrowHead2);
+        parentGroup.add(arrowHead1, arrowHead2);
 
         // Text label
         const mid = new THREE.Vector3().lerpVectors(start, end, 0.5);
@@ -165,9 +179,10 @@ window.RollerViewer3D = {
         const label = this._createTextSprite(text, 0xFFFF00);
         label.position.copy(mid);
         label.scale.set(80, 20, 1);
-        this.scene.add(label);
-        this.dimensionLines.push(label);
+        parentGroup.add(label);
     },
+
+    
 
     _createArrowHead: function (from, to) {
         const dir = new THREE.Vector3().subVectors(to, from).normalize();
@@ -180,12 +195,13 @@ window.RollerViewer3D = {
         arrow.rotateX(Math.PI / 2);
         return arrow;
     },
-
     removeDimensionLines: function () {
-        this.dimensionLines.forEach(obj => this.scene.remove(obj));
+        this.dimensionLines.forEach(obj => {
+            if (obj.parent) obj.parent.remove(obj);
+            else this.scene.remove(obj);
+        });
         this.dimensionLines = [];
     },
-
     // Highlighting & Tooltips
     enableInteractivity: function () {
         this.raycaster = new THREE.Raycaster();
@@ -254,7 +270,7 @@ window.RollerViewer3D = {
 
     _showTooltip: function (event, mesh) {
         let info = mesh.name;
-        if (mesh.name.startsWith('shaft_')) info = "Shaft";
+        if (mesh.userData.isShaft) info = "Shaft";
         else if (mesh.name === 'Roller') info = "Roller Shell";
         else if (mesh.name === 'RubberCover') info = "Rubber Cover";
 
@@ -336,7 +352,7 @@ window.RollerViewer3D = {
         this.scene.add(floor);
 
         // Subtle grid helper
-        const grid = new THREE.GridHelper(2000, 50, 0xcccccc, 0xdddddd);
+        const grid = new THREE.GridHelper(10000, 10000, 0xcccccc, 0xdddddd);
         grid.position.y = -199.5;
         grid.material.opacity = 0.5;
         grid.material.transparent = true;
@@ -352,16 +368,49 @@ window.RollerViewer3D = {
         return true;
     },
 
-    // Get all toggleable parts
     getPartsList: function () {
-        return this.meshes
-            .filter(mesh => mesh.name && !mesh.name.startsWith('label_') && !mesh.name.startsWith('dimension'))
-            .map(mesh => ({
-                name: mesh.name,
-                displayName: this._getDisplayName(mesh.name),
-                visible: mesh.visible !== true
-            }));
+        const parts = [];
+
+        const traverse = (obj) => {
+            if (obj.userData && obj.userData.isShaft) {
+                parts.push({
+                    name: obj.name,
+                    displayName: this._getDisplayName(obj.name),
+                    visible: obj.visible !== false,
+                    opacity: obj.material ? (obj.material.opacity || 1.0) : 1.0
+                });
+            } else if (obj.name === 'Roller' || obj.name === 'RubberCover') {
+                parts.push({
+                    name: obj.name,
+                    displayName: this._getDisplayName(obj.name),
+                    visible: obj.visible !== false,
+                    opacity: obj.material ? (obj.material.opacity || 1.0) : 1.0
+                });
+            }
+
+            if (obj.children) {
+                obj.children.forEach(child => traverse(child));
+            }
+        };
+
+        if (this.assemblyGroup) {
+            traverse(this.assemblyGroup);
+        } else {
+            this.meshes.forEach(mesh => traverse(mesh));
+        }
+
+        return parts;
     },
+        
+    // getPartsList: function () {
+    //     return this.meshes
+    //         .filter(mesh => mesh.name && !mesh.name.startsWith('label_') && !mesh.name.startsWith('dimension'))
+    //         .map(mesh => ({
+    //             name: mesh.name,
+    //             displayName: this._getDisplayName(mesh.name),
+    //             visible: mesh.visible !== true
+    //         }));
+    // },
 
     _getDisplayName: function (name) {
         if (name === 'Roller') return 'Roller Shell';
@@ -371,16 +420,26 @@ window.RollerViewer3D = {
     },
 
     toggleVisibility: function (meshName, visible) {
-        const mesh = this.meshes.find(m => m.name === meshName);
-        if (mesh) {
-            mesh.visible = visible;
-            console.log(`👁️ ${meshName} visibility set to ${visible}`);
-            return true;
-        }
-        console.warn(`⚠️ Mesh '${meshName}' not found`);
-        return false;
-    },
+        let found = false;
 
+        const traverse = (obj) => {
+            if (obj.name === meshName) {
+                obj.visible = visible;
+                found = true;
+            }
+            if (obj.children) {
+                obj.children.forEach(child => traverse(child));
+            }
+        };
+
+        if (this.assemblyGroup) {
+            traverse(this.assemblyGroup);
+        } else {
+            this.meshes.forEach(mesh => traverse(mesh));
+        }
+
+        return found;
+    },
     setAllVisibility: function (visible) {
         this.meshes.forEach(mesh => {
             if (mesh.name && !mesh.name.startsWith('label_') && !mesh.name.startsWith('dimension')) {
@@ -390,31 +449,52 @@ window.RollerViewer3D = {
         console.log(`👁️ All parts visibility set to ${visible}`);
     },
 
-    // Set opacity for a specific mesh
     setOpacity: function (meshName, opacity) {
-        const mesh = this.meshes.find(m => m.name === meshName);
-        if (!mesh) {
-            console.warn(`⚠️ Mesh '${meshName}' not found for opacity change`);
-            return false;
-        }
+        let found = false;
 
-        // Support both single material and group (RubberCover)
-        const meshesToUpdate = mesh.name === 'RubberCover'
-            ? mesh.children
-            : [mesh];
-
-        meshesToUpdate.forEach(m => {
-            if (m.material) {
-                if (Array.isArray(m.material)) {
-                    m.material.forEach(mat => this._applyOpacity(mat, opacity));
+        const applyOpacityToObject = (obj, targetOpacity) => {
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(mat => {
+                        mat.transparent = true;
+                        mat.opacity = Math.max(0.1, Math.min(1.0, targetOpacity));
+                        mat.needsUpdate = true;
+                    });
                 } else {
-                    this._applyOpacity(m.material, opacity);
+                    obj.material.transparent = true;
+                    obj.material.opacity = Math.max(0.1, Math.min(1.0, targetOpacity));
+                    obj.material.needsUpdate = true;
                 }
             }
-        });
+        };
 
-        console.log(`🎨 ${meshName} opacity set to ${opacity}`);
-        return true;
+        const traverse = (obj) => {
+            if (obj.name === meshName) {
+                // Apply to the object itself
+                applyOpacityToObject(obj, opacity);
+                found = true;
+
+                // If it's a group (like RubberCover), apply to all children too
+                if (obj.children && obj.children.length > 0) {
+                    obj.children.forEach(child => {
+                        applyOpacityToObject(child, opacity);
+                    });
+                }
+            }
+
+            if (obj.children) {
+                obj.children.forEach(child => traverse(child));
+            }
+        };
+
+        if (this.assemblyGroup) {
+            traverse(this.assemblyGroup);
+        } else {
+            this.meshes.forEach(mesh => traverse(mesh));
+        }
+
+        console.log(`🎨 Opacity set for ${meshName}: ${opacity}`);
+        return found;
     },
 
     _applyOpacity: function (material, opacity) {
@@ -425,23 +505,34 @@ window.RollerViewer3D = {
 
     // Reset all opacities to 1.0
     resetAllOpacities: function () {
-        this.meshes.forEach(mesh => {
-            const meshesToReset = mesh.name === 'RubberCover' ? mesh.children : [mesh];
-            meshesToReset.forEach(m => {
-                if (m.material) {
-                    if (Array.isArray(m.material)) {
-                        m.material.forEach(mat => {
-                            mat.transparent = false;
-                            mat.opacity = 1.0;
-                        });
-                    } else {
-                        m.material.transparent = false;
-                        m.material.opacity = 1.0;
-                    }
+        const resetOpacity = (obj) => {
+            if (obj.material) {
+                if (Array.isArray(obj.material)) {
+                    obj.material.forEach(mat => {
+                        mat.transparent = false;
+                        mat.opacity = 1.0;
+                    });
+                } else {
+                    obj.material.transparent = false;
+                    obj.material.opacity = 1.0;
                 }
-            });
-        });
-        console.log('🔄 All opacities reset to 1.0');
+            }
+        };
+
+        const traverse = (obj) => {
+            resetOpacity(obj);
+            if (obj.children) {
+                obj.children.forEach(child => traverse(child));
+            }
+        };
+
+        if (this.assemblyGroup) {
+            traverse(this.assemblyGroup);
+        } else {
+            this.meshes.forEach(mesh => traverse(mesh));
+        }
+
+        console.log('🔄 All opacities reset');
     },
 
     _setupLightsAndEnvironment: function () {
@@ -611,29 +702,37 @@ window.RollerViewer3D = {
         const radius = outerDiameter / 2;
         const shaftName = name ? `shaft_${name}` : `shaft_${this.meshes.length}`;
 
-        const geometry = new THREE.CylinderGeometry(radius, radius, length, 48);
+        // const material = new THREE.MeshStandardMaterial({
+        //     color: 0x444444,
+        //     metalness: 0.92,
+        //     roughness: 0.18
+        // });
+
         const material = new THREE.MeshStandardMaterial({
-            color: 0x444444,
-            metalness: 0.95,
-            roughness: 0.10,
-            envMapIntensity: 1.5
+            color: 0xa8b5c0,
+            metalness: 0.88,
+            roughness: 0.15,
+            envMapIntensity: 1.4
         });
+        const shaftMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(radius, radius, length, 48),
+            material
+        );
 
-        const shaft = new THREE.Mesh(geometry, material);
-        shaft.name = shaftName;
-        shaft.castShadow = true;
-        shaft.receiveShadow = true;
+        shaftMesh.name = shaftName;
+        shaftMesh.castShadow = true;
+        shaftMesh.receiveShadow = true;
 
-        // Store positioning data (before rotation)
-        shaft.userData.axialPos = axialPosition;
-        shaft.userData.radialOffset = radialOffset;
-        shaft.userData.side = side.toLowerCase();
-        
+        // Store positioning data directly on the mesh
+        shaftMesh.userData.axialPos = axialPosition;
+        shaftMesh.userData.radialOffset = radialOffset;
+        shaftMesh.userData.side = side.toLowerCase();
+        shaftMesh.userData.isShaft = true;
 
-        this.scene.add(shaft);
-        this.meshes.push(shaft);
+        this.scene.add(shaftMesh);
+        this.meshes.push(shaftMesh);
 
-        console.log(`✅ Shaft added: ${shaftName} | Axial: ${axialPosition.toFixed(1)}mm | Side: ${side}`);
+        console.log(`✅ Simple shaft added: ${shaftName} | Length: ${length}mm | Axial: ${axialPosition.toFixed(2)}mm`);
         return true;
     },
 
@@ -645,34 +744,39 @@ window.RollerViewer3D = {
 
         const liftHeight = 90;
 
+        // Create main assembly group
+        this.assemblyGroup = new THREE.Group();
+        this.assemblyGroup.name = "RollerAssembly";
+        this.scene.add(this.assemblyGroup);
+
         this.meshes.forEach(mesh => {
-            // Rotate all cylinders to lie horizontally along Z-axis
+            // Rotate to horizontal
             mesh.rotation.x = Math.PI / 2;
             mesh.rotation.y = 0;
             mesh.rotation.z = 0;
 
-            // Lift everything above the floor
             mesh.position.y = liftHeight;
 
-            if (mesh.name.startsWith("shaft_")) {
-                // Shafts are already positioned correctly via axialPos (outward from shell ends)
+            if (mesh.userData.isShaft) {
                 mesh.position.z = mesh.userData.axialPos || 0;
-
-                // Apply radial offset (if shaft is not perfectly centered)
                 const offset = mesh.userData.radialOffset || 0;
                 mesh.position.x = (mesh.userData.side === "left") ? -offset : offset;
-
             } else {
-                // Roller Shell and Rubber Cover stay centered
                 mesh.position.x = 0;
                 mesh.position.z = 0;
             }
+
+            // Add everything to the main assembly group
+            this.assemblyGroup.add(mesh);
         });
+
+        // Clear old meshes array and put only the assembly group
+        this.meshes = [this.assemblyGroup];
 
         this._positionCamera();
         this.animateRoller = true;
 
-        console.log('✅ Final positioning applied - Shafts extending outward from shell ends');
+        console.log('✅ All parts grouped into one rotating assembly');
         return true;
     },
 
@@ -701,14 +805,9 @@ window.RollerViewer3D = {
     animate: function () {
         requestAnimationFrame(() => this.animate());
 
-        if (this.animateRoller && this.meshes.length > 0) {
+        if (this.animateRoller && this.assemblyGroup) {
             const speed = this.spinSpeed || 0.004;
-            this.meshes.forEach(mesh => {
-                if (mesh.name === 'Roller' || mesh.name === 'RubberCover' || mesh.name.startsWith('shaft_'))
-                {
-                    mesh.rotation.z += speed;
-                }
-            });
+            this.assemblyGroup.rotation.y += speed;
         }
 
         if (this.controls) this.controls.update();
@@ -716,7 +815,6 @@ window.RollerViewer3D = {
             this.renderer.render(this.scene, this.camera);
         }
     },
-
     debugPositions: function () {
         console.group('🔍 RollerViewer3D - Current Positions');
         this.meshes.forEach(m => {
@@ -735,7 +833,7 @@ window.RollerViewer3D = {
         // ====================== ANIMATION & CAMERA CONTROLS ======================
     setSpinSpeed: function (speed) {
         // speed: 0 = stopped, 0.001 = slow, 0.008 = fast
-        this.spinSpeed = Math.max(0, Math.min(speed, 0.02));
+        this.spinSpeed = Math.max(0, Math.min(speed, 0.1));
         console.log(`🔄 Spin speed set to ${this.spinSpeed}`);
     },
 
@@ -789,16 +887,19 @@ window.RollerViewer3D = {
     },
     // ====================== ADVANCED FEATURES ======================
     explodeView: function (factor = 0) {
+        if (!this.assemblyGroup) return;
+
         this.explodeFactor = Math.max(0, Math.min(factor, 1));
 
-        this.meshes.forEach(mesh => {
-            if (mesh.name.startsWith("shaft_")) {
-                const originalZ = mesh.userData.axialPos || 0;
-                mesh.position.z = originalZ * (1 + this.explodeFactor * 1.8);
-            } else if (mesh.name === 'RubberCover') {
-                mesh.position.z = this.explodeFactor * 80;
+        this.assemblyGroup.children.forEach(child => {
+            if (child.userData.isShaft) {
+                const originalZ = child.userData.axialPos || 0;
+                child.position.z = originalZ * (1 + this.explodeFactor);
+            } else if (child.name === 'RubberCover') {
+                child.position.y = 90 + (90 * this.explodeFactor) * (1 + this.explodeFactor); // 60;
             }
         });
+
         console.log(`💥 Exploded view factor: ${this.explodeFactor}`);
     },
 
@@ -822,36 +923,40 @@ window.RollerViewer3D = {
         }
     },
 
-    // Simple measurement labels using sprites
     addMeasurementLabels: function () {
-        if (typeof THREE === 'undefined') return false;
+        this.removeMeasurementLabels();
 
-        // Remove old labels
-        this.meshes.filter(m => m.name.startsWith('label_')).forEach(label => {
-            this.scene.remove(label);
-        });
+        const roller = this.meshes.find(m => m.name === 'Roller') ||
+            (this.assemblyGroup ? this.assemblyGroup.children.find(m => m.name === 'Roller') : null);
 
-        const roller = this.meshes.find(m => m.name === 'Roller');
         if (!roller) return false;
 
         const length = roller.geometry.parameters.height;
         const diameter = roller.geometry.parameters.radiusTop * 2;
+        const liftHeight = 90;
 
-        // Length label (along Z)
+        const labelGroup = new THREE.Group();
+        labelGroup.name = 'measurement_labels';
+
+        // Length label
         const lengthLabel = this._createTextSprite(`L = ${length.toFixed(0)} mm`, 0xFFFFFF);
-        lengthLabel.position.set(0, 140, length / 2 + 30);
-        lengthLabel.name = 'label_length';
-        this.scene.add(lengthLabel);
-        this.meshes.push(lengthLabel);
+        lengthLabel.position.set(0, liftHeight + 140, length / 2 + 30);
+        labelGroup.add(lengthLabel);
 
         // Diameter label
         const diaLabel = this._createTextSprite(`Ø ${diameter.toFixed(0)} mm`, 0xFFFF00);
-        diaLabel.position.set(diameter / 2 + 40, 100, 0);
-        diaLabel.name = 'label_diameter';
-        this.scene.add(diaLabel);
-        this.meshes.push(diaLabel);
+        diaLabel.position.set(diameter / 2 + 40, liftHeight + 100, 0);
+        labelGroup.add(diaLabel);
 
-        console.log('📏 Measurement labels added');
+        // Add to assembly
+        if (this.assemblyGroup) {
+            this.assemblyGroup.add(labelGroup);
+        } else {
+            this.scene.add(labelGroup);
+        }
+
+        this.dimensionLines.push(labelGroup); // Reuse dimensionLines array for cleanup
+        console.log('📏 Measurement labels added to assembly');
         return true;
     },
 
@@ -877,12 +982,10 @@ window.RollerViewer3D = {
     },
 
     removeMeasurementLabels: function () {
-        this.meshes = this.meshes.filter(mesh => {
-            if (mesh.name.startsWith('label_')) {
-                this.scene.remove(mesh);
-                return false;
-            }
-            return true;
+        this.dimensionLines.forEach(obj => {
+            if (obj.parent) obj.parent.remove(obj);
+            else this.scene.remove(obj);
         });
+        this.dimensionLines = [];
     }
 };

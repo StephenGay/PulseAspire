@@ -85,6 +85,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<FlapperConversation> FlapperConversations { get; set; }
         public DbSet<FlapperMessage> FlapperMessages { get; set; }  
         public DbSet<RollerShaft> RollerShaftMaster { get; set; }
+        public DbSet<ApplicationUserSpeedDial> AspNetUserSpeedDials { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -143,6 +144,7 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new AnalysisRequestMap());
             modelBuilder.ApplyConfiguration(new FlapperConversationMap());
             modelBuilder.ApplyConfiguration(new FlapperMessageMap());
+            modelBuilder.ApplyConfiguration(new ApplicationUserSpeedDialMap());
 
             base.OnModelCreating(modelBuilder);
         }

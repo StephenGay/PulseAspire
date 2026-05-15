@@ -10,6 +10,7 @@
 @using Pulse.Web.Services
 @using Toolbelt.Blazor.SpeechSynthesis
 
+@inject GlobalFunctions GlobalFunctions
 @inject PulseApiService ApiService
 @inject AuthService AuthService
 @inject CustomAuthenticationStateProvider AuthProvider
@@ -284,6 +285,9 @@
             var uSettings = await ApiService.GetAsync<ApplicationUserSettings>(ApiEndpoints.User.Settings.GetSettings(AuthService.aspireUserId));
             if(uSettings.PreferredUserName=="User"){ uSettings.PreferredUserName = AuthService.aspireFullName; }
             await DataTransfer.SetgvUserSettings(uSettings);
+            await GlobalFunctions.SetUserSpeedDial();
+            
+
             // var user = await ApiService.GetAsync<User>(
             //     $"/Security/OldEmployeeLogin/email={Uri.EscapeDataString(Model.Email)}");
 

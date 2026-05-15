@@ -1,12 +1,14 @@
 ﻿using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.EntityFrameworkCore;
 using Pulse.ApiService.Services;
+using Pulse.Models.Api;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
 using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
+using static Pulse.Models.Api.ApiEndpoints;
 
 namespace Pulse.ApiService.Endpoints
 {
@@ -51,7 +53,38 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok($"Item with ID {id} has been deleted.");
             });
 
-            
+            group.MapGet("/SpeedDial/GetByUserId/{UserId}", async (string UserId, PulseDbContext db) =>
+            {
+                var speedDials = await db.AspNetUserSpeedDials
+                    .AsNoTracking()
+                    .Where(p => p.ApplicationUserId == UserId)
+                    .ToListAsync();
+                if (speedDials == null )
+                {
+                    speedDials = new List<ApplicationUserSpeedDial>();
+                }
+                return Results.Ok(new ApiResponse<List<ApplicationUserSpeedDial>> { Data = speedDials, Success = true });
+            })
+                .WithName("GetUserSpeedDial");
+
+            group.MapPost("/SpeedDial/Add/", async (ApplicationUserSpeedDial sd, PulseDbContext dbContext) =>
+            {
+                dbContext.AspNetUserSpeedDials.Add(sd);
+                await dbContext.SaveChangesAsync();
+                return Results.Created($"/User/SpeedDial/Add/{sd.Id}", sd);
+            });
+
+            group.MapDelete("/SpeedDial/Delete/{id}", async (int id, PulseDbContext dbContext) =>
+            {
+                var item = await dbContext.AspNetUserSpeedDials.FindAsync(id);
+                if (item == null)
+                {
+                    return Results.NotFound($"Item with ID {id} not found.");
+                }
+                dbContext.AspNetUserSpeedDials.Remove(item);
+                await dbContext.SaveChangesAsync();
+                return Results.Ok($"Item with ID {id} has been deleted.");
+            });
 
             group.MapGet("/Settings/GetSettings/{UserId}", async (string UserId, PulseDbContext db) =>
             {

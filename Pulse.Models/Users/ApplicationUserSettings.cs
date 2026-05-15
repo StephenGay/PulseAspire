@@ -26,6 +26,8 @@ namespace Pulse.Models.Users
         [Required]
         [DefaultValue("pulse")]
         public string UserTheme { get; set; } = "pulse";
+        //[DefaultValue(false)]
+        //public bool UseClientSpeedDial { get; set; } = false;
 
     }
 }
