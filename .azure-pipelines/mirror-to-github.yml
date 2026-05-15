@@ -1,0 +1,36 @@
+trigger:
+  branches:
+    include:
+      - Exp-AItoAPI
+      # - develop
+      # Add more branches here if needed
+      # - release/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: GitHub-Mirror-Variables   # Optional: Use variable group for secrets
+
+steps:
+- checkout: self
+  persistCredentials: true
+
+- script: |
+    echo "🔄 Starting GitHub mirror for branch: $(Build.SourceBranchName)"
+    
+    git config --global user.email "azuredevops@hmrollers.com"
+    git config --global user.name "Azure DevOps Mirror Bot"
+    
+    # Add GitHub remote using PAT from service connection
+    git remote add github https://$(GitHubUsername):$(GitHubToken)@github.com/StephenGay/PulseAspire.git 2>/dev/null || true
+    
+    # Only push the current branch (safer than --all)
+    git push github $(Build.SourceBranchName) --force
+    
+    echo "✅ Successfully mirrored branch '$(Build.SourceBranchName)' to GitHub"
+    
+  displayName: 'Mirror Specific Branch to GitHub'
+  env:
+    GitHubUsername: $(GitHubUsername)
+    GitHubToken: $(GitHubToken)
