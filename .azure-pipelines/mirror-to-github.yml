@@ -25,7 +25,7 @@ steps:
     git remote add github https://$(GitHubUsername):$(GitHubToken)@github.com/StephenGay/PulseAspire.git 2>/dev/null || true
     
     # Only push the current branch (safer than --all)
-    git push github $(Build.SourceBranchName) --force
+    git push github HEAD:refs/heads/$(Build.SourceBranchName) --force
     
     echo "✅ Successfully mirrored branch '$(Build.SourceBranchName)' to GitHub"
     
