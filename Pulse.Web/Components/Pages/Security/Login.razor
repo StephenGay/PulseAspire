@@ -14,6 +14,7 @@
 @inject PulseApiService ApiService
 @inject AuthService AuthService
 @inject CustomAuthenticationStateProvider AuthProvider
+@inject PulseThemeService PulseThemeService
 @inject DataTransferService DataTransfer
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -300,6 +301,7 @@
 
             // await DataTransfer.SetgvUser(user);
             pTheme = uSettings.UserTheme ?? "pulse";
+            await PulseThemeService.SetThemeAsync(pTheme);
             await JS.InvokeVoidAsync("applyPulseTheme", pTheme);
             // firstName = await DataTransfer.GetgvUserFirstName();
             await InitializeAIAsync(uSettings);

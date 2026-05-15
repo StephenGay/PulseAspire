@@ -1,7 +1,9 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
+@using Microsoft.FluentUI.AspNetCore.Components.Utilities.
 @using Pulse.Web.Components.PulseComponents.Containers
-
+@inject IDesignThemeService ThemeService
+@implements IDisposable
 <!DOCTYPE html>
 <html lang="en">
 
@@ -13,45 +15,46 @@
     
 
     <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/fluent-ui.min.css" />
-    
+
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Pulse.Web.styles.css"]" />
     <RadzenTheme Theme="material" />
     <link rel="stylesheet" href="_content/BlazorAnimation/animate.css" />
-    
+
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
     <link href="~/css/bootstrap.css" rel="stylesheet" />
+
     
-    
-     <link rel="stylesheet" href="@Assets["_content/BootstrapBlazor.FontAwesome/css/font-awesome.min.css"]" />
-    
-    <link rel="stylesheet" href="@Assets["_content/BootstrapBlazor/css/bootstrap.blazor.bundle.min.css"]" /> 
+    <link rel="stylesheet" href="@Assets["_content/BootstrapBlazor.FontAwesome/css/font-awesome.min.css"]" />
+
+    <link rel="stylesheet" href="@Assets["_content/BootstrapBlazor/css/bootstrap.blazor.bundle.min.css"]" />
     <link href="https://cdn.jsdelivr.net/npm/fullcalendar-scheduler/main.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="css/pulse-themes.css" />
     
     <script src="_content/Microsoft.FluentUI.AspNetCore.Components/Microsoft.FluentUI.AspNetCore.Components.lib.module.js" type="module" async></script>
     <script src="_content/BlazorAnimation/blazorAnimationInterop.js"></script>
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar-scheduler@6.1.19/index.global.min.js'></script>
 
     <ImportMap />
-    
+
     <link rel="icon" type="image/png" sizes="16x16" href="Images/FavIcons/favicon 16x16.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="Images/FavIcons/favicon 32x32.png" />
-	<link rel="icon" type="image/png" sizes="48x48" href="Images/FavIcons/favicon 48x48.png" />
-	<link rel="icon" type="image/png" sizes="180x180" href="Images/FavIcons/favicon 180x180.png" />
-	<link rel="icon" type="image/png" sizes="192x192" href="Images/FavIcons/favicon 192x192.png" />
-	<link rel="icon" type="image/png" sizes="512x512" href="Images/FavIcons/favicon 512x512.png" />
-    
+    <link rel="icon" type="image/png" sizes="48x48" href="Images/FavIcons/favicon 48x48.png" />
+    <link rel="icon" type="image/png" sizes="180x180" href="Images/FavIcons/favicon 180x180.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="Images/FavIcons/favicon 192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="Images/FavIcons/favicon 512x512.png" />
+
     <HeadOutlet />
 </head>
 
 <body>
-    <FluentDesignTheme StorageName="themePulse" Mode="DesignThemeModes.Light" >
-     <BootstrapBlazorRoot> 
-        <Routes @rendermode="InteractiveServer" />
-     </BootstrapBlazorRoot> 
+    <FluentDesignTheme StorageName="themePulse" Mode="DesignThemeModes.Light">
+        <BootstrapBlazorRoot>
+            <Routes @rendermode="InteractiveServer" />
+        </BootstrapBlazorRoot>
     </FluentDesignTheme>
-    
+
     <!-- Move OUTSIDE theme/root so z-index works properly -->
     <PulseToastContainer />
 
@@ -59,36 +62,41 @@
     <script src="_framework/blazor.server.js"></script>
     <!-- Load THREE.js as ES Module with proper imports -->
     <script type="importmap">
-    {
+        {
         "imports": {
-            "three": "/js/three.module.min.js",
-            "three/addons/controls/OrbitControls": "/js/OrbitControls.js"
+        "three": "/js/three.module.min.js",
+        "three/addons/controls/OrbitControls": "/js/OrbitControls.js"
+        
         }
-    }
+        }
     </script>
 
     <!-- Initialize THREE and OrbitControls globally -->
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls';
+        
 
         // Expose to global scope for non-module scripts
         window.THREE = THREE;
         window.OrbitControls = OrbitControls;
+        
 
         console.log('✅ THREE.js module loaded');
         console.log('✅ OrbitControls module loaded');
+        
     </script>
 
     <!-- Verify THREE and OrbitControls are loaded -->
     <script>
         console.log('🔷 App.razor script loading check...');
         setTimeout(() => {
-            console.log('✅ THREE.js available:', typeof THREE !== 'undefined');
-            console.log('✅ OrbitControls available:', typeof OrbitControls !== 'undefined');
-            if (typeof THREE !== 'undefined') {
-                console.log('   THREE version info:', THREE.REVISION);
-            }
+        console.log('✅ THREE.js available:', typeof THREE !== 'undefined');
+        console.log('✅ OrbitControls available:', typeof OrbitControls !== 'undefined');
+        
+        if (typeof THREE !== 'undefined') {
+        console.log('   THREE version info:', THREE.REVISION);
+        }
         }, 100);
     </script>
 
@@ -100,10 +108,16 @@
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/site.js"></script>
-   @*  <script src="js/three-viewer.js"></script> *@
-    <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/RGBELoader.js"></script>
+    @*  <script src="js/three-viewer.js"></script> *@
+    @* <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/RGBELoader.js"></script> *@
+    <script type="module" src="js/Three/EffectComposer.js"></script>
+    <script type="module" src="js/Three/RenderPass.js"></script>
+    <script type="module" src="js/Three/UnrealBloomPass.js"></script>
+    <script type="module" src="js/Three/FXAAShader.js"></script>
+    <script type="module" src="js/Three/ShaderPass.js"></script>
     <script src="js/roller-Viewer-3d.js"></script>
     <script src="js/fullcalendarInterop.js"></script>
+    <script src="js/theme-manager.js"></script>
     <script src="js/scriptLoader.js"></script>
     <script src="js/FactoryLayoutInterop.js"></script>
 

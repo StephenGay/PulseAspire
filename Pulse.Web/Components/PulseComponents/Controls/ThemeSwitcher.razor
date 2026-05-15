@@ -1,0 +1,65 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Api
+@using Pulse.Models.Users
+@using Pulse.Web.Services
+
+@inject PulseApiService pApi
+@inject DataTransferService dTrf
+@inject PulseThemeService PulseThemeService
+@inject IPulseToastService pulseToastService
+@inject Global_AI_Functions GlobalAIFunctions
+
+<FluentSelect TOption="string" 
+              @bind-SelectedOption="selectedTheme"
+              @onchange="OnThemeChanged"
+              Width="160px">
+    <FluentOption Value="pulse">Pulse (Default)</FluentOption>
+    <FluentOption Value="hm">HM</FluentOption>
+    <FluentOption Value="ocean">Ocean</FluentOption>
+    <FluentOption Value="space">Space</FluentOption>
+</FluentSelect>
+
+@code {
+    private string selectedTheme = "pulse";
+    private ApplicationUserSettings? uSettings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        uSettings = await dTrf.GetgvUserSettings();
+        var saved = uSettings?.UserTheme ?? "pulse";
+        if (!string.IsNullOrEmpty(saved))
+            selectedTheme = saved;
+    }
+
+    private async Task OnThemeChanged()
+    {
+        bool isSaved = false;
+        try
+        {
+            uSettings = await dTrf.GetgvUserSettings();
+            uSettings.UserTheme = selectedTheme;
+            isSaved = await pApi.PutAsync<ApplicationUserSettings>(ApiEndpoints.User.Settings.Update, uSettings);
+            if (isSaved)
+            {
+                await dTrf.SetgvUserSettings(uSettings);
+                await PulseThemeService.SetThemeAsync(selectedTheme);
+            }
+        }
+        catch (Exception ex)
+        {
+            isSaved = false;
+        }
+        finally
+        {
+            if (!isSaved)
+            {
+                var errMsg = "There was an error saving your theme.<br />Please try again.";
+                pulseToastService.ShowToast("Error", errMsg,true);
+                await GlobalAIFunctions.AISpeak(errMsg, "PulseAI");
+                selectedTheme = uSettings?.UserTheme ?? "pulse";
+            }
+        }
+    
+        
+    }
+}

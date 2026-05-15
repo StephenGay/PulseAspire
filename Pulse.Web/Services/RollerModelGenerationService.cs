@@ -15,17 +15,12 @@ public class RollerModelGenerationService : IAsyncDisposable
         _js = js;
     }
 
-    /// <summary>
-    /// Initialize the 3D viewer
-    /// </summary>
     public async Task<bool> InitializeViewerAsync(ElementReference container)
     {
         try
         {
             var success = await _js.InvokeAsync<bool>("RollerViewer3D.init", container);
-            if (success)
-                _initialized = true;
-
+            if (success) _initialized = true;
             return success;
         }
         catch (Exception ex)
@@ -35,12 +30,7 @@ public class RollerModelGenerationService : IAsyncDisposable
         }
     }
 
-    /// <summary>
-    /// Main method - Load complete roller with all components
-    /// </summary>
-    public async Task LoadRollerAsync(
-        ClientRollerSpecification roller,
-        List<RollerShaft> shafts)
+    public async Task LoadRollerAsync(ClientRollerSpecification roller, List<RollerShaft> shafts)
     {
         if (!_initialized)
             throw new InvalidOperationException("3D Viewer must be initialized first.");
@@ -50,7 +40,7 @@ public class RollerModelGenerationService : IAsyncDisposable
 
         await ClearSceneAsync();
 
-        // 1. Add Roller Shell
+        // 1. Roller Shell
         if (roller.ShellDiameter.HasValue && roller.ShellLength.HasValue)
         {
             await _js.InvokeVoidAsync("RollerViewer3D.addRoller",
@@ -58,25 +48,24 @@ public class RollerModelGenerationService : IAsyncDisposable
                 (float)roller.ShellLength.Value);
         }
 
-        // 2. Add Rubber Cover
+        // 2. Rubber Cover
         if (roller.CoverDiameter.HasValue && roller.CoverLength.HasValue)
         {
-            // Line 64 - Change 2.0 to 2.0m
             float thickness = (float)((roller.CoverDiameter.Value - roller.ShellDiameter!.Value) / 2.0m);
-            float coverLength = (float)(roller.CoverLength.Value - 30); // slight inset
+            float coverLength = (float)(roller.CoverLength.Value - 30);
 
             await _js.InvokeVoidAsync("RollerViewer3D.addRubberCover",
                 (float)(roller.CoverLeftOffset ?? 0),
                 coverLength,
                 thickness,
-                0x1a1a1a); // dark rubber
+                0x1a1a1a);
         }
 
-        // 3. Add Shafts
+        // 3. Shafts
         if (shafts != null && shafts.Any())
         {
             double shellHalf = (double)(roller.ShellLength!.Value / 2.0m);
-            double currentLeftPos = -shellHalf;   // Start from left end of shell
+            double currentLeftPos = -shellHalf;
             double currentRightPos = shellHalf;
 
             foreach (var shaft in shafts.OrderBy(s => s.ShaftPosition))
@@ -86,16 +75,14 @@ public class RollerModelGenerationService : IAsyncDisposable
 
                 if (side == "left")
                 {
-                    axialPos = currentLeftPos - (shaft.Length / 2.0);   // Center of shaft
-                    currentLeftPos -= shaft.Length;                     // Move further left for next shaft
+                    axialPos = currentLeftPos - (shaft.Length / 2.0);
+                    currentLeftPos -= shaft.Length;
                 }
-                else // right or center
+                else
                 {
                     axialPos = currentRightPos + (shaft.Length / 2.0);
                     currentRightPos += shaft.Length;
                 }
-                // Alternative if you store position from left end:
-                // double axialPos = (shaft.PositionFromLeft ?? shellHalf) - shellHalf;
 
                 await _js.InvokeVoidAsync("RollerViewer3D.addShaft",
                     (float)shaft.OuterDiameter,
@@ -107,140 +94,88 @@ public class RollerModelGenerationService : IAsyncDisposable
             }
         }
 
-        // 4. Final positioning + camera
+        // 4. Final positioning
         await _js.InvokeVoidAsync("RollerViewer3D.applyFinalPositioning");
+
+        // 5. Enable post-processing (Bloom + FXAA)
+        await _js.InvokeVoidAsync("RollerViewer3D.initPostProcessing");
+
         await _js.InvokeVoidAsync("RollerViewer3D.debugPositions");
     }
 
-    // ====================== ANIMATION CONTROLS ======================
+    // ====================== ANIMATION ======================
     public async Task SetSpinSpeedAsync(float speed = 0.004f)
-    {
-        try
-        {
-            await _js.InvokeVoidAsync("RollerViewer3D.setSpinSpeed", speed);
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Failed to set spin speed: {ex.Message}");
-        }
-    }
+        => await _js.InvokeVoidAsync("RollerViewer3D.setSpinSpeed", speed);
 
     public async Task StartSpinAsync() => await _js.InvokeVoidAsync("RollerViewer3D.startSpin");
     public async Task StopSpinAsync() => await _js.InvokeVoidAsync("RollerViewer3D.stopSpin");
+    public async Task<bool> ToggleSpinAsync() => await _js.InvokeAsync<bool>("RollerViewer3D.toggleSpin");
 
-    public async Task<bool> ToggleSpinAsync()
-    {
-        return await _js.InvokeAsync<bool>("RollerViewer3D.toggleSpin");
-    }
-
-    // ====================== CAMERA CONTROLS ======================
+    // ====================== CAMERA ======================
     public async Task ResetCameraAsync() => await _js.InvokeVoidAsync("RollerViewer3D.resetCamera");
-
-    public async Task SetCameraPresetAsync(string preset)
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.setCameraPreset", preset);
-    }
-
+    public async Task SetCameraPresetAsync(string preset) => await _js.InvokeVoidAsync("RollerViewer3D.setCameraPreset", preset);
     public async Task ZoomToFitAsync() => await _js.InvokeVoidAsync("RollerViewer3D.zoomToFit");
-    public async Task ClearSceneAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.clearScene");
-    }
+
+    public async Task ClearSceneAsync() => await _js.InvokeVoidAsync("RollerViewer3D.clearScene");
 
     public async Task ReloadAsync(ElementReference container, ClientRollerSpecification roller, List<RollerShaft> shafts)
     {
         await ClearSceneAsync();
-        await Task.Delay(50); // Small delay for cleanup
+        await Task.Delay(50);
         await LoadRollerAsync(roller, shafts);
     }
-    public async Task AddDimensionLinesAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.addDimensionLines");
-    }
 
-    public async Task RemoveDimensionLinesAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.removeDimensionLines");
-    }
+    // ====================== DIMENSIONS & LABELS ======================
+    public async Task AddDimensionLinesAsync() => await _js.InvokeVoidAsync("RollerViewer3D.addDimensionLines");
+    public async Task RemoveDimensionLinesAsync() => await _js.InvokeVoidAsync("RollerViewer3D.removeDimensionLines");
+    public async Task AddMeasurementLabelsAsync() => await _js.InvokeVoidAsync("RollerViewer3D.addMeasurementLabels");
+    public async Task RemoveMeasurementLabelsAsync() => await _js.InvokeVoidAsync("RollerViewer3D.removeMeasurementLabels");
 
-    public async Task EnableInteractivityAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.enableInteractivity");
-    }
-    // ====================== ADVANCED FEATURES ======================
+    // ====================== EXPLODED VIEW ======================
     public async Task<bool> ToggleExplodedViewAsync()
     {
-        try
-        {
-            return await _js.InvokeAsync<bool>("RollerViewer3D.toggleExplodedView");
-        }
-        catch (Exception ex)
-        {
-            Console.Error.WriteLine($"Error toggling exploded view: {ex.Message}");
-            return false;
-        }
+        try { return await _js.InvokeAsync<bool>("RollerViewer3D.toggleExplodedView"); }
+        catch (Exception ex) { Console.Error.WriteLine($"Error: {ex.Message}"); return false; }
     }
 
-    public async Task SetExplodedFactorAsync(double factor)
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.explodeView", factor);
-    }
+    public async Task SetExplodedFactorAsync(double factor) => await _js.InvokeVoidAsync("RollerViewer3D.explodeView", factor);
 
-    public async Task CaptureScreenshotAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.captureScreenshot");
-    }
-
-    public async Task AddMeasurementLabelsAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.addMeasurementLabels");
-    }
-
-    public async Task RemoveMeasurementLabelsAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.removeMeasurementLabels");
-    }
-    public async Task EnableAdvancedInteractivityAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.enableAdvancedInteractivity");
-    }
-
-    public async Task HideInfoPanelAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.hideInfoPanel");
-    }
-
-    // ====================== PART VISIBILITY ======================
+    // ====================== VISIBILITY & OPACITY ======================
     public async Task<List<RollerModelPartVisibility>> GetPartsListAsync()
-    {
-        return await _js.InvokeAsync<List<RollerModelPartVisibility>>("RollerViewer3D.getPartsList");
-    }
+        => await _js.InvokeAsync<List<RollerModelPartVisibility>>("RollerViewer3D.getPartsList");
 
     public async Task ToggleVisibilityAsync(string meshName, bool visible)
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.toggleVisibility", meshName, visible);
-    }
+        => await _js.InvokeVoidAsync("RollerViewer3D.toggleVisibility", meshName, visible);
 
     public async Task SetAllVisibilityAsync(bool visible)
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.setAllVisibility", visible);
-    }
+        => await _js.InvokeVoidAsync("RollerViewer3D.setAllVisibility", visible);
 
     public async Task SetOpacityAsync(string meshName, float opacity)
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.setOpacity", meshName, opacity);
-    }
+        => await _js.InvokeVoidAsync("RollerViewer3D.setOpacity", meshName, opacity);
 
     public async Task ResetAllOpacitiesAsync()
-    {
-        await _js.InvokeVoidAsync("RollerViewer3D.resetAllOpacities");
-    }
+        => await _js.InvokeVoidAsync("RollerViewer3D.resetAllOpacities");
+
+    // ====================== POST-PROCESSING ======================
+    public async Task EnablePostProcessingAsync()
+        => await _js.InvokeVoidAsync("RollerViewer3D.initPostProcessing");
+
+    public async Task DisablePostProcessingAsync()
+        => await _js.InvokeVoidAsync("RollerViewer3D.disablePostProcessing");
+
+    // ====================== INTERACTIVITY ======================
+    public async Task EnableAdvancedInteractivityAsync()
+        => await _js.InvokeVoidAsync("RollerViewer3D.enableAdvancedInteractivity");
+
+    public async Task HideInfoPanelAsync()
+        => await _js.InvokeVoidAsync("RollerViewer3D.hideInfoPanel");
+
+    public async Task CaptureScreenshotAsync()
+        => await _js.InvokeVoidAsync("RollerViewer3D.captureScreenshot");
+
     public async ValueTask DisposeAsync()
     {
-        try
-        {
-            await _js.InvokeVoidAsync("RollerViewer3D.dispose");
-        }
-        catch { /* Ignore if already disposed */ }
+        try { await _js.InvokeVoidAsync("RollerViewer3D.dispose"); }
+        catch { }
     }
 }

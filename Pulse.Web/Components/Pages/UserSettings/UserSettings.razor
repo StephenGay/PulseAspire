@@ -213,6 +213,7 @@
     private async Task onClickSave()
     {
         bool themeChanged = uSettings.UserTheme != pTheme;
+        
         uSettings.UserTheme = pTheme;
         bool saved = await pApi.PutAsync<ApplicationUserSettings>(ApiEndpoints.User.Settings.Update, uSettings);
         await dt.SetgvUserSettings(uSettings);

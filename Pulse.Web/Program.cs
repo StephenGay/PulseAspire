@@ -57,7 +57,7 @@ builder.Services.AddScoped<GlobalFunctions>();
 builder.Services.AddScoped<ApiErrorHandler>();
 builder.Services.AddScoped<AiPromptService>();  // ? Centralized AI prompts
 builder.Services.AddSingleton<IMouseService, MouseService>();
-
+builder.Services.AddScoped<PulseThemeService>();
 #endregion
 
 #region HttpClients (Consolidated)

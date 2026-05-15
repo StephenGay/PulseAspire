@@ -1,0 +1,43 @@
+﻿:root {
+    /* === PULSE THEME COLORS === */
+    /* Base Dark Colour */
+    --pulse-dark-colour: #365b66;
+    /* Transparent Variants (using color-mix) */
+    --pulse-dark-t25-colour: color-mix(in srgb, var(--pulse-dark-colour) 25%, transparent);
+    --pulse-dark-t50-colour: color-mix(in srgb, var(--pulse-dark-colour) 50%, transparent);
+    --pulse-dark-t75-colour: color-mix(in srgb, var(--pulse-dark-colour) 75%, transparent);
+    --pulse-light-colour: #bcd1d4;
+    --pulse-light-2-colour: color-mix(in srgb, var(--pulse-light-colour) 60%, transparent);
+    /* Background Image */
+    --pulse-theme-bg: url(../images/backgrounds/HMBG.png);
+    /* Accent Button */
+    --pulse-accent-btn-theme-bg: var(--pulse-dark-t75-colour);
+    --pulse-accent-btn-theme-colour: white;
+    --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
+    --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-colour);
+    /* OK Button */
+    --pulse-ok-btn-bg: var(--success);
+    --pulse-ok-btn-colour: white;
+    /* Cancel Button */
+    --pulse-cancel-btn-bg: var(--error);
+    --pulse-cancel-btn-colour: white;
+    /* Mode Toggle Button */
+    --pulse-mode-btn-on-bg: #9fdf9f;
+    --pulse-mode-btn-on-item-colour: black;
+    --pulse-mode-btn-off-bg: white;
+    --pulse-mode-btn-off-item-colour: #9900FF;
+    --pulse-mode-btn-bg: #9fdf9f;
+    --pulse-mode-btn-item-colour: white;
+    /* DataGrid */
+    --datagrid-hover-color: var(--pulse-light-colour);
+    /* Bootstrap Info Override */
+    --bs-info: #9900FF !important;
+    --bs-info-rgb: 153, 0, 255 !important;
+}
+
+/* Dark Mode Adjustments */
+[data-bs-theme="dark"] {
+    --pulse-dark-colour: #1e3a4a;
+    --pulse-light-colour: #7a9aa3;
+    --pulse-theme-bg: url(../images/backgrounds/HMBG-dark.png);
+}
