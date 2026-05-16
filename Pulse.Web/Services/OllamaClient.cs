@@ -1,6 +1,6 @@
 ﻿using Pulse.Models.CustomComponents;
 using Pulse.Models.Misc;
-using Pulse.Web.Tools;
+using Pulse.Web.Extensions;
 using System.Collections.Concurrent;
 using System.Net.Http;
 using System.Runtime.CompilerServices;

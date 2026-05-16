@@ -297,7 +297,7 @@ else
                 ItemName = customer.ClientName,
                 Category = "Customer"
             };
-            var result = await pApi.PostAsync<ApplicationUserSpeedDial,string>(ApiEndpoints.User.SpeedDial.Add, newSD);
+            var result = await pApi.PostAsync<ApplicationUserSpeedDial, ApplicationUserSpeedDial>(ApiEndpoints.User.SpeedDial.Add, newSD);
             if(result != null)
             {
                 await GlobalFunctions.SetUserSpeedDial();

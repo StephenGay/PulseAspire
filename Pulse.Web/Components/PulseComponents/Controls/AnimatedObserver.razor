@@ -1,0 +1,48 @@
+﻿@using static Pulse.Web.Models.MiscEnumLists
+@inject IJSRuntime JS
+
+<div @ref="elementRef"
+     class="animated-observer @AnimationClass @(_isVisible ? "visible" : "") @Class"
+     style="@(_isVisible && StaggerDelay > 0 ? $"transition-delay: {StaggerDelay}ms;" : "")">
+    @ChildContent
+</div>
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public string Class { get; set; } = "";
+    [Parameter] public AnimationType Animation { get; set; } = AnimationType.FadeUp;
+    [Parameter] public int StaggerDelay { get; set; } = 0; // ms
+    [Parameter] public EventCallback OnVisible { get; set; }
+
+    private ElementReference elementRef;
+    private bool _isVisible = false;
+
+    private string AnimationClass => Animation switch
+    {
+        AnimationType.Fade => "anim-fade",
+        AnimationType.FadeUp => "anim-fade-up",
+        AnimationType.FadeDown => "anim-fade-down",
+        AnimationType.ZoomIn => "anim-zoom-in",
+        AnimationType.SlideLeft => "anim-slide-left",
+        AnimationType.SlideRight => "anim-slide-right",
+        _ => "anim-fade-up"
+    };
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("observeAnimatedElement", elementRef, DotNetObjectReference.Create(this));
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnElementVisible()
+    {
+        _isVisible = true;
+        StateHasChanged();
+        await OnVisible.InvokeAsync();
+    }
+
+    
+}

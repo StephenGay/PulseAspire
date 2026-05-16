@@ -1,9 +1,8 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-@using Microsoft.FluentUI.AspNetCore.Components.Utilities.
+
 @using Pulse.Web.Components.PulseComponents.Containers
-@inject IDesignThemeService ThemeService
-@implements IDisposable
+
 <!DOCTYPE html>
 <html lang="en">
 
@@ -14,16 +13,14 @@
 
     
 
-    <link rel="stylesheet" href="_content/Microsoft.FluentUI.AspNetCore.Components/css/fluent-ui.min.css" />
-
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["Pulse.Web.styles.css"]" />
     <RadzenTheme Theme="material" />
     <link rel="stylesheet" href="_content/BlazorAnimation/animate.css" />
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-LN+7fdVzj6u52u30Kp6M/trliBMCMKTyK833zpbD+pXdCLuTusPj697FH4R/5mcr" crossorigin="anonymous">
-    <link href="~/css/bootstrap.css" rel="stylesheet" />
+    
+    <link href="css/bootstrap.css" rel="stylesheet" />
 
     
     <link rel="stylesheet" href="@Assets["_content/BootstrapBlazor.FontAwesome/css/font-awesome.min.css"]" />
@@ -102,14 +99,13 @@
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="@Assets["_content/BootstrapBlazor/js/bootstrap.blazor.bundle.min.js"]"></script>
-    @* <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.7/dist/js/bootstrap.bundle.min.js" integrity="sha384-ndDqU0Gzau9qJ1lfW4pNLlhNTkCfHzAVBReH9diLvGRem5+R9g2FzA8ZGN954O5Q" crossorigin="anonymous"></script> *@
+    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="~/js/bootstrap.bundle.js"></script>
+    <script src="js/bootstrap.bundle.js"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="js/site.js"></script>
-    @*  <script src="js/three-viewer.js"></script> *@
-    @* <script type="module" src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/RGBELoader.js"></script> *@
+    
     <script type="module" src="js/Three/EffectComposer.js"></script>
     <script type="module" src="js/Three/RenderPass.js"></script>
     <script type="module" src="js/Three/UnrealBloomPass.js"></script>
@@ -120,7 +116,7 @@
     <script src="js/theme-manager.js"></script>
     <script src="js/scriptLoader.js"></script>
     <script src="js/FactoryLayoutInterop.js"></script>
-
+    <script src="js/animated-observer.js"></script>
     <script src="_content/Radzen.Blazor/Radzen.Blazor.js?v=@(typeof(Radzen.Colors).Assembly.GetName().Version)"></script>
 </body>
 

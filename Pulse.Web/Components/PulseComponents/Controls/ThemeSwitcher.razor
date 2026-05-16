@@ -8,41 +8,75 @@
 @inject PulseThemeService PulseThemeService
 @inject IPulseToastService pulseToastService
 @inject Global_AI_Functions GlobalAIFunctions
+@inject AppState AppState
 
+<div class="theme-switcher">
 <FluentSelect TOption="string" 
-              @bind-SelectedOption="selectedTheme"
-              @onchange="OnThemeChanged"
-              Width="160px">
-    <FluentOption Value="pulse">Pulse (Default)</FluentOption>
-    <FluentOption Value="hm">HM</FluentOption>
+                Value="@selectedTheme"
+                ValueChanged="(newVal => ChangeTheme(newVal))"
+
+              Width="160px"
+              Style="transition: all 0.3s ease;">
+    <FluentOption Value="pulse">Pulse</FluentOption>
+    <FluentOption Value="hm">H&amp;M Rollers</FluentOption>
     <FluentOption Value="ocean">Ocean</FluentOption>
     <FluentOption Value="space">Space</FluentOption>
 </FluentSelect>
+<FluentButton Appearance="Appearance.Stealth" @onclick="ToggleTheme" Style="margin-left: 8px">
+    @if (IsDarkMode)
+    {
+        <!-- Sun Icon (Light Mode) -->
+        <FluentIcon Value="@(new Icons.Filled.Size24.WeatherSunny().WithColor("#fbbf24"))" />
+    }
+    else
+    {
+        <!-- Moon Icon (Dark Mode) -->
+        <FluentIcon Value="@(new Icons.Filled.Size24.WeatherMoon().WithColor("#64748b"))" />
+    }
+
+</FluentButton>
+</div>
+    @* IconStart="@(IsDarkMode ? new Icons.Regular.Size24.WeatherSunny() : new Icons.Regular.Size24.WeatherMoon())" /> *@
+
 
 @code {
     private string selectedTheme = "pulse";
     private ApplicationUserSettings? uSettings;
+    private bool IsDarkMode = true;
 
     protected override async Task OnInitializedAsync()
     {
         uSettings = await dTrf.GetgvUserSettings();
-        var saved = uSettings?.UserTheme ?? "pulse";
+        var saved = uSettings?.UserTheme ?? "pulse-dark";
+        IsDarkMode = saved.EndsWith("-dark");
+
         if (!string.IsNullOrEmpty(saved))
-            selectedTheme = saved;
+            selectedTheme = saved.Replace("-dark", "");
     }
 
+    private async Task ToggleTheme()
+    {
+        IsDarkMode = !IsDarkMode;
+        await OnThemeChanged();
+    }
+    private async Task ChangeTheme(string newVal)
+    {
+        selectedTheme = newVal;
+        await OnThemeChanged();
+    }
     private async Task OnThemeChanged()
     {
         bool isSaved = false;
         try
         {
             uSettings = await dTrf.GetgvUserSettings();
-            uSettings.UserTheme = selectedTheme;
+            uSettings.UserTheme = selectedTheme + (IsDarkMode ? "-dark" : "");
             isSaved = await pApi.PutAsync<ApplicationUserSettings>(ApiEndpoints.User.Settings.Update, uSettings);
             if (isSaved)
             {
                 await dTrf.SetgvUserSettings(uSettings);
-                await PulseThemeService.SetThemeAsync(selectedTheme);
+                await PulseThemeService.SetThemeAsync(selectedTheme + (IsDarkMode ? "-dark" : ""));
+                await AppState.NotifyThemeChanged();
             }
         }
         catch (Exception ex)
@@ -58,6 +92,7 @@
                 await GlobalAIFunctions.AISpeak(errMsg, "PulseAI");
                 selectedTheme = uSettings?.UserTheme ?? "pulse";
             }
+            StateHasChanged();
         }
     
         

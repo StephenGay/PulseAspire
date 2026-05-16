@@ -1,9 +1,9 @@
-﻿.cparent {
+﻿/*.cparent {
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: calc(100vh - 60px); /* Adjust based on your layout */
-}
+    height: calc(100vh - 60px);*/ /* Adjust based on your layout */
+/*}*/
 
 .viewer-container {
     flex: 1;

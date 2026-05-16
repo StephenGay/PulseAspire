@@ -28,6 +28,17 @@
         height: 50px; /* Or min-height if you want flexibility */
         background: lightgray;
     }
+
+    .animate-on-scroll {
+        opacity: 0;
+        transform: translateY(40px);
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+        .animate-on-scroll.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
 </style>
 
 <div class="cparent">
@@ -70,13 +81,27 @@
                 Warning
             </button>
         </div>
+        <IntersectionObserver OnVisible="OnCardVisible">
+            <div class="animate-on-scroll @(_isVisible ? "visible" : "")">
+                <FluentCard>
+                    <h3>This card animates when scrolled into view</h3>
+                </FluentCard>
+            </div>
+        </IntersectionObserver>
+
 
     </div>
 </div>
 
 @code {
     private string SelectedAI = "PulseAI";
+    private bool _isVisible = false;
 
+    private void OnCardVisible()
+    {
+        _isVisible = true;
+        StateHasChanged();
+    }
     protected override async Task OnInitializedAsync()
     {
         await dts.SetgvContextArea(0);

@@ -4,7 +4,7 @@ using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Misc;
 using Pulse.Web.Models;
-using Pulse.Web.Tools;
+using Pulse.Web.Extensions;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;

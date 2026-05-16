@@ -4,6 +4,8 @@
 @using Pulse.Models.AI.Tables
 @using Pulse.Models.Customers
 @using Pulse.Models.Misc
+@using Pulse.Web.Components.PulseComponents.Controls
+@using static Pulse.Web.Models.MiscEnumLists
 @using Pulse.Web.Services
 @using Pulse.Models.Users
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis
@@ -74,26 +76,25 @@
                       Style="position:absolute; top:86px; left: 150px; z-index:99; height:50px;"
                       Title="Speed Dial"
                       OnClick="() => ViewSpeeddial = !ViewSpeeddial">Speed Dial</FluentButton>
-@if (!ViewSpeeddial)
+
+        @if (!ViewSpeeddial)
         {
-
-
             <RadzenDataGrid @ref="radGrid" 
-            Data="@_allCustomers" 
-            FilterMode="FilterMode.Simple" 
-            AllowFiltering="true" 
-            AllowPaging="false" 
-            AllowSorting="true" 
-            AllowColumnResize="true"
-            Style="height:100%;border-radius:10px"
-            AllowVirtualization="true"
-            AllowColumnPicking="true"
-            IsLoading = "@isLoading"
-            SelectionMode="DataGridSelectionMode.Single"
-            @bind-Value="@selectedCustomer"
-            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
-            LogicalFilterOperator="LogicalFilterOperator.And"
-            ColumnWidth="200px">
+                            Data="@_allCustomers" 
+                            FilterMode="FilterMode.Simple" 
+                            AllowFiltering="true" 
+                            AllowPaging="false" 
+                            AllowSorting="true" 
+                            AllowColumnResize="true"
+                            Style="height:100%;border-radius:10px"
+                            AllowVirtualization="true"
+                            AllowColumnPicking="true"
+                            IsLoading = "@isLoading"
+                            SelectionMode="DataGridSelectionMode.Single"
+                            @bind-Value="@selectedCustomer"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            LogicalFilterOperator="LogicalFilterOperator.And"
+                            ColumnWidth="200px">
 
                 <Columns>
                     <RadzenDataGridColumn TItem="Customer" Property="FullClientID" Title="Client ID" Width="70px" TextAlign="TextAlign.Center" />
@@ -111,12 +112,16 @@
             if (speedDialList != null && speedDialList.Count > 0)
             {
                 <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px;margin-top:150px;">
-                    @foreach (var item in speedDialList)
+                    
+                    @for (var i = 0; i < speedDialList.Count; i++)
                     {
-                        <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
-                                      OnClick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
-                            @item.ItemName
-                        </FluentButton>
+                        var item = speedDialList[i];
+                        <AnimatedObserver Animation="AnimationType.FadeUp" StaggerDelay="@(i * 120)">
+                                <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
+                                              OnClick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
+                                    @item.ItemName
+                                </FluentButton>
+                        </AnimatedObserver>
                     }
                 </div>
             }

@@ -22,7 +22,7 @@ using Pulse.Models.Misc;
 using Pulse.Models.Users;
 using Pulse.Web.Components;
 using Pulse.Web.Services;
-using Pulse.Web.Tools;
+using Pulse.Web.Extensions;
 using Radzen;
 using System.Net.Http.Headers;
 using Toolbelt.Blazor.Extensions.DependencyInjection;

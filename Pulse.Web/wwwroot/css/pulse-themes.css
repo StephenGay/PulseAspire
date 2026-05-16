@@ -34,6 +34,53 @@
     --bs-info: #9900FF !important;
     --bs-info-rgb: 153, 0, 255 !important;
 }
+/*:root,
+[data-bs-theme] {
+    transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease;
+}*/
+/*body {
+    animation: themeFade 0.5s ease;
+}
+
+@keyframes themeFade {
+    from {
+        opacity: 0.6;
+    }
+
+    to {
+        opacity: 1;
+    }
+}*/
+* Animate cards and surfaces */
+.pulse-card,
+.fluent-card,
+.theme-preview {
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animate buttons */
+fluent-button {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    fluent-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+.theme-switcher {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+fluent-button {
+    transition: transform 0.2s ease;
+}
+
+    fluent-button:active {
+        transform: scale(0.92);
+    }
+
 
 /* Dark Mode Adjustments */
 [data-bs-theme="dark"] {
@@ -41,3 +88,84 @@
     --pulse-light-colour: #7a9aa3;
     --pulse-theme-bg: url(../images/backgrounds/HMBG-dark.png);
 }
+/* === Smooth Background Image Transitions === */
+body {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    transition: background-image 0.6s ease-in-out;
+}
+
+    /* Background overlay for smooth fading */
+    body::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: var(--pulse-theme-bg);
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        z-index: -1;
+        transition: opacity 0.6s ease-in-out;
+        opacity: 1;
+    }
+
+    /* When theme changes, fade out old background */
+    body.theme-changing::before {
+        animation: backgroundZoom 0.6s ease-in-out;
+    }
+
+@keyframes backgroundZoom {
+    from {
+        transform: scale(1.02);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+/*region Animated Observer Animations */
+
+/* Base styles */
+.animated-observer {
+    opacity: 0;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Animation Types */
+.anim-fade {
+    transform: none;
+}
+
+.anim-fade-up {
+    transform: translateY(40px);
+}
+
+.anim-fade-down {
+    transform: translateY(-40px);
+}
+
+.anim-zoom-in {
+    transform: scale(0.85);
+}
+
+.anim-slide-left {
+    transform: translateX(-60px);
+}
+
+.anim-slide-right {
+    transform: translateX(60px);
+}
+
+/* Visible State */
+.animated-observer.visible {
+    opacity: 1;
+    transform: translateY(0) translateX(0) scale(1);
+}
+
+/*endregion Animated Observer Animations */

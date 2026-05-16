@@ -9,60 +9,7 @@ html, body {
     background-position: center center;
 }
 
-:root {
-    --pulse-dark-colour: #365b66; /*#660000;*/ /*#365b66;*/
-    --pulse-dark-t25-colour: #5a7a89;
-    --pulse-dark-t50-colour: #5a7a89;
-    --pulse-dark-t75-colour: #5a7a89;
-    --pulse-light-colour: #bcd1d4; /*#d9d9d9;*/ /*#bcd1d4;*/
-    --pulse-light-2-colour: #a0b0b3;
-    --pulse-theme-bg: url(../images/backgrounds/HMBG.png);
-    /* My Accent Button */
-    /* From the Theme */
-    --pulse-accent-btn-theme-bg: var(--pulse-dark-t75-colour);
-    --pulse-accent-btn-theme-colour: white;
-    /* Used to switch colours while running */
-    --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
-    --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-colour);
-    /* My Ok Button Variables */
-    --pulse-ok-btn-bg: var(--success);
-    --pulse-ok-btn-colour: rgb(255,255,255);
-    /* My Cancel Button Variables */
-    --pulse-cancel-btn-bg: var(--error);
-    --pulse-cancel-btn-colour: rgb(255,255,255);
-    /* Mode Toggle Button */
-    --pulse-mode-btn-on-bg: #9fdf9f;
-    /*#9900FF;*/
-    /*#1D722A;*/
-    --pulse-mode-btn-on-item-colour: black; /* white;*/
-    --pulse-mode-btn-off-bg: white;
-    --pulse-mode-btn-off-item-colour: #9900FF;
-    --pulse-mode-btn-bg: #9fdf9f; /* #9900FF;*/
-    /*#1D722A;*/
-    --pulse-mode-btn-item-colour: white;
-    --datagrid-hover-color: var(--pulse-light-colour);
-    --bs-info: #9900FF !important;
-    --bs-info-rgb: 153, 0, 255 !important;
-}
-:root, [data-bs-theme=light] {
-    --bs-info: #9900FF !important;
-    --bs-info-rgb: 153, 0, 255 !important;
-}
-/*html, body {
-    margin: 0;
-    padding: 0;
-    height: 100vh;
-    font-family: var(--body-font);
-    font-size: var(--type-ramp-base-font-size);
-    line-height: var(--type-ramp-base-line-height);
-    font-weight: var(--font-weight);
-    color: var(--neutral-foreground-rest);
-    background: var(--neutral-fill-layer-rest);
-    background-image: url(../images/backgrounds/HMBG.png);
-    background-size: cover;
-    background-repeat: no-repeat;
-    background-position: center center;
-}*/
+
 .divShadow {
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }
@@ -293,85 +240,13 @@ html, body {
 
 /*#endregion Pulse Buttons*/
 
-/*#region Sample Button Hover */
 
-.button-hover {
-    padding: 15px 40px;
-    font-size: 1.2rem;
-    color: white;
-    background: transparent;
-    border: 3px solid transparent;
-    border-radius: 8px;
-    position: relative;
-    cursor: pointer;
-    transition: color 0.3s ease;
-}
-
-    .button-hover::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        border: 3px solid transparent;
-        border-radius: 8px;
-        background: linear-gradient(90deg, #ff0057, #ff7b00, #00ffcc, #007bff);
-        background-size: 300% 300%;
-        z-index: -1;
-        transition: opacity 0.3s ease;
-        opacity: 0;
-    }
-
-    .button-hover:hover {
-        color: #fff;
-    }
-
-        .button-hover:hover::before {
-            opacity: 1;
-            animation: gradient-move 3s linear infinite;
-        }
-
-@keyframes gradient-move {
-    0% {
-        background-position: 0% 50%;
-    }
-
-    100% {
-        background-position: 100% 50%;
-    }
-}
-
-/*#endregion Sample Button Hover */
-
-/*#region Sample Glow */
-
-.neon-box {
-    padding: 30px 60px;
-    font-size: 1.5rem;
-    color: #fff;
-    border: 4px solid #0ff;
-    border-radius: 12px;
-    box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
-    animation: neon-pulse 1.5s ease-in-out infinite alternate;
-}
-
-@keyframes neon-pulse {
-    from {
-        box-shadow: 0 0 10px #0ff, 0 0 20px #0ff, 0 0 40px #0ff;
-        border-color: #0ff;
-    }
-
-    to {
-        box-shadow: 0 0 20px #ff00ff, 0 0 40px #ff00ff, 0 0 80px #ff00ff;
-        border-color: #ff00ff;
-    }
-}
-
-
-/*#endregion Sample Glow */
 
 /*#region Radzen Table Formatting*/
+
+.rz-grid-table{
+    cursor:pointer;
+}
 
 .rz-grid-table thead th > div:not(.rz-cell-filter) {
     background-color: var(--pulse-light-colour) !important;

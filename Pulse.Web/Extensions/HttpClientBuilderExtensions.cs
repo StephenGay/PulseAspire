@@ -1,6 +1,6 @@
 ﻿using Microsoft.Extensions.Http.Resilience;
 
-namespace Pulse.Web.Tools
+namespace Pulse.Web.Extensions
 {
     public static class HttpClientBuilderExtensions
     {
