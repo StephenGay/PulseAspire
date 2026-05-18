@@ -362,7 +362,8 @@
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                 <FluentLabel class="divShadow flapper-response" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
                                     <div style="color: black; word-break: break-word;">
-                                        @((MarkupString)FlapperAddMUcss(FlapperParseToHtml(CurrentFlapperResponse)))
+                                        @* <RadzenMarkdown Style="margin:0; padding:0" Text="@CurrentFlapperResponse" AllowHtml="true" /> *@
+                                         @((MarkupString)FlapperAddMUcss(FlapperParseToHtml(CurrentFlapperResponse))) 
                                         @* @CurrentFlapperResponse *@
                                     </div>
                                 </FluentLabel>
@@ -397,6 +398,7 @@
                                     else
                                     {
                                         <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                            @* <RadzenMarkdown Style="margin:0; padding:0" Text="@message.Content" AllowHtml="true" /> *@
                                             <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
                                         </FluentLabel>
                                     }
@@ -546,6 +548,9 @@
             };
         flapperThinking = "";
         userQry = CurrentUserMessage;
+        var respF = SpokenResponse ? "[SPEECH] " : "[REPORT] ";
+
+        respF += CurrentUserMessage;
         Messages.Add(new FlapperMessageDto { Sender = "You", Content = CurrentUserMessage });
         CurrentUserMessage = string.Empty;
 
@@ -564,7 +569,7 @@
                 flapperDTO,
                 _authService.aspireUserId,
                 CurrentConversationId,
-                userQry,
+                respF,
                 _authService.aspireFullName, isStreamingResponse = stream
             );
 

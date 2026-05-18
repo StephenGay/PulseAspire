@@ -16,13 +16,13 @@
                 ValueChanged="(newVal => ChangeTheme(newVal))"
 
               Width="160px"
-              Style="transition: all 0.3s ease;">
+                  Style="border:1px solid var(--pulse-dark-colour); transition: all 0.3s ease;">
     <FluentOption Value="pulse">Pulse</FluentOption>
     <FluentOption Value="hm">H&amp;M Rollers</FluentOption>
     <FluentOption Value="ocean">Ocean</FluentOption>
     <FluentOption Value="space">Space</FluentOption>
 </FluentSelect>
-<FluentButton Appearance="Appearance.Stealth" @onclick="ToggleTheme" Style="margin-left: 8px">
+    <FluentButton Appearance="Appearance.Stealth" @onclick="ToggleTheme" Style="border:1px solid var(--pulse-dark-colour); margin-left: 8px">
     @if (IsDarkMode)
     {
         <!-- Sun Icon (Light Mode) -->

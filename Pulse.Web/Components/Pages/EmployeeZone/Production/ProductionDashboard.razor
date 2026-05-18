@@ -2,6 +2,8 @@
 @using Azure
 
 @using Pulse.Models.Production
+@using Pulse.Web.Components.PulseComponents.Controls
+@using static Pulse.Web.Models.MiscEnumLists
 @using static MappingExtensions
  
 @inject Pulse.Web.Services.DataTransferService dt
@@ -21,25 +23,33 @@
 else
 {
     <FluentGrid Style="margin:10px">
-        @foreach (var wC in wcGrps)
+        @for (var i = 0; i < wcGrps.Count; i++)
         {
-            <FluentGridItem xs="12" sm="6" md="4" lg="2">
-                @* <div class="permission-card @(selectedDivWT == wC ? "box" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedDivWT = wC"> *@
-                <div class="permission-card divShadow" style=" margin-bottom:10px; border-radius: 8px;">
+            var item = wcGrps[i];
+            
+            <AnimatedObserver Animation="AnimationType.FadeUp" StaggerDelay="@(i * 120)">
+                <FluentGridItem xs="12" sm="6" md="4" lg="2">
+        @* @foreach (var wC in wcGrps)
+        { *@
+                
+                    @* <div class="permission-card @(selectedDivWT == wC ? "box" : "divShadow") " style=" margin-bottom:10px" @onclick="() => selectedDivWT = wC"> *@
+                    <div class="permission-card divShadow" style=" margin-bottom:10px; border-radius: 8px;">
                     
-                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap:1px;background-color: var(--pulse-light-colour); border-radius: 8px; padding: 12px;")">
-                        <FluentLabel Typo="Typography.H6" Style="color: var(--pulse-dark-colour); font-weight:700;margin-bottom:10px;">@wC.wcName</FluentLabel>
-                        @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;"> *@
-                        @* <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;"> *@
-                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">WO at Work Centre : @wC.woCount</FluentLabel>
-                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">Planned For Today : xx</FluentLabel>
-                            @* <FluentSpacer /> *@
-                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">Completed : @wC.woCount</FluentLabel>
-                        <div style="background-color:forestgreen;width:30%;height:10px;" />
-                        @* </FluentStack> *@
-                    </FluentStack>
-                </div>
-            </FluentGridItem>
+                        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap:1px;background-color: var(--pulse-light-colour); border-radius: 8px; padding: 12px;")">
+                            <FluentLabel Typo="Typography.H6" Style="color: var(--pulse-dark-colour); font-weight:700;margin-bottom:10px;">@item.wcName</FluentLabel>
+                            @* <FluentStack Orientation="Orientation.Vertical" Style="gap: 8px;"> *@
+                            @* <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px;"> *@
+                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">WO at Work Centre : @item.woCount</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">Planned For Today : xx</FluentLabel>
+                                @* <FluentSpacer /> *@
+                                <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: black;">Completed : @item.woCount</FluentLabel>
+                            <div style="background-color:forestgreen;width:30%;height:10px;" />
+                            @* </FluentStack> *@
+                        </FluentStack>
+                    </div>
+                </FluentGridItem>
+            </AnimatedObserver>
+            
         }
         </FluentGrid>
 }

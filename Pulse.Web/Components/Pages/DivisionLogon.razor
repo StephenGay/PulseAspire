@@ -1,8 +1,11 @@
 ﻿@page "/DivisionLogon"
+@using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Api
 @using Pulse.Models.Misc
 @using Pulse.Models.Organizational
 @using Pulse.Web.Components.Layout
+@using Pulse.Web.Components.PulseComponents.Controls
+@using static Pulse.Web.Models.MiscEnumLists
 @using Pulse.Web.Services
 @inject Pulse.Web.Services.PulseApiService pApiClient
 @inject DataTransferService dTrf
@@ -24,16 +27,82 @@
         flex: 1; /* This magic makes it grow to fill the space */
         overflow: hidden;
     }
-</style>
+    .clientSpeeddialCard {
+        background-color: var(--pulse-light-colour) !important;
+        color: var(--pulse-dark-colour) !important;
+        border: 1px solid black;
+        align-items: center;
+        align-content: center;
+        text-align:center;
+        border-radius: 10px;
+        box-shadow: 5px 5px 15px var(--pulse-light-colour);
+    }
 
-<div class="divLayoutParent">
+        .clientSpeeddialCard:hover {
+            cursor: pointer;
+            background-color: var(--pulse-dark-colour) !important;
+            color: var(--pulse-light-colour) !important;
+            border: 1px solid black;
+            border-radius: 10px;
+            scale: 1.2;
+            box-shadow: 0px 0px 0px rgba(0, 0, 0, 0);
+        }
+
+    .stagger-item {
+        opacity: 0;
+        transform: translateY(50px);
+        transition: all 0.5s ease;
+    }
+
+        .stagger-item.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+</style>
+<RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="50px" JustifyContent="Radzen.JustifyContent.Center" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Style="height: 100%;width: 100%;padding:5%">
+    @if (_allDivisions.Count == 0)
+    {
+        <FluentProgressRing Width="128px" />
+    }
+    else
+    {
+
+
+        @for (var i = 0; i < _allDivisions.Count; i++)
+        {
+            var item = _allDivisions[i];
+            <AnimatedObserver Animation="AnimationType.FadeUp" StaggerDelay="@(i * 120)">
+                <div class="clientSpeeddialCard" style="height:250px;width:210px" @onclick="async () => await OnDivisionClick(item)">
+                    @if (!string.IsNullOrEmpty(item.DivisionID))
+                    {
+                        <img src="Images/Divisions/@(item.DivisionID).jpg"
+                        onerror="this.src='Images/Divisions/default.jpg'"
+                        alt="@item.DivisionName" />
+                    }
+                    else
+                    {
+                        <img src="Images/Divisions/default.jpg"
+                        alt="Division Image" />
+                    }
+                    <div class="lv-demo-desc" style="text-align:center;margin:5px;">@item.DivisionName</div>
+
+                </div>
+                @* <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
+                                OnClick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
+                    @item.ItemName
+                </FluentButton> *@
+            </AnimatedObserver>
+        }
+    }
+</RadzenStack>
+@* <div class="divLayoutParent">
     <div class="divLayoutContent">
         <div style="align-items:center; width: calc(100vw - 32px); height: calc(100vh - 32px); background-color:rgba(255,255,255,0.5); padding: 15px; border: 1px solid white; border-radius: 10px; margin-left: 15px; margin-top: 15px;">
-        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
+        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)"> *@
         @* <div class="div-center-screen" style="align-items:center"> *@
             
 
-            @try
+            @* @try
 {
     
     <ListView TItem="Division" Items="@_allDivisions" OnListViewItemClick="OnDivisionClick">
@@ -70,13 +139,13 @@
 catch (Exception ex)
 {
     <p>Error loading divisions: @ex.Message</p>
-}
+} *@
 
         @* </div> *@
-        </Animation>
+        @* </Animation>
         </div>
     </div>
-</div>
+</div> *@
 @code {
     [Parameter][SupplyParameterFromQuery(Name = "nextpage")] public string? NextPage { get; set; } = "/EmployeeZone";
     List<Division> _allDivisions = new();

@@ -47,11 +47,20 @@
         height: calc(100vh - 56px) !important;
         z-index: 999 !important;
     }
-
+/* 
     :global(.fluent-dialog-overlay) {
         z-index: 1000 !important;
-    }
+    } */
 
+    .myDivBtn{
+        --pulse-accent-btn-bg: var(--pulse-dark-colour);
+        --pulse-accent-btn-colour: var(--pulse-light-colour);
+        border: 1px solid var(--pulse-light-colour);
+    }
+    .myDivBtn:hover {
+            --pulse-accent-btn-bg: var(--pulse-light-colour);
+        --pulse-accent-btn-colour: var(--pulse-dark-colour);
+    }
 </style>
 
 <CascadingAuthenticationState>
@@ -90,10 +99,11 @@
                         </FluentPersona>
                         @* <Animation Effect="@Effect.FadeInUp" Enabled="@showProfileMenu" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> *@
                             <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.End" VerticalPosition="VerticalPosition.Top" AutoFocus="false" AnchorId="btnProfile" @bind-Open="showProfileMenu">
-                                <Header>@_authService.aspireFullName</Header>
+                                <Header><FluentLabel Typo="Typography.Header" Weight="FontWeight.Bold" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">@_authService.aspireFullName</FluentLabel></Header>
                                 <Body>
                                     <FluentStack Orientation="MsFluent.Orientation.Vertical">
-                                        <FluentSelect Value="@presence" @onchange="ChangePresence" TOption="string" Label="Status">
+                                        <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">Status</FluentLabel>
+                                        <FluentSelect Value="@presence" @onchange="ChangePresence" TOption="string" Style="border:1px solid var(--pulse-dark-colour)">
                                             <FluentOption Value="3">Available</FluentOption>
                                             <FluentOption Value="2">Away</FluentOption>
                                             <FluentOption Value="0">Busy</FluentOption>
@@ -126,7 +136,7 @@
                     }
                     else
                     {
-                        <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" aria-label="Change to a different Division" style="margin-right:10px" OnClick="ChangeDiv">@division.DivisionName</FluentButton>
+                        <FluentButton class="myDivBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" aria-label="Change to a different Division" style="margin-right:10px" OnClick="ChangeDiv">@division.DivisionName</FluentButton>
                     }
                 </FluentStack>
              </div>
@@ -149,9 +159,9 @@
     </AuthorizeView>
 
     </CascadingAuthenticationState>
-<FluentDialogProvider />
-<FluentTooltipProvider />
 
+<FluentTooltipProvider />
+<FluentDialogProvider />
 
 @code {
 

@@ -111,19 +111,22 @@
         {
             if (speedDialList != null && speedDialList.Count > 0)
             {
-                <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px;margin-top:150px;">
-                    
+                @* <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px;margin-top:150px;"> *@
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="20px" JustifyContent="Radzen.JustifyContent.Center" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Style="height: 100%;width: 100%;">
                     @for (var i = 0; i < speedDialList.Count; i++)
                     {
                         var item = speedDialList[i];
                         <AnimatedObserver Animation="AnimationType.FadeUp" StaggerDelay="@(i * 120)">
-                                <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
+                            <div class="clientSpeeddialCard" @onclick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
+                                @item.ItemName
+                            </div>
+                                @* <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
                                               OnClick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
                                     @item.ItemName
-                                </FluentButton>
+                                </FluentButton> *@
                         </AnimatedObserver>
                     }
-                </div>
+                </RadzenStack>
             }
             else
             {

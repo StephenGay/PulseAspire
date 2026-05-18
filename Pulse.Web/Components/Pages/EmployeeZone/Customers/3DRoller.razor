@@ -9,19 +9,60 @@
 @rendermode InteractiveServer
 
 <div class="cparent">
-    <FluentToolbar Orientation="MsFluent.Orientation.Horizontal" Style="padding:12px; background:#f8f9fa; border-bottom:1px solid #ddd;">
-        <FluentButton Appearance="Appearance.Accent" @onclick="ReloadModel">
+    <FluentToolbar Orientation="MsFluent.Orientation.Horizontal" Style="padding-left:12px;padding-right:12px;padding-top:5px;padding-bottom:5px; background:#f8f9fa; border-bottom:1px solid #ddd;">
+        
+        <FluentButton Class="@(showPartsPanel ? "myModeBtnOn" : "myModeBtnOff")"
+                      
+                      BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)"
+                      @onclick="TogglePartsPanel"
+                      IconStart="@(new Icons.Filled.Size20.List().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                      Title="Toggle Parts Panel">
+            @* <FluentIcon Value="new Icons.Filled.Size20.List()" /> *@
+            Parts
+        </FluentButton>
+        <FluentDivider Orientation="MsFluent.Orientation.Vertical" />
+        <FluentButton Class="@(isExploded ? "myModeBtnOn" : "myModeBtnOff")"
+                        
+                      BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)"
+                      @onclick="OnExplodedChangedAsync"
+                      IconStart="@(new Icons.Filled.Size20.ArrowExpand().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                      Title="Toggle Exploded View">
+            @* <FluentIcon Value="new Icons.Filled.Size20.ExpandUpLeft()" /> *@
+            Explode
+        </FluentButton>
+        <FluentDivider Orientation="MsFluent.Orientation.Vertical" />
+        <FluentButton Class="@(dimensionsVisible ? "myModeBtnOn" : "myModeBtnOff")"
+                      BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)"
+                      @onclick="ToggleDimensions"
+                      IconStart="@(new Icons.Filled.Size20.Ruler().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                      Title="Toggle Dimensions">
+            Dimensions
+        </FluentButton>
+        <FluentDivider Orientation="MsFluent.Orientation.Vertical" />
+        <FluentButton Class="@(labelsVisible ? "myModeBtnOn" : "myModeBtnOff")"
+                      BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)"
+                      @onclick="ToggleLabels"
+                      IconStart="@(new Icons.Filled.Size20.CommentNote().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                      Title="Toggle Labels">
+            Labels
+        </FluentButton>
+        <FluentDivider Orientation="MsFluent.Orientation.Vertical" />
+        @* <FluentButton Appearance="Appearance.Accent" @onclick="ReloadModel">
             <FluentIcon Value="@(new Icons.Regular.Size24.Play())" /> Reload Model
         </FluentButton>
 
-        <FluentDivider Orientation="MsFluent.Orientation.Vertical" />
+        <FluentDivider Orientation="MsFluent.Orientation.Vertical" /> *@
 
         <!-- Animation -->
         <FluentLabel>Animation:</FluentLabel>
         <FluentButton @onclick="() => Roller3D.StartSpinAsync()">▶️ Spin</FluentButton>
         <FluentButton @onclick="() => Roller3D.StopSpinAsync()">⏸️ Stop</FluentButton>
 
-        <div style="width: 200px; margin-left: 12px; display:flex; align-items:center; gap:8px;">
+        <div style="width: 200px; margin-left: 12px; display:flex; align-items:center;justify-content:center; gap:8px;">
             <FluentSlider TValue="float" Min="0f" Max="0.1f" Step="0.01f"
                           Value="@spinSpeed"
                           ValueChanged="@(newVal => OnSpinSpeedChanged(newVal))" />
@@ -31,9 +72,9 @@
         <FluentDivider Orientation="MsFluent.Orientation.Vertical" />
 
         <!-- Advanced Features -->
-        <FluentSwitch Label="Exploded" @bind-Value="isExploded" @onchange="OnExplodedChanged" />
-        <FluentButton @onclick="ToggleDimensions">📏 Dim</FluentButton>
-        <FluentButton @onclick="ToggleLabels">📐 Labels</FluentButton>
+        @* <FluentSwitch Label="Exploded" @bind-Value="isExploded" @bind-Value:after="OnExplodedChangedAsync" /> *@
+        @* <FluentButton @onclick="ToggleDimensions">📏 Dim</FluentButton>
+        <FluentButton @onclick="ToggleLabels">📐 Labels</FluentButton> *@
         <FluentButton Appearance="Appearance.Neutral" @onclick="() => Roller3D.CaptureScreenshotAsync()">
             📸 Screenshot
         </FluentButton>
@@ -56,23 +97,42 @@
         </FluentButton>
     </FluentToolbar>
 
-    <!-- Parts Visibility + Opacity Panel -->
-    <FluentCard Width="300px" Style="position:absolute; top:280px; right:20px; z-index:100; max-height:70vh; overflow:auto;">
-        <FluentTitle Style="padding:12px 16px; border-bottom:1px solid #eee;">Parts Control</FluentTitle>
+    <!-- Main Content: Animated Sidebar + Viewer -->
+<div style="display: flex; flex: 1; overflow: hidden; position: relative; background: #0f172a;">
 
-        <div style="padding:12px; display:flex; flex-direction:column; gap:12px;">
+    <!-- === Animated Parts Sidebar (LEFT) === -->
+    <div class="parts-sidebar @(showPartsPanel ? "open" : "")">
+        <div class="parts-sidebar-header">
+            <FluentHeader>Parts Control</FluentHeader>
+            <FluentButton Appearance="Appearance.Stealth" 
+                          @onclick="TogglePartsPanel"
+                          Title="Close panel">✕</FluentButton>
+        </div>
+
+        <div class="parts-sidebar-content">
             @if (parts?.Any() == true)
             {
                 @foreach (var part in parts)
                 {
-                    <div>
-                        <FluentLabel Style="font-weight:bold;">@part.DisplayName</FluentLabel>
-                        <FluentSwitch Label="Visible" 
-                                      @bind-Value="part.Visible"
-                                      @onchange="() => OnPartVisibilityChanged(part)" />
-                        
+                    <div class="part-item">
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal">
+                            <FluentLabel Color="MsFluent.Color.Custom" CustomColor="white" Style="font-weight:bold;">@part.DisplayName</FluentLabel>
+                            <FluentSpacer />
+                                
+                                    @if (part.Visible)
+                                    {
+                                        <FluentIcon Value="@(new Icons.Filled.Size20.Eye())" Color="MsFluent.Color.Custom" CustomColor="white" OnClick="@(async () => await OnPartVisibilityChangedAsync(part, !part.Visible))" />
+                                    }
+                                    else
+                                    {
+                                        <FluentIcon Value="@(new Icons.Filled.Size20.EyeOff())" Color="MsFluent.Color.Custom" CustomColor="white" OnClick="@(async () => await OnPartVisibilityChangedAsync(part, !part.Visible))" />
+                                    }
+
+                            </FluentStack> 
                         <div style="margin-top:4px;">
-                            <span style="font-size:0.8em; color:#666;">Opacity: @((part.Opacity * 100).ToString("0"))%</span>
+                            <span style="font-size:0.8em; color:#666;">
+                                Opacity: @((part.Opacity * 100).ToString("0"))%
+                            </span>
                             <FluentSlider TValue="float"
                                           Min="0.1f" Max="1f" Step="0.05f"
                                           Value="@part.Opacity"
@@ -81,21 +141,25 @@
                     </div>
                 }
 
-                <FluentButton Appearance="Appearance.Neutral" @onclick="ResetAllOpacities">
+                <FluentButton Appearance="Appearance.Neutral" 
+                              @onclick="ResetAllOpacities" 
+                              Style="margin-top:12px; width:100%;">
                     Reset All Opacity
                 </FluentButton>
             }
             else
             {
-                <p style="color:#888; font-style:italic;">No parts loaded</p>
+                <p style="color:#888; font-style:italic; padding: 20px 0;">No parts loaded</p>
             }
         </div>
-    </FluentCard>
+    </div>
 
-    <!-- 3D Viewer -->
-    <div class="viewer-container">
+    <!-- === 3D Viewer Area === -->
+    <div class="viewer-container" style="flex: 1; position: relative;">
         <div @ref="viewerContainer" style="width:100%; height:100%;"></div>
     </div>
+
+</div>
 </div>
 
 @code {
@@ -112,7 +176,7 @@
     private List<RollerShaft>? shafts;
     private List<RollerModelPartVisibility> parts = new();
     private bool allVisible = true;
-
+    private bool showPartsPanel = false;
     private readonly List<string> cameraPresetOptions = new() { "isometric", "front", "side", "top" };
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -143,6 +207,11 @@
         StateHasChanged();
     }
 
+    private void TogglePartsPanel()
+    {
+        showPartsPanel = !showPartsPanel;
+        StateHasChanged();
+    }
     private async Task LoadPartsListAsync()
     {
         try
@@ -164,8 +233,12 @@
         }
     }
 
-    private async Task OnPartVisibilityChanged(RollerModelPartVisibility part)
-        => await Roller3D.ToggleVisibilityAsync(part.Name, part.Visible);
+    private async Task OnPartVisibilityChangedAsync(RollerModelPartVisibility part, bool newValue)
+    {
+        part.Visible = newValue;                    // keep local model in sync
+        await Roller3D.ToggleVisibilityAsync(part.Name, newValue);
+        // No need to call LoadPartsListAsync here unless you want to re-fetch from JS
+    }
 
     private async Task ToggleAllVisibility()
     {
@@ -193,8 +266,11 @@
         await Roller3D.SetSpinSpeedAsync(newValue);
     }
 
-    private async Task OnExplodedChanged()
-        => await Roller3D.SetExplodedFactorAsync(isExploded ? 1.0 : 0.0);
+    private async Task OnExplodedChangedAsync()
+    {
+        isExploded = !isExploded;
+        await Roller3D.SetExplodedFactorAsync(isExploded ? 1.0 : 0.0);
+    }
 
     private async Task OnCameraPresetChanged()
     {

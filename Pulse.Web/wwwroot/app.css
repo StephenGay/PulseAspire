@@ -20,6 +20,30 @@ html, body {
     box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }
 
+/*#region Z-Index Settings*/
+
+.fluent-dialog-overlay {
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+
+fluent-dialog {
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+
+.fluent-dialog {
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+/* Fluent UI default overlay z-index */
+::backdrop {
+    z-index: 9998 !important;
+    pointer-events: auto !important;
+}
+
+/*#endregion Z-Index Settings*/
+
 /*#region Layout for AI Pages*/
 
 .aiParent {
@@ -240,7 +264,16 @@ html, body {
 
 /*#endregion Pulse Buttons*/
 
+.stagger-item {
+    opacity: 0;
+    transform: translateY(50px);
+    transition: all 0.5s ease;
+}
 
+    .stagger-item.visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
 
 /*#region Radzen Table Formatting*/
 
