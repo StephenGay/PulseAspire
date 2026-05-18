@@ -3,6 +3,7 @@ using Pulse.ApiService.PulseAI.Characters;
 using Pulse.ApiService.PulseAI.Services;
 using Pulse.Models.AI;
 using Pulse.Models.Api;
+using static Pulse.Models.AI.Tables.TablesChatStructures;
 
 namespace Pulse.ApiService.PulseAI.Endpoints;
 

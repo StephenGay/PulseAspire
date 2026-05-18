@@ -183,22 +183,86 @@
 
         <!-- Message Content -->
     <div style="flex: 1; padding: 24px; overflow: hidden; background-color: white;">
-            @if (selectedMessage != null)
+            @if (composeMode != ComposeMode.None && composingMessage != null)
+            {
+                <!-- Compose Form -->
+                <FluentCard class="divShadow" Style="padding: 20px; display: flex; flex-direction: column; height: 100%;">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height: 100%; overflow: hidden;" VerticalGap="12">
+                        <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">
+                            @(composeMode == ComposeMode.Reply ? $"Reply to {composingMessage.RecipientUserName}" : "New Message")
+                        </FluentLabel>
+
+                        @if (composeMode == ComposeMode.NewMessage)
+                        {
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                                <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
+                                <FluentTextField @bind-Value="composingMessage.RecipientUserName" Placeholder="Select recipient" Style="flex: 1;" />
+                            </FluentStack>
+                        }
+                        else
+                        {
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                                <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
+                                <FluentLabel>@composingMessage.RecipientUserName</FluentLabel>
+                            </FluentStack>
+                        }
+
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                            <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
+                            <FluentTextField @bind-Value="composingMessage.Subject" Style="flex: 1;" />
+                        </FluentStack>
+
+                        <FluentLabel Style="font-weight: 600;">Message:</FluentLabel>
+                        @* <FluentTextArea @bind-Value="composingMessage.Content" Rows="8" Style="flex: 1; resize: none;width:stretch" /> *@
+                        <RadzenHtmlEditor @bind-Value=@composingMessage.Content style="flex: 1;width:stretch;" UploadUrl="upload/image">
+                            <RadzenHtmlEditorUndo />
+                            <RadzenHtmlEditorRedo />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorBold />
+                            <RadzenHtmlEditorItalic />
+                            <RadzenHtmlEditorUnderline />
+                            <RadzenHtmlEditorStrikeThrough />
+                            <RadzenHtmlEditorAlignLeft />
+                            <RadzenHtmlEditorAlignCenter />
+                            <RadzenHtmlEditorAlignRight />
+                            <RadzenHtmlEditorJustify />
+                            <RadzenHtmlEditorIndent />
+                            <RadzenHtmlEditorOutdent />
+                            <RadzenHtmlEditorUnorderedList />
+                            <RadzenHtmlEditorOrderedList />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorColor />
+                            <RadzenHtmlEditorBackground />
+                            <RadzenHtmlEditorRemoveFormat />
+                            <RadzenHtmlEditorSubscript />
+                            <RadzenHtmlEditorSuperscript />
+                            <RadzenHtmlEditorFontName />
+                            <RadzenHtmlEditorFontSize />
+                            <RadzenHtmlEditorFormatBlock />
+                        </RadzenHtmlEditor>
+
+
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="8" HorizontalAlignment="MsFluent.HorizontalAlignment.Right">
+                            <FluentButton Appearance="Appearance.Outline" @onclick="CancelCompose" aria-label="Cancel compose">
+                                Cancel
+                            </FluentButton>
+                            <FluentButton Appearance="Appearance.Accent" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Disabled="isSendingEmail || string.IsNullOrWhiteSpace(composingMessage.Content)" @onclick="SendComposedMessage" aria-label="Send message">
+                                @(isSendingEmail ? "Sending..." : "Send")
+                            </FluentButton>
+                        </FluentStack>
+                    </FluentStack>
+                </FluentCard>
+            }
+            else if (selectedMessage != null)
             {
                 <FluentCard class="divShadow" Style="padding: 20px">
                     <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height:100%" VerticalGap="16">
-                        <!-- From -->
-                        @* <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
-                            <FluentLabel Style="width: 100px; font-weight: 600;">From:</FluentLabel>
-                            <FluentLabel>@selectedMessage.SenderUserName</FluentLabel>
-                        </FluentStack> *@
-
                         <!-- To -->
                         <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
                             <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
                             <FluentLabel>@selectedMessage.RecipientUserName</FluentLabel>
                             <FluentSpacer />
-                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => OpenReplyDialog(selectedMessage)" aria-label="Reply to message">
+                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => StartReply(selectedMessage)" aria-label="Reply to message">
                                 Reply
                             </FluentButton>
                             <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => SendToEmail(selectedMessage)" aria-label="Forward to your E-mail">
@@ -213,12 +277,6 @@
                             <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
                             <FluentLabel>@selectedMessage.Subject</FluentLabel>
                         </FluentStack>
-                
-                        <!-- Date -->
-                       @*  <FluentStack Orientation="Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" VerticalGap="0">
-                            <FluentLabel Style="width: 100px; font-weight: 600;">Date:</FluentLabel>
-                            <FluentLabel>@selectedMessage.SentAt.ToString()</FluentLabel>
-                        </FluentStack> *@
 
                         <!-- Message Content -->
                         <div style="border-top: 1px solid var(--neutral-stroke-divider); padding-top: 5px;margin-bottom: 5px;padding-bottom:5px; margin-top: 5px;flex: 1;overflow: auto;">
@@ -255,12 +313,15 @@
 
 @code {
     private enum MessageFilter { Active, Archived }
+    private enum ComposeMode { None, Reply, NewMessage }
 
     [Parameter]
     public Action<bool>? OnCloseDrawer { get; set; }
 
     private List<PulseMessage>? messages;
     private PulseMessage? selectedMessage;
+    private PulseMessage? composingMessage;
+    private ComposeMode composeMode = ComposeMode.None;
     private string currentUserId = string.Empty;
     private bool fltrPulseAI = true;
     private bool fltrUsers = true;
@@ -279,7 +340,6 @@
          fltrStreams && m.Role.ToLower() == "stream" ||
          fltrNotify && m.Role.ToLower() == "notification")
     ).ToList() ?? new();
-    // messages?.Where(m => messageFilter == MessageFilter.Active ? m.Delivered != true : m.Delivered == true, m => (fltrPulseAI ? m.Role == "PulseAI" : ""), m => (fltrUsers ? m.Role == "user" : ""), m => (fltrNotify ? m.Role == "notification" : ""), m => (fltrStream ? m.Role == "stream" : "")).ToList() ?? new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -324,7 +384,6 @@
     {
         if (messages != null)
         {
-            // messages.Add(msg);
             InvokeAsync(StateHasChanged);
         }
     }
@@ -338,45 +397,109 @@
     private void SelectMessage(PulseMessage msg)
     {
         selectedMessage = msg;
+        composeMode = ComposeMode.None;
+        composingMessage = null;
+    }
+
+    private void StartReply(PulseMessage msgToReplyTo)
+    {
+        if (msgToReplyTo.Role.ToLower() == "pulseai")
+        {
+            var m = "I'm sorry, I can't receive replies to messages.";
+            PulseToastService.ShowToast("Information", m, true, true, msgToReplyTo.SenderUserName);
+            Global_AI.AISpeak(m, msgToReplyTo.SenderUserName);
+            return;
+        }
+
+        var sub = msgToReplyTo.Subject.StartsWith("RE: ") ? msgToReplyTo.Subject : "RE: " + msgToReplyTo.Subject;
+
+        composingMessage = new PulseMessage
+        {
+            RecipientUserId = msgToReplyTo.SenderUserId,
+            RecipientUserName = msgToReplyTo.SenderUserName,
+            SenderUserId = currentUserId,
+            Subject = sub,
+            SenderUserName = _authService.aspireFullName,
+            Content = "",
+            Role = "User"
+        };
+
+        composeMode = ComposeMode.Reply;
+    }
+
+    private void StartNewMessage()
+    {
+        composingMessage = new PulseMessage
+        {
+            RecipientUserId = "",
+            RecipientUserName = "",
+            SenderUserId = currentUserId,
+            SenderUserName = _authService.aspireFullName,
+            Subject = "",
+            Content = "",
+            Role = "User"
+        };
+
+        composeMode = ComposeMode.NewMessage;
+    }
+
+    private void CancelCompose()
+    {
+        composeMode = ComposeMode.None;
+        composingMessage = null;
+    }
+
+    private async Task SendComposedMessage()
+    {
+        if (composingMessage == null || string.IsNullOrWhiteSpace(composingMessage.Content))
+        {
+            return;
+        }
+
+        isSendingEmail = true;
+
+        try
+        {
+            if (composeMode == ComposeMode.Reply && selectedMessage != null)
+            {
+                composingMessage.Content += $"<br /><br /><p style='font-size:0.95em; font-weight:bold;'>{selectedMessage.SenderUserName} - ({selectedMessage.SentAt})</p><div style='color:#666666; font-style:italic; font-size:0.95em;'>{selectedMessage.Content}</div>";
+            }
+
+            await MsgHubService.SendPrivateMessageAsync(composingMessage);
+
+            PulseToastService.ShowToast("Success", "Message sent successfully");
+            await Global_AI.AISpeak("Your message has been sent", "PulseAI");
+
+            CancelCompose();
+        }
+        catch (Exception ex)
+        {
+            PulseToastService.ShowToast("Error", $"Failed to send message: {ex.Message}");
+            await Global_AI.AISpeak("There was an error sending your message", "PulseAI");
+        }
+        finally
+        {
+            isSendingEmail = false;
+        }
     }
 
     private async Task OnPresenceUserSelected(UserPresenceDto user)
     {
-        PulseMessage newMsg = new PulseMessage
-            {
-                RecipientUserId = user.UserId,
-                RecipientUserName = user.FullName,
-                Role = "User",
-                SenderUserId = currentUserId,
-                SenderUserName = _authService.aspireFullName,
-                Subject = "",
-                Content = ""
-            };
-
-        var dialog = await DialogService.ShowDialogAsync<NewMessage>(newMsg, new DialogParameters<PulseMessage>()
-            {
-                Content = newMsg,
-                Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center,
-                Title = $"New Message to {user.FullName}",
-                Width = "600px",
-                Height = "600px",
-                PrimaryAction = "Send",
-                SecondaryAction = "Cancel",
-            });
-
-        var result = await dialog.Result;
-        if (result.Cancelled == false && result.Data is PulseMessage sentMsg && !string.IsNullOrWhiteSpace(sentMsg.Content))
+        composingMessage = new PulseMessage
         {
-            try
-            {
-                await MsgHubService.SendPrivateMessageAsync(sentMsg);
-            }
-            catch (Exception ex)
-            {
-                // Handle error
-            }
-        }
+            RecipientUserId = user.UserId,
+            RecipientUserName = user.FullName,
+            Role = "User",
+            SenderUserId = currentUserId,
+            SenderUserName = _authService.aspireFullName,
+            Subject = "",
+            Content = ""
+        };
+
+        composeMode = ComposeMode.NewMessage;
+        await InvokeAsync(StateHasChanged);
     }
+
     private string GenerateExportHeader(PulseMessage msgToSend)
     {
         var htmlHeader = "<div style=\"display:flex;width: 100% ; padding: 8px; border-bottom: 1px solid hsl(0,100%,20%); justify-content: start; \">";
@@ -384,15 +507,15 @@
         switch (msgToSend.Role.ToLower())
         {
             case "pulseai":
-                if(msgToSend.SenderUserName.ToLower() == "ali")
+                if (msgToSend.SenderUserName.ToLower() == "ali")
                 {
                     htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Ali.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Analysis By Ali</h3>";
                 }
-                else if(msgToSend.SenderUserName.ToLower() == "flapper")
+                else if (msgToSend.SenderUserName.ToLower() == "flapper")
                 {
                     htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Flapper.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Conversations With Flapper</h3>";
                 }
-                else if(msgToSend.SenderUserName.ToLower() == "tables")
+                else if (msgToSend.SenderUserName.ToLower() == "tables")
                 {
                     htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Tables.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Data Extraction By Tables</h3>";
                 }
@@ -402,8 +525,8 @@
         }
         htmlHeader += "</div>";
         return @htmlHeader;
-
     }
+
     private async Task SendToEmail(PulseMessage msgToSend)
     {
         bool isSuccess = false;
@@ -426,7 +549,6 @@
 
             var result = await pApi.PostAsync<EMailMessage, ApiResponse>(ApiEndpoints.Utilities.SendEmail, emsg);
             isSuccess = result?.Success == true;
-
         }
         catch (Exception ex)
         {
@@ -464,97 +586,15 @@
             </style>";
     }
 
-    private async Task OpenReplyDialog(PulseMessage msgToReplyTo)
+    public async ValueTask DisposeAsync()
     {
-        if(msgToReplyTo.Role.ToLower() == "pulseai")
-        {
-            var m = "I'm sorry, I can't receive replies to messages.";
-            PulseToastService.ShowToast("Information", m, true, true, msgToReplyTo.SenderUserName);
-            await Global_AI.AISpeak(m, msgToReplyTo.SenderUserName);
-            return;
-        }
-
-        var sub = msgToReplyTo.Subject.StartsWith("RE: ") ? msgToReplyTo.Subject : "RE: " + msgToReplyTo.Subject;
-
-        PulseMessage replyMsg = new PulseMessage
-            {
-                RecipientUserId = msgToReplyTo.SenderUserId,
-                RecipientUserName = msgToReplyTo.SenderUserName,
-                SenderUserId = currentUserId,
-                Subject = sub,
-                SenderUserName = _authService.aspireFullName,
-                Content = ""
-            };
-
-        var dialog = await DialogService.ShowDialogAsync<NewMessage>(replyMsg, new DialogParameters<PulseMessage>()
-        {
-            Content = replyMsg,
-            Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center,
-            Title = $"Reply to {msgToReplyTo.SenderUserName}",
-            Width = "600px",
-            Height = "600px",
-            PrimaryAction = "Send",
-            SecondaryAction = "Cancel"
-        });
-
-        var result = await dialog.Result;
-        if (!result.Cancelled && result.Data is PulseMessage sentMsg && !string.IsNullOrWhiteSpace(sentMsg.Content))
-        {
-            try
-            {
-                sentMsg.Content += $"<br /><br /><p style='font-size:0.95em; font-weight:bold;'>{selectedMessage?.SenderUserName} - ({selectedMessage?.SentAt})</p><div style='color:#666666; font-style:italic; font-size:0.95em;'>{selectedMessage?.Content}</div>";
-                await MsgHubService.SendPrivateMessageAsync(sentMsg);
-            }
-            catch (Exception ex)
-            {
-                // Handle error
-            }
-        }
+        MsgHubService.OnReceiveMessage -= HandleReceiveMessage;
+        MsgHubService.OnPresenceListUpdated -= HandlePresenceListUpdated;
     }
 
-        private async Task OpenNewMessageDialog()
-        {
-            PulseMessage newMsg = new PulseMessage
-            {
-                RecipientUserId = "",
-                SenderUserId = currentUserId,
-                SenderUserName = _authService.aspireFullName,
-                Content = ""
-            };
-
-            var dialog = await DialogService.ShowDialogAsync<NewMessage>(newMsg, new DialogParameters<PulseMessage>()
-            {
-                Content = newMsg,
-                Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center,
-                Title = "New Broadcast",
-                Width = "600px",
-                Height = "600px",
-                PrimaryAction = "Send",
-                SecondaryAction = "Cancel",
-            });
-
-            var result = await dialog.Result;
-            if (result.Cancelled == false && result.Data is PulseMessage sentMsg && !string.IsNullOrWhiteSpace(sentMsg.Content))
-            {
-                try
-                {
-                    await MsgHubService.SendMessageAsync(sentMsg);
-                }
-                catch (Exception ex)
-                {
-                    // Handle error
-                }
-            }
-        }
-
-        public async ValueTask DisposeAsync()
-        {
-            MsgHubService.OnReceiveMessage -= HandleReceiveMessage;
-            MsgHubService.OnPresenceListUpdated -= HandlePresenceListUpdated;
-        }
-        private string ParseToHtml(string markdown)
-        {
-            var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-            return Markdig.Markdown.ToHtml(markdown, pipeline);
-        }
+    private string ParseToHtml(string markdown)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        return Markdig.Markdown.ToHtml(markdown, pipeline);
     }
+}

@@ -56,12 +56,12 @@ th {
 }
 
     .chat-messages img {
-        max-width: 90%;
+        max-width: 25%;
         height: auto;
     }
 
 .flapper-response-image {
-    max-width: 100%;
+    max-width: 25%;
     height: auto;
     border-radius: 8px;
     margin: 10px 0;
@@ -76,7 +76,7 @@ th {
 }
 
     .flapper-response img {
-        max-width: 100%;
+        max-width: 25%;
         height: auto;
         border-radius: 8px;
         margin: 10px 0;

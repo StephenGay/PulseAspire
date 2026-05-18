@@ -1,3 +1,23 @@
 ﻿.fluent-data-grid-row.selected {
     background-color: lightblue !important;
 }
+
+/* Ensure Fluent UI Dialogs render above all other components */
+:global(.fluent-dialog-overlay) {
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+
+:global(.fluent-dialog) {
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+
+:global(.fluent-dialog-container) {
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
+
+:global(::backdrop) {
+    z-index: 9998 !important;
+}

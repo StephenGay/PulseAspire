@@ -45,12 +45,8 @@
         --bb-drawer-body-padding: 0 !important;
         /* top: 56px !important; */
         height: calc(100vh - 56px) !important;
-        z-index: 999 !important;
+        z-index: 500 !important;
     }
-/* 
-    :global(.fluent-dialog-overlay) {
-        z-index: 1000 !important;
-    } */
 
     .myDivBtn{
         --pulse-accent-btn-bg: var(--pulse-dark-colour);
@@ -66,7 +62,8 @@
 <CascadingAuthenticationState>
 <AuthorizeView>
     <Authorized>
-        
+        <FluentDialogProvider />
+
         <div class="MasterLayoutParent">
             <div class="MasterLayoutHeader">
                 <MasterAIMenu />
@@ -161,7 +158,6 @@
     </CascadingAuthenticationState>
 
 <FluentTooltipProvider />
-<FluentDialogProvider />
 
 @code {
 

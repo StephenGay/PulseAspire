@@ -7,6 +7,7 @@ using Pulse.Models.AI;
 using Pulse.Models.Api;
 using Pulse.Models.PulseContext;
 using System.Text;
+using static Pulse.Models.AI.Tables.TablesChatStructures;
 
 namespace Pulse.ApiService.PulseAI.Characters;
 
@@ -40,14 +41,20 @@ public class TablesAPI
     /// <summary>
     /// Main entry point for asking Tables a question.
     /// </summary>
+    /// <summary>
+    /// Main entry point for asking Tables a question.
+    /// Includes self-correction retry logic on validation failures.
+    /// </summary>
     public async Task<ApiResponse<List<Dictionary<string, object>>>> AskTablesAsync(PulseAiRequest request)
     {
         var response = new TablesResponse
         {
-            ModelUsed = request.ModelName ?? "llama3.2",
+            ModelUsed = request.ModelName ?? "gpt-oss:latest",
             SessionId = request.SessionId ?? Guid.NewGuid().ToString(),
             Timestamp = DateTime.UtcNow
-        }; 
+        };
+
+        const int MaxAttempts = 3;
 
         try
         {
@@ -57,61 +64,126 @@ public class TablesAPI
             // Get or create chat session
             var chat = GetOrCreateChatSession(response.SessionId, response.ModelUsed);
 
-            //Initialize system prompt if this is a new session
+            // Initialize system prompt if this is a new session
             if (chat.Messages.Count == 0)
             {
                 string systemPrompt = await GetTablesSystemMessageAsync();
 
-                // Send system message using streaming and collect response
                 await foreach (var chunk in chat.SendAsync(systemPrompt, CancellationToken.None))
                 {
-                    // Just consume the stream to complete the system message
+                    // Consume stream
                 }
 
                 _logger.LogInformation("System prompt initialized for session {SessionId}", response.SessionId);
             }
 
-            // Send user question and get SQL query
-            var sqlQueryResponseBuilder = new StringBuilder();
-            await foreach (var chunk in chat.SendAsync(request.UserRequest.Content, CancellationToken.None))
+            string currentPrompt = request.UserRequest.Content;
+            string finalSqlQuery = string.Empty;
+            string finalAiResponse = string.Empty;
+            AiQueryResponse<List<Dictionary<string, object>>>? finalQueryResult = null;
+            int attemptsUsed = 0;
+
+            for (attemptsUsed = 1; attemptsUsed <= MaxAttempts; attemptsUsed++)
             {
-                sqlQueryResponseBuilder.Append(chunk);
+                if (attemptsUsed > 1)
+                {
+                    _logger.LogInformation("Self-correction retry #{Attempt} for session {SessionId}", attemptsUsed, response.SessionId);
+                }
+
+                // Send prompt (original question or correction prompt)
+                var sqlQueryResponseBuilder = new StringBuilder();
+                await foreach (var chunk in chat.SendAsync(currentPrompt, CancellationToken.None))
+                {
+                    sqlQueryResponseBuilder.Append(chunk);
+                }
+                finalAiResponse = sqlQueryResponseBuilder.ToString();
+
+                // Extract SQL
+                var sqlQuery = ExtractSqlFromResponse(finalAiResponse);
+
+                if (string.IsNullOrWhiteSpace(sqlQuery))
+                {
+                    finalQueryResult = AiQueryResponse<List<Dictionary<string, object>>>.ValidationErrorResponse(
+                        new List<AiQueryValidationError>
+                        {
+                        new AiQueryValidationError
+                        {
+                            ErrorType = "NoSqlExtracted",
+                            Message = "AI response did not contain a valid SQL query block."
+                        }
+                        });
+
+                    // Prepare correction prompt for next attempt
+                    currentPrompt = "You did not return a SQL query in the required ```sql block format. Please try again and output ONLY the SQL query wrapped in ```sql ... ```.";
+                    continue;
+                }
+
+                _logger.LogInformation("Attempt {Attempt} - Generated SQL: {Sql}", attemptsUsed, sqlQuery);
+
+                // Validate + (conditionally) execute
+                await using var dbContext = await _dbFactory.CreateDbContextAsync();
+                var connectionString = dbContext.Database.GetConnectionString();
+                var tablesSQL = new TablesSQL(null, dbContext);
+
+                finalQueryResult = await tablesSQL.ExecuteValidatedQuery(connectionString, sqlQuery);
+
+                if (finalQueryResult.Success ||
+                    (finalQueryResult.ValidationErrors == null || !finalQueryResult.ValidationErrors.Any()))
+                {
+                    finalSqlQuery = sqlQuery;
+                    break; // Success!
+                }
+
+                // Validation failed — prepare self-correction prompt using the rich error details
+                var errorSummary = string.Join(" | ", finalQueryResult.ValidationErrors!.Select(e =>
+                    $"{e.ErrorType}: {e.Message}" +
+                    (e.AvailableAlternatives?.Any() == true ? $" (Did you mean: {string.Join(", ", e.AvailableAlternatives)})" : "")));
+
+                currentPrompt = $"The SQL query from your previous attempt failed validation with these errors: {errorSummary}. " +
+                                "Using the provided database schema and relationships, please generate a corrected SQL query. " +
+                                "Remember the rules: output ONLY the corrected SQL inside a ```sql block. No explanations.";
+
+                _logger.LogWarning("Attempt {Attempt} validation failed for session {SessionId}. Errors: {Errors}",
+                    attemptsUsed, response.SessionId, errorSummary);
             }
-            var sqlQueryResponse = sqlQueryResponseBuilder.ToString();
 
-            // Extract SQL from response
-            var sqlQuery = ExtractSqlFromResponse(sqlQueryResponse);
+            // After all attempts
+            response.AttemptsUsed = attemptsUsed; // Add this property to TablesResponse if not present (or remove if model doesn't have it yet)
+            response.GeneratedSql = finalSqlQuery;
+            response.IsSuccess = finalQueryResult?.Success ?? false;
+            response.ValidationErrors = finalQueryResult?.ValidationErrors;
+            response.ExecutionDetails = finalQueryResult?.ExecutionDetails;
 
-            if (string.IsNullOrWhiteSpace(sqlQuery))
+            if (!string.IsNullOrWhiteSpace(finalSqlQuery) && (finalQueryResult?.Success == true))
             {
+                response.Data = finalQueryResult.Data;
+                response.Content = FormatTablesResponse(finalAiResponse, finalQueryResult);
+
+                if (attemptsUsed > 1)
+                {
+                    response.Content += $"\n\n🔄 Self-corrected after {attemptsUsed} attempts.";
+                }
+
+                _logger.LogInformation("Tables succeeded after {Attempts} attempt(s). Session: {SessionId}", attemptsUsed, response.SessionId);
+                return ApiResponse<List<Dictionary<string, object>>>.SuccessResponse(response.Data);
+            }
+            else
+            {
+                // Failed after retries
+                response.Content = FormatTablesResponse(finalAiResponse, finalQueryResult ??
+                    AiQueryResponse<List<Dictionary<string, object>>>.ValidationErrorResponse(new List<AiQueryValidationError>()));
+
+                if (attemptsUsed >= MaxAttempts)
+                {
+                    response.Content += $"\n\n⚠️ Failed to produce a valid query after {MaxAttempts} attempts.";
+                }
+
+                _logger.LogWarning("Tables failed to generate valid SQL after {Attempts} attempts. Session: {SessionId}", attemptsUsed, response.SessionId);
+
                 return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse(
-                    "Tables was unable to generate a valid SQL query.",
+                    $"Tables was unable to generate a valid SQL query after {attemptsUsed} attempt(s).",
                     statusCode: 400);
             }
-
-            _logger.LogInformation("Generated SQL: {Sql}", sqlQuery);
-
-            // Execute the query
-            await using var dbContext = await _dbFactory.CreateDbContextAsync();
-            var connectionString = dbContext.Database.GetConnectionString();
-            var tablesSQL = new TablesSQL(null, dbContext);
-
-            var queryResult = await tablesSQL.ExecuteValidatedQuery(connectionString, sqlQuery);
-
-            // Build response
-            response.Content = FormatTablesResponse(sqlQueryResponse, queryResult);
-            response.GeneratedSql = sqlQuery;
-            response.IsSuccess = queryResult.Success;
-            response.ValidationErrors = queryResult.ValidationErrors;
-            response.ExecutionDetails = queryResult.ExecutionDetails;
-
-            if (queryResult.Success && queryResult.Data?.Any() == true)
-            {
-                response.Data = queryResult.Data;
-                _logger.LogInformation("Tables found and is returning data.");
-            }
-
-            return ApiResponse<List<Dictionary<string, object>>>.SuccessResponse(response.Data);
         }
         catch (Exception ex)
         {
@@ -164,38 +236,42 @@ public class TablesAPI
         string schemaText = await _aiShared.GetDetailedSchemaAsync();
 
         return $$"""
-            Your name is Tables. You are a Microsoft SQL Server expert with a passion for generating accurate and efficient SQL queries.
-            Once you have extracted the correct data, you format it in beautiful TABLES! You are a data enthusiast who takes pride
-            in crafting the perfect SQL query to get the job done.
+            You are Tables, a highly skilled Microsoft SQL Server 2022 expert.
 
-            You have been put in charge of retrieving the correct data from the company's database for your work colleagues. They, however, are
-            not very good at formulating SQL queries and will ask you questions in natural language. Your job is to convert those questions
-            into SQL queries that will be executed against the database.
+            Your sole responsibility is to convert natural language questions from colleagues into accurate, efficient, and safe SELECT queries.
 
-            IMPORTANT RULES:
-            1. The database is Microsoft SQL Server 2022
-            2. ALWAYS return ONLY the SQL query, wrapped in ```sql and ``` markers
-            3. Do NOT include any explanations or additional text
-            4. Use proper JOIN syntax and avoid implicit joins
-            5. Always specify column names explicitly (avoid SELECT * in production queries)
-            6. Use aliases for better readability
-            7. Add appropriate WHERE clauses for filtering
-            8. Consider performance - use indexes when available
+            === CORE RULES (STRICTLY FOLLOW) ===
+            1. The database is Microsoft SQL Server 2022 — use correct T-SQL syntax.
+            2. ALWAYS output ONLY a single valid SELECT query wrapped in a markdown code block:
+               ```sql
+               SELECT ...
+               ```
+            3. Never include explanations, apologies, comments, or any text outside the SQL code block.
+            4. Use explicit INNER/LEFT JOINs with clear ON conditions. Never use implicit joins.
+            5. Always select specific columns. Avoid SELECT * in production-style queries.
+            6. Use meaningful table aliases and qualify all columns (e.g. o.OrderId, c.Name).
+            7. Leverage the schema relationships provided below for correct JOIN paths.
+            8. Add appropriate WHERE, ORDER BY, GROUP BY, and TOP clauses when they make sense.
+            9. Prioritize correctness and safety above all else.
 
-            DATABASE SCHEMA:
+            === THINKING PROCESS (Internal only — do not output) ===
+            Before writing the query, internally:
+            1. Identify the main entities and tables needed.
+            2. Determine the correct JOIN relationships using the schema.
+            3. Select only the columns required to answer the question.
+            4. Decide on filters, aggregations, and sorting.
+            5. Then produce the cleanest possible SQL.
+
+            === DATABASE SCHEMA (with relationships) ===
             {{schemaText}}
 
-            EXAMPLE QUESTIONS AND QUERIES:
+            === HIGH-QUALITY EXAMPLES ===
+            Study these patterns and apply similar style and structure:
             {{examples}}
 
-            When responding, format your SQL query like this:
-            ```sql
-            SELECT column1, column2
-            FROM TableName
-            WHERE condition
-            ```
-
-            Now, await the user's question and generate the appropriate SQL query.
+            === SELF-CORRECTION ===
+            If you receive feedback about validation errors (missing tables/columns, syntax issues, etc.), analyze the errors carefully and generate a corrected query in the next response. You are expected to fix your own mistakes using the schema and rules above.
+            Now wait for the user's question and respond with ONLY the SQL code block.
             """;
     }
 

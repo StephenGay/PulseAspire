@@ -555,7 +555,7 @@
         CurrentUserMessage = string.Empty;
 
         // Add placeholder for Flapper
-        Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = "..." });
+        // Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = "..." });
         CurrentFlapperResponse = "";
         StateHasChanged();
 
@@ -834,29 +834,19 @@
     // }
     private async Task SpeakIncremental(string newDelta)
     {
-        // newDelta = newDelta.Replace("U.S.", " United States");
+        
         _answerBuilder.Append(newDelta);
 
         string full = _answerBuilder.ToString();
 
         // Find last complete sentence end
         int boundary = full.LastIndexOfAny(new[] { '!', '?', '\n' });
-        // int boundary = GetLastRealSentenceBoundary(full);
-
-        // // if (boundary < 1 && full.Length - _lastSpokenCharIndex > 150)
-        // // {
-        // //     boundary = _lastSpokenCharIndex + 150;
-        // //     // string chunk = full.Substring(_lastSpokenCharIndex, 300);
-        // //     // chunk = PrepareForSpeech(chunk);
-        // //     // await GlobalAI.AISpeak(chunk, "Flapper");
-        // //     // _lastSpokenCharIndex += 300;
-        // // }
+        
         if (boundary < _lastSpokenCharIndex) return; // nothing new to speak
 
         string toSpeak = full.Substring(_lastSpokenCharIndex, boundary - _lastSpokenCharIndex + 1).Trim();
 
         if (string.IsNullOrWhiteSpace(toSpeak)) return;
-        // toSpeak = PrepareForSpeech(toSpeak);
 
         _isSpeaking = true;
         await InvokeAsync(StateHasChanged);
@@ -894,7 +884,6 @@
 
         text = text
             .Replace("\n\n", "\n")           // reduce big gaps
-            // .Replace("\n", " ")              // turn newlines into spaces
             .Replace("  ", " ")              // collapse spaces
             .Replace("*", "")                // remove asterisks
             .Replace("**", "")
@@ -904,7 +893,6 @@
             .Replace("### ", "")
             .Replace("## ", "")
             .Replace("#### ", "")
-            // // .Replace(" U.S.", " United States ")
             .Trim();
 
         // Optional: make it even more spoken
@@ -1030,61 +1018,7 @@
             pdfLoading = false;
         }
 
-        // if (chatHistory==null)
-        // {
-        //     return;
-        // }
-
-        // try
-        // {
-        //     string cnt = string.Empty;
-        //     pdfLoading = true;
-        //     if (!ViewAll)
-        //     {
-        //         cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{flapperAnswer}";
-        //         if (stream) { cnt += $"<hr><p><i>{flapperThinking}</i></p><hr>"; }
-        //     }
-        //     else
-        //     {
-        //         foreach (var message in chatHistory)
-        //         {
-        //             if (message.Role.ToUpper() != "USER")
-        //             {
-        //                 cnt += ParseToHtml(@message.Content);
-        //             }
-        //             else
-        //             {
-        //                 cnt += $"<hr><p><strong>" + message.Role.ToUpper() + "</strong>: " + @message.Content +"</p><hr>";
-        //             }
-        //         }
-        //     }
-
-        //     using var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
-        //     var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".pdf";
-        //     var H = AddExportMUcss(cnt);
-
-        //     var request = new PdfRequest
-        //     {
-        //         Html = H,
-        //         FileName = fileName,
-        //     };
-
-        //     var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
-        //     response.EnsureSuccessStatusCode();
-
-        //     var pdfBytes = await response.Content.ReadAsByteArrayAsync();
-        //     var base64 = Convert.ToBase64String(pdfBytes);
-        //     // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
-
-        //     pdfLoading = false;
-        //     await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
-
-        //     // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
-        // }
-        // catch (Exception ex)
-        // {
-        //     return;
-        // }
+        
     }
 
     private string FlapperAddMUcss(string html)
@@ -1152,8 +1086,6 @@
         }
         catch (Exception ex)
         {
-            // PulseToastService.ShowToast("Error", "There was an error sending the message.<br />Please try again.", true, true, "Flapper");
-            // await GlobalAI.AISpeak("There was an error sending the message.<br />Please try again.", "Flapper");
             return;
         }
         finally
@@ -1218,7 +1150,7 @@
         html = System.Text.RegularExpressions.Regex.Replace(
             html,
             @"<img\s+src=""([^""]*)""\s+alt=""([^""]*)""",
-            @"<img src=""$1"" alt=""$2"" class=""flapper-response-image"" style=""max-width: 100%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"""
+            @"<img src=""$1"" alt=""$2"" class=""flapper-response-image"" style=""max-width: 25%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"""
         );
         return html;
     }

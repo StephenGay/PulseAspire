@@ -5,46 +5,65 @@
 @implements IDialogContentComponent<PulseMessage>
 
 <FluentDialogBody>
-    @if(Content != null)
-    { 
-        <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="20" HorizontalAlignment="MsFluent.HorizontalAlignment.Stretch" Width="100%">
-           
-
-            <!-- Message Body -->
-            <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="6">
-                <FluentTextField @bind-Value="Content.Subject" Placeholder="Enter A Subject" Label="Subject" Style="width:100%;color:var(--pulse-dark-colour);" />
-                <FluentLabel Typo="MsFluent.Typography.Body">Message</FluentLabel>
-                <FluentTextArea 
-                    Rows="17" 
-                    @bind-Value="Content.Content"
-                    Placeholder="Type your message here..."
-                    Style="width:100%;color:var(--pulse-dark-colour); resize: vertical;"
-                    Appearance="FluentInputAppearance.Filled"></FluentTextArea>
-                <div style="font-size: 12px; color: var(--neutral-foreground-hint);">
-                    @((Content.Content?.Length ?? 0)) characters
-                </div>
-            </FluentStack>
+    <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="20" HorizontalAlignment="MsFluent.HorizontalAlignment.Stretch" Width="100%">
+        <!-- Subject Input -->
+        <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="6">
+            <FluentLabel Typo="MsFluent.Typography.Body" Weight="FontWeight.Bold">Subject</FluentLabel>
+            <FluentTextField 
+                Value="@messageSubject" 
+                ValueChanged="@OnSubjectChanged"
+                Placeholder="Enter a subject" 
+                Style="width:100%;color:var(--pulse-dark-colour);" />
         </FluentStack>
-     }
-     else
-     {
-        <FluentProgressRing />
-     }
 
+        <!-- Message Body -->
+        <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="6">
+            <FluentLabel Typo="MsFluent.Typography.Body" Weight="FontWeight.Bold">Message</FluentLabel>
+            <FluentTextArea 
+                Rows="15" 
+                Value="@messageContent"
+                ValueChanged="@OnContentChanged"
+                Placeholder="Type your message here..."
+                Style="width:100%;color:var(--pulse-dark-colour); resize: vertical;"
+                Appearance="FluentInputAppearance.Filled" />
+            <div style="font-size: 12px; color: var(--neutral-foreground-hint);">
+                @((messageContent?.Length ?? 0)) characters
+            </div>
+        </FluentStack>
+    </FluentStack>
 </FluentDialogBody>
 
 @code {
     [Parameter]
     public PulseMessage Content { get; set; } = default!;
 
-    private bool isLoaded = false;
-    private string emailSubject = string.Empty;
+    private string messageSubject = string.Empty;
+    private string messageContent = string.Empty;
 
-    // protected override async Task OnParametersSetAsync()
-    // {
-    //     if (Content != null)
-    //     {
-    //         isLoaded = true;
-    //     }
-    // }
+    protected override void OnInitialized()
+    {
+        if (Content != null)
+        {
+            messageSubject = Content.Subject ?? string.Empty;
+            messageContent = Content.Content ?? string.Empty;
+        }
+    }
+
+    private void OnSubjectChanged(string value)
+    {
+        messageSubject = value ?? string.Empty;
+        if (Content != null)
+        {
+            Content.Subject = messageSubject;
+        }
+    }
+
+    private void OnContentChanged(string value)
+    {
+        messageContent = value ?? string.Empty;
+        if (Content != null)
+        {
+            Content.Content = messageContent;
+        }
+    }
 }

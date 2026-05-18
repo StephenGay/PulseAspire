@@ -3,12 +3,15 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
-namespace Pulse.Models.AI
+namespace Pulse.Models.AI.Tables;
+
+public class TablesChatStructures
 {
-    public record PulseAiResponse
+    public record TablesResponse
     {
         public string SessionId { get; init; } = string.Empty;
         public string Sql { get; init; } = string.Empty;
+        public int AttemptsUsed { get; set; } = 1;
         public string ModelUsed { get; init; } = string.Empty;
         public DateTime Timestamp { get; init; } = DateTime.UtcNow;
         public string Content { get; set; } = string.Empty;
@@ -18,6 +21,4 @@ namespace Pulse.Models.AI
         public AiQueryExecutionDetails? ExecutionDetails { get; set; }
         public List<Dictionary<string, object>>? Data { get; set; }
     }
-
-    
 }
