@@ -1,0 +1,103 @@
+﻿@inject IJSRuntime JS
+@using Microsoft.JSInterop
+
+<div class="flapper-container @WrapperClass @EmotionClass"
+     style="width:@Size; height:@Size;"
+     @onclick="ToggleSpeaking">
+
+    <!-- Base Flapper SVG -->
+    <img src="images/ai/flapper.svg" class="flapper-base" alt="Flapper" />
+
+    <!-- Dynamic Mouth Overlay (precise control) -->
+    <svg class="mouth-overlay @MouthClass"
+         viewBox="0 0 32 32" width="@Size" height="@Size">
+        <!-- We will define mouth paths below via CSS classes -->
+        <path id="mouth" d="@CurrentMouthPath" fill="#88014E" />
+    </svg>
+
+    @if (!string.IsNullOrEmpty(StatusText))
+    {
+        <div class="status-badge">@StatusText</div>
+    }
+</div>
+
+@code {
+    [Parameter] public string Size { get; set; } = "240px";
+    [Parameter] public string? StatusText { get; set; }
+    [Parameter] public EventCallback OnSpeakingStarted { get; set; }
+    [Parameter] public EventCallback OnSpeakingEnded { get; set; }
+
+    public enum FlapperEmotion { Neutral, Happy, Thinking, Surprised }
+    public enum MouthState { Closed, Speaking, Smile, Surprised }
+
+    private FlapperEmotion CurrentEmotion { get; set; } = FlapperEmotion.Neutral;
+    private MouthState CurrentMouth { get; set; } = MouthState.Closed;
+    private bool IsSpeaking { get; set; }
+
+    private string WrapperClass => IsSpeaking ? "speaking" : "idle";
+    private string EmotionClass => CurrentEmotion.ToString().ToLower();
+    private string MouthClass => CurrentMouth.ToString().ToLower();
+
+    private string CurrentMouthPath => CurrentMouth switch
+    {
+        MouthState.Closed => "M14.95 13.6 Q16.42 13.6 17.89 13.6",           // thin closed
+        MouthState.Speaking => "M14.7 13.9 Q16.42 14.6 18.1 13.9",           // open oval
+        MouthState.Smile => "M14.6 13.7 Q16.42 14.3 18.2 13.7",              // smile curve
+        MouthState.Surprised => "M15.3 13.5 Q16.42 14.8 17.5 13.5",           // round O
+        _ => "M14.95 13.6 Q16.42 13.6 17.89 13.6"
+    };
+
+    private DotNetObjectReference<FlapperAvatar>? dotNetRef;
+
+    protected override void OnInitialized() => dotNetRef = DotNetObjectReference.Create(this);
+
+    public async Task SpeakAsync(string text, FlapperEmotion emotion = FlapperEmotion.Neutral)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return;
+
+        CurrentEmotion = emotion;
+        CurrentMouth = MouthState.Speaking;
+        IsSpeaking = true;
+        StateHasChanged();
+
+        // await OnSpeakingStarted.InvokeAsync();
+        // await JS.InvokeVoidAsync("speakFlapper", text, dotNetRef);
+    }
+
+    public async Task SetEmotionAsync(FlapperEmotion emotion)
+    {
+        CurrentEmotion = emotion;
+        if (!IsSpeaking)
+            CurrentMouth = emotion == FlapperEmotion.Happy ? MouthState.Smile : MouthState.Closed;
+
+        StateHasChanged();
+    }
+
+    public async Task StopSpeakingAsync()
+    {
+        await JS.InvokeVoidAsync("stopSpeaking");
+        IsSpeaking = false;
+        CurrentMouth = CurrentEmotion == FlapperEmotion.Happy ? MouthState.Smile : MouthState.Closed;
+        StateHasChanged();
+        await OnSpeakingEnded.InvokeAsync();
+    }
+
+    private async Task ToggleSpeaking()
+    {
+        if (IsSpeaking) await StopSpeakingAsync();
+    }
+
+    [JSInvokable]
+    public void OnSpeechStart() { IsSpeaking = true; StateHasChanged(); }
+
+    [JSInvokable]
+    public async Task OnSpeechEnd()
+    {
+        IsSpeaking = false;
+        CurrentMouth = CurrentEmotion == FlapperEmotion.Happy ? MouthState.Smile : MouthState.Closed;
+        StateHasChanged();
+        await OnSpeakingEnded.InvokeAsync();
+    }
+
+    public void Dispose() => dotNetRef?.Dispose();
+}

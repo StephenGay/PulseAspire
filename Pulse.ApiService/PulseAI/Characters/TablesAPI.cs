@@ -1,7 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 using OllamaSharp;
+using Pulse.ApiService.Hubs;
 using Pulse.ApiService.PulseAI.Services;
 using Pulse.Models.AI;
 using Pulse.Models.Api;
@@ -18,7 +20,7 @@ public class TablesAPI
     private readonly IPulseAiClientFactory _aiClientFactory;
     private readonly IDbContextFactory<PulseDbContext> _dbFactory;
     private readonly ILogger<TablesAPI> _logger;
-
+    private readonly IHubContext<MessageHub> _hubContext;
     // Session management - stores chat history per session
     private static readonly Dictionary<string, Chat> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object _sessionLock = new object();
@@ -28,12 +30,14 @@ public class TablesAPI
         IPulseAiClientFactory aiClientFactory,
         //HttpClient tablesClient,
         IDbContextFactory<PulseDbContext> dbFactory,
+        IHubContext<MessageHub> hubContext,
         ILogger<TablesAPI> logger)
     {
         _aiShared = aiShared;
         _aiClientFactory = aiClientFactory;
         //_tablesClient = tablesClient;
         _dbFactory = dbFactory;
+        _hubContext = hubContext;
         _logger = logger;
 
     }
@@ -45,11 +49,11 @@ public class TablesAPI
     /// Main entry point for asking Tables a question.
     /// Includes self-correction retry logic on validation failures.
     /// </summary>
-    public async Task<ApiResponse<List<Dictionary<string, object>>>> AskTablesAsync(PulseAiRequest request)
+    public async Task<ApiResponse<List<Dictionary<string, object>>>> AskTablesAsync(TablesRequest request)
     {
         var response = new TablesResponse
         {
-            ModelUsed = request.ModelName ?? "gpt-oss:latest",
+            ModelUsed = request.ModelName == "Default" ? "gpt-oss:latest" : request.ModelName,
             SessionId = request.SessionId ?? Guid.NewGuid().ToString(),
             Timestamp = DateTime.UtcNow
         };
@@ -59,140 +63,154 @@ public class TablesAPI
         try
         {
             _logger.LogInformation("Tables AI request: {Question}, Session: {SessionId}",
-                request.UserRequest.Content, response.SessionId);
+                request.UserRequest, response.SessionId);
 
-            // Get or create chat session
             var chat = GetOrCreateChatSession(response.SessionId, response.ModelUsed);
 
-            // Initialize system prompt if this is a new session
             if (chat.Messages.Count == 0)
             {
                 string systemPrompt = await GetTablesSystemMessageAsync();
-
-                await foreach (var chunk in chat.SendAsync(systemPrompt, CancellationToken.None))
-                {
-                    // Consume stream
-                }
-
+                await foreach (var chunk in chat.SendAsync(systemPrompt, CancellationToken.None)) { }
                 _logger.LogInformation("System prompt initialized for session {SessionId}", response.SessionId);
             }
+            
+            string currentPrompt = request.UserRequest;
 
-            string currentPrompt = request.UserRequest.Content;
+            if (request.UserId == "Flapper")
+            {
+                await SendProgressAsync(response.SessionId, "FlapperStart", $"<strong>I have asked Tables for this Information:</strong>\n{currentPrompt}\n");
+            }
+
+            string errMsg = $"<strong>Request Received:</strong>\nI have your request right here, just warming up the brain cells...";
+
+            await SendProgressAsync(response.SessionId, "Received",errMsg);
+
+            
             string finalSqlQuery = string.Empty;
             string finalAiResponse = string.Empty;
             AiQueryResponse<List<Dictionary<string, object>>>? finalQueryResult = null;
             int attemptsUsed = 0;
+            
+            
 
             for (attemptsUsed = 1; attemptsUsed <= MaxAttempts; attemptsUsed++)
             {
-                if (attemptsUsed > 1)
+                var tMsg = string.Empty;
+                if(attemptsUsed == 1)
                 {
-                    _logger.LogInformation("Self-correction retry #{Attempt} for session {SessionId}", attemptsUsed, response.SessionId);
+                    errMsg += "done";
+                }
+                else
+                {
+                    errMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>";
+                }
+                errMsg += $"\n\n<strong>Generating SQL Statement:</strong>\n";
+
+                switch (attemptsUsed)
+                {
+                    case 1:
+                        tMsg = $"{errMsg}Ok, watch me work my magic and generate the perfect SQL Statement...";
+                        break;
+                    case 2:
+                        tMsg = $"{errMsg}Ummm, well that didn't work...Let me check why and try again...";
+                        break;
+                    case MaxAttempts:
+                        tMsg = $"{errMsg}This is the last time I am permitted to try, hold thumbs...";
+                        break;
+                    default:
+                        tMsg = $"{errMsg}Trying Again (Attempt {attemptsUsed}/{MaxAttempts})...";
+                        break;
                 }
 
-                // Send prompt (original question or correction prompt)
-                var sqlQueryResponseBuilder = new StringBuilder();
+                await SendProgressAsync(response.SessionId, "Generating", $"{tMsg}");
+
+
+                errMsg = string.Empty;
+                var sqlBuilder = new StringBuilder();
                 await foreach (var chunk in chat.SendAsync(currentPrompt, CancellationToken.None))
                 {
-                    sqlQueryResponseBuilder.Append(chunk);
+                    sqlBuilder.Append(chunk);
                 }
-                finalAiResponse = sqlQueryResponseBuilder.ToString();
+                finalAiResponse = sqlBuilder.ToString();
 
-                // Extract SQL
                 var sqlQuery = ExtractSqlFromResponse(finalAiResponse);
 
                 if (string.IsNullOrWhiteSpace(sqlQuery))
                 {
+                    errMsg = "A SQL Statement could not be extracted from the response you sent.";
+                    //await SendProgressAsync(response.SessionId, "Failed", "Failed to extract SQL from response.", attemptsUsed);
                     finalQueryResult = AiQueryResponse<List<Dictionary<string, object>>>.ValidationErrorResponse(
-                        new List<AiQueryValidationError>
-                        {
-                        new AiQueryValidationError
-                        {
-                            ErrorType = "NoSqlExtracted",
-                            Message = "AI response did not contain a valid SQL query block."
-                        }
-                        });
+                    new List<AiQueryValidationError>
+                    {
+                    new AiQueryValidationError
+                    {
+                        ErrorType = "NoSqlExtracted",
+                        Message = "AI response did not contain a valid SQL query block."
+                    }
+                    });
 
                     // Prepare correction prompt for next attempt
                     currentPrompt = "You did not return a SQL query in the required ```sql block format. Please try again and output ONLY the SQL query wrapped in ```sql ... ```.";
-                    continue;
+                    break;
                 }
 
                 _logger.LogInformation("Attempt {Attempt} - Generated SQL: {Sql}", attemptsUsed, sqlQuery);
+                tMsg = $"SQL Statement generated.\n\n<strong>Validate & Execute:</strong>\nValidating the generated SQL Statement against the database schema to ensure columns and fields are valid.\n";
+                tMsg += $"If invalid, self correct and start the procedure again.\n";
+                tMsg += $"If valid, execute the query and return the results.\n\n<strong>SQL Statement:</strong>\n{sqlQuery}";
+                await SendProgressAsync(response.SessionId, "Validating",
+                    tMsg, attemptsUsed, sqlQuery);
 
-                // Validate + (conditionally) execute
                 await using var dbContext = await _dbFactory.CreateDbContextAsync();
                 var connectionString = dbContext.Database.GetConnectionString();
                 var tablesSQL = new TablesSQL(null, dbContext);
 
                 finalQueryResult = await tablesSQL.ExecuteValidatedQuery(connectionString, sqlQuery);
 
-                if (finalQueryResult.Success ||
-                    (finalQueryResult.ValidationErrors == null || !finalQueryResult.ValidationErrors.Any()))
+                if (finalQueryResult.Success || (finalQueryResult.ValidationErrors == null || !finalQueryResult.ValidationErrors.Any()))
                 {
                     finalSqlQuery = sqlQuery;
-                    break; // Success!
+                    await SendProgressAsync(response.SessionId, "Success",
+                        $"Query executed successfully. Retrieved {finalQueryResult.ExecutionDetails?.RowCount ?? 0} row(s).",
+                        attemptsUsed, finalSqlQuery, null);
+                    break;
                 }
 
-                // Validation failed — prepare self-correction prompt using the rich error details
-                var errorSummary = string.Join(" | ", finalQueryResult.ValidationErrors!.Select(e =>
-                    $"{e.ErrorType}: {e.Message}" +
-                    (e.AvailableAlternatives?.Any() == true ? $" (Did you mean: {string.Join(", ", e.AvailableAlternatives)})" : "")));
+                // Self-correction path
+                var errorSummary = string.Join(" | ", finalQueryResult.ValidationErrors!.Select(e => $"{e.ErrorType}: {e.Message}"));
+                await SendProgressAsync(response.SessionId, "SelfCorrecting",
+                    $"Validation failed. Self-correcting...", attemptsUsed, null, errorSummary);
 
-                currentPrompt = $"The SQL query from your previous attempt failed validation with these errors: {errorSummary}. " +
-                                "Using the provided database schema and relationships, please generate a corrected SQL query. " +
-                                "Remember the rules: output ONLY the corrected SQL inside a ```sql block. No explanations.";
-
-                _logger.LogWarning("Attempt {Attempt} validation failed for session {SessionId}. Errors: {Errors}",
-                    attemptsUsed, response.SessionId, errorSummary);
+                currentPrompt = $"The previous SQL had these validation errors: {errorSummary}. Please provide a corrected SQL query. Output ONLY the SQL in a ```sql block.";
             }
 
-            // After all attempts
-            response.AttemptsUsed = attemptsUsed; // Add this property to TablesResponse if not present (or remove if model doesn't have it yet)
+            // Final response building (same as before, plus AttemptsUsed)
+            response.AttemptsUsed = attemptsUsed;
             response.GeneratedSql = finalSqlQuery;
             response.IsSuccess = finalQueryResult?.Success ?? false;
             response.ValidationErrors = finalQueryResult?.ValidationErrors;
             response.ExecutionDetails = finalQueryResult?.ExecutionDetails;
 
-            if (!string.IsNullOrWhiteSpace(finalSqlQuery) && (finalQueryResult?.Success == true))
+            if (!string.IsNullOrWhiteSpace(finalSqlQuery) && finalQueryResult?.Success == true)
             {
                 response.Data = finalQueryResult.Data;
                 response.Content = FormatTablesResponse(finalAiResponse, finalQueryResult);
+                if (attemptsUsed > 1) response.Content += $"\n\n🔄 Self-corrected after {attemptsUsed} attempts.";
 
-                if (attemptsUsed > 1)
-                {
-                    response.Content += $"\n\n🔄 Self-corrected after {attemptsUsed} attempts.";
-                }
-
-                _logger.LogInformation("Tables succeeded after {Attempts} attempt(s). Session: {SessionId}", attemptsUsed, response.SessionId);
                 return ApiResponse<List<Dictionary<string, object>>>.SuccessResponse(response.Data);
             }
-            else
-            {
-                // Failed after retries
-                response.Content = FormatTablesResponse(finalAiResponse, finalQueryResult ??
-                    AiQueryResponse<List<Dictionary<string, object>>>.ValidationErrorResponse(new List<AiQueryValidationError>()));
 
-                if (attemptsUsed >= MaxAttempts)
-                {
-                    response.Content += $"\n\n⚠️ Failed to produce a valid query after {MaxAttempts} attempts.";
-                }
-
-                _logger.LogWarning("Tables failed to generate valid SQL after {Attempts} attempts. Session: {SessionId}", attemptsUsed, response.SessionId);
-
-                return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse(
-                    $"Tables was unable to generate a valid SQL query after {attemptsUsed} attempt(s).",
-                    statusCode: 400);
-            }
+            return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse(
+                $"Tables was unable to generate a valid SQL query after {attemptsUsed} attempt(s).",
+                statusCode: 400);
         }
         catch (Exception ex)
         {
+            await SendProgressAsync(response.SessionId, "Failed", $"Error: {ex.Message}");
             _logger.LogError(ex, "Error processing Tables AI request");
             response.IsSuccess = false;
             response.Content = $"I encountered an error: {ex.Message}";
-            return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse(
-                "An error occurred while processing your request.",
-                statusCode: 500);
+            return ApiResponse<List<Dictionary<string, object>>>.ErrorResponse("An error occurred.", statusCode: 500);
         }
     }
 
@@ -219,6 +237,7 @@ public class TablesAPI
             }
             else
             {
+                _logger.LogInformation("Chat session found: {SessionId}", sessionId);
                 // Update model if changed
                 chat.Model = modelName;
             }
@@ -319,6 +338,39 @@ public class TablesAPI
         return cleaned;
     }
 
+    private async Task SendProgressAsync(
+    string sessionId,
+    string status,
+    string message,
+    int attempt = 1,
+    string? generatedSql = null,
+    string? errorSummary = null)
+    {
+        if (string.IsNullOrWhiteSpace(sessionId)) return;
+
+        var update = new TablesProgressUpdate(
+            SessionId: sessionId,
+            Status: status,
+            Message: message,
+            CurrentAttempt: attempt,
+            MaxAttempts: 3,
+            GeneratedSql: generatedSql,
+            ErrorSummary: errorSummary
+        );
+
+        try
+        {
+            await _hubContext.Clients.Group(sessionId)
+                .SendAsync("TablesProgressUpdate", update);
+
+            _logger.LogDebug("Tables progress → {Status} (Session: {SessionId}, Attempt: {Attempt})",
+                status, sessionId, attempt);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to send Tables SignalR progress for session {SessionId}", sessionId);
+        }
+    }
     /// <summary>
     /// Formats the final response with AI commentary and query results.
     /// </summary>

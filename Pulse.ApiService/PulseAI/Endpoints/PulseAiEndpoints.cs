@@ -13,45 +13,45 @@ public static class PulseAiEndpoints
     {
         var group = routes.MapGroup("/PulseAI").WithTags("PulseAIEndpoints");
 
-        group.MapPost("/Tables/SendRequest", HandleUserRequestAsync)
-            .WithName("SendTablesARequest")
-            .WithDescription("Sends Tables a request and returns the response.")
-            .Accepts<PulseAiRequest>("application/json")
-            .Produces<ApiResponse<List<Dictionary<string, object>>>>(StatusCodes.Status200OK)
-            .ProducesProblem(400);
+        //group.MapPost("/Tables/SendRequest", HandleUserRequestAsync)
+        //    .WithName("SendTablesARequest")
+        //    .WithDescription("Sends Tables a request and returns the response.")
+        //    .Accepts<PulseAiRequest>("application/json")
+        //    .Produces<ApiResponse<List<Dictionary<string, object>>>>(StatusCodes.Status200OK)
+        //    .ProducesProblem(400);
 
-        group.MapPost("/Flapper/SendRequest", HandleUserRequestAsync)
-            .WithName("SendFlapperARequest")
-            .WithDescription("Sends Flapper a request and returns the response.")
-            .Accepts<PulseAiRequest>("application/json")
-            .Produces<ApiResponse<TablesResponse>>(StatusCodes.Status200OK)
-            .ProducesProblem(400);
+        //group.MapPost("/Flapper/SendRequest", HandleUserRequestAsync)
+        //    .WithName("SendFlapperARequest")
+        //    .WithDescription("Sends Flapper a request and returns the response.")
+        //    .Accepts<PulseAiRequest>("application/json")
+        //    .Produces<ApiResponse<TablesResponse>>(StatusCodes.Status200OK)
+        //    .ProducesProblem(400);
     }
 
-    private static async Task<IResult> HandleUserRequestAsync(
-        PulseAiRequest request,
-        TablesAPI tablesAPI,
-        ILoggerFactory loggerFactory)
-    {
-        var logger = loggerFactory.CreateLogger("PulseAI");
+    //private static async Task<IResult> HandleUserRequestAsync(
+    //    PulseAiRequest request,
+    //    TablesAPI tablesAPI,
+    //    ILoggerFactory loggerFactory)
+    //{
+    //    var logger = loggerFactory.CreateLogger("PulseAI");
 
-        try
-        {
-            if (request.AiName == AiName.Tables)
-            {
-                request.ModelName = "gpt-oss:latest";
-                var response = await tablesAPI.AskTablesAsync(request);
-                return response.Success ? Results.Ok(response) : Results.BadRequest(response);
-            }
+    //    try
+    //    {
+    //        if (request.AiName == AiName.Tables)
+    //        {
+    //            request.ModelName = "gpt-oss:latest";
+    //            var response = await tablesAPI.AskTablesAsync(request);
+    //            return response.Success ? Results.Ok(response) : Results.BadRequest(response);
+    //        }
 
-            // Handle other AI types here in the future
-            return Results.BadRequest(ApiResponse<PulseAiResponse>.ErrorResponse(
-                $"AI type '{request.AiName}' is not yet implemented."));
-        }
-        catch (Exception ex)
-        {
-            logger.LogError(ex, "Error processing AI request");
-            return Results.Problem("Error processing AI request");
-        }
-    }
+    //        // Handle other AI types here in the future
+    //        return Results.BadRequest(ApiResponse<PulseAiResponse>.ErrorResponse(
+    //            $"AI type '{request.AiName}' is not yet implemented."));
+    //    }
+    //    catch (Exception ex)
+    //    {
+    //        logger.LogError(ex, "Error processing AI request");
+    //        return Results.Problem("Error processing AI request");
+    //    }
+    //}
 }

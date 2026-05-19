@@ -130,7 +130,7 @@ namespace Pulse.Models.PulseContext.Maps
 
             builder.Property(rs => rs.RadialOffset)
                 .HasColumnType("decimal(8, 2)")
-                .HasDefaultValue(0)
+                .HasDefaultValue(0.0d)
                 .HasComment("Offset from the roller centerline where positive = outward radially (mm)");
 
             #endregion

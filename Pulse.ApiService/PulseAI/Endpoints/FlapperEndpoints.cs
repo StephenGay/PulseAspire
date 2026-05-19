@@ -18,6 +18,7 @@ using System.Text.Json;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static OllamaSharp.Models.Chat.Message;
 using Pulse.Models.Api;
+using static Pulse.Models.AI.Tables.TablesChatStructures;
 
 namespace Pulse.ApiService.PulseAI.Endpoints;
 
@@ -140,9 +141,9 @@ public static class FlapperEndpoints
 
 						string toolResult = toolCall.ToolName switch
 						{
-							"AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
-							"WebSearch" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
-							"WebFetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
+							"ask_tables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message, conversation.Id.ToString()),
+							"web_search" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
+							"web_fetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
 							_ => $"Unknown tool: {toolCall.ToolName}"
 						};
 
@@ -636,7 +637,7 @@ public static class FlapperEndpoints
 				{
 					string toolResult = toolCall.ToolName switch
 					{
-						"ask_tables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message),
+						"ask_tables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message, conversation.Id.ToString()),
 						"web_search" => await ExecuteWebSearchAsync(toolCall.Parameters, flapperOllamaApi),
 						"web_fetch" => await ExecuteWebFetchAsync(toolCall.Parameters, flapperOllamaApi),
 						_ => $"Unknown tool: {toolCall.ToolName}"
@@ -711,25 +712,26 @@ public static class FlapperEndpoints
 		}
 	}
 
-	private static async Task<string> ExecuteAskTablesAsync(TablesAPI tablesApi, Dictionary<string, object> parameters, string originalQuery)
+	private static async Task<string> ExecuteAskTablesAsync(TablesAPI tablesApi, Dictionary<string, object> parameters, string originalQuery, string conversationId)
 	{
 		if (!parameters.TryGetValue("query", out var queryObj))
 			return "Error: Missing query parameter";
 
 		var query = queryObj.ToString();
 		//Call your existing TablesAPI
-		PulseAiRequest tablesRequest = new PulseAiRequest
+		TablesRequest tablesRequest = new TablesRequest
 		{
 			UserId = "Flapper", // You can pass actual user ID if needed for logging
-			AiName = AiName.Tables,
-			UserRequest = new OllamaChatMessage { Content = query },
+			UserRequest = query ,
 			UserEmail = "flapper@example.com",
-			ModelName = "gpt-oss:latest"
+			ModelName = "Default",
+			SessionId = conversationId
 		};
 		var result = await tablesApi.AskTablesAsync(tablesRequest);
 		if (result.Success)
 		{
-			var tblResponse = $"**User asked**: {originalQuery}\n**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
+            originalQuery = originalQuery.Replace("[REPORT]", "").Replace("[SPEECH]", "").Trim();
+            var tblResponse = $"**User asked**: {originalQuery}\n**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
 			return tblResponse;
 		}
 		else

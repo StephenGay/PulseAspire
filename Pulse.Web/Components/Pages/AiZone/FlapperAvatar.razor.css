@@ -1,0 +1,141 @@
+﻿.flapper-wrapper {
+    position: relative;
+    display: inline-block;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+.flapper-svg {
+    transition: transform 0.2s ease;
+    will-change: transform;
+}
+
+/* Idle breathing */
+.flapper-wrapper.idle .flapper-svg {
+    animation: flapper-breath 4s ease-in-out infinite;
+}
+
+/* Speaking: gentle head bob + emphasis */
+.flapper-wrapper.speaking .flapper-svg {
+    animation: flapper-speak-bob 650ms ease-in-out infinite;
+}
+
+/* Mouth animation - target the mouth paths/groups */
+.flapper-svg.talking #path14, /* gown area as base */
+.flapper-svg.talking path[fill="#88014E"] { /* lip/mouth path from your SVG */
+    animation: mouth-talk 280ms infinite ease-in-out;
+}
+
+@keyframes flapper-breath {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.012);
+    }
+}
+
+@keyframes flapper-speak-bob {
+    0%, 100% {
+        transform: translateY(0) rotate(-0.8deg);
+    }
+
+    50% {
+        transform: translateY(-4px) rotate(0.8deg);
+    }
+}
+
+@keyframes mouth-talk {
+    0%, 100% {
+        transform: scaleY(0.7);
+    }
+
+    50% {
+        transform: scaleY(1.35);
+    }
+}
+
+/* Optional: eye blink enhancement */
+.flapper-svg.talking ellipse,
+.flapper-svg.talking circle[id*="eye"] {
+    animation: blink-soft 2.8s infinite;
+}
+
+@keyframes blink-soft {
+    0%, 92%, 100% {
+        transform: scaleY(1);
+    }
+
+    94%, 96% {
+        transform: scaleY(0.1);
+    }
+}
+
+.flapper-status {
+    position: absolute;
+    bottom: -28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--rz-primary, #512bd4);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+.flapper-container {
+    position: relative;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.flapper-base {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.mouth-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+}
+
+.flapper-container.idle .flapper-base {
+    animation: breath 4s ease-in-out infinite;
+}
+
+.flapper-container.speaking .flapper-base {
+    animation: speak-bob 650ms ease-in-out infinite;
+}
+
+.flapper-container.happy .mouth-overlay {
+    filter: saturate(1.2);
+}
+
+.flapper-container.thinking .mouth-overlay {
+    filter: brightness(0.95);
+}
+
+@keyframes breath {
+    0%,100% {
+        transform: scale(1)
+    }
+
+    50% {
+        transform: scale(1.012)
+    }
+}
+
+@keyframes speak-bob {
+    0%,100% {
+        transform: translateY(0) rotate(-0.7deg)
+    }
+
+    50% {
+        transform: translateY(-3.5px) rotate(0.7deg)
+    }
+}

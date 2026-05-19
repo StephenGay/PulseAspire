@@ -360,7 +360,7 @@
 
             Flapper flapper = new Flapper();
             flapper._Voice = Voices.FirstOrDefault(v => v.VoiceIdentity.ToString() == flapper._VoiceId);
-            flapper.Options.PreferredName = userSettings.PreferredUserName ?? "User";
+            // flapper.Options.PreferredName = userSettings.PreferredUserName ?? "User";
             await DataTransfer.SetgvFlapper(flapper);
 
             var showAiIcon = new ShowAiIcon();

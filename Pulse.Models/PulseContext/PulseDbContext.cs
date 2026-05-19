@@ -24,6 +24,7 @@ using Pulse.Models.Production.Layout;
 using Pulse.Models.Production.WorkTypes;
 using Pulse.Models.AI.Ali;
 using Pulse.Models.AI.Flapper;
+using Pulse.Models.Inventory;
 
 namespace Pulse.Models.PulseContext
 {
@@ -86,6 +87,11 @@ namespace Pulse.Models.PulseContext
         public DbSet<FlapperMessage> FlapperMessages { get; set; }  
         public DbSet<RollerShaft> RollerShaftMaster { get; set; }
         public DbSet<ApplicationUserSpeedDial> AspNetUserSpeedDials { get; set; }
+        public DbSet<InventoryType> InventoryTypes { get; set; }
+        public DbSet<InventoryGroup> InventoryGroups { get; set; }
+        public DbSet<InventoryItem> InventoryItems { get; set; }
+        public DbSet<InventoryTypeDivisionSetting> InventoryTypeDivisionSettings { get; set; }
+        public DbSet<InventoryGroupDivisionSetting> InventoryGroupDivisionSettings { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -145,6 +151,13 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new FlapperConversationMap());
             modelBuilder.ApplyConfiguration(new FlapperMessageMap());
             modelBuilder.ApplyConfiguration(new ApplicationUserSpeedDialMap());
+            modelBuilder.ApplyConfiguration(new RollerShaftMasterMap());
+            modelBuilder.ApplyConfiguration(new InventoryTypeMap());
+            modelBuilder.ApplyConfiguration(new InventoryGroupMap());
+            modelBuilder.ApplyConfiguration(new InventoryItemMap());
+            modelBuilder.ApplyConfiguration(new InventoryTypeDivisionSettingMap());
+            modelBuilder.ApplyConfiguration(new InventoryGroupDivisionSettingMap());
+
 
             base.OnModelCreating(modelBuilder);
         }

@@ -16,6 +16,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
+@using static Pulse.Models.AI.Tables.TablesChatStructures
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 @using Pulse.Models.AI
@@ -147,7 +148,8 @@
                                   IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
                                   Style="height:50px;width:50px"
                                   Title="Use IChat Client"
-                                  OnClick="() => useIChat = !useIChat"></FluentButton>
+                                  OnClick="FlapChat"></FluentButton>
+                                  @* OnClick="() => useIChat = !useIChat"></FluentButton> *@
                     </Authorized>
                 </AuthorizeView>
                 <FluentSpacer />
@@ -240,6 +242,21 @@
                                 <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Flapper</FluentLabel>
                             </FluentStack>
                         </FluentStack>
+                        @if (showTables)
+                        {
+                            <Animation Effect="@Effect.FadeInDown" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
+                                 <div class="aiBox">
+                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour); border-bottom: 1px solid white; padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
+                                        <img src="Images/AI/Tables.png" style="width:96px;height:96px" />
+                                         <FluentSpacer />
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
+                                            <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">@(!ViewSettings ? "CONVERSATIONS" : "SETTINGS")</FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Flapper</FluentLabel>
+                                        </FluentStack>
+                                    </FluentStack>
+                                </div> 
+                            </Animation>
+                        }
                             @if (!ViewSettings)
                             {
                                 <StackItem >
@@ -325,6 +342,7 @@
                             }
                     </div>
                 </Animation>
+                
             </div>
         }
 
@@ -372,7 +390,12 @@
                         @if (stream && !string.IsNullOrEmpty(flapperThinking))
                         {
                             <br />
-                                <FluentLabel Typo="Typography.Body" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@flapperThinking</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@flapperThinking</FluentLabel>
+                            if (!string.IsNullOrEmpty(tablesResponse))
+                            {
+                                <br />
+                                <FluentLabel Typo="Typography.Body" style="background-color:var(--pulse-light-colour);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:var(--pulse-dark-colour); white-space:pre-line">@((MarkupString)FlapperAddMUcss(FlapperParseToHtml(tablesResponse)))</FluentLabel>
+                            }
                         }
                     }
                     else
@@ -425,6 +448,7 @@
     private string? CurrentClarificationQuestion { get; set; }
     private string CurrentFlapperResponse { get; set; } = string.Empty;
     private Guid CurrentConversationId { get; set; } = Guid.NewGuid();
+    private string? groupId;
     private bool viewHistory = false;
     private List<FlapperConversation> ConversationHistory = [];
     private bool SpokenResponse = false;
@@ -477,10 +501,41 @@
     // Saved Queries state
     private bool isLoadingSaved = false;
     private string? uName;
+    private bool showTables = false;
+    private string tablesResponse = string.Empty;
     // private HttpClient? ollamaClient;
     // FluentTextArea? txtQ;
+    private FlapperAvatar? flapperAvatar;
 
+    private async Task FlapChat()
+    {
+        await HandleFlapperReply(CurrentUserMessage);
+    }
+    private async Task HandleFlapperReply(string replyText)
+    {
+        var emotion = DetectSimpleEmotion(replyText);   // see helper below
 
+        if (flapperAvatar != null)
+        {
+            await flapperAvatar.SetEmotionAsync(emotion);
+            await flapperAvatar.SpeakAsync(replyText, emotion);
+        }
+    }
+
+    private FlapperAvatar.FlapperEmotion DetectSimpleEmotion(string text)
+    {
+        text = text.ToLower();
+        if (text.Contains("great") || text.Contains("happy") || text.Contains("love") || text.Contains("excellent"))
+            return FlapperAvatar.FlapperEmotion.Happy;
+
+        if (text.Contains("hmm") || text.Contains("thinking") || text.Contains("let me") || text.Contains("checking"))
+            return FlapperAvatar.FlapperEmotion.Thinking;
+
+        if (text.Contains("wow") || text.Contains("really") || text.Contains("?"))
+            return FlapperAvatar.FlapperEmotion.Surprised;
+
+        return FlapperAvatar.FlapperEmotion.Neutral;
+    }
     #region Page Lifecycle and Initialization
 
     protected override async Task OnInitializedAsync()
@@ -491,7 +546,11 @@
                 OnFlapperMessageReceived;
         MsgHubService.OnReceiveFlapperChunk +=
                 OnFlapperMessageChunkReceived;
+        MsgHubService.OnTablesProgressUpdate +=
+                OnTablesProgressUpdate;
         uName = await dtrf.GetgvUserFirstName();
+        groupId = CurrentConversationId.ToString();
+        await MsgHubService.JoinGroup(groupId);
     }
 
     #endregion
@@ -499,9 +558,9 @@
     private async Task ToggleSpeechOutput()
     {
         SpokenResponse = !SpokenResponse;
-        flapper = await dtrf.GetgvFlapper();
-        flapper.Options.ResponseFormat = SpokenResponse ? "Speech" : "Report";
-        await dtrf.SetgvFlapper(flapper);
+        // flapper = await dtrf.GetgvFlapper();
+        // flapper.Options.ResponseFormat = SpokenResponse ? "Speech" : "Report";
+        // await dtrf.SetgvFlapper(flapper);
     }
 
     #region Message Handling
@@ -510,18 +569,44 @@
 
     private async Task LoadHistoryConversation(Guid conversationId)
     {
-        CurrentConversationId = conversationId;
         var response = await pulseApiClient.GetAsync<ApiResponse<List<FlapperMessageDto>>>(ApiEndpoints.PulseAi.EndpointsFlapper.GetConversationMessages(conversationId));
         if (response.Success)
         {
             Messages = response.Data ?? new List<FlapperMessageDto>();
             viewHistory = false;
+            CurrentConversationId = conversationId;
         }
         else
         {
-            PulseToastService.ShowToast("Error","Failed to load conversation history.",true,true,"Flapper");
+            var errMsg = "There was a problem loading this conversation.<br />Please try again or start a new one.";
+            PulseToastService.ShowToast("Warning",errMsg,true,true,"Flapper");
+            await GlobalAI.AISpeak(errMsg, "Flapper");
+            await ClearChatHistory();
         }
         await InvokeAsync(StateHasChanged);
+    }
+    private async Task<bool> CheckAiSession()
+    {
+        try
+        {
+            if(groupId != CurrentConversationId.ToString())
+            {
+                if(!string.IsNullOrEmpty(groupId)) await MsgHubService.LeaveGroup(groupId);
+                await MsgHubService.JoinGroup(CurrentConversationId.ToString());
+                groupId = CurrentConversationId.ToString();
+            }
+            return true;
+        }
+        catch(Exception ex)
+        {
+            if (stream)
+            {
+                var errMsg = "There was a problem connecting to the AI thinking process.<br />You will not receive full thinking text.";
+                PulseToastService.ShowToast("Warning", errMsg, true, true, "Flapper");
+                await GlobalAI.AISpeak(errMsg, "Flapper");
+            }
+            return false;
+        }
     }
 
     private async Task SendMessageAsync()
@@ -532,7 +617,7 @@
         _answerBuilder.Clear();
         _lastSpokenCharIndex = 0;
         _isSpeaking = false;
-
+        tablesResponse = string.Empty;
         isLoading = true;
         cts = new CancellationTokenSource();
         flapper = await dtrf.GetgvFlapper();
@@ -553,11 +638,11 @@
         respF += CurrentUserMessage;
         Messages.Add(new FlapperMessageDto { Sender = "You", Content = CurrentUserMessage });
         CurrentUserMessage = string.Empty;
-
+        await CheckAiSession();
         // Add placeholder for Flapper
         // Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = "..." });
         CurrentFlapperResponse = "";
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
 
         try
         {
@@ -668,6 +753,42 @@
         IsAwaitingClarification = false;
         StateHasChanged();
     }
+    private async void OnTablesProgressUpdate(TablesProgressUpdate update)
+    {
+        switch (update.Status)
+        {
+            case "FlapperStart":
+                tablesResponse = string.Empty;
+                flapperThinking = update.Message;
+                showTables = true;
+                break;
+            case "Received":
+            case "Generating":
+                tablesResponse = update.Message;
+                break;
+            case "Validating":
+                tablesResponse += update.Message;
+                break;
+            case "Success":
+                tablesResponse = string.Empty;
+                flapperThinking = $"{update.Message}\n\n<strong>FINAL SQL STATEMENT</strong>\n{update.GeneratedSql}";
+                showTables = false;
+                break;
+            default:
+                tablesResponse = string.Empty;
+                flapperThinking = "Error";
+                showTables = false;
+                break;
+        }
+
+
+        // This method can be used to update the UI with progress information about table loading or processing
+        // For example, you could set a property like "CurrentTableProgress" and call StateHasChanged() to update a progress bar in the UI
+        // CurrentTableProgress = update.ProgressPercentage;
+        await InvokeAsync(StateHasChanged);
+        await Task.Delay(2000);
+    }
+
     private async void OnFlapperMessageChunkReceived(PulseMessage msg)
     {
         if (msg.Role != "Flapper")
@@ -708,7 +829,7 @@
         var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
         if (lastMsg == null)
             // lastMsg.Content = CurrentFlapperResponse;
-        // else
+            // else
             Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
         // isLoading = false;
         await InvokeAsync(StateHasChanged);
@@ -766,82 +887,17 @@
     }
 
     #endregion
-    // private async Task SpeakIncremental(string newDelta)
-    // {
-    //     if (string.IsNullOrWhiteSpace(newDelta)) return;
-
-    //     newDelta = newDelta.Replace(" U.S.", " United States");
-    //     _answerBuilder.Append(newDelta);
-
-    //     string fullText = _answerBuilder.ToString();
-
-    //     // Find real sentence endings: . ! ? followed by space or end of text
-    //     var matches = System.Text.RegularExpressions.Regex.Matches(
-    //         fullText.Substring(_lastSpokenCharIndex),
-    //         @"[^.!?]+[.!?]+(?:\s+|$)",
-    //         System.Text.RegularExpressions.RegexOptions.Compiled);
-
-    //     foreach (System.Text.RegularExpressions.Match match in matches)
-    //     {
-    //         string sentence = match.Value.Trim();
-
-    //         if (string.IsNullOrWhiteSpace(sentence)) continue;
-
-    //         // Skip common false positives (version numbers, abbreviations, etc.)
-    //         if (IsLikelyNotSentenceEnd(sentence))
-    //             continue;
-
-    //         string cleanSentence = PrepareForSpeech(sentence);
-
-    //         if (!string.IsNullOrWhiteSpace(cleanSentence))
-    //         {
-    //             _isSpeaking = true;
-    //             await InvokeAsync(StateHasChanged);
-
-    //             await GlobalAI.AISpeak(cleanSentence, "Flapper");
-
-    //             // Move the index forward
-    //             _lastSpokenCharIndex += match.Index + match.Length;
-    //         }
-    //     }
-
-    //     // Fallback: Speak in chunks if no sentence break for a long time
-    //     if (fullText.Length - _lastSpokenCharIndex > 280)
-    //     {
-    //         string chunk = fullText.Substring(_lastSpokenCharIndex, 280);
-    //         string cleanChunk = PrepareForSpeech(chunk);
-    //         await GlobalAI.AISpeak(cleanChunk, "Flapper");
-    //         _lastSpokenCharIndex += 280;
-    //     }
-
-    //     _isSpeaking = false;
-    //     await InvokeAsync(StateHasChanged);
-    // }
-    // private bool IsLikelyNotSentenceEnd(string text)
-    // {
-    //     if (string.IsNullOrWhiteSpace(text)) return true;
-
-    //     // Skip decimals (2.5), versions (v1.2.3), etc.
-    //     if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\d+\.\d"))
-    //         return true;
-
-    //     // Common abbreviations
-    //     if (System.Text.RegularExpressions.Regex.IsMatch(text, @"\b(U\.S\.|Dr\.|Mr\.|Mrs\.|Ms\.|Prof\.|Rev\.|etc\.)\b",
-    //             System.Text.RegularExpressions.RegexOptions.IgnoreCase))
-    //         return true;
-
-    //     return false;
-    // }
+    
     private async Task SpeakIncremental(string newDelta)
     {
-        
+
         _answerBuilder.Append(newDelta);
 
         string full = _answerBuilder.ToString();
 
         // Find last complete sentence end
         int boundary = full.LastIndexOfAny(new[] { '!', '?', '\n' });
-        
+
         if (boundary < _lastSpokenCharIndex) return; // nothing new to speak
 
         string toSpeak = full.Substring(_lastSpokenCharIndex, boundary - _lastSpokenCharIndex + 1).Trim();
@@ -1018,7 +1074,7 @@
             pdfLoading = false;
         }
 
-        
+
     }
 
     private string FlapperAddMUcss(string html)
@@ -1150,7 +1206,7 @@
         html = System.Text.RegularExpressions.Regex.Replace(
             html,
             @"<img\s+src=""([^""]*)""\s+alt=""([^""]*)""",
-            @"<img src=""$1"" alt=""$2"" class=""flapper-response-image"" style=""max-width: 25%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"""
+            @"<img src=""$1"" alt=""$2"" class=""flapper-response-image"" style=""max-width: 25%; height: auto; border-radius: 8px; margin: 10px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.5);"""
         );
         return html;
     }
@@ -1164,12 +1220,14 @@
         CurrentClarificationQuestion = string.Empty;
         CurrentFlapperResponse = string.Empty;
         CurrentConversationId = Guid.NewGuid();
+        tablesResponse = string.Empty;
+        viewHistory = false;
         flapperAnswer = string.Empty;
         flapperThinking = string.Empty;
         aiSQL = string.Empty;
         userQry = string.Empty;
         retryBtn = false;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
     }
 
     private async Task RetryBtn()

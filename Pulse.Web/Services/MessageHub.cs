@@ -11,6 +11,7 @@ using Pulse.Web.Services;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using static Pulse.Models.AI.Tables.TablesChatStructures;
 
 public class MessageHubService : IAsyncDisposable
 {
@@ -26,6 +27,7 @@ public class MessageHubService : IAsyncDisposable
     public event Action<PulseMessage>? OnReceiveFlapperChunk;
     public event Action<List<PulseMessage>>? OnLoadHistory;
     public event Action<List<UserPresenceDto>>? OnPresenceListUpdated;
+    public event Action<TablesProgressUpdate>? OnTablesProgressUpdate;
 
     public MessageHubService(
         IConfiguration configuration,
@@ -114,6 +116,20 @@ public class MessageHubService : IAsyncDisposable
                         _logger?.LogError(ex, "Error handling ReceiveFlapperChunk");
                     }
                 });
+
+                _hubConnection.On<TablesProgressUpdate>("TablesProgressUpdate", update =>
+                {
+                    try
+                    {
+                        OnTablesProgressUpdate?.Invoke(update);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Error handling TablesProgressUpdate");
+                    }
+                });
+
+
 
                 _hubConnection.On<List<PulseMessage>>("LoadHistory", history =>
                 {
@@ -313,6 +329,49 @@ public class MessageHubService : IAsyncDisposable
         }
     }
 
+    public async Task JoinGroup(string groupName)
+    {
+        if (_hubConnection?.State != HubConnectionState.Connected)
+        {
+            _logger?.LogWarning("Cannot join group: Hub not connected.");
+            await EnsureConnectedAsync();
+        }
+
+        if (_hubConnection != null)
+        {
+            try
+            {
+                await _hubConnection.InvokeAsync("JoinGroup", groupName, _authService.aspireFullName);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error joining group via SignalR");
+                throw;
+            }
+        }
+    }
+
+    public async Task LeaveGroup(string groupName)
+    {
+        if (_hubConnection?.State != HubConnectionState.Connected)
+        {
+            _logger?.LogWarning("Cannot leave group: Hub not connected.");
+            await EnsureConnectedAsync();
+        }
+
+        if (_hubConnection != null)
+        {
+            try
+            {
+                await _hubConnection.InvokeAsync("LeaveGroup", groupName, _authService.aspireFullName);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error leaving group via SignalR");
+                throw;
+            }
+        }
+    }
     public async ValueTask DisposeAsync()
     {
         if (_disposed)

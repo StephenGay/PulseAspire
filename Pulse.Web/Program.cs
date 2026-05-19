@@ -137,7 +137,7 @@ builder.Services.AddSingleton<HubConnection>(sp =>
 });
 
 #region UI Frameworks & Tools
-builder.Services.AddSingleton<IPulseToastService, PulseToastService>();
+builder.Services.AddScoped<IPulseToastService, PulseToastService>();
 
 builder.Services.AddBootstrapBlazor(options =>
 {

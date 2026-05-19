@@ -11,6 +11,7 @@ using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Security.Claims;
+using static Pulse.Models.AI.Tables.TablesChatStructures;
 using static Pulse.Models.Api.ApiEndpoints;
 
 namespace Pulse.ApiService.Hubs;
@@ -77,15 +78,28 @@ public class MessageHub : Hub
     }
 
     // Optional: Send to a specific group
-    public async Task JoinGroup(string groupName)
+    public async Task JoinGroup(string groupName, string uFullName)
     {
         await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
-        await Clients.Group(groupName).SendAsync("ReceiveMessage", "System", $"{Context.ConnectionId} joined {groupName}");
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", "System", $"{uFullName} has joined the group : {groupName}");
+    }
+
+    public async Task LeaveGroup(string groupName, string uFullName)
+    {
+        await Groups.RemoveFromGroupAsync(Context.ConnectionId, groupName);
+        await Clients.Group(groupName).SendAsync("ReceiveMessage", "System", $"{uFullName} has left the group : {groupName}");
     }
 
     public async Task SendToGroup(string groupName, string user, string message)
     {
         await Clients.Group(groupName).SendAsync("ReceiveMessage", user, message);
+    }
+
+    public async Task TablesProgressUpdate(TablesProgressUpdate update)
+    {
+        // Broadcast progress update to all clients (or you could target specific users/groups)
+        await Clients.Group(update.SessionId.ToString()).SendAsync("TablesProgressUpdate", update);
+        _logger.LogDebug("Broadcasting Tables progress update: {SessionId} - {Status}", update.SessionId, update.Status);
     }
 
     public async Task SetPresence(int code)
