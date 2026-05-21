@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Pulse.Models.AI.Flapper;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Web.Services;
@@ -25,6 +26,8 @@ public class MessageHubService : IAsyncDisposable
     // Events for components to subscribe
     public event Action<PulseMessage>? OnReceiveMessage;
     public event Action<PulseMessage>? OnReceiveFlapperChunk;
+    public event Action<FlapperResponse>? OnReceiveFlapperResponseChunk;
+    public event Action<FlapperResponse>? OnFlapperChatResponse;
     public event Action<List<PulseMessage>>? OnLoadHistory;
     public event Action<List<UserPresenceDto>>? OnPresenceListUpdated;
     public event Action<TablesProgressUpdate>? OnTablesProgressUpdate;
@@ -102,6 +105,30 @@ public class MessageHubService : IAsyncDisposable
                     catch (Exception ex)
                     {
                         _logger?.LogError(ex, "Error handling ReceiveMessage");
+                    }
+                });
+
+                _hubConnection.On<FlapperResponse>("FlapperChatResponse", response =>
+                {
+                    try
+                    {
+                        OnFlapperChatResponse?.Invoke(response);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Error handling FlapperChatResponse");
+                    }
+                });
+
+                _hubConnection.On<FlapperResponse>("ReceiveFlapperResponseChunk", responseChunk =>
+                {
+                    try
+                    {
+                        OnReceiveFlapperResponseChunk?.Invoke(responseChunk);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Error handling ReceiveFlapperResponseChunk");
                     }
                 });
 

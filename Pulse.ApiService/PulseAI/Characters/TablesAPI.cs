@@ -100,26 +100,26 @@ public class TablesAPI
                 var tMsg = string.Empty;
                 if(attemptsUsed == 1)
                 {
-                    errMsg = "<strong>Generating SQL Statement:</strong>\n";
+                    tMsg = "<strong>Generating SQL Statement:</strong>\n";
                 }
                 else
                 {
-                    errMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>\n\n<strong>Generating SQL Statement:</strong>\n";
+                    tMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>\n\n<strong>Generating SQL Statement:</strong>\n";
                 }
 
                 switch (attemptsUsed)
                 {
                     case 1:
-                        tMsg = $"{errMsg}Ok, watch me work my magic and generate the perfect SQL Statement...";
+                        tMsg = tMsg + "Ok, watch me work my magic and generate the perfect SQL Statement...";
                         break;
                     case 2:
-                        tMsg = $"{errMsg}Ummm, well that didn't work...Let me check why and try again...";
+                        tMsg = tMsg + "Ummm, well that didn't work...Let me check why and try again...";
                         break;
                     case MaxAttempts:
-                        tMsg = $"{errMsg}This is the last time I am permitted to try, hold thumbs...";
+                        tMsg = tMsg + "This is the last time I am permitted to try, hold thumbs...";
                         break;
                     default:
-                        tMsg = $"{errMsg}Trying Again (Attempt {attemptsUsed}/{MaxAttempts})...";
+                        tMsg = tMsg + $"Trying Again (Attempt {attemptsUsed}/{MaxAttempts})...";
                         break;
                 }
 
@@ -179,6 +179,7 @@ public class TablesAPI
 
                 // Self-correction path
                 var errorSummary = string.Join(" | ", finalQueryResult.ValidationErrors!.Select(e => $"{e.ErrorType}: {e.Message}"));
+                errMsg = errorSummary;
                 await SendProgressAsync(response.SessionId, "SelfCorrecting",
                     $"Validation failed. Self-correcting...", attemptsUsed, null, errorSummary);
 

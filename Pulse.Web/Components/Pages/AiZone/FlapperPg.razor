@@ -245,7 +245,7 @@
                         </FluentStack>
                         @if (showTables)
                         {
-                            <Animation Effect="@Effect.FadeInDown" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
+                            <Animation Effect="@Effect.FadeIn" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
                                  <div class="aiAssistBox">
                                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour);padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;">
                                         <img src="Images/AI/Tables.png" style="width:96px;height:96px" />
@@ -267,8 +267,8 @@
                                             <p><strong>Flapper asks:</strong></p><p>@CurrentClarificationQuestion</p>
             
                                             <FluentStack Orientation="MsFluent.Orientation.Horizontal" >
-                                                <FluentButton Appearance="Appearance.Accent"@OnClick="() => SendQuickReplyAsync("Yes")">Yes</FluentButton>
-                                                <FluentButton Appearance="Appearance.Neutral" @OnClick="() => SendQuickReplyAsync("No")">No</FluentButton>
+                                                <FluentButton Appearance="Appearance.Accent" OnClick="@(() => SendQuickReplyAsync("Yes"))">Yes</FluentButton>
+                                                <FluentButton Appearance="Appearance.Neutral" OnClick="@(() => SendQuickReplyAsync("No"))">No</FluentButton>
                                                 <FluentButton Appearance="Appearance.Lightweight" OnClick="() => SendCustomReplyAsync()">Custom Reply</FluentButton>
                                             </FluentStack>
                                         </div>
@@ -286,8 +286,11 @@
                                     }
                                     else
                                     {
-
-                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
+                                    @if (!IsAwaitingClarification)
+                                    {
+                                        
+                                    
+                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
                                             <FluentSpacer />
                                         </FluentStack>
                                         <FluentTextArea rows="10" style="border: 1px solid var(--pulse-dark-colour); margin-top: 0px;margin-left: 10px;margin-right: 10px;margin-bottom:20px;width: calc(100% - 20px)" @bind-Value="CurrentUserMessage" PlaceHolder="What would you like to know?..." />
@@ -335,6 +338,7 @@
                                             }
                                         </div>
                                     }
+                                }
                                 </StackItem>
                             }
                             else
@@ -545,6 +549,11 @@
         // Setup SignalR connection
         MsgHubService.OnReceiveMessage +=
                 OnFlapperMessageReceived;
+
+        MsgHubService.OnFlapperChatResponse +=
+                OnFlapperChatResponse;
+        MsgHubService.OnReceiveFlapperResponseChunk +=
+                OnReceiveFlapperResponseChunk;
         MsgHubService.OnReceiveFlapperChunk +=
                 OnFlapperMessageChunkReceived;
         MsgHubService.OnTablesProgressUpdate +=
@@ -739,20 +748,19 @@
         IsAwaitingClarification = false;
         CurrentClarificationQuestion = null;
         isLoading = true;
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
 
         // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
-        await pulseApiClient.PostJsonAsync(ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession, request);
-        // await PulseApi.PostAsync<FlapperChatRequest, object>(ApiEndpoints.PulseAi.Flapper.Chat, request);
-
-
+        var chatType = !useIChat ? ApiEndpoints.PulseAi.EndpointsFlapper.OllamaChatSession : ApiEndpoints.PulseAi.EndpointsFlapper.ChatSession;
+        await pulseApiClient.PostJsonAsync(chatType, request);
     }
 
     private async Task SendCustomReplyAsync()
     {
         // Show input again for custom answer
         IsAwaitingClarification = false;
-        StateHasChanged();
+        CurrentClarificationQuestion = null;
+        await InvokeAsync(StateHasChanged);
     }
     private async void OnTablesProgressUpdate(TablesProgressUpdate update)
     {
@@ -890,6 +898,93 @@
         await InvokeAsync(StateHasChanged);
     }
 
+    private async void OnFlapperChatResponse(FlapperResponse response)
+    {
+
+        Messages.Add(new FlapperMessageDto
+        {
+            Sender = "Flapper",
+            Content = response.Content
+        });
+
+        // Check if this is a clarification question
+        if (response.RequiresClarification)
+        {
+            IsAwaitingClarification = true;
+            CurrentClarificationQuestion = response.ClarificationQuestion;
+        }
+        else
+        {
+            if(response.EndReason == "natural_stop")
+            {
+                CurrentFlapperResponse = response.Content;
+            }
+            else
+            {
+                var endReasonErr = "The response ended abnormally.";
+                switch (response.EndReason)
+                {
+                    case "context_window_exceeded":
+                        endReasonErr = "The context window limit has been reached";
+                        break;
+                    case "max_tokens_reached":
+                        endReasonErr = "The max token limit has been reached";
+                        break;
+                    default:
+                        endReasonErr = $"The response ended abnormally.<br />{response.EndReason}";
+                        break;
+                }
+                PulseToastService.ShowToast("Warning", endReasonErr, true, true, "Flapper");
+                await GlobalAI.AISpeak(endReasonErr, "Flapper");
+                _answerBuilder.Clear();
+            }
+
+        }
+        // ====================== FINAL FLUSH ======================
+        if (SpokenResponse && _answerBuilder.Length > _lastSpokenCharIndex)
+        {
+            string remainingText = _answerBuilder.ToString().Substring(_lastSpokenCharIndex).Trim();
+
+            if (!string.IsNullOrWhiteSpace(remainingText))
+            {
+                string cleanText = PrepareForSpeech(remainingText);
+                await GlobalAI.AISpeak(cleanText, "Flapper");
+            }
+        }
+
+        // Reset for next conversation turn
+        _answerBuilder.Clear();
+        _lastSpokenCharIndex = 0;
+
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async void OnReceiveFlapperResponseChunk(FlapperResponse res)
+    {
+
+
+
+        flapperThinking += res.Thinking;
+        
+            if (SpokenResponse)
+            {
+                // string cleanText = PrepareForSpeech(msgContent);
+                await SpeakIncremental(res.Content);
+            }
+                CurrentFlapperResponse += res.Content;
+
+       
+
+
+        var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+        if (lastMsg == null)
+            // lastMsg.Content = CurrentFlapperResponse;
+            // else
+            Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
+        // isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
     #endregion
     
     private async Task SpeakIncremental(string newDelta)
@@ -1222,6 +1317,7 @@
         Messages.Clear();
         chatHistory.Clear();
         CurrentClarificationQuestion = string.Empty;
+        IsAwaitingClarification = false;
         CurrentFlapperResponse = string.Empty;
         CurrentConversationId = Guid.NewGuid();
         tablesResponse = string.Empty;
@@ -1236,7 +1332,7 @@
 
     private async Task RetryBtn()
     {
-        txtQ = userQry;
+        CurrentUserMessage = txtQ = userQry;
         fromRetryBtn = true;
     }
 

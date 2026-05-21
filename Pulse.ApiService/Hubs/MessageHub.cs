@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Pulse.Models.AI.Flapper;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.PulseContext;
@@ -102,6 +103,19 @@ public class MessageHub : Hub
         _logger.LogDebug("Broadcasting Tables progress update: {SessionId} - {Status}", update.SessionId, update.Status);
     }
 
+    public async Task ReceiveFlapperResponseChunk(FlapperResponse response)
+    {
+        // Broadcast Flapper response to all clients in the conversation group
+        await Clients.User(response.UserId).SendAsync("FlapperResponseChunk", response);
+        _logger.LogDebug("Sending Flapper response chunk to User {UserId}", response.UserId);
+    }
+
+    public async Task FlapperChatResponse(FlapperResponse response)
+    {
+        // Broadcast Flapper response to all clients in the conversation group
+        await Clients.User(response.UserId).SendAsync("FlapperChatResponse", response);
+        _logger.LogDebug("Sending Flapper response to User {UserId}", response.UserId);
+    }
     public async Task SetPresence(int code)
     {
         if (!Enum.IsDefined(typeof(PresenceStatus), code))

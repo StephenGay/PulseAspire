@@ -141,9 +141,9 @@ public static class FlapperEndpoints
 
 						string toolResult = toolCall.ToolName switch
 						{
-							"ask_tables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message, conversation.Id.ToString()),
-							"web_search" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
-							"web_fetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
+							"ask_tables" or "AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message, conversation.Id.ToString()),
+							"web_search" or "WebSearch" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
+							"web_fetch" or "WebFetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
 							_ => $"Unknown tool: {toolCall.ToolName}"
 						};
 
@@ -168,10 +168,12 @@ public static class FlapperEndpoints
 
 			} while (turn < MaxTurns);
 
-			if (result.Content?.StartsWith("[CLARIFICATION] [") == true)
+			if (result.Content?.StartsWith("[CLARIFICATION] ") == true)
 			{
 				isClarification = true;
-			}
+				result.RequiresClarification = true;
+				result.ClarificationQuestion = result.Content.Replace("[CLARIFICATION] ", "").TrimEnd("]").ToString();
+            }
 
 			// 6. Save Flapper's final response
 			db.FlapperMessages.Add(new FlapperMessage
@@ -198,10 +200,12 @@ public static class FlapperEndpoints
 				SentAt = DateTime.Now
 			};
 
+			//await hubContext.Clients.User(req.UserId.ToString())
+			//	.SendAsync("ReceiveMessage", finalMessage);
 			await hubContext.Clients.User(req.UserId.ToString())
-				.SendAsync("ReceiveMessage", finalMessage);
+                .SendAsync("FlapperChatResponse", result);
 
-			return Results.Ok(result);
+            return Results.Ok(result);
 		}
 		catch (Exception ex)
 		{
@@ -246,10 +250,14 @@ public static class FlapperEndpoints
 			{
 				ModelId = flapperDTO.Model,
 				Temperature = 0.2f,
-				Tools = toolList
+				MaxOutputTokens = flapperDTO.Options.NumCtx,
+                ConversationId = conversation.Id.ToString(),
+                Tools = toolList
 			};
 
 			var accumulatedText = new StringBuilder();
+			var accumulatedThinking = string.Empty;
+			var accumulatedAnswer = string.Empty;
 			bool inThinking = false;
             var promptTokens = 0L;
             var outputTokens = 0L;
@@ -260,22 +268,27 @@ public static class FlapperEndpoints
             await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
 			{
 				var streamTxt = string.Empty;
+                var FlapperChunk = new FlapperResponse();
 
-				try
+                try
 				{
 					var ollama = ((OllamaSharp.Models.Chat.ChatResponseStream)update.RawRepresentation);
-
 					
+
+
                     if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
 					{
 						var thinkingText = ollama.Message.Thinking;
 						if (!inThinking)
 						{
 							inThinking = true;
-							thinkingText = $"<thinking>Thinking:\n{thinkingText}";
+							streamTxt = "<thinking>";
+                            thinkingText = $"Thinking:\n{thinkingText}";
 						}
-						streamTxt = thinkingText;
-					}
+						streamTxt += thinkingText;
+						FlapperChunk.Thinking = thinkingText;
+						accumulatedThinking += ollama.Message?.Thinking;
+                    }
 					if (!string.IsNullOrEmpty(ollama.Message?.Content))
 					{
 						if (inThinking)
@@ -284,7 +297,9 @@ public static class FlapperEndpoints
 							streamTxt += "</thinking>";
 						}
 						streamTxt += ollama.Message.Content;
-					}
+                        FlapperChunk.Content = ollama.Message.Content;
+						accumulatedAnswer += ollama.Message.Content;
+                    }
                     if (ollama?.Message?.ToolCalls != null && ollama.Message.ToolCalls.Any())
                     {
                         // For simplicity, we append tool calls as JSON strings in the thinking stream
@@ -299,11 +314,35 @@ public static class FlapperEndpoints
                         }
 
                     }
+					FlapperChunk.Done = ollama.Done;
+					FlapperChunk.EndReason = update.FinishReason?.ToString().ToLowerInvariant();
+					FlapperChunk.PromptTokens = update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var ptc) == true ? Convert.ToInt64(ptc) : 0;
+					FlapperChunk.OutputTokens = update.AdditionalProperties?.TryGetValue("eval_count", out var etc) == true ? Convert.ToInt64(etc) : 0;
+
+                    if (ollama?.Done == true)
+					{
+						doneReason = update.FinishReason?.ToString().ToLowerInvariant();
+					}
+                        if (update.AdditionalProperties?.TryGetValue("done_reason", out var dr) == true)
+                    {
+                        doneReason = dr?.ToString()?.ToLowerInvariant();
+                    }
+
+                    if (update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var pt) == true)
+                        promptTokens = Convert.ToInt64(pt);
+
+                    if (update.AdditionalProperties?.TryGetValue("eval_count", out var et) == true)
+                        outputTokens = Convert.ToInt64(et);
+                
                 }
-				catch
+				catch(Exception ex) 
 				{
-					// If RawRepresentation access fails, try the standard text
-					streamTxt = update.Text ?? string.Empty;
+                    if (ex.Message.Contains("context", StringComparison.OrdinalIgnoreCase))
+                    {
+                        doneReason = "context";
+                    }
+                    // If RawRepresentation access fails, try the standard text
+                    streamTxt = update.Text ?? string.Empty;
 				}
 
 				accumulatedText.Append(streamTxt);
@@ -322,30 +361,41 @@ public static class FlapperEndpoints
 						SentAt = DateTime.Now
 					};
 
-					await hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveFlapperChunk", streamMessage);
+					await hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveFlapperResponseChunk", FlapperChunk);
+					//await hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveFlapperChunk", streamMessage);
 				}
 			}
 
 			var rawReply = accumulatedText.ToString().Trim();
-			var thinking = ExtractReasoningFromText(rawReply);
-			var finalContent = rawReply
-				.Replace($"<thinking>{thinking}</thinking>", "")
-				.Trim();
+			var thinking = accumulatedThinking;
+			var finalContent = accumulatedAnswer;
 
-			return new FlapperResponse
+            var endReason = doneReason switch
+            {
+                "length" => "max_tokens_reached",
+                "stop" or "eos" => "natural_stop",
+                "context" => "context_length_exceeded",
+                _ => doneReason ?? "unknown"
+            };
+
+            return new FlapperResponse
 			{
 				Success = true,
 				Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
 				ToolCalls = toolCalls.Count > 0 ? toolCalls : null,
 				Content = finalContent,
 				RequiresClarification = false,
-				RawContent = rawReply
+                EndReason = endReason,
+                PromptTokens = promptTokens,
+                OutputTokens = outputTokens,
+                RawContent = rawReply
 			};
 		}
 		catch (Exception ex)
 		{
 			System.Diagnostics.Debug.WriteLine($"Error in ProcessWithToolsStreamingAsync: {ex.Message}");
-			return new FlapperResponse
+			
+                return new FlapperResponse
 			{
 				Success = false,
 				Content = $"Error: {ex.Message}"

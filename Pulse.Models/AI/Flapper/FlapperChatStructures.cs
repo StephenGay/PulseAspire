@@ -23,6 +23,7 @@ public record FlapperChatRequest(
 public class FlapperResponse
 {
     public bool Success { get; set; }
+    public string UserId { get; set; } = string.Empty;
     public string? Content { get; set; }
     public string? RawContent { get; set; }
     public string? Thinking { get; set; }          // Chain-of-Thought
