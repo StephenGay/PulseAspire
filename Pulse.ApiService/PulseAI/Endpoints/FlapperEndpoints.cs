@@ -128,14 +128,14 @@ public static class FlapperEndpoints
 				System.Diagnostics.Debug.WriteLine($"Response content length: {result.Content?.Length ?? 0}");
 
 				// Check for tool calls in the response content using non-streaming approach
-				var toolCalls = ExtractToolCallsFromStreamingContent(result.Content ?? result.RawContent ?? "");
+				//var toolCalls = ExtractToolCallsFromStreamingContent(result.Content ?? result.RawContent ?? "");
 
-				if (toolCalls.Count > 0)
+				if (result.ToolCalls?.Count > 0)
 				{
-					System.Diagnostics.Debug.WriteLine($"Found {toolCalls.Count} tool calls in response");
+					System.Diagnostics.Debug.WriteLine($"Found {result.ToolCalls.Count} tool calls in response");
 
 					// Execute each tool call
-					foreach (var toolCall in toolCalls)
+					foreach (var toolCall in result.ToolCalls)
 					{
 						System.Diagnostics.Debug.WriteLine($"Executing tool: {toolCall.ToolName}");
 
@@ -240,6 +240,7 @@ public static class FlapperEndpoints
 			messages.Add(new ChatMessage(ChatRole.User, userMessage));
 
 			var toolList = tools?.ToList() ?? new List<AITool>();
+			var toolCalls = new List<FlapperToolCall>();
 
 			var options = new ChatOptions
 			{
@@ -250,22 +251,28 @@ public static class FlapperEndpoints
 
 			var accumulatedText = new StringBuilder();
 			bool inThinking = false;
+            var promptTokens = 0L;
+            var outputTokens = 0L;
+            string? doneReason = null;
+            string? error = null;
 
-			// ✅ Stream the response
-			await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
+            // ✅ Stream the response
+            await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
 			{
 				var streamTxt = string.Empty;
 
 				try
 				{
 					var ollama = ((OllamaSharp.Models.Chat.ChatResponseStream)update.RawRepresentation);
-					if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
+
+					
+                    if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
 					{
 						var thinkingText = ollama.Message.Thinking;
 						if (!inThinking)
 						{
 							inThinking = true;
-							thinkingText = $"<thinking>{thinkingText}";
+							thinkingText = $"<thinking>Thinking:\n{thinkingText}";
 						}
 						streamTxt = thinkingText;
 					}
@@ -278,7 +285,21 @@ public static class FlapperEndpoints
 						}
 						streamTxt += ollama.Message.Content;
 					}
-				}
+                    if (ollama?.Message?.ToolCalls != null && ollama.Message.ToolCalls.Any())
+                    {
+                        // For simplicity, we append tool calls as JSON strings in the thinking stream
+                        var toolInfo = JsonSerializer.Serialize(ollama.Message.ToolCalls);
+                        foreach (var tc in ollama.Message.ToolCalls)
+                        {
+                            toolCalls.Add(new FlapperToolCall
+                            {
+                                ToolName = tc.Function.Name,
+                                Parameters = (Dictionary<string, object>)tc.Function.Arguments
+                            });
+                        }
+
+                    }
+                }
 				catch
 				{
 					// If RawRepresentation access fails, try the standard text
@@ -315,7 +336,7 @@ public static class FlapperEndpoints
 			{
 				Success = true,
 				Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
-				ToolCalls = null, // Let the outer loop handle tool calls via the response content
+				ToolCalls = toolCalls.Count > 0 ? toolCalls : null,
 				Content = finalContent,
 				RequiresClarification = false,
 				RawContent = rawReply

@@ -176,11 +176,11 @@ namespace Pulse.Web.Services
             //{
             //    throw; // Re-throw our custom exceptions
             //}
-            //catch (OperationCanceledException ex)
-            //{
-            //    _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", requestUri);
-            //    throw new PulseApiException("Request was cancelled", requestUri, innerException: ex);
-            //}
+            catch (OperationCanceledException ex)
+            {
+                _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", requestUri);
+                throw new PulseApiException("Request was cancelled", requestUri, innerException: ex);
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Unexpected error in PostAsync for {RequestUri}", requestUri);

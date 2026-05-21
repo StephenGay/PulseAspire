@@ -148,8 +148,9 @@
                                   IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
                                   Style="height:50px;width:50px"
                                   Title="Use IChat Client"
-                                  OnClick="FlapChat"></FluentButton>
-                                  @* OnClick="() => useIChat = !useIChat"></FluentButton> *@
+                                  
+                                  OnClick="() => useIChat = !useIChat"></FluentButton>
+                                  @* OnClick="FlapChat"></FluentButton> *@
                     </Authorized>
                 </AuthorizeView>
                 <FluentSpacer />
@@ -238,20 +239,20 @@
                             <img src="Images/AI/Flapper.png" style="width:96px;height:96px" />
                             <FluentSpacer />
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
-                                <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">@(!ViewSettings ? "CONVERSATIONS" : "SETTINGS")</FluentLabel>
-                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Flapper</FluentLabel>
+                                <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">FLAPPER</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">@(!ViewSettings ? "Conversation" : "Settings")</FluentLabel>
                             </FluentStack>
                         </FluentStack>
                         @if (showTables)
                         {
                             <Animation Effect="@Effect.FadeInDown" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
-                                 <div class="aiBox">
-                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour); border-bottom: 1px solid white; padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:5px;">
+                                 <div class="aiAssistBox">
+                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour);padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;">
                                         <img src="Images/AI/Tables.png" style="width:96px;height:96px" />
                                          <FluentSpacer />
                                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
-                                            <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">@(!ViewSettings ? "CONVERSATIONS" : "SETTINGS")</FluentLabel>
-                                            <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">with Flapper</FluentLabel>
+                                            <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">TABLES</FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">Assisting Flapper</FluentLabel>
                                         </FluentStack>
                                     </FluentStack>
                                 </div> 
@@ -760,18 +761,21 @@
             case "FlapperStart":
                 tablesResponse = string.Empty;
                 flapperThinking = update.Message;
-                showTables = true;
                 break;
             case "Received":
             case "Generating":
+                showTables = true;
                 tablesResponse = update.Message;
                 break;
             case "Validating":
-                tablesResponse += update.Message;
+                tablesResponse = $"{tablesResponse}{update.Message}";
                 break;
             case "Success":
+                tablesResponse = $"{update.Message}\n\n<strong>FINAL SQL STATEMENT</strong>\n{update.GeneratedSql}";
+                await InvokeAsync(StateHasChanged);
+                await Task.Delay(2000);
                 tablesResponse = string.Empty;
-                flapperThinking = $"{update.Message}\n\n<strong>FINAL SQL STATEMENT</strong>\n{update.GeneratedSql}";
+                flapperThinking = $"Thanks Tables!\n\nAnalysing returned data...\n";
                 showTables = false;
                 break;
             default:
@@ -785,8 +789,8 @@
         // This method can be used to update the UI with progress information about table loading or processing
         // For example, you could set a property like "CurrentTableProgress" and call StateHasChanged() to update a progress bar in the UI
         // CurrentTableProgress = update.ProgressPercentage;
-        await InvokeAsync(StateHasChanged);
         await Task.Delay(2000);
+        await InvokeAsync(StateHasChanged);
     }
 
     private async void OnFlapperMessageChunkReceived(PulseMessage msg)

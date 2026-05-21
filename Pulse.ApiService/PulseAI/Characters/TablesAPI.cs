@@ -58,7 +58,7 @@ public class TablesAPI
             Timestamp = DateTime.UtcNow
         };
 
-        const int MaxAttempts = 3;
+        const int MaxAttempts = 5;
 
         try
         {
@@ -66,7 +66,16 @@ public class TablesAPI
                 request.UserRequest, response.SessionId);
 
             var chat = GetOrCreateChatSession(response.SessionId, response.ModelUsed);
+            string currentPrompt = request.UserRequest;
 
+            if (request.UserId == "Flapper")
+            {
+                await SendProgressAsync(response.SessionId, "FlapperStart", $"I have asked Tables for this Information:\n{currentPrompt}\n");
+            }
+
+            string errMsg = $"<strong>Request Received:</strong>\nI have your request right here, just warming up the brain cells...";
+
+            await SendProgressAsync(response.SessionId, "Received", errMsg);
             if (chat.Messages.Count == 0)
             {
                 string systemPrompt = await GetTablesSystemMessageAsync();
@@ -74,16 +83,9 @@ public class TablesAPI
                 _logger.LogInformation("System prompt initialized for session {SessionId}", response.SessionId);
             }
             
-            string currentPrompt = request.UserRequest;
+            
 
-            if (request.UserId == "Flapper")
-            {
-                await SendProgressAsync(response.SessionId, "FlapperStart", $"<strong>I have asked Tables for this Information:</strong>\n{currentPrompt}\n");
-            }
-
-            string errMsg = $"<strong>Request Received:</strong>\nI have your request right here, just warming up the brain cells...";
-
-            await SendProgressAsync(response.SessionId, "Received",errMsg);
+            
 
             
             string finalSqlQuery = string.Empty;
@@ -98,13 +100,12 @@ public class TablesAPI
                 var tMsg = string.Empty;
                 if(attemptsUsed == 1)
                 {
-                    errMsg += "done";
+                    errMsg = "<strong>Generating SQL Statement:</strong>\n";
                 }
                 else
                 {
-                    errMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>";
+                    errMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>\n\n<strong>Generating SQL Statement:</strong>\n";
                 }
-                errMsg += $"\n\n<strong>Generating SQL Statement:</strong>\n";
 
                 switch (attemptsUsed)
                 {
@@ -157,7 +158,7 @@ public class TablesAPI
                 _logger.LogInformation("Attempt {Attempt} - Generated SQL: {Sql}", attemptsUsed, sqlQuery);
                 tMsg = $"SQL Statement generated.\n\n<strong>Validate & Execute:</strong>\nValidating the generated SQL Statement against the database schema to ensure columns and fields are valid.\n";
                 tMsg += $"If invalid, self correct and start the procedure again.\n";
-                tMsg += $"If valid, execute the query and return the results.\n\n<strong>SQL Statement:</strong>\n{sqlQuery}";
+                tMsg += $"If valid, execute the query and return the results.\n";
                 await SendProgressAsync(response.SessionId, "Validating",
                     tMsg, attemptsUsed, sqlQuery);
 

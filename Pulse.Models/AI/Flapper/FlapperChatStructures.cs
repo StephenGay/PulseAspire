@@ -29,6 +29,12 @@ public class FlapperResponse
     public List<FlapperToolCall> ToolCalls { get; set; } = new();
     public bool RequiresClarification { get; set; }
     public string? ClarificationQuestion { get; set; }
+    public bool Done { get; set; } = false;
+    public string EndReason { get; set; } = "unknown"; // "natural_stop", "max_tokens_reached", "context_window_exceeded"
+    public string? Error { get; set; }
+    public long PromptTokens { get; set; }
+    public long OutputTokens { get; set; }
+    public long TotalTokens => PromptTokens + OutputTokens;
 }
 
 public class FlapperToolCall
