@@ -2,7 +2,7 @@
 
 
 
-
+@using Pulse.Models.AI.Tools
 
 
 @inject AuthService _authService
@@ -390,6 +390,10 @@
                                         @* @CurrentFlapperResponse *@
                                     </div>
                                 </FluentLabel>
+                                @if (CurrentChartConfig != null)
+                                {
+                                    <DynamicRadzenChart Config="CurrentChartConfig" />
+                                }
                             </FluentStack>
                         }
                         @if (stream && !string.IsNullOrEmpty(flapperThinking))
@@ -407,7 +411,7 @@
                     {
                         @foreach (var message in (oldFirst ? Messages : Enumerable.Reverse(Messages)) )
                         {
-                            @if (message.Sender.ToUpper() == "USER")
+                            @if (message.ContentType.ToUpper() == "USERQUERY")
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                             <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;">@message.Content</FluentLabel>
@@ -416,19 +420,23 @@
                             else
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
-                                    @if (message.IsThinking)
+                                    @if (message.ContentType.ToUpper() == "AITHINKING")
                                     {
                                         if (stream)
                                         {
-                                            <FluentLabel Typo="Typography.Body" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@message.Content.Replace("<thinking>","")</FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" style="background-color:rgba(255,255,255,0.8);margin-top: 10px; padding:10px; font-style:italic; border-radius:15px; border: 1px solid black ;margin-left: 20px;margin-right: 20px;margin-bottom:10px;color:black; white-space:pre-line">@message.Content</FluentLabel>
                                         }
                                     }
-                                    else
+                                    else if (message.ContentType.ToUpper() == "AIRESPONSE")
                                     {
                                         <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
                                             @* <RadzenMarkdown Style="margin:0; padding:0" Text="@message.Content" AllowHtml="true" /> *@
                                             <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
                                         </FluentLabel>
+                                        if (!string.IsNullOrEmpty(message.RawContent))
+                                        {
+                                            <DynamicRadzenChart Config="JsonSerializer.Deserialize<ChartConfig>(message.RawContent)" />
+                                        }
                                     }
                                 </FluentStack>
                             }
@@ -446,7 +454,8 @@
 @code {
     private Flapper? flapper;
     private FlapperDTO? flapperDTO;
-    private List<FlapperMessageDto> Messages { get; set; } = [];
+    private List<FlapperMessage> Messages { get; set; } = [];
+    
     private string CurrentUserMessage { get; set; } = string.Empty;
     private bool IsAwaitingClarification { get; set; } = false;
     private bool isStreamingResponse = true;
@@ -457,6 +466,7 @@
     private bool viewHistory = false;
     private List<FlapperConversation> ConversationHistory = [];
     private bool SpokenResponse = false;
+    private ChartConfig? CurrentChartConfig;
 
     private string? flapperSystemPrompt = string.Empty;
     private string query = string.Empty;
@@ -547,15 +557,15 @@
     {
         await MsgHubService.EnsureConnectedAsync();
         // Setup SignalR connection
-        MsgHubService.OnReceiveMessage +=
-                OnFlapperMessageReceived;
+        // MsgHubService.OnReceiveMessage +=
+        //         OnFlapperMessageReceived;
 
         MsgHubService.OnFlapperChatResponse +=
                 OnFlapperChatResponse;
         MsgHubService.OnReceiveFlapperResponseChunk +=
                 OnReceiveFlapperResponseChunk;
-        MsgHubService.OnReceiveFlapperChunk +=
-                OnFlapperMessageChunkReceived;
+        // MsgHubService.OnReceiveFlapperChunk +=
+        //         OnFlapperMessageChunkReceived;
         MsgHubService.OnTablesProgressUpdate +=
                 OnTablesProgressUpdate;
         uName = await dtrf.GetgvUserFirstName();
@@ -579,10 +589,10 @@
 
     private async Task LoadHistoryConversation(Guid conversationId)
     {
-        var response = await pulseApiClient.GetAsync<ApiResponse<List<FlapperMessageDto>>>(ApiEndpoints.PulseAi.EndpointsFlapper.GetConversationMessages(conversationId));
+        var response = await pulseApiClient.GetAsync<ApiResponse<List<FlapperMessage>>>(ApiEndpoints.PulseAi.EndpointsFlapper.GetConversationMessages(conversationId));
         if (response.Success)
         {
-            Messages = response.Data ?? new List<FlapperMessageDto>();
+            Messages = response.Data ?? new List<FlapperMessage>();
             viewHistory = false;
             CurrentConversationId = conversationId;
         }
@@ -628,6 +638,7 @@
         _lastSpokenCharIndex = 0;
         _isSpeaking = false;
         tablesResponse = string.Empty;
+        CurrentChartConfig = null;
         isLoading = true;
         cts = new CancellationTokenSource();
         flapper = await dtrf.GetgvFlapper();
@@ -646,11 +657,18 @@
         var respF = SpokenResponse ? "[SPEECH] " : "[REPORT] ";
 
         respF += CurrentUserMessage;
-        Messages.Add(new FlapperMessageDto { Sender = "You", Content = CurrentUserMessage });
+        
+        
+
+        Messages.Add(new FlapperMessage { 
+            Sender = "User", 
+            Content = CurrentUserMessage,
+            ContentType = "UserQuery"
+        });
         CurrentUserMessage = string.Empty;
         await CheckAiSession();
         // Add placeholder for Flapper
-        // Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = "..." });
+        // Messages.Add(new FlapperMessage { Sender = "Flapper", Content = "..." });
         CurrentFlapperResponse = "";
         await InvokeAsync(StateHasChanged);
 
@@ -661,11 +679,12 @@
             // Send to API
             var request = new FlapperChatRequest
             (
-                flapperDTO,
-                _authService.aspireUserId,
-                CurrentConversationId,
-                respF,
-                _authService.aspireFullName, isStreamingResponse = stream
+                flapperDTO : flapperDTO,
+                UserId : _authService.aspireUserId,
+                ConversationId : CurrentConversationId,
+                Message : respF,
+                PreferredUserName : uName ?? _authService.aspireFullName,
+                IsStreaming : stream
             );
 
             // using var flapperClient = HttpClientFactory.CreateClient("FlapperApiClient");
@@ -732,16 +751,17 @@
         if (string.IsNullOrEmpty(answer)) return;
 
         // Add user reply to chat
-        Messages.Add(new FlapperMessageDto { Sender = "You", Content = answer });
+        Messages.Add(new FlapperMessage { Sender = "User", Content = answer, ContentType = "UserAnswer" });
 
         // Send the clarification answer back to continue the session
         var request = new FlapperChatRequest
         (
-            flapperDTO,
-            _authService.aspireUserId,
-            CurrentConversationId,
-            answer,
-            _authService.aspireFullName   // Yes / No becomes the next user message
+            flapperDTO : flapperDTO,
+            UserId : _authService.aspireUserId,
+            ConversationId : CurrentConversationId,
+            Message : answer,
+            IsClarificationResponse : true,
+            PreferredUserName : uName ?? _authService.aspireFullName   // Yes / No becomes the next user message
         );
 
         // Reset clarification UI
@@ -801,110 +821,112 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    private async void OnFlapperMessageChunkReceived(PulseMessage msg)
-    {
-        if (msg.Role != "Flapper")
-        {
-            return;
-        }
+    // private async void OnFlapperMessageChunkReceived(PulseMessage msg)
+    // {
+    //     if (msg.Role != "Flapper")
+    //     {
+    //         return;
+    //     }
 
-        var msgContent = msg.Content;
+    //     var msgContent = msg.Content;
 
-        if(msg.Content.StartsWith("<thinking>"))
-        {
-            _inThinking = true;
-            flapperThinking = "";
-            msgContent = msgContent.Replace("<thinking>", "").Trim();
-        }
-        if (msg.Content.StartsWith("</thinking>"))
-        {
-            _inThinking = false;
-            msgContent = msgContent.Replace("</thinking>", "").Trim();
-        }
+    //     if(msg.Content.StartsWith("<thinking>"))
+    //     {
+    //         _inThinking = true;
+    //         flapperThinking = "";
+    //         msgContent = msgContent.Replace("<thinking>", "").Trim();
+    //     }
+    //     if (msg.Content.StartsWith("</thinking>"))
+    //     {
+    //         _inThinking = false;
+    //         msgContent = msgContent.Replace("</thinking>", "").Trim();
+    //     }
 
-        // Normal streaming content
-        if(_inThinking)
-        {
-            flapperThinking += msgContent;
-        }
-        else
-        {
-            if (SpokenResponse){
-                // string cleanText = PrepareForSpeech(msgContent);
-                await SpeakIncremental(msgContent);
-            }
-            CurrentFlapperResponse += msgContent;
+    //     // Normal streaming content
+    //     if(_inThinking)
+    //     {
+    //         flapperThinking += msgContent;
+    //     }
+    //     else
+    //     {
+    //         if (SpokenResponse){
+    //             // string cleanText = PrepareForSpeech(msgContent);
+    //             await SpeakIncremental(msgContent);
+    //         }
+    //         CurrentFlapperResponse += msgContent;
 
-        }
+    //     }
 
 
-        var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
-        if (lastMsg == null)
-            // lastMsg.Content = CurrentFlapperResponse;
-            // else
-            Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
-        // isLoading = false;
-        await InvokeAsync(StateHasChanged);
-    }
+    //     var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+    //     if (lastMsg == null)
+    //         // lastMsg.Content = CurrentFlapperResponse;
+    //         // else
+    //         Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
+    //     // isLoading = false;
+    //     await InvokeAsync(StateHasChanged);
+    // }
 
-    private async void OnFlapperMessageReceived(PulseMessage msg)
-    {
+    // private async void OnFlapperMessageReceived(PulseMessage msg)
+    // {
 
-        if (msg.Role != "Flapper")
-        {
-            return;
-        }
-        Messages.Add(new FlapperMessageDto
-        {
-            Sender = "Flapper",
-            Content = msg.Content
-        });
+    //     if (msg.Role != "Flapper")
+    //     {
+    //         return;
+    //     }
+    //     Messages.Add(new FlapperMessageDto
+    //     {
+    //         Sender = "Flapper",
+    //         Content = msg.Content
+    //     });
 
-        // Check if this is a clarification question
-        if (msg.Subject?.Contains("Clarification", StringComparison.OrdinalIgnoreCase) == true)
-        {
-            IsAwaitingClarification = true;
-            int ind = msg.Content.LastIndexOf("</thinking>");
-            if(ind > -1)
-            {
-                CurrentClarificationQuestion = msg.Content.Substring(ind + 11).Trim();
-            }
-            else
-            {
-                CurrentClarificationQuestion = msg.Content;
-            }
-        }
-        else
-        {
-            CurrentFlapperResponse = msg.Content;
-        }
-        // ====================== FINAL FLUSH ======================
-        if (SpokenResponse && _answerBuilder.Length > _lastSpokenCharIndex)
-        {
-            string remainingText = _answerBuilder.ToString().Substring(_lastSpokenCharIndex).Trim();
+    //     // Check if this is a clarification question
+    //     if (msg.Subject?.Contains("Clarification", StringComparison.OrdinalIgnoreCase) == true)
+    //     {
+    //         IsAwaitingClarification = true;
+    //         int ind = msg.Content.LastIndexOf("</thinking>");
+    //         if(ind > -1)
+    //         {
+    //             CurrentClarificationQuestion = msg.Content.Substring(ind + 11).Trim();
+    //         }
+    //         else
+    //         {
+    //             CurrentClarificationQuestion = msg.Content;
+    //         }
+    //     }
+    //     else
+    //     {
+    //         CurrentFlapperResponse = msg.Content;
+    //     }
+    //     // ====================== FINAL FLUSH ======================
+    //     if (SpokenResponse && _answerBuilder.Length > _lastSpokenCharIndex)
+    //     {
+    //         string remainingText = _answerBuilder.ToString().Substring(_lastSpokenCharIndex).Trim();
 
-            if (!string.IsNullOrWhiteSpace(remainingText))
-            {
-                string cleanText = PrepareForSpeech(remainingText);
-                await GlobalAI.AISpeak(cleanText, "Flapper");
-            }
-        }
+    //         if (!string.IsNullOrWhiteSpace(remainingText))
+    //         {
+    //             string cleanText = PrepareForSpeech(remainingText);
+    //             await GlobalAI.AISpeak(cleanText, "Flapper");
+    //         }
+    //     }
 
-        // Reset for next conversation turn
-        _answerBuilder.Clear();
-        _lastSpokenCharIndex = 0;
+    //     // Reset for next conversation turn
+    //     _answerBuilder.Clear();
+    //     _lastSpokenCharIndex = 0;
 
-        isLoading = false;
-        await InvokeAsync(StateHasChanged);
-    }
+    //     isLoading = false;
+    //     await InvokeAsync(StateHasChanged);
+    // }
 
     private async void OnFlapperChatResponse(FlapperResponse response)
     {
 
-        Messages.Add(new FlapperMessageDto
+        Messages.Add(new FlapperMessage
         {
             Sender = "Flapper",
-            Content = response.Content
+            Content = response.Content,
+            ContentType = response.RequiresClarification ? "AiQuestion" : "AiResponse"
+
         });
 
         // Check if this is a clarification question
@@ -918,6 +940,10 @@
             if(response.EndReason == "natural_stop")
             {
                 CurrentFlapperResponse = response.Content;
+                if (!string.IsNullOrEmpty(response.RawContent))
+                {
+                    CurrentChartConfig = JsonSerializer.Deserialize<ChartConfig>(response.RawContent);
+                }
             }
             else
             {
@@ -977,11 +1003,11 @@
        
 
 
-        var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
-        if (lastMsg == null)
-            // lastMsg.Content = CurrentFlapperResponse;
-            // else
-            Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
+        // var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
+        // if (lastMsg == null)
+        //     // lastMsg.Content = CurrentFlapperResponse;
+        //     // else
+        //     Messages.Add(new FlapperMessage { Sender = "Flapper", Content = CurrentFlapperResponse, ContentType = "FlapperReply" });
         // isLoading = false;
         await InvokeAsync(StateHasChanged);
     }

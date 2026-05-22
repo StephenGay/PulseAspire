@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 using static Pulse.Models.Api.ApiEndpoints.PulseAi;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using Pulse.Models.AI.Tools;
 
 namespace Pulse.ApiService.PulseAI.Characters;
 
@@ -241,7 +242,7 @@ public class FlapperOllamaAPI
             };
             var fullResponse = new StringBuilder();
             bool inThinking = false;
-            List<FlapperToolCall> toolCalls = new();
+            List<PulseToolCall> toolCalls = new();
 
             await foreach (var chunk in _chatClient.ChatAsync(request).WithCancellation(ct))
             {
@@ -262,7 +263,7 @@ public class FlapperOllamaAPI
                     var toolInfo = JsonSerializer.Serialize(chunk.Message.ToolCalls);
                     foreach (var tc in chunk.Message.ToolCalls)
                     {
-                        toolCalls.Add(new FlapperToolCall 
+                        toolCalls.Add(new PulseToolCall 
                         {
                             ToolName = tc.Function.Name,
                             Parameters = (Dictionary<string, object>)tc.Function.Arguments 

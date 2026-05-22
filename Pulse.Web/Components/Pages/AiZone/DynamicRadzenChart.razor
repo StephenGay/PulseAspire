@@ -1,0 +1,43 @@
+﻿@using Pulse.Models.AI
+@using Pulse.Models.AI.Tools
+@using Radzen.Blazor
+
+<RadzenChart Style="height: 420px; width: 100%;" @ref="_chart">
+    <RadzenChartTitle Text="@Config.Title" />
+
+    @if (Config.ChartType.Equals("Bar", StringComparison.OrdinalIgnoreCase))
+    {
+        @foreach (var s in Config.Series ?? new())
+        {
+            <RadzenBarSeries Data="@s.Data" CategoryProperty="Label" ValueProperty="Value" Title="@s.Name" />
+        }
+    }
+    else if (Config.ChartType.Equals("Line", StringComparison.OrdinalIgnoreCase))
+    {
+        @foreach (var s in Config.Series ?? new())
+        {
+            <RadzenLineSeries Data="@s.Data" CategoryProperty="Label" ValueProperty="Value" Title="@s.Name" />
+        }
+    }
+    else if (Config.ChartType.Equals("Pie", StringComparison.OrdinalIgnoreCase) || 
+             Config.ChartType.Equals("Doughnut", StringComparison.OrdinalIgnoreCase))
+    {
+        <RadzenPieSeries Data="@(Config.Series?.FirstOrDefault()?.Data ?? new())" 
+                         CategoryProperty="Label" ValueProperty="Value" />
+    }
+
+    <RadzenCategoryAxis Title="@Config.XAxisTitle" />
+    <RadzenValueAxis Title="@Config.YAxisTitle" />
+</RadzenChart>
+
+@if (!string.IsNullOrWhiteSpace(Config.FooterNote))
+{
+    <div class="text-muted small mt-2">@Config.FooterNote</div>
+}
+
+@code {
+    [Parameter, EditorRequired] public ChartConfig Config { get; set; } = new();
+    private RadzenChart? _chart;
+
+    // public async Task ExportPng() => await (_chart?.Export("png") ?? Task.CompletedTask);
+}

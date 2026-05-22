@@ -1,6 +1,7 @@
 ﻿// Pulse.ApiService/PulseAI/Characters/FlapperAPI.cs
 using Microsoft.Extensions.AI;
 using Pulse.Models.AI.Flapper;
+using Pulse.Models.AI.Tools;
 using Pulse.Models.CustomComponents;
 using System.Collections.Generic;
 using System.Linq;
@@ -83,7 +84,7 @@ public class FlapperAPI
             var thinking = ExtractBetween(rawReply, "<thinking>", "</thinking>");
 
             // Updated: Extract tool calls from RawRepresentation
-            var toolCalls = new List<FlapperToolCall>();
+            var toolCalls = new List<PulseToolCall>();
 
             foreach (var message in response.Messages ?? new List<ChatMessage>())
             {
@@ -93,7 +94,7 @@ public class FlapperAPI
                     {
                         if (content is FunctionCallContent functionCall)
                         {
-                            toolCalls.Add(new FlapperToolCall
+                            toolCalls.Add(new PulseToolCall
                             {
                                 ToolName = functionCall.Name,
                                 Parameters = (Dictionary<string, object>)(functionCall.Arguments ?? new Dictionary<string, object>())
