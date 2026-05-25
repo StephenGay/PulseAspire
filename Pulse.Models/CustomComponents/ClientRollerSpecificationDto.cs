@@ -42,7 +42,7 @@ namespace Pulse.Models.CustomComponents
         decimal SellPrice,
         string? Status,
         // sub-objects (only the fields you need)
-        CustomerDto? Customer,
+        WOCustomerDto? Customer,
         PeriodDto? Period,
         WorkTypeDto? WorkType,
         DivisionDto? Division,
@@ -50,7 +50,7 @@ namespace Pulse.Models.CustomComponents
         ClientRollerDto? ClientRoller,   // minimal self-reference
         CompoundDto? Compound);
 
-    public record CustomerDto(string FullClientID, string ClientName, string TaxCodeID, string FullChargeClientID, int CompanyID, string ClientID);
+    public record WOCustomerDto(string FullClientID, string ClientName, string TaxCodeID, string FullChargeClientID, int CompanyID, string ClientID);
     public record PeriodDto(int PeriodID, string Month, string CalendarYear, string FinancialYear, DateTime StartDate);
     public record WorkTypeDto(int WorkTypeID, string WorkTypeName);
     public record DivisionDto(string DivisionID, string DivisionName, int CompanyID, int BranchID);

@@ -9,6 +9,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Pulse.Models.Api;
 
 namespace Pulse.Web.Services;
 
@@ -978,8 +979,8 @@ public sealed class Pulse_AI(
     {
         try
         {
-            var response = await _pulseApiClient.GetAsync(
-                $"/Customers/Details/{Uri.EscapeDataString(clientId)}/Sales", ct);
+            var response = await _pulseApiClient.GetAsync(ApiEndpoints.Customers.ByFullClientID.GetSales(clientId));
+                
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync(ct);
             return JsonSerializer.Deserialize<List<ClientSale>>(json, _jsonOptions) ?? [];
@@ -995,8 +996,8 @@ public sealed class Pulse_AI(
     {
         try
         {
-            var response = await _pulseApiClient.GetAsync(
-                $"/Customers/Details/{Uri.EscapeDataString(clientId)}/CurrentStats", ct);
+            var response = await _pulseApiClient.GetAsync(ApiEndpoints.Customers.ByFullClientID.GetCurrentStats(clientId));
+                
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync(ct);
             return JsonSerializer.Deserialize<ClientCurrentStats>(json, _jsonOptions) ?? new();
@@ -1016,8 +1017,8 @@ public sealed class Pulse_AI(
 
         try
         {
-            var response = await _pulseApiClient.GetAsync(
-                $"/Customers/Details/{Uri.EscapeDataString(clientId)}/RollerSpecifications", ct);
+            var response = await _pulseApiClient.GetAsync(ApiEndpoints.Customers.ByFullClientID.GetRollerSpecifications(clientId));
+                
             response.EnsureSuccessStatusCode();
             var json = await response.Content.ReadAsStringAsync(ct);
 

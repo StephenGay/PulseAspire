@@ -11,8 +11,11 @@
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis
 @inject PulseApiService pApiClient
 @inject NavigationManager Navigation
+@inject Radzen.DialogService dialogService
+
 @inject DataTransferService dts
 @inject AppState AppState
+@inject GlobalFunctions GlobalFunctions
 @attribute [StreamRendering(true)]
 @rendermode InteractiveServer
 
@@ -76,7 +79,12 @@
                       Style="position:absolute; top:86px; left: 150px; z-index:99; height:50px;"
                       Title="Speed Dial"
                       OnClick="() => ViewSpeeddial = !ViewSpeeddial">Speed Dial</FluentButton>
-
+        <FluentButton Appearance="Appearance.Accent" class=@(!ViewSpeeddial ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)"
+                      IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                      Style="position:absolute; top:86px; left: 350px; z-index:99; height:50px;"
+                      Title="Dialog"
+                      OnClick="() => GlobalFunctions.OpenClientSearch(dialogService)">Speed Dial</FluentButton>
         @if (!ViewSpeeddial)
         {
             <RadzenDataGrid @ref="radGrid" 

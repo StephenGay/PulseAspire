@@ -1,10 +1,13 @@
-﻿@using BootstrapBlazor.Components
+﻿@using System.Runtime.InteropServices
+@using System.Text.Json
+@using BootstrapBlazor.Components
 @using Markdig
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.AI
 @using Pulse.Models.AI.Ali
 @using Pulse.Models.AI.Flapper
 @using Pulse.Models.AI.Tables
+@using Pulse.Models.Api
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Customers
@@ -14,11 +17,9 @@
 @using Pulse.Models.Users
 @using Pulse.Web.Components.Pages.AiZone
 @using Pulse.Web.Services
-@using System.Text.Json
-@using System.Runtime.InteropServices
+@using Toolbelt.Blazor.SpeechRecognition
 @using Toolbelt.Blazor.SpeechSynthesis
 @using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20
-@using Toolbelt.Blazor.SpeechRecognition
 
 @inject SpeechRecognition SpeechRecognition
 @* @inject BootstrapBlazor.Components.ToastService ToastService *@
@@ -30,9 +31,10 @@
 @inject SpeechSynthesis SpeechSynthesis
 @inject NavigationManager Navigation
 @inject MessageHubService MsgHubService
+@inject Radzen.DialogService mnuAiDialogService
 @inject IJSRuntime JSRuntime
-@inject AuthService _authService
 @inject IHttpClientFactory HttpClientFactory
+@inject GlobalFunctions mnuAiGlobalFunctions
 @inject Global_AI_Functions GlobalAI
 @inject AuthService _authService
 @implements IDisposable
@@ -95,7 +97,7 @@
             box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
         }
 
-    .nbMainSel {
+    /* .nbMainSel {
         background-color: var(--pulse-light-colour) !important;
         border-top-left-radius:10px;
         border-top-right-radius: 10px;
@@ -114,18 +116,19 @@
     }
 
         .nbMainUnSel svg[part="icon-rest"] {
-            fill: white !important;
-            /* fill: var(--pulse-light-colour) !important; */
+            /* fill: white !important; */
+          /*   fill: var(--pulse-light-colour) !important;
         }
 
-        .nbMainUnSel div[part="label"] {
-            color: white !important;
-            /* color: var(--pulse-light-colour) !important; */
-        }
+        .nbMainUnSel div[part="label"] { */
+            /* color: white !important; */
+           /*  color: var(--pulse-light-colour) !important;
+        } */ 
     fluent-anchored-region > *[b-2ov9fhztky] {
         background-color: var(--pulse-light-colour) !important;
+        border-radius:10px;
     }
-    .fluent-appbar-item a[class="active"] div[class="stack-vertical"] {
+    /* .fluent-appbar-item a[class="active"] div[class="stack-vertical"] {
         background-color: var(--pulse-dark-colour) !important;
         border-radius:10px;
     }
@@ -135,16 +138,16 @@
     }
 
     .fluent-appbar-item a[class="active"] div[part="label"] {
-        color: var(--pulse-light-colour) !important;
-    }
+        color: var(--pulse-light-colour) !important; */
+    /* } */
    /*  #fab1 > div[part="label"] { */
-    .fluent-appbar-item div[part="label"] {
-        color: var(--pulse-dark-colour);
-    }
+    /* .fluent-appbar-item div[part="label"] {
+        color: var(--pulse-dark-colour) !important;
+    } */
 
-    .fluent-appbar-item svg[part="icon-rest"] {
-        fill: var(--pulse-dark-colour);
-    }
+    /* .fluent-appbar-item svg[part="icon-rest"] {
+        fill: var(--pulse-dark-colour) !important;
+    } */
    /*  [_bl_2b8c5e9f-8c48-4db9-b601-e1a55197101e] div[part="label"] {
         color: white !important;
     } */
@@ -164,27 +167,26 @@
                 <FluentAppBar id="fab1" Style="height: 100%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:end" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                     <FluentAppBarItem Href="@(null)"
                                         Match="NavLinkMatch.All"
-                                        IconRest="@HomeIcon"
+                                        IconRest="HomeIcon()"
+                                      IconActive="HomeIcon(active: true)"
                                           Class="@(homeSel ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Home"
                                         OnClick="AppBarClick" />
-                        @* <FluentAppBarItem Href="@(null)"
-                                        IconRest="@PulseAIIcon"
-                                          Class="@(aiSel ? "nbMainSel" : "nbMainUnSel")"
-                                        Text="Pulse AI"
-                                        OnClick="AppBarClick" /> *@
                         <FluentAppBarItem Href="@(null)"
-                                        IconRest="@CustomersIcon"
+                                        IconRest="CustomersIcon()"
+                                      IconActive="CustomersIcon(active: true)"
                                           Class="@(custSel ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Customers"
                                         OnClick="AppBarClick" />
                         <FluentAppBarItem Href="@(null)"
-                                        IconRest="@ProductionIcon"
+                                        IconRest="ProductionIcon()"
+                                      IconActive="ProductionIcon(active: true)"
                                           Class="@(prodSel ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Production"
                                         OnClick="AppBarClick" />
                         <FluentAppBarItem Href="@(null)"
-                                        IconRest="@AdminIcon"
+                                        IconRest="AdminIcon()"
+                                      IconActive="AdminIcon(active: true)"
                                           Class="@(adminSel ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Admin"
                                         OnClick="AppBarClick" />
@@ -376,16 +378,16 @@
     [Inject]
     private DrawerService? DrawerService { get; set; }
 
-    
+
     private bool OpenAi = false;
     private bool OpenFlapper = false;
     private bool OpenTables = false;
     private bool ChooseAi = false;
     private bool showResultsPanel = false;
     private bool viewBox = true;
-    
-    
-   
+
+
+
     private string _Analysis = string.Empty;
     private string _AliAnalysis = string.Empty;
     private int useModelVal = 0;
@@ -393,20 +395,20 @@
     private int flapperVersion = 1;
     private string txtQ = string.Empty;
     //public bool isSales { get; set; }
-   
+
     public bool pdfLoading = false;
     private bool isLoading = true;
-    
+
     private string sState = "LOAD";
     string fileName = string.Empty;
-    
+
     private string? AIMode; 
     // private bool useSpeechOutput = true;
     // private SpeechSynthesisVoice? _voice;
     private SpeechRecognitionResult[] _results = [];
     private bool _available = true;
     private bool _isListening = false;
-    
+
     private Division? division; 
     private User? u;
     private ShowAiIcon? showAi;
@@ -441,25 +443,21 @@
     #region AppBar Icons
 
 
-    private Icon HomeIcon =>
-        homeSel ? new Icons.Filled.Size24.Home().WithColor("#DF6D2F")
-               : new Icons.Regular.Size24.Home().WithColor("#ffffff");
+    private Icon HomeIcon(bool active = false) =>
+        active || homeSel ? new Icons.Filled.Size24.Home()
+               : new Icons.Regular.Size24.Home();
 
-    private Icon PulseAIIcon =>
-        aiSel ? new Icons.Filled.Size24.Bot().WithColor("#DF6D2F")
-               : new Icons.Regular.Size24.Bot().WithColor("#ffffff");
+    private Icon CustomersIcon(bool active = false) =>
+        active || custSel ? new Icons.Filled.Size24.People()
+               : new Icons.Regular.Size24.People();
 
-    private Icon CustomersIcon =>
-        custSel ? new Icons.Filled.Size24.People().WithColor("#DF6D2F")
-               : new Icons.Regular.Size24.People().WithColor("#ffffff");
+    private Icon ProductionIcon(bool active = false) =>
+        active || prodSel ? new Icons.Filled.Size24.Production()
+               : new Icons.Regular.Size24.Production();
 
-    private Icon ProductionIcon =>
-        prodSel ? new Icons.Filled.Size24.Production().WithColor("#DF6D2F")
-               : new Icons.Regular.Size24.Production().WithColor("#ffffff");
-
-    private Icon AdminIcon =>
-        adminSel ? new Icons.Filled.Size24.DesktopEdit().WithColor("#DF6D2F")
-               : new Icons.Regular.Size24.DesktopEdit().WithColor("#ffffff");
+    private Icon AdminIcon(bool active = false) =>
+        active || adminSel ? new Icons.Filled.Size24.DesktopEdit()
+               : new Icons.Regular.Size24.DesktopEdit();
     #endregion
 
     #region AppBar Icons BU
@@ -508,9 +506,9 @@
         };
         AppState.OnThemeChange += async () =>
         {
-            ApplicationUserSettings uSettings = await dataTrf.GetgvUserSettings();
-            pTheme = uSettings!.UserTheme ?? "pulse";
-            await JSRuntime.InvokeVoidAsync("applyPulseTheme", pTheme);
+            // ApplicationUserSettings uSettings = await dataTrf.GetgvUserSettings();
+            // pTheme = uSettings!.UserTheme ?? "pulse";
+            // await JSRuntime.InvokeVoidAsync("applyPulseTheme", pTheme);
             await InvokeAsync(StateHasChanged);
         };
     }
@@ -566,38 +564,55 @@
         // IsOpen = true;
     }
 
-    
-    private async void AppBarClick(IAppBarItem item)
+
+    private async Task AppBarClick(IAppBarItem item)
     {
         homeSel = false;
-        aiSel = false;
         custSel = false;
         prodSel = false;
         adminSel = false;
+        string pgNav = string.Empty;
+
         switch (item.Text)
         {
             case "Home":
                 homeSel = true;
-                Navigation.NavigateTo("/EmployeeZone/");
-                return;
-            case "Pulse AI":
-                aiSel = true;
-                Navigation.NavigateTo("/AiZone/AIQueryPg");
-                return;
+                pgNav = "/EmployeeZone/";
+                break;
             case "Customers":
+                
+                    string? result = await mnuAiGlobalFunctions.OpenClientSearch(mnuAiDialogService);
+                    
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        string cErrMsg = "There is no client selected.<br />Please select one to access customer information.";
+                        PulseToastService.ShowToast("Warning",cErrMsg,true);
+                        await GlobalAI.AISpeak(cErrMsg,"PulseAI");
+                        return;
+                    }
+
+                    customer = await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(result));
+                    await dataTrf.SetgvSelectedClient(customer);
+                //
                 custSel = true;
-                Navigation.NavigateTo("/EmployeeZone/SearchPages/ClientSearch");
-                return;
+                pgNav = "/EmployeeZone/Customers/ClientDashboard";
+                break;
+                // custSel = true;
+                // pgNav = "/EmployeeZone/SearchPages/ClientSearch";
+                // break;
             case "Production":
-                prodSel = true;
-                Navigation.NavigateTo("/EmployeeZone/Production/ProductionDashboard");
-                return;
+                prodSel = true; 
+                pgNav = "/EmployeeZone/Production/ProductionDashboard";
+                break;
             case "Admin":
                 adminSel = true;
-                Navigation.NavigateTo("/AdminZone/AdminDashboard");
-                return;
+                pgNav = "/AdminZone/AdminDashboard";
+                break;
 
         }
+                                          
+        Navigation.NavigateTo(pgNav,true);
+        await InvokeAsync(StateHasChanged);
     }
 
     #region Ali

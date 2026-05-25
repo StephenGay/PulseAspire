@@ -7,27 +7,40 @@
 
     @if (Config.ChartType.Equals("Bar", StringComparison.OrdinalIgnoreCase))
     {
-        @foreach (var s in Config.Series ?? new())
+        @foreach (var series in Config.Series ?? new List<ChartSeriesConfig>())
         {
-            <RadzenBarSeries Data="@s.Data" CategoryProperty="Label" ValueProperty="Value" Title="@s.Name" />
+            <RadzenBarSeries Data="@series.Data" 
+                             CategoryProperty="Label" 
+                             ValueProperty="Value" 
+                             Title="@series.Name" />
         }
     }
     else if (Config.ChartType.Equals("Line", StringComparison.OrdinalIgnoreCase))
     {
-        @foreach (var s in Config.Series ?? new())
+        @foreach (var series in Config.Series ?? new List<ChartSeriesConfig>())
         {
-            <RadzenLineSeries Data="@s.Data" CategoryProperty="Label" ValueProperty="Value" Title="@s.Name" />
+            <RadzenLineSeries Data="@series.Data" 
+                              CategoryProperty="label" 
+                              ValueProperty="value" 
+                              Title="@series.Name" />
         }
     }
     else if (Config.ChartType.Equals("Pie", StringComparison.OrdinalIgnoreCase) || 
              Config.ChartType.Equals("Doughnut", StringComparison.OrdinalIgnoreCase))
     {
         <RadzenPieSeries Data="@(Config.Series?.FirstOrDefault()?.Data ?? new())" 
-                         CategoryProperty="Label" ValueProperty="Value" />
+                         CategoryProperty="Label" 
+                         ValueProperty="Value" />
     }
 
-    <RadzenCategoryAxis Title="@Config.XAxisTitle" />
-    <RadzenValueAxis Title="@Config.YAxisTitle" />
+    <!-- Correct way to set axis titles in Radzen -->
+    <RadzenCategoryAxis>
+        <RadzenAxisTitle Text="@(Config.XAxisTitle ?? "")" />
+    </RadzenCategoryAxis>
+
+    <RadzenValueAxis>
+        <RadzenAxisTitle Text="@(Config.YAxisTitle ?? "")" />
+    </RadzenValueAxis>
 </RadzenChart>
 
 @if (!string.IsNullOrWhiteSpace(Config.FooterNote))
@@ -36,8 +49,10 @@
 }
 
 @code {
-    [Parameter, EditorRequired] public ChartConfig Config { get; set; } = new();
+    [Parameter, EditorRequired] 
+    public ChartConfig Config { get; set; } = new();
+
     private RadzenChart? _chart;
 
-    // public async Task ExportPng() => await (_chart?.Export("png") ?? Task.CompletedTask);
+    // public async Task ExportAsPng() => await (_chart?.Export("png") ?? Task.CompletedTask);
 }

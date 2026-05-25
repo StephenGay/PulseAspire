@@ -12,6 +12,7 @@
 @using Pulse.Web.Services
 
 @inject AuthService _auth
+@inject AppState AppState
 @inject Global_AI_Functions GlobalAI
 @inject GlobalFunctions GlobalFunctions
 @inject DataTransferService dataTrf
@@ -41,26 +42,38 @@
                                         Match="NavLinkMatch.All"
                                         IconRest="DashboardIcon()"
                                         IconActive="DashboardIcon(active: true)"
+                                        OnClick="@(() => mnuActive="Dashboard")"
+                                        Class="@(mnuActive == "Dashboard" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Dashboard" />
             <FluentAppBarItem Href="/EmployeeZone/Customers/ClientProfile"
                                         IconRest="ProfileIcon()"
                                         IconActive="ProfileIcon(active: true)"
+                                        OnClick="@(() => mnuActive="Profile")"
+                                        Class="@(mnuActive == "Profile" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Profile" />
             <FluentAppBarItem Href="/EmployeeZone/Customers/ClientRollerSpecs"
                                         IconRest="RollersIcon()"
                                         IconActive="RollersIcon(active: true)"
+                                        OnClick="@(() => mnuActive="Rollers")"
+                                        Class="@(mnuActive == "Rollers" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Rollers" />
             <FluentAppBarItem Href="/EmployeeZone/Customers/ClientContacts"
                               IconRest="ContactsIcon()"
                               IconActive="ContactsIcon(active: true)"
+                              OnClick="@(() => mnuActive="Contacts")"
+                                        Class="@(mnuActive == "Contacts" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Contacts" />
             <FluentAppBarItem Href="/EmployeeZone/Customers/ClientBudgetPg"
                               IconRest="BudgetsIcon()"
                               IconActive="BudgetsIcon(active: true)"
+                              OnClick="@(() => mnuActive="Budgets")"
+                                Class="@(mnuActive == "Budgets" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Budgets" />
             <FluentAppBarItem Href="/EmployeeZone/Customers/ClientSales"
                                         IconRest="SalesIcon()"
                                         IconActive="SalesIcon(active: true)"
+                                        OnClick="@(() => mnuActive="Sales")"
+                                        Class="@(mnuActive == "Sales" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Sales" />
 
             <FluentAppBarItem Href="/EmployeeZone/Customers/TestLayout/ClientTestLay"
@@ -88,39 +101,16 @@
         }
         else
         {
-            @* Style = "width: 300px;" *@
-            @* @if (HasAssists)
-            { *@
-                <Animation Effect="@Effect.Shake" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2">
+            <Animation Effect="@Effect.Shake" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2">
                 <FluentButton Id="mnuAIBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiAssists">
-                    @* @(mAli.emoji.ToMarkup("40px")) *@
                     <img src="Images/AI/PulseAI_Female.jpg" alt="AI" style="height:100%;width:100%" />
                 </FluentButton>
-                @* <FluentIcon Id="botClientAssist" Value="@(new Icons.Filled.Size32.BotSparkle().WithColor("var(--pulse-dark-colour)"))" OnClick="() => openAssists = true" /> *@
                 <FluentTooltip Anchor="mnuAIBtn" HideTooltipOnCursorLeave="true" Delay=100>
                     <strong>Pulse AI:</strong><br />
                     I have some assist functions that may help<br />
                     when using Customer Accounts.<br />
                 </FluentTooltip>
-                </Animation>
-                @* <FluentPopover style="color: white" VerticalThreshold="170" AnchorId="botClientAssist" @bind-Open="mnuAssists">
-                    <Header >AI Assists</Header>
-                    <Body>
-                        <FluentStack Orientation="Orientation.Vertical">
-                            @if (!customer.clientBudgets.Any())
-                            {
-                            <FluentButton IconStart="@(new Icons.Filled.Size24.SparkleAction().WithColor("#365b66"))" class="btnShadow" style="border: 1px solid white" OnClick="CreateCYBudget">Budgets</FluentButton>
-                            }
-                            @if (customer.AiSummary == null || customer.AiSummary == "")
-                            {
-                            <FluentButton IconStart="@(new Icons.Filled.Size24.SparkleAction().WithColor("#365b66"))" class="btnShadow" style="border: 1px solid white" OnClick="AddAiSummary">Summary</FluentButton>
-                            }
-                        </FluentStack>
-                    </Body>
-                    <Footer>Callout Footer</Footer>
-                </FluentPopover> *@
-                
-            @* } *@
+            </Animation>
         }
         
     }
@@ -213,7 +203,7 @@ else
     private bool showingBody = true;
     private bool startAni = false;
     private List<ApplicationUserSpeedDial>? custSpeedDial;
-
+    private string mnuActive = "Dashboard";
     private string sState = "LOAD";
     private string _Analysis = string.Empty;
     private string _AssistWith = string.Empty;
@@ -225,28 +215,28 @@ else
     #region AppBar Icons
 
     private static Icon DashboardIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.BoardSplit().WithColor("#365b66")
-               : new Icons.Regular.Size24.BoardSplit().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.BoardSplit()
+               : new Icons.Regular.Size24.BoardSplit();
 
     private static Icon ProfileIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.ContentView().WithColor("#365b66")
-               : new Icons.Regular.Size24.ContentView().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.ContentView()
+               : new Icons.Regular.Size24.ContentView();
 
     private static Icon RollersIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.CompassNorthwest().WithColor("#365b66")
-               : new Icons.Regular.Size24.CompassNorthwest().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.CompassNorthwest()
+               : new Icons.Regular.Size24.CompassNorthwest();
 
     private static Icon ContactsIcon(bool active = false) =>
-    active ? new Icons.Filled.Size24.ContactCard().WithColor("#365b66")
-    : new Icons.Regular.Size24.ContactCard().WithColor("#365b66");
+    active ? new Icons.Filled.Size24.ContactCard()
+    : new Icons.Regular.Size24.ContactCard();
 
     private static Icon BudgetsIcon(bool active = false) =>
-    active ? new Icons.Filled.Size24.Money().WithColor("#365b66")
-    : new Icons.Regular.Size24.Money().WithColor("#365b66");
+    active ? new Icons.Filled.Size24.Money()
+    : new Icons.Regular.Size24.Money();
 
     private static Icon SalesIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.ChartMultiple().WithColor("#365b66")
-               : new Icons.Regular.Size24.ChartMultiple().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.ChartMultiple()
+               : new Icons.Regular.Size24.ChartMultiple();
 
     #endregion
 
@@ -258,6 +248,13 @@ else
         await GetClientInfo();
 
         isLoading = false;
+        // AppState.OnClientChange += async () =>
+        // {
+        //     // ApplicationUserSettings uSettings = await dataTrf.GetgvUserSettings();
+        //     // pTheme = uSettings!.UserTheme ?? "pulse";
+        //     // await JSRuntime.InvokeVoidAsync("applyPulseTheme", pTheme);
+        //     await InvokeAsync(StateHasChanged);
+        // };
 
 
     }
@@ -325,7 +322,8 @@ else
     {
 
         Customer check = await dataTrf.GetgvSelectedClient();
-        if (check.ClientSales == null)
+        if(check != null){
+        if (check?.ClientSales! == null)
         {
             check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
             await dataTrf.SetgvSelectedClient(check);
@@ -333,9 +331,9 @@ else
         custSpeedDial = await dataTrf.GetgvUserSpeedDial("Customer");
         onSpeeddial = custSpeedDial.Exists(sd => sd.ItemCode == check.FullClientID);
     
-        if(check.clientBudgets == null)
+        if(check?.clientBudgets! == null)
         {
-            check.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>($"/Customers/Details/{check.FullClientID}/Budgets/{period.FinancialYear}");
+            check.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>(ApiEndpoints.Customers.ByFullClientID.Budget.ByFinancialYear.Get(check.FullClientID,period.FinancialYear));
             // if (check.clientBudgets.Any())
             // {
                 await dataTrf.SetgvSelectedClient(check);
@@ -350,6 +348,7 @@ else
             HasAssists = true;
         }
         customer = check;
+        }
     }
     private void CheckForAssists()
     {

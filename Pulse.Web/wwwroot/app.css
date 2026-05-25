@@ -103,6 +103,76 @@ fluent-dialog {
 
 /*#endregion Layout for AI Pages*/
 
+/*#region Pulse Menu Buttons*/
+
+.nbMainSel {
+    background-color: var(--pulse-light-colour) !important;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+    .nbMainSel svg[part="icon-active"] {
+        fill: var(--pulse-dark-colour) !important;
+    }
+
+    .nbMainSel div[part="label"] {
+        color: var(--pulse-dark-colour) !important;
+    }
+
+.nbMainUnSel {
+    background-color: var(--pulse-dark-colour) !important;
+}
+
+    .nbMainUnSel svg[part="icon-rest"] {
+        /* fill: white !important; */
+        fill: var(--pulse-light-colour) !important;
+    }
+
+    .nbMainUnSel svg[part="icon-active"] {
+        /* fill: white !important; */
+        fill: var(--pulse-light-colour) !important;
+    }
+
+    .nbMainUnSel div[part="label"] {
+        /* color: white !important; */
+        color: var(--pulse-light-colour) !important;
+    }
+
+
+.nbZoneUnSel {
+    background-color: var(--pulse-light-colour) !important;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+    .nbZoneUnSel svg[part="icon-rest"] {
+        fill: var(--pulse-dark-colour) !important;
+    }
+
+    .nbZoneUnSel svg[part="icon-active"] {
+        fill: var(--pulse-dark-colour) !important;
+    }
+
+    .nbZoneUnSel div[part="label"] {
+        color: var(--pulse-dark-colour) !important;
+    }
+
+.nbZoneSel {
+    background-color: var(--pulse-dark-colour) !important;
+    border-radius:10px;
+}
+
+    .nbZoneSel svg[part="icon-active"] {
+        /* fill: white !important; */
+        fill: var(--pulse-light-colour) !important;
+    }
+
+    .nbZoneSel div[part="label"] {
+        /* color: white !important; */
+        color: var(--pulse-light-colour) !important;
+    }
+
+/*#endregion Pulse Menu Buttons*/
 
 /*#region Layout for Pulse Zones */
 .PulseZoneParent {
@@ -305,6 +375,48 @@ fluent-dialog {
 
 /*#endregion Radzen Table Formatting*/
 
+/*#region Radzen Dialog Formatting*/
+
+.rz-dialog {
+    border-radius: 10px !important;
+    background-color: var(--pulse-light-colour) !important;
+}
+.rz-dialog-titlebar {
+    background-color: var(--pulse-dark-colour) !important;
+    padding-block: 0px 0px !important;
+    padding-inline: 0px 0px !important;
+    padding: 15px !important;
+}
+.rz-dialog-title {
+    color: var(--pulse-light-colour) !important;
+}
+.rz-dialog-mask {
+    opacity: 0.8 !important;
+}
+.rz-dialog-content {
+    padding: 0px !important;
+    flex: 1 1 !important;
+}
+
+.pulseDialogParent {
+    display: flex;
+    flex-direction: column; /* Stack children vertically */
+    height: 100%; /* Or whatever height your parent should be, like 100% */
+    overflow: hidden;
+}
+
+.pulseDialogHeader, .pulseDialogFooter {
+    /* Fixed sizes; flexbox will respect these */
+    height: 60px; /* Or min-height if you want flexibility */
+    background: var(--pulse-dark-t50-colour);
+}
+
+.pulseDialogContent {
+    flex: 1; /* This magic makes it grow to fill the space */
+    overflow: auto;
+}
+
+/*#endregion Radzen Dialog Formatting*/
 .div-center-screen {
     display: flex;
     flex-direction: column;

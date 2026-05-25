@@ -3,6 +3,8 @@
 @using Pulse.Web.Components.Pages.Notifications
 @using Pulse.Web.Components.PulseComponents.Cards
 @using Pulse.Web.Services
+@using Pulse.Models.AI.Tools
+
 @inject Pulse.Web.Services.DataTransferService dts
 @inject AppState AppState
 @inject IPulseToastService ToastService
@@ -81,13 +83,7 @@
                 Warning
             </button>
         </div>
-        <IntersectionObserver OnVisible="OnCardVisible">
-            <div class="animate-on-scroll @(_isVisible ? "visible" : "")">
-                <FluentCard>
-                    <h3>This card animates when scrolled into view</h3>
-                </FluentCard>
-            </div>
-        </IntersectionObserver>
+        @* <Pulse.Web.Components.Pages.AiZone.DynamicRadzenChart Config="1"></Pulse.Web.Components.Pages.AiZone.DynamicRadzenChart> *@
 
 
     </div>
@@ -96,6 +92,7 @@
 @code {
     private string SelectedAI = "PulseAI";
     private bool _isVisible = false;
+    private ChartConfig? chartConfig;
 
     private void OnCardVisible()
     {
@@ -107,6 +104,7 @@
         await dts.SetgvContextArea(0);
         ShowAiIcon showAi = new ShowAiIcon();
         await dts.SetgvShowAI(showAi);
+        
         await AppState.NotifyStateChanged();
     }
 

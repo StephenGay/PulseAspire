@@ -38,19 +38,20 @@ namespace Pulse.Web.Services
 
         #region Core HTTP Methods
 
-        public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default) 
-            where T : class
+        public async Task<T?> GetAsync<T>(string requestUri, CancellationToken ct = default)
+    where T : class
         {
             ArgumentException.ThrowIfNullOrEmpty(requestUri);
 
+            string? content = null;
             try
             {
                 _logger.LogDebug("GET request to {RequestUri}", requestUri);
                 var response = await _httpClient.GetAsync(requestUri, ct);
-                
+
                 response.EnsureSuccessStatusCode();
-                var content = await response.Content.ReadAsStringAsync(ct);
-                
+                content = await response.Content.ReadAsStringAsync(ct);
+
                 if (string.IsNullOrWhiteSpace(content))
                 {
                     _logger.LogWarning("Empty response body from {RequestUri}", requestUri);
@@ -61,7 +62,7 @@ namespace Pulse.Web.Services
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}", 
+                _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}",
                     requestUri, ex.StatusCode);
                 throw new PulseApiException(
                     $"HTTP request failed: {ex.StatusCode}",
@@ -71,7 +72,31 @@ namespace Pulse.Web.Services
             }
             catch (JsonException ex)
             {
-                _logger.LogError(ex, "JSON deserialization failed for {RequestUri}", requestUri);
+                _logger.LogError(ex, "JSON deserialization failed for {RequestUri} as type {Type}",
+                    requestUri, typeof(T).Name);
+
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    try
+                    {
+                        // Fallback: attempt to deserialize as ApiResponse<T> wrapper
+                        _logger.LogDebug("Attempting to deserialize as ApiResponse<{Type}>", typeof(T).Name);
+                        var apiResponse = JsonSerializer.Deserialize<ApiResponse<T>>(content, _jsonOptions);
+
+                        if (apiResponse?.Data != null)
+                        {
+                            _logger.LogInformation("Successfully deserialized as ApiResponse<{Type}>", typeof(T).Name);
+                            return apiResponse.Data;
+                        }
+
+                        _logger.LogWarning("ApiResponse deserialization succeeded but Data property was null");
+                    }
+                    catch (JsonException fallbackEx)
+                    {
+                        _logger.LogError(fallbackEx, "Fallback deserialization as ApiResponse<{Type}> also failed", typeof(T).Name);
+                    }
+                }
+
                 throw new PulseApiException(
                     "Invalid JSON response from server",
                     requestUri,
@@ -679,7 +704,7 @@ namespace Pulse.Web.Services
             ArgumentNullException.ThrowIfNull(updateData);
 
             return await PatchAsync(
-                ApiEndpoints.Customers.Details.UpdateMasterFile(client.FullClientID),
+                ApiEndpoints.Customers.ByFullClientID.MasterFile.Update(client.FullClientID),
                 updateData, ct);
         }
 

@@ -1,7 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-
 @using Pulse.Web.Components.PulseComponents.Containers
+@using Pulse.Web.Services
 
 <!DOCTYPE html>
 <html lang="en">
@@ -47,7 +47,7 @@
 </head>
 
 <body>
-    <FluentDesignTheme StorageName="themePulse" Mode="DesignThemeModes.Light">
+    <FluentDesignTheme StorageName="themePulse" Mode="@(PulseThemeService.IsDarkMode ? DesignThemeModes.Dark : DesignThemeModes.Light)">
         <FluentDialogProvider />
         <FluentTooltipProvider />
 
@@ -125,3 +125,7 @@
 
 
 </html>
+
+@code {
+    [Inject] private PulseThemeService PulseThemeService { get; set; } = default!;
+}

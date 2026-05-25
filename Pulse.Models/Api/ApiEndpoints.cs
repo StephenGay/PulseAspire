@@ -1,4 +1,6 @@
-﻿using Pulse.Models.Production;
+﻿using Pulse.Models.Customers;
+using Pulse.Models.Production;
+using static Pulse.Models.Api.ApiEndpoints.Customers;
 
 namespace Pulse.Models.Api
 {
@@ -300,38 +302,55 @@ namespace Pulse.Models.Api
         public static class Customers
         {
             private const string Prefix = $"{ApiPrefix}/Customers";
+            public static string GetAllByCompany(int companyId) => $"{Prefix}/GetAllByCompany/{companyId}";
 
-            public static class Details
+            public static class ByFullClientID
             {
+                private const string ByFullClientIDPrefix = $"{Prefix}/ByFullClientID";
                 /// <summary>
                 /// Update customer master file.
                 /// Usage: {UpdateMasterFile(fullClientId)}
                 /// </summary>
-                public static string UpdateMasterFile(string fullClientId) =>
-                    $"{Prefix}/Details/{Uri.EscapeDataString(fullClientId)}/Update/MasterFile";
+                public static string GetCurrentStats(string fullClientId) => $"{ByFullClientIDPrefix}/CurrentStats/{Uri.EscapeDataString(fullClientId)}";
+                public static string GetSales(string fullClientId) => $"{ByFullClientIDPrefix}/Sales/{Uri.EscapeDataString(fullClientId)}";
+                public static string GetRollerSpecifications(string fullClientId) => $"{ByFullClientIDPrefix}/RollerSpecifications/{Uri.EscapeDataString(fullClientId)}";
+                public static class MasterFile
+                {
+                    private const string MasterFilePrefix = $"{ByFullClientIDPrefix}/MasterFile";
 
-                /// <summary>
-                /// Get customer sales history.
-                /// Usage: {GetSales(clientId)}
-                /// </summary>
-                public static string GetSales(string clientId) =>
-                    $"{Prefix}/Details/{Uri.EscapeDataString(clientId)}/Sales";
+                    public static string Get(string fullClientId) =>
+                    $"{MasterFilePrefix}/Get/{Uri.EscapeDataString(fullClientId)}";
+                    public static string Update(string fullClientId) =>
+                    $"{MasterFilePrefix}/Update/{Uri.EscapeDataString(fullClientId)}";
+                }
 
-                /// <summary>
-                /// Get customer current statistics.
-                /// Usage: {GetCurrentStats(clientId)}
-                /// </summary>
-                public static string GetCurrentStats(string clientId) =>
-                    $"{Prefix}/Details/{Uri.EscapeDataString(clientId)}/CurrentStats";
+                public static class Budget
+                {
+                    private const string BudgetPrefix = $"{ByFullClientIDPrefix}/Budgets";
 
-                /// <summary>
-                /// Get customer roller specifications.
-                /// Usage: {GetRollerSpecifications(clientId)}
-                /// </summary>
-                public static string GetRollerSpecifications(string clientId) =>
-                    $"{Prefix}/Details/{Uri.EscapeDataString(clientId)}/RollerSpecifications";
-            }
+                    public static class ByFinancialYear
+                    {
+                        private const string BudgetFinancialYearPrefix = $"{BudgetPrefix}/ByFinancialYear";
+                        public static string Get(string fullClientId, string financialYear) =>
+                                    $"{BudgetFinancialYearPrefix}/Get/{Uri.EscapeDataString(financialYear)}/{Uri.EscapeDataString(fullClientId)}";
 
+                        public static string CreateBlank(string fullClientId, string financialYear) =>
+                                    $"{BudgetFinancialYearPrefix}/CreateBlank/{Uri.EscapeDataString(financialYear)}/{Uri.EscapeDataString(fullClientId)}";
+                    }
+
+                    public static class ByPeriodID
+                    {
+                        private const string BudgetPeriodIDPrefix = $"{BudgetPrefix}/ByPeriodID";
+                        public static string Get(string fullClientId, string periodId) =>
+                                    $"{BudgetPeriodIDPrefix}/Get/{Uri.EscapeDataString(periodId)}/{Uri.EscapeDataString(fullClientId)}";
+
+                        public const string Update = $"{BudgetPeriodIDPrefix}/Update";
+
+                        public const string Add = $"{BudgetPeriodIDPrefix}/Add";
+                    }
+                }
+
+            }    
             public static class RollerSpecifications 
             {
                 private const string RollerSpecificationsPrefix = $"{Prefix}/RollerSpecifications";
@@ -341,7 +360,7 @@ namespace Pulse.Models.Api
                 public static string GetWorkOrdersByRollNumber(int ClientRollerID) => $"{RollerSpecificationsPrefix}/GetWOByRollerID/{ClientRollerID}";
                 public static string GetWorkOrdersBySpecificationID(string rollerSpecId) => $"{RollerSpecificationsPrefix}/GetWOBySpecID/{Uri.EscapeDataString(rollerSpecId)}";
             }
-        
+
         }
 
         #endregion

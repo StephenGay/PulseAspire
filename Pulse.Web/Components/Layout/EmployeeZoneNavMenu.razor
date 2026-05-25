@@ -15,14 +15,20 @@
                                         Match="NavLinkMatch.All"
                                         IconRest="DashboardIcon()"
                                         IconActive="DashboardIcon(active: true)"
+                              OnClick="@(() => mnuActive="Dashboard")"
+                              Class="@(mnuActive == "Dashboard" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Dashboard" />
             <FluentAppBarItem Href="/DivisionLogon"
                               IconRest="DivisionIcon()"
                               IconActive="DivisionIcon(active: true)"
+                              OnClick="@(() => mnuActive="Division")"
+                              Class="@(mnuActive == "Division" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Division" />
             <FluentAppBarItem Href="/UserSettings/UserSettingsPg"
                                         IconRest="SetupIcon()"
                                         IconActive="SetupIcon(active: true)"
+                              OnClick="@(() => mnuActive="MySetup")"
+                              Class="@(mnuActive == "MySetup" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="My Setup" />
             @* <FluentAppBarItem Href="/UserSettings/ThemesPg"
                               IconRest="SetupIcon()"
@@ -38,19 +44,20 @@
 @code 
 {
     // private User? u;
+    private string mnuActive = "Dashboard";
     #region AppBar Icons
 
     private static Icon DashboardIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.BoardSplit().WithColor("#365b66")
-               : new Icons.Regular.Size24.BoardSplit().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.BoardSplit()
+               : new Icons.Regular.Size24.BoardSplit();
 
     private static Icon DivisionIcon(bool active = false) =>
-            active ? new Icons.Filled.Size24.BuildingSwap().WithColor("#365b66")
-                : new Icons.Regular.Size24.BuildingSwap().WithColor("#365b66");
+            active ? new Icons.Filled.Size24.BuildingSwap()
+                : new Icons.Regular.Size24.BuildingSwap();
 
     private static Icon SetupIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.Settings().WithColor("#365b66")
-               : new Icons.Regular.Size24.Settings().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.Settings()
+               : new Icons.Regular.Size24.Settings();
 
     #endregion
     // protected override async Task OnInitializedAsync()

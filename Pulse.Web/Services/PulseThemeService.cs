@@ -8,26 +8,26 @@ namespace Pulse.Web.Services
         private readonly IJSRuntime _js;
         private readonly IPulseToastService _pulseToastService;
         private readonly Global_AI_Functions _globalAIFunctions;
-        //private readonly DesignThemeModes _thMode;
+        
 
         public string CurrentCustomTheme { get; private set; } = "pulse";
         public bool IsDarkMode { get; private set; } = false;
-        public PulseThemeService(IJSRuntime js, IPulseToastService pulseToastService, Global_AI_Functions globalAIFunctions/*, DesignThemeModes thMode*/)
+        public PulseThemeService(IJSRuntime js, IPulseToastService pulseToastService, Global_AI_Functions globalAIFunctions)
         {
             _js = js;
             _pulseToastService = pulseToastService;
             _globalAIFunctions = globalAIFunctions;
             //_thMode = thMode;
-            
+
         }
 
         public async Task SetThemeAsync(string themeName)
         {
             bool isSet = false;
             IsDarkMode = themeName.EndsWith("-dark");
-            themeName = themeName.Replace("-dark", "");
+            CurrentCustomTheme = themeName.Replace("-dark", "");
             
-            
+
             try
             {
                 await _js.InvokeVoidAsync("applyPulseTheme", themeName);

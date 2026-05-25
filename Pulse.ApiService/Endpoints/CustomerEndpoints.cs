@@ -2,6 +2,7 @@
 using Pulse.Models.Api;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
+using Pulse.Models.Dtos.Customers;
 using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Rollers;
@@ -13,8 +14,10 @@ namespace Pulse.ApiService.Endpoints
     internal static class CustomerEndpoints
     {
         internal const string BasePath = "/Customers";
-        internal const string ByIdPath = "/Details/{fullclientid}";
-        internal const string SalesByIdPath = "/Details/{fullclientid}/Sales";
+        internal const string ByIdPath = "/ByFullClientID";
+        internal const string MasterFilePath = "/ByFullClientID/MasterFile";
+        internal const string SalesPath = "/ByFullClientID/Sales";
+        internal const string BudgetsPath = "/ByFullClientID/Budgets";
 
         public static void MapCustomerEndpoints(this IEndpointRouteBuilder routes)
         {
@@ -24,9 +27,13 @@ namespace Pulse.ApiService.Endpoints
             group.MapGet("/GetAll", async (PulseDbContext db) =>
                 await db.ClientMaster.ToListAsync())
                 .WithName("GetAllCustomers")
-                .Produces<List<Customer>> (StatusCodes.Status200OK);
+                .Produces<List<Customer>>(StatusCodes.Status200OK);
 
-            group.MapGet(ByIdPath, async (string fullclientid, PulseDbContext db) =>
+            group.MapGet("/GetAllByCompany/{companyId}", GetClientsByCompany)
+                .WithName("GetAllCustomersByCompany")
+                .Produces<ApiResponse<List<CustomerTableItemDto>>>(StatusCodes.Status200OK);
+
+            group.MapGet(MasterFilePath + "/Get/{fullclientid}", async (string fullclientid, PulseDbContext db) =>
             {
                 var cust = await db.ClientMaster
                     .AsNoTracking()
@@ -39,7 +46,7 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(cust);
             })
                 .WithName("GetClientByID")
-                .Produces<Customer> (StatusCodes.Status200OK);
+                .Produces<Customer>(StatusCodes.Status200OK);
 
             group.MapGet(ByIdPath + "/Contacts/GetAll", async (string fullclientid, PulseDbContext db) =>
             {
@@ -53,25 +60,25 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetContactsByClientId")
                 .Produces<List<ClientContact>>(StatusCodes.Status200OK);
 
-            group.MapGet("/Details/{fullclientid}/Budgets/{FinancialYear}", async (string fullclientid, string FinancialYear, PulseDbContext db) =>
+            group.MapGet(BudgetsPath + "/ByFinancialYear/Get/{financialyear}/{fullclientid}", async (string fullclientid, string financialyear, PulseDbContext db) =>
             {
                 var budgets = await db.ClientBudgetMaster
                     .AsNoTracking()
-                    .Where(b => b.FullClientId == fullclientid && b.FinancialYear == FinancialYear)
+                    .Where(b => b.FullClientId == fullclientid && b.FinancialYear == financialyear)
                     .Include(b => b.period)
                     .ToListAsync();
                 if (!budgets.Any()) { budgets = new List<ClientBudgets>(); }
 
-                return Results.Ok(budgets);
+                return Results.Ok(ApiResponse<List<ClientBudgets>>.SuccessResponse(budgets));
             })
                 .WithName("GetClientBudget")
-                .Produces<List<ClientBudgets>> (StatusCodes.Status200OK);
+                .Produces<ApiResponse<List<ClientBudgets>>>(StatusCodes.Status200OK);
 
-            group.MapGet("/Details/{fullclientid}/Budgets/{FinancialYear}/CreateBlank", async (string fullclientid, string FinancialYear, PulseDbContext db) =>
+            group.MapGet(BudgetsPath + "/ByFinancialYear/CreateBlank/{financialyear}/{fullclientid}", async (string fullclientid, string financialyear, PulseDbContext db) =>
             {
                 var per = await db.PeriodMaster
                     .AsNoTracking()
-                    .Where(p => p.FinancialYear == FinancialYear)
+                    .Where(p => p.FinancialYear == financialyear)
                     .Select(p => new BlankClientBudget
                     {
                         FullClientId = fullclientid,
@@ -79,16 +86,82 @@ namespace Pulse.ApiService.Endpoints
                         Month = p.Month,
                         CalenderYear = p.CalendarYear,
                         FinancialYear = p.FinancialYear,
-                        BudgetedSales = 0
+                        BudgetedSales = 0,
+                        AIForecast = 0
                     })
                     .ToListAsync();
 
-                return Results.Ok(per);
+                return Results.Ok(ApiResponse<List<BlankClientBudget>>.SuccessResponse(per));
             })
                 .WithName("GetBlankClientBudget")
-                .Produces<List<BlankClientBudget>>(StatusCodes.Status200OK);
+                .Produces<ApiResponse<List<BlankClientBudget>>>(StatusCodes.Status200OK);
 
-            group.MapGet(SalesByIdPath, async (string fullclientid, PulseDbContext dbContext) =>
+            group.MapGet(BudgetsPath + "/ByPeriodID/Get/{periodid}/{fullclientid}", async (string fullclientid, int periodid, PulseDbContext db) =>
+            {
+                var budget = await db.ClientBudgetMaster
+                    .AsNoTracking()
+                    .Where(b => b.FullClientId == fullclientid && b.PeriodID == periodid)
+                    .Include(b => b.period)
+                    .FirstOrDefaultAsync();
+                if (budget == null) 
+                {
+                    return Results.NotFound(ApiResponse<ClientBudgets>.ErrorResponse($"No budget found for client {fullclientid} and period {periodid}.", statusCode: StatusCodes.Status404NotFound));
+                }
+
+                return Results.Ok(ApiResponse<ClientBudgets>.SuccessResponse(budget));
+            })
+                .WithName("GetClientBudgetForPeriod")
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status404NotFound)
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status200OK);
+
+            group.MapPost(BudgetsPath + "/ByPeriodID/Add", async (ClientBudgets clBud, PulseDbContext dbContext) =>
+            {
+                dbContext.ClientBudgetMaster.Add(clBud);
+                
+                try
+                {
+                    var rowsAffected = await dbContext.SaveChangesAsync();
+                    return Results.Created($"{BasePath}{BudgetsPath}/ByPeriodID/Add/{clBud.ClientBudgetId}", ApiResponse<ClientBudgets>.SuccessResponse(clBud));
+                    
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    return Results.Conflict(ApiResponse<ClientBudgets>.ErrorResponse("The record was modified by another user.", statusCode: StatusCodes.Status409Conflict));
+                }
+                catch
+                {
+                    return Results.BadRequest(ApiResponse<ClientBudgets>.ErrorResponse("No changes were saved.", statusCode: StatusCodes.Status400BadRequest));
+                }
+            })
+                .WithName("AddClientBudget")
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status200OK)
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status400BadRequest)
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status409Conflict)
+                ;
+
+            group.MapPut(BudgetsPath + "/ByPeriodID/Update", async (ClientBudgets clBud, PulseDbContext dbContext) =>
+            {
+                dbContext.ClientBudgetMaster.Update(clBud);
+
+                try
+                {
+                    var rowsAffected = await dbContext.SaveChangesAsync();
+                    return rowsAffected > 0
+                        ? Results.Ok(ApiResponse<ClientBudgets>.SuccessResponse(clBud))
+                        : Results.BadRequest(ApiResponse<ClientBudgets>.ErrorResponse("No changes were saved.", statusCode: StatusCodes.Status400BadRequest));
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    return Results.Conflict(ApiResponse<ClientBudgets>.ErrorResponse("The record was modified by another user.", statusCode: StatusCodes.Status409Conflict));
+                }
+            })
+                .WithName("UpdateClientBudget")
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status200OK)
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status400BadRequest)
+                .Produces<ApiResponse<ClientBudgets>>(StatusCodes.Status409Conflict)
+                ;
+
+            group.MapGet(SalesPath + "/{fullclientid}", async (string fullclientid, PulseDbContext dbContext) =>
             {
                 var sales = await dbContext.ClientSales
                     .Where(s => s.FullClientID == fullclientid)
@@ -117,7 +190,7 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetCustomerSalesById")
                 .Produces<object[]>(200);
 
-            group.MapGet(ByIdPath + "/RollerSpecifications", async (string fullclientid, PulseDbContext dbContext) =>
+            group.MapGet(ByIdPath + "/RollerSpecifications/{fullclientid}", async (string fullclientid, PulseDbContext dbContext) =>
             {
                 var specs = await dbContext.ClientRollerSpecificationMaster
                     .Where(s => s.FullClientID == fullclientid)
@@ -218,10 +291,10 @@ namespace Pulse.ApiService.Endpoints
                             wo.MaterialCost,
                             wo.SellPrice,
                             wo.Status,
-                            wo.Customer != null ? new CustomerDto(wo.Customer.FullClientID, wo.Customer.ClientName, wo.Customer.TaxCodeID,wo.Customer.FullChargeClientID,wo.Customer.CompanyID,wo.Customer.ClientID) : null,
-                            wo.Period != null ? new PeriodDto(wo.Period.PeriodID, wo.Period.Month,wo.Period.CalendarYear,wo.Period.FinancialYear, wo.Period.StartDate) : null,
+                            wo.Customer != null ? new WOCustomerDto(wo.Customer.FullClientID, wo.Customer.ClientName, wo.Customer.TaxCodeID, wo.Customer.FullChargeClientID, wo.Customer.CompanyID, wo.Customer.ClientID) : null,
+                            wo.Period != null ? new PeriodDto(wo.Period.PeriodID, wo.Period.Month, wo.Period.CalendarYear, wo.Period.FinancialYear, wo.Period.StartDate) : null,
                             wo.WorkType != null ? new WorkTypeDto(wo.WorkType.WorkTypeID, wo.WorkType.WorkTypeName) : null,
-                            wo.Division != null ? new DivisionDto(wo.Division.DivisionID, wo.Division.DivisionName,wo.Division.CompanyID,wo.Division.BranchID) : null,
+                            wo.Division != null ? new DivisionDto(wo.Division.DivisionID, wo.Division.DivisionName, wo.Division.CompanyID, wo.Division.BranchID) : null,
                             wo.ClientRollerSpecification != null
                                 ? new ClientRollerSpecificationDto(
                                     wo.ClientRollerSpecification.ClientRollerSpecificationID,
@@ -240,7 +313,7 @@ namespace Pulse.ApiService.Endpoints
                                     wo.ClientRoller.IsActive,
                                     new List<WorksOrderDto>())   // minimal self-reference
                                 : null,
-                            wo.Compound != null ? new CompoundDto(wo.Compound.CompoundCode, wo.Compound.CompoundDescription,wo.Compound.CompoundType) : null
+                            wo.Compound != null ? new CompoundDto(wo.Compound.CompoundCode, wo.Compound.CompoundDescription, wo.Compound.CompoundType) : null
                         )).ToList()
                     ))
                     .ToListAsync();
@@ -250,7 +323,7 @@ namespace Pulse.ApiService.Endpoints
             })
                 .WithName("GetRollersForSpecification");
 
-            group.MapGet(ByIdPath + "/CurrentStats", async (string fullclientid, PulseDbContext db) =>
+            group.MapGet(ByIdPath + "/CurrentStats/{fullclientid}", async (string fullclientid, PulseDbContext db) =>
             {
                 var openWOCount = await db.WorksOrder
                     .Where(wo => wo.FullClientID == fullclientid && wo.UndelQty > 0)
@@ -259,7 +332,8 @@ namespace Pulse.ApiService.Endpoints
                 var openQuoteCount = 0;
                 var isset = true;
 
-                var stats = new ClientCurrentStats {
+                var stats = new ClientCurrentStats
+                {
                     FullClientID = fullclientid,
                     isSet = isset,
                     countWipWOs = openWOCount,
@@ -271,26 +345,21 @@ namespace Pulse.ApiService.Endpoints
 
             #endregion
 
-            group.MapPost("/Budgets/Add/", async (ClientBudgets clBud, PulseDbContext dbContext) =>
-            {
-                dbContext.ClientBudgetMaster.Add(clBud);
-                await dbContext.SaveChangesAsync();
-                return Results.Created("/Customers/Budgets/Add/", clBud);
-            });
+           
 
             #region PATCH Functions
 
-            group.MapPatch(ByIdPath + "/Update/MasterFile", async (string fullclientid, CustomerUpdateDto updates,
+            group.MapPatch(MasterFilePath + "/Update/{fullclientid}", async (string fullclientid, CustomerUpdateDto updates,
                 PulseDbContext db) =>
             {
                 if (updates == null)
-                    return Results.BadRequest("No update data provided.");
+                    return Results.BadRequest(ApiResponse<Customer>.ErrorResponse("No update data provided.", statusCode: StatusCodes.Status400BadRequest));
 
                 var client = await db.ClientMaster
                     .FirstOrDefaultAsync(c => c.FullClientID == fullclientid);
 
                 if (client == null)
-                    return Results.NotFound($"Client {fullclientid} not found.");
+                    return Results.NotFound(ApiResponse<Customer>.ErrorResponse($"Client {fullclientid} not found.", statusCode: StatusCodes.Status404NotFound));
 
                 // Apply only non-null values from the DTO
                 if (updates.ClientName != null) client.ClientName = updates.ClientName.Trim();
@@ -329,19 +398,19 @@ namespace Pulse.ApiService.Endpoints
                 {
                     var rowsAffected = await db.SaveChangesAsync();
                     return rowsAffected > 0
-                        ? Results.Ok(client)
-                        : Results.Problem("No changes were saved.");
+                        ? Results.Ok(ApiResponse<Customer>.SuccessResponse(client))
+                        : Results.BadRequest(ApiResponse<Customer>.ErrorResponse("No changes were saved.", statusCode: StatusCodes.Status400BadRequest));
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    return Results.Conflict("The record was modified by another user.");
+                    return Results.Conflict(ApiResponse<Customer>.ErrorResponse("The record was modified by another user.", statusCode: StatusCodes.Status409Conflict));
                 }
             })
     .WithName("PatchClientPartial")
-    .Produces<Customer>(StatusCodes.Status200OK)
-    .Produces(StatusCodes.Status400BadRequest)
-    .Produces(StatusCodes.Status404NotFound)
-    .Produces(StatusCodes.Status409Conflict)
+    .Produces<ApiResponse<Customer>>(StatusCodes.Status200OK)
+    .Produces<ApiResponse<Customer>>(StatusCodes.Status400BadRequest)
+    .Produces<ApiResponse<Customer>>(StatusCodes.Status404NotFound)
+    .Produces<ApiResponse<Customer>>(StatusCodes.Status409Conflict)
     .Accepts<CustomerUpdateDto>("application/json");
 
             #endregion
@@ -353,11 +422,46 @@ namespace Pulse.ApiService.Endpoints
                     .Where(s => s.ClientRollerSpecificationID == specId && s.IsActive)
                     .ToListAsync();
 
-            if(shafts == null)
+            if (shafts == null)
             {
                 shafts = new List<RollerShaft>();
             }
             return Results.Ok(new ApiResponse<List<RollerShaft>>(shafts));
+        }
+
+        private static async Task<IResult> GetClientsByCompany(int companyId, PulseDbContext db)
+        {
+            var clients = await db.ClientMaster
+                .Where(c => c.CompanyID == companyId)
+                .Include(x => x.Industry!)
+                .Include(x => x.Region!)
+                    .ThenInclude(r => r.Province!)
+                        .ThenInclude(p => p.Country!)
+                .Include(x => x.SalesRepresentative!)
+                .Select(c => new CustomerTableItemDto(
+                    c.FullClientID,
+                    c.ClientName,
+                    c.Region != null ? c.Region.RegionName : null,
+                    c.Region != null && c.Region.Province != null ? c.Region.Province.ProvinceName : null,
+                    c.Region != null && c.Region.Province != null && c.Region.Province.Country != null ? c.Region.Province.Country.CountryName : null,
+                    c.SalesRepresentative != null ? c.SalesRepresentative.RepresentativeName : null,
+                    c.Industry != null ? c.Industry.IndustryName : null,
+                    c.CreatedDate,
+                    c.Blocked,
+                    c.Address1,
+                    c.Address2,
+                    c.Address3,
+                    c.PostalAddress1,
+                    c.PostalAddress2,
+                    c.PostalAddress3,
+                    c.Phone,
+                    c.EMail,
+                    c.Company != null ? c.Company.CompanyName : null
+                ))
+                .ToListAsync();
+            return Results.Ok(ApiResponse<List<CustomerTableItemDto>>.SuccessResponse(clients));
+
+
         }
     }
 }

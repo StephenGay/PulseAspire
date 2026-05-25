@@ -11,34 +11,50 @@
                                         Match="NavLinkMatch.All"
                                         IconRest="DashboardIcon()"
                                         IconActive="DashboardIcon(active: true)"
+                                          OnClick="@(() => mnuActive="Dashboard")"
+                                          Class="@(mnuActive == "Dashboard" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Dashboard" />
             <FluentAppBarItem Href="/EmployeeZone/Production/WorkInProgress"
                                         IconRest="WIPIcon()"
                                         IconActive="WIPIcon(active: true)"
+                                          OnClick="@(() => mnuActive="WIP")"
+                                          Class="@(mnuActive == "WIP" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="W.I.P." />
             <FluentAppBarItem Href="/EmployeeZone/Production/ProductionCalendar"
                                         IconRest="PlanIcon()"
                                         IconActive="PlanIcon(active: true)"
+                                          OnClick="@(() => mnuActive="Plan")"
+                                          Class="@(mnuActive == "Plan" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Plan" />
             <FluentAppBarItem Href="/EmployeeZone/Production/NonConformance/NCRReports"
                                           IconRest="PlanIcon()"
                                           IconActive="PlanIcon(active: true)"
+                                          OnClick="@(() => mnuActive="NCR")"
+                                          Class="@(mnuActive == "NCR" ? "nbZoneSel" : "nbZoneUnSel")"
                                           Text="Non-Conformance" />
             <FluentAppBarItem Href="/EmployeeZone/Production/Setup/old/ProductionSetupHome"
                                         IconRest="SetupIcon()"
                                         IconActive="SetupIcon(active: true)"
+                                          OnClick="@(() => mnuActive="Setup")"
+                                          Class="@(mnuActive == "Setup" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Setup" />
             <FluentAppBarItem Href="/EmployeeZone/Production/Setup/WorkCentres/WorkCentreManagementPg"
                               IconRest="SetupIcon()"
                               IconActive="SetupIcon(active: true)"
+                              OnClick="@(() => mnuActive="WorkCentres")"
+                              Class="@(mnuActive == "WorkCentres" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Work Centres" />
             <FluentAppBarItem Href="/EmployeeZone/Production/Setup/WorkTypes/WorkTypeManagementPg"
                               IconRest="SetupIcon()"
                               IconActive="SetupIcon(active: true)"
+                              OnClick="@(() => mnuActive="WorkTypes")"
+                              Class="@(mnuActive == "WorkTypes" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Work Types" />
             <FluentAppBarItem Href="/EmployeeZone/Production/Setup/Factory/FactoryLayout/FactoryLayout"
                               IconRest="SetupIcon()"
                               IconActive="SetupIcon(active: true)"
+                              OnClick="@(() => mnuActive="Layout")"
+                              Class="@(mnuActive == "Layout" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Factory Layout" />
         </FluentAppBar>
 
@@ -46,68 +62,9 @@
     <FluentSpacer />
 </FluentStack>
 
-@* <input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Production/ProductionDashboard" Match="NavLinkMatch.All">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-grid-fill" viewBox="0 0 16 16">
-                        <path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5zm8 0A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5zm-8 8A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5zm8 0A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5z" />
-                    </svg>
-                </span> Production Dashboard
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Production/WorkInProgress">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-vinyl" viewBox="0 0 16 16">
-                        <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14m0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16" />
-                        <path d="M8 6a2 2 0 1 0 0 4 2 2 0 0 0 0-4M4 8a4 4 0 1 1 8 0 4 4 0 0 1-8 0" />
-                        <path d="M9 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0" />
-                    </svg>
-                </span> Work In Progress
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Production/ProductionCalendar">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-calendar-week" viewBox="0 0 16 16">
-                        <path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm-5 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z" />
-                        <path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4z" />
-                    </svg>
-                </span> Production Plan
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Production/WorkCentres">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-braces-asterisk" viewBox="0 0 16 16">
-                        <path fill-rule="evenodd" d="M1.114 8.063V7.9c1.005-.102 1.497-.615 1.497-1.6V4.503c0-1.094.39-1.538 1.354-1.538h.273V2h-.376C2.25 2 1.49 2.759 1.49 4.352v1.524c0 1.094-.376 1.456-1.49 1.456v1.299c1.114 0 1.49.362 1.49 1.456v1.524c0 1.593.759 2.352 2.372 2.352h.376v-.964h-.273c-.964 0-1.354-.444-1.354-1.538V9.663c0-.984-.492-1.497-1.497-1.6M14.886 7.9v.164c-1.005.103-1.497.616-1.497 1.6v1.798c0 1.094-.39 1.538-1.354 1.538h-.273v.964h.376c1.613 0 2.372-.759 2.372-2.352v-1.524c0-1.094.376-1.456 1.49-1.456v-1.3c-1.114 0-1.49-.362-1.49-1.456V4.352C14.51 2.759 13.75 2 12.138 2h-.376v.964h.273c.964 0 1.354.444 1.354 1.538V6.3c0 .984.492 1.497 1.497 1.6M7.5 11.5V9.207l-1.621 1.621-.707-.707L6.792 8.5H4.5v-1h2.293L5.172 5.879l.707-.707L7.5 6.792V4.5h1v2.293l1.621-1.621.707.707L9.208 7.5H11.5v1H9.207l1.621 1.621-.707.707L8.5 9.208V11.5z" />
-                    </svg>
-                </span> Work Centres
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="/EmployeeZone/Production/WorkTypes">
-                <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-code-square" viewBox="0 0 16 16">
-                        <path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z" />
-                        <path d="M6.854 4.646a.5.5 0 0 1 0 .708L4.207 8l2.647 2.646a.5.5 0 0 1-.708.708l-3-3a.5.5 0 0 1 0-.708l3-3a.5.5 0 0 1 .708 0m2.292 0a.5.5 0 0 0 0 .708L11.793 8l-2.647 2.646a.5.5 0 0 0 .708.708l3-3a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708 0" />
-                    </svg>
-                </span> Work Types
-            </NavLink>
-        </div>
-    </nav>
-
-   
-
-</div> *@
-
 @code
 {
+    private string mnuActive = "Dashboard";
     #region AppBar Icons
 
     private static Icon DashboardIcon(bool active = false) =>

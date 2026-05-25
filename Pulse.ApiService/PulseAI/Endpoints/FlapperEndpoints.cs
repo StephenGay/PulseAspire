@@ -627,18 +627,46 @@ public static class FlapperEndpoints
 				method: (string url) => Task.FromResult("")
 			),
             AIFunctionFactory.Create(
-				(ChartConfig config) =>
-				{
-					// Optional: add validation or logging here
-					return config;
-				},
-				name: "CreateChart",
-				description: """
-					Creates a visual chart for the user. 
-					Use this tool whenever the user asks for a chart, graph, visualization, trend, comparison, or "show me" data.
-					Always use real data (call the Tables tool first if you need to query the database).
-					"""
-			)
+                (string chartType,
+     string title,
+     string xAxisTitle = "",           // ← Changed from string? to string with default
+     string yAxisTitle = "",           // ← Changed from string? to string with default
+     string dataJson = "[]",
+     string footerNote = "") =>
+    {
+        try
+        {
+            var dataPoints = System.Text.Json.JsonSerializer
+                .Deserialize<List<ChartDataPoint>>(dataJson) ?? new();
+
+            return new ChartConfig(
+                ChartType: chartType,
+                Title: title,
+                XAxisTitle: string.IsNullOrWhiteSpace(xAxisTitle) ? null : xAxisTitle,
+                YAxisTitle: string.IsNullOrWhiteSpace(yAxisTitle) ? null : yAxisTitle,
+                Series: new List<ChartSeriesConfig>
+                {
+                    new ChartSeriesConfig("Series", dataPoints)
+                },
+                FooterNote: string.IsNullOrWhiteSpace(footerNote) ? null : footerNote
+            );
+        }
+        catch (Exception ex)
+        {
+            return new ChartConfig("Bar", "Chart Error", null, null, null,
+                $"Failed to parse data: {ex.Message}");
+        }
+    },
+    name: "CreateChart",
+    description: """
+        Creates a chart. 
+        Parameters:
+        - chartType: "Bar", "Line", "Pie", "Doughnut", or "Area"
+        - title: Short descriptive title
+        - xAxisTitle, yAxisTitle: Axis labels (optional)
+        - dataJson: JSON array of objects with "label" and "value", e.g. [{"label":"North","value":125000}]
+        - footerNote: One sentence insight (optional)
+        """)
         };
 		
     }

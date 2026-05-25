@@ -9,7 +9,7 @@
     --pulse-light-colour: #bcd1d4;
     --pulse-light-2-colour: color-mix(in srgb, var(--pulse-light-colour) 60%, transparent);
     /* Background Image */
-    --pulse-theme-bg: url(../images/backgrounds/HMBG.png);
+    --pulse-theme-bg: url(../images/backgrounds/PulseAspireBG-Dark.png);
     /* Accent Button */
     --pulse-accent-btn-theme-bg: var(--pulse-dark-t75-colour);
     --pulse-accent-btn-theme-colour: white;

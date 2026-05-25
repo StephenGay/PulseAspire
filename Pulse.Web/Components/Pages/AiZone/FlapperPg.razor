@@ -429,14 +429,23 @@
                                     }
                                     else if (message.ContentType.ToUpper() == "AIRESPONSE")
                                     {
-                                        <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
+                                        
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+
+                                            <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black; white-space:pre-line">
                                             @* <RadzenMarkdown Style="margin:0; padding:0" Text="@message.Content" AllowHtml="true" /> *@
                                             <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
                                         </FluentLabel>
-                                        if (!string.IsNullOrEmpty(message.RawContent))
+                                        @if (!string.IsNullOrEmpty(message.RawContent))
                                         {
-                                            <DynamicRadzenChart Config="JsonSerializer.Deserialize<ChartConfig>(message.RawContent)" />
+                                            <div class="divShadow" Style=" background-color:lemonchiffon; padding:10px; width:100%; border-radius:15px; border: 1px solid black">
+                                                    
+                                                    
+                                                <DynamicRadzenChart Config="GetChartConfigFromMessage(message)" />
+                                                </div>
                                         }
+                                        </FluentStack>
+                                        
                                     }
                                 </FluentStack>
                             }
@@ -455,7 +464,7 @@
     private Flapper? flapper;
     private FlapperDTO? flapperDTO;
     private List<FlapperMessage> Messages { get; set; } = [];
-    
+
     private string CurrentUserMessage { get; set; } = string.Empty;
     private bool IsAwaitingClarification { get; set; } = false;
     private bool isStreamingResponse = true;
@@ -537,6 +546,19 @@
         }
     }
 
+    private ChartConfig? GetChartConfigFromMessage(FlapperMessage message)
+    {
+        if (string.IsNullOrEmpty(message.RawContent)) return null;
+        try
+        {
+            var config = GlobalFunctions.DeserialiseChartConfigString(message.RawContent);
+            return config;
+        }
+        catch
+        {
+            return null;
+        }
+    }
     private FlapperAvatar.FlapperEmotion DetectSimpleEmotion(string text)
     {
         text = text.ToLower();
@@ -570,7 +592,7 @@
                 OnTablesProgressUpdate;
         uName = await dtrf.GetgvUserFirstName();
         groupId = CurrentConversationId.ToString();
-        await MsgHubService.JoinGroup(groupId);
+        // // await MsgHubService.JoinGroup(groupId);
     }
 
     #endregion
@@ -614,6 +636,7 @@
                 if(!string.IsNullOrEmpty(groupId)) await MsgHubService.LeaveGroup(groupId);
                 await MsgHubService.JoinGroup(CurrentConversationId.ToString());
                 groupId = CurrentConversationId.ToString();
+                await GlobalAI.AISpeak("You have connected to a session with Tables", "Flapper");
             }
             return true;
         }
@@ -657,8 +680,8 @@
         var respF = SpokenResponse ? "[SPEECH] " : "[REPORT] ";
 
         respF += CurrentUserMessage;
-        
-        
+
+
 
         Messages.Add(new FlapperMessage { 
             Sender = "User", 
@@ -942,7 +965,7 @@
                 CurrentFlapperResponse = response.Content;
                 if (!string.IsNullOrEmpty(response.RawContent))
                 {
-                    CurrentChartConfig = JsonSerializer.Deserialize<ChartConfig>(response.RawContent);
+                    CurrentChartConfig = GlobalFunctions.DeserialiseChartConfigString(response.RawContent);
                 }
             }
             else
@@ -992,15 +1015,15 @@
 
 
         flapperThinking += res.Thinking;
-        
-            if (SpokenResponse)
-            {
-                // string cleanText = PrepareForSpeech(msgContent);
-                await SpeakIncremental(res.Content);
-            }
-                CurrentFlapperResponse += res.Content;
 
-       
+        if (SpokenResponse)
+        {
+            // string cleanText = PrepareForSpeech(msgContent);
+            await SpeakIncremental(res.Content);
+        }
+        CurrentFlapperResponse += res.Content;
+
+
 
 
         // var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
@@ -1012,7 +1035,7 @@
         await InvokeAsync(StateHasChanged);
     }
     #endregion
-    
+
     private async Task SpeakIncremental(string newDelta)
     {
 
@@ -1098,6 +1121,7 @@
         {
             flapper = await dtrf.GetgvFlapper();
             this._available = await this.SpeechRecognition.IsAvailableAsync();
+            CurrentChartConfig = GlobalFunctions.DeserialiseChartConfigString("""{"ChartType":"Bar","Title":"Total Sales for Columbus Stainless Pty Ltd by Financial Year","XAxisTitle":"Financial Year","YAxisTitle":"Total Sales (ZAR)","Series":[{"Name":"Colu","dataP":[{"label":"2011","value":9024639},{"label":"2012","value":8347613},{"label":"2013","value":8970765},{"label":"2014","value":9837427},{"label":"2015","value":14533455},{"label":"2016","value":17631786},{"label":"2017","value":15848810},{"label":"2018","value":17754530},{"label":"2019","value":15831415},{"label":"2020","value":10259007},{"label":"2021","value":12859604},{"label":"2022","value":14123825},{"label":"2023","value":15466854},{"label":"2024","value":21302104},{"label":"2025","value":20431121},{"label":"2026","value":4148269}]},{"Name":"Duf","dataP":[{"label":"2011","value":9024639},{"label":"2012","value":8347613},{"label":"2013","value":8970765},{"label":"2014","value":9837427},{"label":"2015","value":14533455},{"label":"2016","value":17631786},{"label":"2017","value":15848810},{"label":"2018","value":17754530},{"label":"2019","value":15831415},{"label":"2020","value":10259007},{"label":"2021","value":12859604},{"label":"2022","value":14123825},{"label":"2023","value":15466854},{"label":"2024","value":21302104},{"label":"2025","value":20431121},{"label":"2026","value":4148269}]}],"FooterNote":"2024 shows a significant jump of 33%"}""");
             StateHasChanged();
         }
     }

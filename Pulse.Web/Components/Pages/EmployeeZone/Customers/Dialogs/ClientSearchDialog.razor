@@ -1,0 +1,279 @@
+﻿@* @page "/EmployeeZone/SearchPages/ClientSearch" *@
+
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI.Tables
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Web.Components.PulseComponents.Controls
+@using static Pulse.Web.Models.MiscEnumLists
+@using Pulse.Models.Dtos.Customers
+@using Pulse.Web.Services
+@using Pulse.Models.Users
+@using Pulse.Models.Organizational
+@using System.Text.Json
+@using Pulse.Models.Api
+@using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis
+@inject PulseApiService pApiClient
+@inject NavigationManager Navigation
+@inject DataTransferService dts
+@inject AppState AppState
+@inject Radzen.DialogService dialogService
+@inject IJSRuntime JSRuntime
+@rendermode InteractiveServer
+
+<style>
+    
+    
+</style>
+        
+<div class="pulseDialogParent">
+    
+    <div class="pulseDialogContent">
+        
+
+        @if (!ViewSpeeddial)
+        {
+            <RadzenDataGrid @ref="radGrid" 
+                            Data="@_allCustomers" 
+                            FilterMode="FilterMode.Simple" 
+                            AllowFiltering="true" 
+                            AllowPaging="true" 
+                            AllowSorting="true" 
+                            AllowColumnResize="true"
+                            Style="height:100%;border-radius:10px"
+                            AllowVirtualization="false"
+                            AllowColumnPicking="true"
+                            @bind-Settings="@Settings" 
+                            @PickedColumnsChanged="OnPickedColumnsChanged"
+                            LoadSettings="@LoadSettings"
+                            AllowGrouping="true"
+                            PageSize="15" 
+                            HideGroupedColumn="true"
+                            GroupRowRender="OnGroupRowRender" 
+                            IsLoading = "@isLoading"
+                            SelectionMode="DataGridSelectionMode.Single"
+                            @bind-Value="@selectedCustomer"
+                            FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                            LogicalFilterOperator="LogicalFilterOperator.And"
+                            ColumnWidth="200px">
+
+                <Columns>
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="FullClientID" Title="Client ID" Width="70px" Visible="false" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="ClientName" Title="Client Name" FilterMode="FilterMode.SimpleWithMenu" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="PhysicalAddress1" Visible="false" Title="Physical 1" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="PhysicalAddress2" Visible="false" Title="Physical 2" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="PhysicalAddress3" Visible="false" Title="Physical 3" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="PostalAddress1" Visible="false" Title="Postal 1" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="PostalAddress2" Visible="false" Title="Postal 2" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="PostalAddress3" Visible="false" Title="Postal 3" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="Region" Visible="false" Title="Region" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="Province" Visible="false" Title="Province" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="Country" Visible="false" Title="Country" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="SalesRepName" Visible="false" Title="Representative" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="IndustryName" Visible="false" Title="Industry" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="CreatedDate" Visible="false" Title="Year Created" FormatString="{0:yyyy}" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="CreatedDate" Visible="false" Title="Month Created" FormatString="{0:MMMM}" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="Phone" Visible="false" Title="Phone No" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="EMail" Visible="false" Title="Email" />
+                    <RadzenDataGridColumn TItem="CustomerTableItemDto" Property="Blocked" Visible="false" Title="Blocked" />
+                </Columns>
+            </RadzenDataGrid>
+        }
+        else
+        {
+            if (speedDialList != null && speedDialList.Count > 0)
+            {
+                @* <div style="display:flex; flex-wrap:wrap; gap:10px; padding:10px;margin-top:150px;"> *@
+                <RadzenStack Orientation="Radzen.Orientation.Horizontal" Gap="20px" JustifyContent="Radzen.JustifyContent.Center" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap" Style="height: 100%;width: 100%;">
+                    @for (var i = 0; i < speedDialList.Count; i++)
+                    {
+                        var item = speedDialList[i];
+                        <AnimatedObserver Animation="AnimationType.FadeUp" StaggerDelay="@(i * 120)">
+                            <div class="clientSpeeddialCard" @onclick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
+                                @item.ItemName
+                            </div>
+                                @* <FluentButton Appearance="Appearance.Outline" Style="min-width:120px; max-width:200px; height:50px;"
+                                              OnClick="async () => await btnSelectClickSpeedDial(item.ItemCode)">
+                                    @item.ItemName
+                                </FluentButton> *@
+                        </AnimatedObserver>
+                    }
+                </RadzenStack>
+            }
+            else
+            {
+                <div style="padding:20px; text-align:center; color:var(--pulse-text-secondary);">
+                    No speed dial entries found.
+                </div>
+            }
+        }
+    </div>
+    <div class="pulseDialogFooter">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="padding:10px">
+            <FluentButton Appearance="Appearance.Accent" class=@(!ViewSpeeddial ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                          Color="var(--pulse-mode-btn-item-colour)"
+                          IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                          Style="height:40px;"
+                          Title="Speed Dial"
+                          OnClick="() => ViewSpeeddial = !ViewSpeeddial">Speed Dial</FluentButton>
+            <FluentSpacer />
+            <FluentButton Appearance="Appearance.Accent" class=@(!allGroupsExpanded ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                          Color="var(--pulse-mode-btn-item-colour)"
+                          IconStart="@(new Icons.Filled.Size24.Settings().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                          Style="height:40px;"
+                          Title="Speed Dial"
+                          OnClick="() => allGroupsExpanded = !allGroupsExpanded">@(!allGroupsExpanded ? "Expand All" : "Collapse All")</FluentButton>
+            <FluentSpacer />
+            <FluentButton class="myAccentBtn"
+                          BackgroundColor="var(--pulse-accent-btn-bg)"
+                          Color="var(--pulse-accent-btn-colour)"
+                          Style="height:40px;"
+                          IconStart="@(new Icons.Filled.Size32.Play().WithColor("var(--pulse-accent-btn-colour)"))"
+                          Disabled="@(selectedCustomer == null || selectedCustomer.Count == 0 ? true : false)"
+                          OnClick="btnSelectClick">
+                Select
+            </FluentButton>
+        </FluentStack>
+    </div>
+</div>
+
+
+@code {
+    // FluentDataGrid<Customer>? grid;
+    RadzenDataGrid<CustomerTableItemDto>? radGrid;
+    string? fltFullClientID;
+    private Company? com;
+    private bool isLoading = true;
+    private bool ViewSpeeddial = false;
+    private List<ApplicationUserSpeedDial>? speedDialList;
+    private Tables? tb;
+    string? srchName;
+    List<CustomerTableItemDto>? _allCustomers;
+    IList<CustomerTableItemDto>? selectedCustomer;
+    private Customer? selClient { get; set; }
+    [Parameter]
+    public string? FullClientID { get; set; }
+    private bool allGroupsExpanded = false;
+    protected override async Task OnInitializedAsync()
+    {
+        tb = await dts.GetgvTables();
+        ShowAiIcon showAi = new ShowAiIcon();
+        showAi.showTables = true;
+        await dts.SetgvShowAI(showAi);
+        await AppState.NotifyStateChanged();
+        // await AppState.NotifyStateChanged();
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await dts.SetgvContextArea(0);
+            com = await dts.GetgvCompany();
+            _allCustomers = await pApiClient.GetAsync<List<CustomerTableItemDto>>(ApiEndpoints.Customers.GetAllByCompany(com.CompanyID));
+            if (_allCustomers == null)
+            {
+                _allCustomers = new();
+            }
+            // qryCust = _allCustomers.AsQueryable();
+            speedDialList = await dts.GetgvUserSpeedDial("Customer");
+            await LoadStateAsync();
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    void OnRender(DataGridRenderEventArgs<CustomerTableItemDto> args)
+    {
+        if (args.FirstRender)
+        {
+            args.Grid.Groups.Add(new GroupDescriptor() { Property = "Title", SortOrder = Radzen.SortOrder.Descending });
+            StateHasChanged();
+        }
+    }
+    void ToggleGroups(bool value)
+    {
+        allGroupsExpanded = value;
+    }
+    private async Task btnSelectClick()
+    {
+        // await Task.CompletedTask;
+        // selClient = await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(selectedCustomer[0].FullClientID));
+        var fci = selectedCustomer[0].FullClientID;
+        // await dts.SetgvSelectedClient(selClient);
+        // await Task.CompletedTask;
+        await CloseDlg(fci);
+        // Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard");
+    }
+    private async Task btnSelectClickSpeedDial(string itemCode)
+    {
+        // await Task.CompletedTask;
+        // // selClient = _allCustomers?.FirstOrDefault(c => c.FullClientID == itemCode);
+        // if (selClient == null)
+        // {
+        //     selClient = await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(itemCode));
+        // }
+        // await dts.SetgvSelectedClient(selClient);
+        // await Task.CompletedTask;
+        await CloseDlg(itemCode);
+        // Navigation.NavigateTo("/EmployeeZone/Customers/ClientDashboard");
+    }
+    private async Task CloseDlg(string sFCI){
+        // await Task.CompletedTask;
+        dialogService.Close(sFCI);
+    }
+    DataGridSettings _settings;
+    public DataGridSettings Settings
+    {
+        get
+        {
+            return _settings;
+        }
+        set
+        {
+            if (_settings != value)
+            {
+                _settings = value;
+                InvokeAsync(SaveStateAsync);
+            }
+        }
+    }
+    void OnGroupRowRender(GroupRowRenderEventArgs args)
+    {
+        if (args.FirstRender && allGroupsExpanded != null)
+        {
+            args.Expanded = false;
+        }
+
+        args.Expandable = true;
+    }
+
+    void LoadSettings(DataGridLoadSettingsEventArgs args)
+    {
+        if (Settings != null)
+        {
+            args.Settings = Settings;
+        }
+    }
+
+    private async Task LoadStateAsync()
+    {
+        await Task.CompletedTask;
+
+        var result = await JSRuntime.InvokeAsync<string>("window.localStorage.getItem", "ClientDataGridSettings");
+        if (!string.IsNullOrEmpty(result))
+        {
+            _settings = JsonSerializer.Deserialize<DataGridSettings>(result);
+        }
+    }
+
+    private async Task SaveStateAsync()
+    {
+        await Task.CompletedTask;
+
+        await JSRuntime.InvokeVoidAsync("window.localStorage.setItem", "ClientDataGridSettings", JsonSerializer.Serialize<DataGridSettings>(Settings));
+    }
+
+    private async Task OnPickedColumnsChanged(DataGridPickedColumnsChangedEventArgs<Customer> args)
+    {
+        await SaveStateAsync();
+    }
+}

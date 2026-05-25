@@ -10,6 +10,8 @@
 @inject Global_AI_Functions GlobalAIFunctions
 @inject AppState AppState
 
+<FluentDesignTheme StorageName="themePulse" @bind-Mode="@thMode" />
+
 <div class="theme-switcher">
 <FluentSelect TOption="string" 
                 Value="@selectedTheme"
@@ -23,7 +25,7 @@
     <FluentOption Value="space">Space</FluentOption>
 </FluentSelect>
     <FluentButton Appearance="Appearance.Stealth" @onclick="ToggleTheme" Style="border:1px solid var(--pulse-dark-colour); margin-left: 8px">
-    @if (IsDarkMode)
+    @if (!IsDarkMode)
     {
         <!-- Sun Icon (Light Mode) -->
         <FluentIcon Value="@(new Icons.Filled.Size24.WeatherSunny().WithColor("#fbbf24"))" />
@@ -43,12 +45,14 @@
     private string selectedTheme = "pulse";
     private ApplicationUserSettings? uSettings;
     private bool IsDarkMode = true;
+    private DesignThemeModes thMode;
 
     protected override async Task OnInitializedAsync()
     {
         uSettings = await dTrf.GetgvUserSettings();
         var saved = uSettings?.UserTheme ?? "pulse-dark";
         IsDarkMode = saved.EndsWith("-dark");
+        thMode = IsDarkMode ? DesignThemeModes.Dark : DesignThemeModes.Light;
 
         if (!string.IsNullOrEmpty(saved))
             selectedTheme = saved.Replace("-dark", "");
@@ -57,6 +61,7 @@
     private async Task ToggleTheme()
     {
         IsDarkMode = !IsDarkMode;
+        thMode = IsDarkMode ? DesignThemeModes.Dark : DesignThemeModes.Light;
         await OnThemeChanged();
     }
     private async Task ChangeTheme(string newVal)

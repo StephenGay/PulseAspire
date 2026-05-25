@@ -24,8 +24,8 @@
             break;
         case 'ocean':
             config = isDark
-                ? { dark: "hsl(240, 100%, 15%)", light: "hsl(209,100%,90%)", accentBg: "#A66E4A", accentColour: "#FFFFFF", bgImage: "Ocean-dark.png" }
-                : { dark: "hsl(209,100%,90%)", light: "hsl(240, 100%, 15%)", accentBg: "#FFFFFF", accentColour: "#A66E4A", bgImage: "Ocean.png" };
+                ? { dark: "hsl(240, 100%, 15%)", light: "hsl(209,100%,90%)", accentBg: "#A66E4A", accentColour: "#FFFFFF", bgImage: "Ocean-dark.jpg" }
+                : { dark: "#2b5797", light: "#F0F8FF", accentBg: "#FFFFFF", accentColour: "#A66E4A", bgImage: "Ocean.jpg" };
             break;
         case 'space':
             config = isDark

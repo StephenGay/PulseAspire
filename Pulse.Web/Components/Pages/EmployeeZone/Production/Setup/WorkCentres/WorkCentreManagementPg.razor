@@ -15,6 +15,7 @@
 @inject PulseApiService ApiService
 @inject ILogger<WorkCentreManagementPg> Logger
 @inject IPulseToastService PulseToastService
+@inject GlobalFunctions GlobalFunctions
 @inject Global_AI_Functions GlobalAI
 @inject DataTransferService dTrf
 
@@ -180,11 +181,13 @@
                                             ReadOnly ="@(pgWCMode == "ViewSetup" ? true : false)"
                                             Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px;" />
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
-                                        <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="colorPicker" @bind-value="selectedWC.Colour">
+                                        <RadzenColorPicker Value="@selWCBackrgba" disabled="@(pgWCMode == "ViewSetup" ? true : false)" ShowHSV="true" ShowRGBA="true" ShowColors="true" ShowButton="true" ValueChanged="@((args) => ChangeWCColour("Background", args))" />
+                                        @* <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="colorPicker" @bind-value="selectedWC.Colour"> *@
                                         <FluentLabel Typo="Typography.Body">Background Colour</FluentLabel>
                                     </FluentStack>
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
-                                        <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="textColorPicker" @bind-value="selectedWC.TextColour">
+                                        <RadzenColorPicker Value="@selWCTextrgba" disabled="@(pgWCMode == "ViewSetup" ? true : false)" ShowHSV="true" ShowRGBA="true" ShowColors="true" ShowButton="true" ValueChanged="@((args) => ChangeWCColour("Text", args))" />
+                                        @* <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="textColorPicker" @bind-value="selectedWC.TextColour"> *@
                                         <FluentLabel Typo="Typography.Body">Text Colour</FluentLabel>
                                     </FluentStack>
                                     @if (pgWCMode != "ViewSetup")
@@ -383,7 +386,8 @@
     private bool isLoadingRoles = true;
 
     private bool isSavingPermission = false;
-
+    private string? selWCTextrgba;
+    private string? selWCBackrgba;
     private List<WorkCentre>? divWorkCentres;
     private bool isLoadingWorkCentres = true;
     private Division? d;
@@ -398,6 +402,21 @@
     {
         selZone = item.Item;
         StateHasChanged();
+    }
+
+    private async Task ChangeWCColour(string type, string newval)
+    {
+        if (type == "Background")
+        {
+            selWCBackrgba = newval;
+            selectedWC.Colour = GlobalFunctions.RgbaToHex(selWCBackrgba);
+        }
+        else
+        {
+            selWCTextrgba = newval;
+            selectedWC.TextColour = GlobalFunctions.RgbaToHex(selWCTextrgba);
+        }
+        await InvokeAsync(StateHasChanged);
     }
     private async Task AddNewZone()
     {
@@ -444,6 +463,9 @@
     }
     private async Task ViewWCSetup()
     {
+        selWCBackrgba = GlobalFunctions.HexToRgba(selectedWC.Colour ?? "#ffffff");
+        selWCTextrgba = GlobalFunctions.HexToRgba(selectedWC.TextColour ?? "#000000");
+        await InvokeAsync(StateHasChanged);
         await LoadWorkCentreZones();
         pgWCMode = "ViewSetup";
     }
@@ -478,7 +500,7 @@
                 PulseToastService.ShowToast("Error", "There was a problem loading the Work Centre Zones.<br />Please try again.",true);
                 await GlobalAI.AISpeak("There was a problem loading the Work Centre Zones.<br />Please try again.", "PulseAI");
             }
-            StateHasChanged();
+            await InvokeAsync(StateHasChanged);
         }
     }
 
