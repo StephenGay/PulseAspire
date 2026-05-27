@@ -6,7 +6,7 @@ namespace Pulse.ApiService.PulseAI.Services;   // or adjust namespace to match y
 
 public static class FlapperTools
 {
-    public static readonly IEnumerable<AITool> GetFlappersTools = new List<AITool>
+    private static readonly IEnumerable<AITool> GetFlappersTools = new List<AITool>
     {
         AskTables,
         CreateChartTool,
@@ -44,4 +44,6 @@ public static class FlapperTools
                 description: "Fetch the full content of a specific webpage.",
                 method: (string url) => Task.FromResult("")
             );
+    
+    public static List<AITool> GetFlapperToolsForIClient() => GetFlappersTools.ToList();
 }

@@ -23,7 +23,7 @@ using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 
 namespace Pulse.ApiService.PulseAI.Endpoints;
 
- //Pulse.ApiService/PulseAI/Endpoints/FlapperEndpoints.cs or in Program.cs
+//Pulse.ApiService/PulseAI/Endpoints/FlapperEndpoints.cs or in Program.cs
 public static class FlapperEndpoints
 {
 	public static void MapFlapperEndpoints(this IEndpointRouteBuilder app)
@@ -35,7 +35,7 @@ public static class FlapperEndpoints
 			.WithDescription("Send a message to Flapper and receive a response. Supports streaming responses and clarification questions.")
 			.Produces<FlapperResponse>(200);
 
-		group.MapPost("/OllamaChatSession", FlapperOllamaChat)
+		group.MapPost("/OllamaChatSession", FlapperIChat)
 			.WithName("FlapperOllamaChat")
 			.WithDescription("Send a message to Flapper and receive a response. Supports streaming responses and clarification questions.")
 			.Produces<FlapperResponse>(200);
@@ -104,7 +104,7 @@ public static class FlapperEndpoints
 			bool isClarification = false;
 			ChartConfig? finalChart = null;
 
-            do
+			do
 			{
 				turn++;
 				System.Diagnostics.Debug.WriteLine($"=== Tool Loop Turn {turn}/{MaxTurns} ===");
@@ -132,21 +132,21 @@ public static class FlapperEndpoints
 
 				if (!string.IsNullOrEmpty(result.Thinking))
 				{
-                    db.FlapperMessages.Add(new FlapperMessage
-                    {
-                        ConversationId = conversation.Id,
-                        Sender = "Flapper",
-                        Content = result.Thinking,
-                        ContentType = "AiThinking",
-                        SentAt = DateTime.Now,
-                    });
-                    await db.SaveChangesAsync();
-                }
-                
-                // Check for tool calls in the response content using non-streaming approach
-                //var toolCalls = ExtractToolCallsFromStreamingContent(result.Content ?? result.RawContent ?? "");
+					db.FlapperMessages.Add(new FlapperMessage
+					{
+						ConversationId = conversation.Id,
+						Sender = "Flapper",
+						Content = result.Thinking,
+						ContentType = "AiThinking",
+						SentAt = DateTime.Now,
+					});
+					await db.SaveChangesAsync();
+				}
 
-                if (result.ToolCalls?.Count > 0)
+				// Check for tool calls in the response content using non-streaming approach
+				//var toolCalls = ExtractToolCallsFromStreamingContent(result.Content ?? result.RawContent ?? "");
+
+				if (result.ToolCalls?.Count > 0)
 				{
 					System.Diagnostics.Debug.WriteLine($"Found {result.ToolCalls.Count} tool calls in response");
 
@@ -154,33 +154,33 @@ public static class FlapperEndpoints
 					foreach (var toolCall in result.ToolCalls)
 					{
 						System.Diagnostics.Debug.WriteLine($"Executing tool: {toolCall.ToolName}");
-                        string toolResult;
+						string toolResult;
 
-                        if (toolCall.ToolName == "CreateChart")
-                        {
-                            // Extract the chart config properly
-                            finalChart = result.ToolResults?
-                                .FirstOrDefault(r => r.ToolName == "CreateChart")?
-                                .Result as ChartConfig
-                                ?? ExtractChartFromToolCall(toolCall);   // fallback
+						if (toolCall.ToolName == "CreateChart")
+						{
+							// Extract the chart config properly
+							finalChart = result.ToolResults?
+								.FirstOrDefault(r => r.ToolName == "CreateChart")?
+								.Result as ChartConfig
+								?? ExtractChartFromToolCall(toolCall);   // fallback
 
-                            toolResult = finalChart != null
-                                ? $"Chart created successfully: {finalChart.Title}"
-                                : "Failed to create chart";
-                        }
-                        else
-                        {
-                            toolResult = toolCall.ToolName switch
-                            {
-                                "ask_tables" or "AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message, conversation.Id.ToString()),
-                                "web_search" or "WebSearch" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
-                                "web_fetch" or "WebFetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
-                                _ => $"Unknown tool: {toolCall.ToolName}"
-                            };
-                        }
+							toolResult = finalChart != null
+								? $"Chart created successfully: {finalChart.Title}"
+								: "Failed to create chart";
+						}
+						else
+						{
+							toolResult = toolCall.ToolName switch
+							{
+								"ask_tables" or "AskTables" => await ExecuteAskTablesAsync(tablesApi, toolCall.Parameters, req.Message, conversation.Id.ToString()),
+								"web_search" or "WebSearch" => await ExecuteWebSearchIClientAsync(toolCall.Parameters, flapperApi),
+								"web_fetch" or "WebFetch" => await ExecuteWebFetchIClientAsync(toolCall.Parameters, flapperApi),
+								_ => $"Unknown tool: {toolCall.ToolName}"
+							};
+						}
 
-                        // Save tool result back into conversation so Flapper can reason again
-                        db.FlapperMessages.Add(new FlapperMessage
+						// Save tool result back into conversation so Flapper can reason again
+						db.FlapperMessages.Add(new FlapperMessage
 						{
 							ConversationId = conversation.Id,
 							Sender = "tool",
@@ -207,15 +207,15 @@ public static class FlapperEndpoints
 				isClarification = true;
 				result.RequiresClarification = true;
 				result.ClarificationQuestion = result.Content.Replace("[CLARIFICATION] ", "").TrimEnd("]").ToString();
-            }
+			}
 
-            if (finalChart != null)
-            {
-                result.Chart = finalChart;
-                System.Diagnostics.Debug.WriteLine($"Final chart attached: {finalChart.Title}");
-            }
-            // 6. Save Flapper's final response
-            db.FlapperMessages.Add(new FlapperMessage
+			if (finalChart != null)
+			{
+				result.Chart = finalChart;
+				System.Diagnostics.Debug.WriteLine($"Final chart attached: {finalChart.Title}");
+			}
+			// 6. Save Flapper's final response
+			db.FlapperMessages.Add(new FlapperMessage
 			{
 				ConversationId = conversation.Id,
 				Sender = "Flapper",
@@ -243,9 +243,9 @@ public static class FlapperEndpoints
 			//await hubContext.Clients.User(req.UserId.ToString())
 			//	.SendAsync("ReceiveMessage", finalMessage);
 			await hubContext.Clients.User(req.UserId.ToString())
-                .SendAsync("FlapperChatResponse", result);
+				.SendAsync("FlapperChatResponse", result);
 
-            return Results.Ok(result);
+			return Results.Ok(result);
 		}
 		catch (Exception ex)
 		{
@@ -257,31 +257,31 @@ public static class FlapperEndpoints
 		}
 	}
 
-    private static ChartConfig? ExtractChartFromToolCall(PulseToolCall toolCall)
-    {
-        if (toolCall.Parameters == null) return null;
+	private static ChartConfig? ExtractChartFromToolCall(PulseToolCall toolCall)
+	{
+		if (toolCall.Parameters == null) return null;
 
-        try
-        {
-            // If the model sent the chart config directly in parameters
-            if (toolCall.Parameters.TryGetValue("config", out var configObj) && configObj is string json)
-            {
-                return System.Text.Json.JsonSerializer.Deserialize<ChartConfig>(json);
-            }
+		try
+		{
+			// If the model sent the chart config directly in parameters
+			if (toolCall.Parameters.TryGetValue("config", out var configObj) && configObj is string json)
+			{
+				return System.Text.Json.JsonSerializer.Deserialize<ChartConfig>(json);
+			}
 
-            // Or try to deserialize the entire parameters as ChartConfig
-            var jsonString = System.Text.Json.JsonSerializer.Serialize(toolCall.Parameters);
-            return System.Text.Json.JsonSerializer.Deserialize<ChartConfig>(jsonString);
-        }
-        catch
-        {
-            return null;
-        }
-    }
-    /// <summary>
-    /// Processes chat with streaming support and automatic tool invocation.
-    /// </summary>
-    private static async Task<FlapperResponse> ProcessWithToolsStreamingAsync(
+			// Or try to deserialize the entire parameters as ChartConfig
+			var jsonString = System.Text.Json.JsonSerializer.Serialize(toolCall.Parameters);
+			return System.Text.Json.JsonSerializer.Deserialize<ChartConfig>(jsonString);
+		}
+		catch
+		{
+			return null;
+		}
+	}
+	/// <summary>
+	/// Processes chat with streaming support and automatic tool invocation.
+	/// </summary>
+	private static async Task<FlapperResponse> ProcessWithToolsStreamingAsync(
 		FlapperAPI flapperApi,
 		FlapperConversation conversation,
 		string userMessage,
@@ -311,44 +311,44 @@ public static class FlapperEndpoints
 			{
 				ModelId = flapperDTO.Model,
 				MaxOutputTokens = flapperDTO.Options.NumCtx,
-                ConversationId = conversation.Id.ToString(),
-                Tools = toolList // Pass the tools to the API for validation
-            };
+				ConversationId = conversation.Id.ToString(),
+				Tools = toolList // Pass the tools to the API for validation
+			};
 
 			var accumulatedText = new StringBuilder();
 			var accumulatedThinking = string.Empty;
 			var accumulatedAnswer = string.Empty;
 			bool inThinking = false;
-            var promptTokens = 0L;
-            var outputTokens = 0L;
-            string? doneReason = null;
-            string? error = null;
+			var promptTokens = 0L;
+			var outputTokens = 0L;
+			string? doneReason = null;
+			string? error = null;
 
-            // ✅ Stream the response
-            await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
+			// ✅ Stream the response
+			await foreach (ChatResponseUpdate update in flapperApi.GetChatClientStreamAsync(messages, options, ct))
 			{
 				var streamTxt = string.Empty;
-                var FlapperChunk = new FlapperResponse();
+				var FlapperChunk = new FlapperResponse();
 
-                try
+				try
 				{
 					var ollama = ((OllamaSharp.Models.Chat.ChatResponseStream)update.RawRepresentation);
-					
 
 
-                    if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
+
+					if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
 					{
 						var thinkingText = ollama.Message.Thinking;
 						if (!inThinking)
 						{
 							inThinking = true;
 							streamTxt = "<thinking>";
-                            thinkingText = $"Thinking:\n{thinkingText}";
+							thinkingText = $"Thinking:\n{thinkingText}";
 						}
 						streamTxt += thinkingText;
 						FlapperChunk.Thinking = thinkingText;
 						accumulatedThinking += ollama.Message?.Thinking;
-                    }
+					}
 					if (!string.IsNullOrEmpty(ollama.Message?.Content))
 					{
 						if (inThinking)
@@ -357,52 +357,52 @@ public static class FlapperEndpoints
 							streamTxt += "</thinking>";
 						}
 						streamTxt += ollama.Message.Content;
-                        FlapperChunk.Content = ollama.Message.Content;
+						FlapperChunk.Content = ollama.Message.Content;
 						accumulatedAnswer += ollama.Message.Content;
-                    }
-                    if (ollama?.Message?.ToolCalls != null && ollama.Message.ToolCalls.Any())
-                    {
-                        // For simplicity, we append tool calls as JSON strings in the thinking stream
-                        var toolInfo = JsonSerializer.Serialize(ollama.Message.ToolCalls);
-                        foreach (var tc in ollama.Message.ToolCalls)
-                        {
-                            toolCalls.Add(new PulseToolCall
-                            {
-                                ToolName = tc.Function.Name,
-                                Parameters = (Dictionary<string, object>)tc.Function.Arguments
-                            });
-                        }
+					}
+					if (ollama?.Message?.ToolCalls != null && ollama.Message.ToolCalls.Any())
+					{
+						// For simplicity, we append tool calls as JSON strings in the thinking stream
+						var toolInfo = JsonSerializer.Serialize(ollama.Message.ToolCalls);
+						foreach (var tc in ollama.Message.ToolCalls)
+						{
+							toolCalls.Add(new PulseToolCall
+							{
+								ToolName = tc.Function.Name,
+								Parameters = (Dictionary<string, object>)tc.Function.Arguments
+							});
+						}
 
-                    }
+					}
 					FlapperChunk.Done = ollama.Done;
 					FlapperChunk.EndReason = update.FinishReason?.ToString().ToLowerInvariant();
 					FlapperChunk.PromptTokens = update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var ptc) == true ? Convert.ToInt64(ptc) : 0;
 					FlapperChunk.OutputTokens = update.AdditionalProperties?.TryGetValue("eval_count", out var etc) == true ? Convert.ToInt64(etc) : 0;
 
-                    if (ollama?.Done == true)
+					if (ollama?.Done == true)
 					{
 						doneReason = update.FinishReason?.ToString().ToLowerInvariant();
 					}
-                        if (update.AdditionalProperties?.TryGetValue("done_reason", out var dr) == true)
-                    {
-                        doneReason = dr?.ToString()?.ToLowerInvariant();
-                    }
+					if (update.AdditionalProperties?.TryGetValue("done_reason", out var dr) == true)
+					{
+						doneReason = dr?.ToString()?.ToLowerInvariant();
+					}
 
-                    if (update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var pt) == true)
-                        promptTokens = Convert.ToInt64(pt);
+					if (update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var pt) == true)
+						promptTokens = Convert.ToInt64(pt);
 
-                    if (update.AdditionalProperties?.TryGetValue("eval_count", out var et) == true)
-                        outputTokens = Convert.ToInt64(et);
-                
-                }
-				catch(Exception ex) 
+					if (update.AdditionalProperties?.TryGetValue("eval_count", out var et) == true)
+						outputTokens = Convert.ToInt64(et);
+
+				}
+				catch (Exception ex)
 				{
-                    if (ex.Message.Contains("context", StringComparison.OrdinalIgnoreCase))
-                    {
-                        doneReason = "context";
-                    }
-                    // If RawRepresentation access fails, try the standard text
-                    streamTxt = update.Text ?? string.Empty;
+					if (ex.Message.Contains("context", StringComparison.OrdinalIgnoreCase))
+					{
+						doneReason = "context";
+					}
+					// If RawRepresentation access fails, try the standard text
+					streamTxt = update.Text ?? string.Empty;
 				}
 
 				accumulatedText.Append(streamTxt);
@@ -430,32 +430,32 @@ public static class FlapperEndpoints
 			var thinking = accumulatedThinking;
 			var finalContent = accumulatedAnswer;
 
-            var endReason = doneReason switch
-            {
-                "length" => "max_tokens_reached",
-                "stop" or "eos" => "natural_stop",
-                "context" => "context_length_exceeded",
-                _ => doneReason ?? "unknown"
-            };
+			var endReason = doneReason switch
+			{
+				"length" => "max_tokens_reached",
+				"stop" or "eos" => "natural_stop",
+				"context" => "context_length_exceeded",
+				_ => doneReason ?? "unknown"
+			};
 
-            return new FlapperResponse
+			return new FlapperResponse
 			{
 				Success = true,
 				Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
 				ToolCalls = toolCalls.Count > 0 ? toolCalls : null,
 				Content = finalContent,
 				RequiresClarification = false,
-                EndReason = endReason,
-                PromptTokens = promptTokens,
-                OutputTokens = outputTokens
-                //RawContent = rawReply
+				EndReason = endReason,
+				PromptTokens = promptTokens,
+				OutputTokens = outputTokens
+				//RawContent = rawReply
 			};
 		}
 		catch (Exception ex)
 		{
 			System.Diagnostics.Debug.WriteLine($"Error in ProcessWithToolsStreamingAsync: {ex.Message}");
-			
-                return new FlapperResponse
+
+			return new FlapperResponse
 			{
 				Success = false,
 				Content = $"Error: {ex.Message}"
@@ -488,7 +488,7 @@ public static class FlapperEndpoints
 					if (root.TryGetProperty("tool_name", out var toolNameElem) && root.TryGetProperty("parameters", out var paramsElem))
 					{
 						var toolName = toolNameElem.GetString();
-						var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(paramsElem.GetRawText()) 
+						var parameters = JsonSerializer.Deserialize<Dictionary<string, object>>(paramsElem.GetRawText())
 							?? new Dictionary<string, object>();
 
 						if (!string.IsNullOrEmpty(toolName))
@@ -566,27 +566,27 @@ public static class FlapperEndpoints
 		return toolCalls;
 	}
 
-    /// <summary>
-    /// Helper method to extract reasoning from text (for backward compatibility).
-    /// </summary>
-    private static string ExtractReasoningFromText(string text)
-    {
-        if (string.IsNullOrEmpty(text))
-            return string.Empty;
+	/// <summary>
+	/// Helper method to extract reasoning from text (for backward compatibility).
+	/// </summary>
+	private static string ExtractReasoningFromText(string text)
+	{
+		if (string.IsNullOrEmpty(text))
+			return string.Empty;
 
-        var startIndex = text.IndexOf("<thinking>", StringComparison.Ordinal);
-        if (startIndex == -1)
-            return string.Empty;
+		var startIndex = text.IndexOf("<thinking>", StringComparison.Ordinal);
+		if (startIndex == -1)
+			return string.Empty;
 
-        startIndex += "<thinking>".Length;
-        var endIndex = text.IndexOf("</thinking>", startIndex, StringComparison.Ordinal);
-        if (endIndex == -1)
-            return string.Empty;
+		startIndex += "<thinking>".Length;
+		var endIndex = text.IndexOf("</thinking>", startIndex, StringComparison.Ordinal);
+		if (endIndex == -1)
+			return string.Empty;
 
-        return text.Substring(startIndex, endIndex - startIndex).Trim();
-    }
+		return text.Substring(startIndex, endIndex - startIndex).Trim();
+	}
 
-    private static async Task<IResult> GetConversationMessages(Guid conversationId, PulseDbContext db)
+	private static async Task<IResult> GetConversationMessages(Guid conversationId, PulseDbContext db)
 	{
 		var messages = await db.FlapperMessages
 			.Where(m => m.ConversationId == conversationId && m.Sender != "tool")
@@ -607,7 +607,7 @@ public static class FlapperEndpoints
 	// Add this method in FlapperEndpoints.cs or a static helper
 	private static IEnumerable<AIFunction> BuildFlapperTools()
 	{
-        return new List<AIFunction>
+		return new List<AIFunction>
 		{
 			AIFunctionFactory.Create(
 				name: "AskTables",
@@ -626,39 +626,39 @@ public static class FlapperEndpoints
 				description: "Fetch the full content of a specific webpage.",
 				method: (string url) => Task.FromResult("")
 			),
-            AIFunctionFactory.Create(
-                (string chartType,
-     string title,
-     string xAxisTitle = "",           // ← Changed from string? to string with default
+			AIFunctionFactory.Create(
+				(string chartType,
+	 string title,
+	 string xAxisTitle = "",           // ← Changed from string? to string with default
      string yAxisTitle = "",           // ← Changed from string? to string with default
      string dataJson = "[]",
-     string footerNote = "") =>
-    {
-        try
-        {
-            var dataPoints = System.Text.Json.JsonSerializer
-                .Deserialize<List<ChartDataPoint>>(dataJson) ?? new();
+	 string footerNote = "") =>
+	{
+		try
+		{
+			var dataPoints = System.Text.Json.JsonSerializer
+				.Deserialize<List<ChartDataPoint>>(dataJson) ?? new();
 
-            return new ChartConfig(
-                ChartType: chartType,
-                Title: title,
-                XAxisTitle: string.IsNullOrWhiteSpace(xAxisTitle) ? null : xAxisTitle,
-                YAxisTitle: string.IsNullOrWhiteSpace(yAxisTitle) ? null : yAxisTitle,
-                Series: new List<ChartSeriesConfig>
-                {
-                    new ChartSeriesConfig("Series", dataPoints)
-                },
-                FooterNote: string.IsNullOrWhiteSpace(footerNote) ? null : footerNote
-            );
-        }
-        catch (Exception ex)
-        {
-            return new ChartConfig("Bar", "Chart Error", null, null, null,
-                $"Failed to parse data: {ex.Message}");
-        }
-    },
-    name: "CreateChart",
-    description: """
+			return new ChartConfig(
+				ChartType: chartType,
+				Title: title,
+				XAxisTitle: string.IsNullOrWhiteSpace(xAxisTitle) ? null : xAxisTitle,
+				YAxisTitle: string.IsNullOrWhiteSpace(yAxisTitle) ? null : yAxisTitle,
+				Series: new List<ChartSeriesConfig>
+				{
+					new ChartSeriesConfig("Series", dataPoints)
+				},
+				FooterNote: string.IsNullOrWhiteSpace(footerNote) ? null : footerNote
+			);
+		}
+		catch (Exception ex)
+		{
+			return new ChartConfig("Bar", "Chart Error", null, null, null,
+				$"Failed to parse data: {ex.Message}");
+		}
+	},
+	name: "CreateChart",
+	description: """
         Creates a chart. 
         Parameters:
         - chartType: "Bar", "Line", "Pie", "Doughnut", or "Area"
@@ -667,9 +667,9 @@ public static class FlapperEndpoints
         - dataJson: JSON array of objects with "label" and "value", e.g. [{"label":"North","value":125000}]
         - footerNote: One sentence insight (optional)
         """)
-        };
-		
-    }
+		};
+
+	}
 
 	public static async Task<IResult> FlapperOllamaChat(
 		FlapperChatRequest req,
@@ -864,22 +864,22 @@ public static class FlapperEndpoints
 				.SendAsync("ReceiveMessage", finalMessage);
 
 			return Results.Ok(result);
-		
+
 		}
 		catch (OperationCanceledException)
 		{
 			return Results.Ok(new FlapperResponse
 			{
-		Success = false,
+				Success = false,
 				Content = "The operation was cancelled."
 			});
 		}
-        
-        catch (Exception ex)
+
+		catch (Exception ex)
 		{
 			return Results.Ok(new FlapperResponse
 			{
-	Success = false,
+				Success = false,
 				Content = $"An error occurred: {ex.Message}"
 			});
 		}
@@ -895,7 +895,7 @@ public static class FlapperEndpoints
 		TablesRequest tablesRequest = new TablesRequest
 		{
 			UserId = "Flapper", // You can pass actual user ID if needed for logging
-			UserRequest = query ,
+			UserRequest = query,
 			UserEmail = "flapper@example.com",
 			ModelName = "Default",
 			SessionId = conversationId
@@ -903,8 +903,8 @@ public static class FlapperEndpoints
 		var result = await tablesApi.AskTablesAsync(tablesRequest);
 		if (result.Success)
 		{
-            originalQuery = originalQuery.Replace("[REPORT]", "").Replace("[SPEECH]", "").Trim();
-            var tblResponse = $"**User asked**: {originalQuery}\n**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
+			originalQuery = originalQuery.Replace("[REPORT]", "").Replace("[SPEECH]", "").Trim();
+			var tblResponse = $"**User asked**: {originalQuery}\n**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
 			return tblResponse;
 		}
 		else
@@ -913,7 +913,7 @@ public static class FlapperEndpoints
 		}
 	}
 
-	private static async Task<string> ExecuteWebSearchAsync(Dictionary<string, object> parameters,FlapperOllamaAPI flapperOllamaAPI)
+	private static async Task<string> ExecuteWebSearchAsync(Dictionary<string, object> parameters, FlapperOllamaAPI flapperOllamaAPI)
 	{
 		if (!parameters.TryGetValue("query", out var queryProp))
 			return "Error: Missing 'query' argument";
@@ -948,7 +948,7 @@ public static class FlapperEndpoints
 
 	private static async Task<string> ExecuteWebFetchAsync(Dictionary<string, object> parameters, FlapperOllamaAPI flapperOllamaAPI)
 	{
-		
+
 
 
 		if (!parameters.TryGetValue("url", out var urlObj))
@@ -1040,6 +1040,29 @@ public static class FlapperEndpoints
 
 		return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
 	}
+
+	public static async Task<IResult> FlapperIChat(
+		FlapperChatRequest req,
+		AiShared _aiShared,
+		FlapperOllamaAPI flapperOllamaApi,
+		TablesAPI tablesApi,           // Your SQL expert
+		PulseDbContext db,
+		IHubContext<MessageHub> hubContext,
+	CancellationToken cancellationToken)
+	{ 
+		var response = await flapperOllamaApi.FlapperStreamingIChat(req, _aiShared,tablesApi, db, hubContext, cancellationToken);
+        await hubContext.Clients.User(req.UserId.ToString())
+                .SendAsync("FlapperChatResponse", response);
+        return Results.Ok(new ApiResponse<FlapperResponse>
+        {
+            Success = true,
+            Data = response,
+            Message = $"Retrieved "
+        });
+
+    }
+
+
 }
 
 #region Old Flapper Endpoint Logic (for reference, not included in final code)

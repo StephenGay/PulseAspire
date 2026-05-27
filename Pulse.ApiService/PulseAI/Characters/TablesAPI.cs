@@ -24,6 +24,7 @@ public class TablesAPI
     // Session management - stores chat history per session
     private static readonly Dictionary<string, Chat> _sessions = new(StringComparer.OrdinalIgnoreCase);
     private static readonly object _sessionLock = new object();
+    private const string DefaultModel = "gpt-oss:latest";
 
     public TablesAPI(
         AiShared aiShared,
@@ -53,7 +54,7 @@ public class TablesAPI
     {
         var response = new TablesResponse
         {
-            ModelUsed = request.ModelName == "Default" ? "gpt-oss:latest" : request.ModelName,
+            ModelUsed = request.ModelName == "Default" ? DefaultModel : request.ModelName,
             SessionId = request.SessionId ?? Guid.NewGuid().ToString(),
             Timestamp = DateTime.UtcNow
         };
@@ -227,12 +228,11 @@ public class TablesAPI
             {
                 //chat = new Chat((IOllamaApiClient)_tablesClient)
                 var client = _aiClientFactory.GetClient("TablesClient");
-                
+
 
                 chat = new Chat(client)
                 {
                     Model = modelName
-                    
                 };
                 _sessions[sessionId] = chat;
                 _logger.LogInformation("Created new chat session: {SessionId}", sessionId);

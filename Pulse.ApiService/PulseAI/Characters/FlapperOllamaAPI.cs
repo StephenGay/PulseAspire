@@ -1,5 +1,6 @@
 ﻿// Pulse.ApiService/PulseAI/Characters/FlapperAPI.cs
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
 using OllamaSharp;
 using OllamaSharp.Models.Chat;
@@ -7,7 +8,7 @@ using Pulse.ApiService.Hubs;
 using Pulse.ApiService.PulseAI.Services;
 using Pulse.Models.AI;
 using Pulse.Models.AI.Flapper;
-using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
+using Pulse.Models.AI.Tools;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.PulseContext;
@@ -19,9 +20,11 @@ using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
+using static OllamaSharp.Models.Chat.Message;
+using static Pulse.Models.AI.Tables.TablesChatStructures;
 using static Pulse.Models.Api.ApiEndpoints.PulseAi;
 using static System.Runtime.InteropServices.JavaScript.JSType;
-using Pulse.Models.AI.Tools;
+using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 
 namespace Pulse.ApiService.PulseAI.Characters;
 
@@ -35,12 +38,15 @@ public class FlapperOllamaAPI
     private readonly IOllamaApiClient _chatClient;
     private readonly ILogger<FlapperOllamaAPI> _logger;
     private readonly IHttpClientFactory _httpClientFactory;
+    private TablesAPI _tablesAPI;
     //private readonly Flapper flapper = new();
 
     private readonly string _ollamaApiKey;
     private readonly Uri _localBaseAddress;
     private readonly Uri _cloudBaseAddress;
     private readonly JsonSerializerOptions _jsonOptions;
+    private string convId;
+    private string? chartJSON;
 
     public FlapperOllamaAPI(IOllamaApiClient chatClient, ILogger<FlapperOllamaAPI> logger, IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
@@ -557,7 +563,369 @@ public class FlapperOllamaAPI
         }
     }
 
+    public async Task<FlapperResponse> FlapperStreamingIChat(
+        FlapperChatRequest req,
+        AiShared _aiShared,
+        TablesAPI tablesApi,
+        PulseDbContext db,
+        IHubContext<MessageHub> hubContext,
+        CancellationToken cancellationToken)
+    {
+        IChatClient iFlapperClient = new OllamaApiClient(_localBaseAddress.ToString(), "Flapper:latest");
+        iFlapperClient = ChatClientBuilderChatClientExtensions
+            .AsBuilder(iFlapperClient)
+            .UseFunctionInvocation()
+            .Build();
+        convId = req.ConversationId.ToString();
+        var conversation = await db.FlapperConversations
+                .FirstOrDefaultAsync(c => c.Id == req.ConversationId && c.UserId == req.UserId);
+
+        if (conversation == null)
+        {
+            conversation = new FlapperConversation
+            {
+                Id = req.ConversationId,
+                UserId = req.UserId,
+                StartedAt = DateTime.Now,
+                Title = req.Message.Length > 50 ? req.Message.Substring(0, 50) + "..." : req.Message
+            };
+            db.FlapperConversations.Add(conversation);
+            await db.SaveChangesAsync();
+        }
+
+        // 2. Save user message
+        db.FlapperMessages.Add(new FlapperMessage
+        {
+            ConversationId = conversation.Id,
+            Sender = req.IsClarificationResponse ? "tool" : "User",
+            ContentType = req.IsClarificationResponse ? "UserAnswer" : "UserQuery",
+            Content = req.Message,
+            SentAt = DateTime.Now
+        });
+
+        conversation.LastActivity = DateTime.Now;
+        db.Update(conversation);
+        await db.SaveChangesAsync();
+
+        conversation.Messages = await db.FlapperMessages
+                    .Where(c => c.ConversationId == conversation.Id)
+                    .OrderBy(m => m.SentAt)
+                    .ToListAsync(cancellationToken);
+
+        var history = conversation.Messages.Select(m => new ChatMessage(
+                role: m.Sender == "User" ? Microsoft.Extensions.AI.ChatRole.User : (m.Sender == "tool" ? Microsoft.Extensions.AI.ChatRole.Tool : Microsoft.Extensions.AI.ChatRole.Assistant),
+                content: m.Content
+            )).ToList();
+
+        var messages = new List<ChatMessage>();
+        messages.AddRange(history);
+        //messages.Add(new ChatMessage(Microsoft.Extensions.AI.ChatRole.User, userMessage));
+        ChatOptions chatOptions = new ChatOptions
+        {
+            ConversationId = convId,
+            Tools =
+            [
+                AIFunctionFactory.Create(WebIClientSearch,"WebSearch", "Search the web for current information."),
+                AIFunctionFactory.Create(WebIClientFetch,"WebFetch", "Fetch the content of a web page."),
+                AIFunctionFactory.Create(IClientAskTables,"AskTables", "Use this tool when you need real data from the Pulse database. Provide a clear natural language description of the data required."),
+                AIFunctionFactory.Create(CreateIClientChart,"CreateChart","Creates a visual chart for the user. Use this tool whenever the user asks for a chart, graph, visualization, trend, comparison, or 'show me' data. Always use real data (call the Tables tool first if you need to query the database).")
+       
+            ]
+        };
+        _tablesAPI = tablesApi;
+        var accumulatedText = new StringBuilder();
+        var accumulatedThinking = string.Empty;
+        var accumulatedAnswer = string.Empty;
+        bool inThinking = false;
+        var promptTokens = 0L;
+        var outputTokens = 0L;
+        string? doneReason = null;
+        string? error = null;
+        
+
+        await foreach (var update in iFlapperClient.GetStreamingResponseAsync(messages, chatOptions, cancellationToken))
+        {
+            var streamTxt = string.Empty;
+            var FlapperChunk = new FlapperResponse();
+            if (update.RawRepresentation != null)
+            {
+                var ollama = ((OllamaSharp.Models.Chat.ChatResponseStream)update.RawRepresentation);
+
+                if (!string.IsNullOrEmpty(ollama.Message?.Thinking))
+                {
+                    var thinkingText = ollama.Message.Thinking;
+                    if (!inThinking)
+                    {
+                        inThinking = true;
+
+                        thinkingText = $"Thinking:\n{thinkingText}";
+                    }
+
+                    FlapperChunk.Thinking = thinkingText;
+                    accumulatedThinking += ollama.Message?.Thinking;
+                }
+                if (!string.IsNullOrEmpty(ollama.Message?.Content))
+                {
+                    if (inThinking)
+                    {
+                        inThinking = false;
+                        streamTxt += "</thinking>";
+                    }
+                    streamTxt += ollama.Message.Content;
+                    FlapperChunk.Content = ollama.Message.Content;
+                    accumulatedAnswer += ollama.Message.Content;
+                }
+
+
+
+                FlapperChunk.Done = ollama.Done;
+            }
+        FlapperChunk.EndReason = update.FinishReason?.ToString().ToLowerInvariant();
+        FlapperChunk.PromptTokens = update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var ptc) == true ? Convert.ToInt64(ptc) : 0;
+        FlapperChunk.OutputTokens = update.AdditionalProperties?.TryGetValue("eval_count", out var etc) == true ? Convert.ToInt64(etc) : 0;
+
+        if (update.FinishReason != null)
+        {
+            doneReason = update.FinishReason?.ToString().ToLowerInvariant();
+        }
+        if (update.AdditionalProperties?.TryGetValue("done_reason", out var dr) == true)
+        {
+            doneReason = dr?.ToString()?.ToLowerInvariant();
+        }
+
+        if (update.AdditionalProperties?.TryGetValue("prompt_eval_count", out var pt) == true)
+            promptTokens = Convert.ToInt64(pt);
+
+        if (update.AdditionalProperties?.TryGetValue("eval_count", out var et) == true)
+            outputTokens = Convert.ToInt64(et);
+
+  
+
+				accumulatedText.Append(streamTxt);
+
+
+
+    await hubContext.Clients.User(req.UserId.ToString()).SendAsync("ReceiveFlapperResponseChunk", FlapperChunk);
+    //await hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveFlapperChunk", streamMessage);
+
+			}
+
+			var rawReply = accumulatedText.ToString().Trim();
+var thinking = accumulatedThinking;
+var finalContent = accumulatedAnswer;
+
+var endReason = doneReason switch
+{
+    "length" => "max_tokens_reached",
+    "stop" or "eos" => "natural_stop",
+    "context" => "context_length_exceeded",
+    _ => doneReason ?? "unknown"
+};
+        db.FlapperMessages.Add(new FlapperMessage
+        {
+            ConversationId = conversation.Id,
+            Sender = "Flapper",
+            Content = finalContent ?? "No response generated.",
+            SentAt = DateTime.Now,
+            ContentType = string.IsNullOrEmpty(chartJSON) ? "AiResponse" : "Chart", /*isClarification ? "AiQuestion" : "AiResponse",*/
+            RawContent = chartJSON
+            //IsClarificationQuestion = isClarification
+        });
+
+        await db.SaveChangesAsync();
+        var chJ = chartJSON;
+        chartJSON = string.Empty;
+
+        return new FlapperResponse
+        {
+            Success = true,
+            Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
     
+            Content = finalContent,
+            RequiresClarification = false,
+            EndReason = endReason,
+            PromptTokens = promptTokens,
+            OutputTokens = outputTokens,
+            RawContent = chJ
+            //RawContent = rawReply
+        };
+		
+}
+    private async Task<string> CreateIClientChart(string chartString)
+    {
+        chartJSON = chartString;
+        return chartString;
+    }
+    private async Task<string> WebIClientSearch(string query, CancellationToken ct = default)
+    {
+        
+        if (string.IsNullOrEmpty(query))
+            return "Error: Query is empty";
+
+        var searchUrl = "https://ollama.com/api/web_search";
+
+        ArgumentNullException.ThrowIfNull(query);
+        OllamaWebSearchResponse? responsec = null;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, searchUrl);
+            var requestPayload = new { query };
+            var jsonPayload = JsonSerializer.Serialize(requestPayload, _jsonOptions);
+            request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+            if (!string.IsNullOrEmpty(_ollamaApiKey))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
+                _logger.LogDebug("Added API key header for cloud endpoint");
+            }
+            else
+            {
+                _logger.LogWarning("Cloud endpoint requested but no API key configured");
+            }
+
+            _logger.LogDebug("POST request to {RequestUri}", searchUrl);
+            using var flapperClient = _httpClientFactory.CreateClient("FlapperApiClient");
+            using var response = await flapperClient.SendAsync(request, ct);
+
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            responsec = JsonSerializer.Deserialize<OllamaWebSearchResponse>(responseContent, _jsonOptions);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}",
+                searchUrl, ex.StatusCode);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize response from {RequestUri}", searchUrl);
+            throw;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", searchUrl);
+            throw;
+        }
+        
+
+        if (responsec?.Results is not { Count: > 0 })
+            return $"No search results found for '{query}' related to user question"; //: {context.OriginalUserQuery}";
+
+        var results = string.Join(" | ", responsec.Results.Select(r =>
+            $"[{r.Title}]({r.Url}): {r.Snippet}"));
+
+        // ✅ Include original user query in the tool result
+        //var contextualResult = $"**User asked**: {context.OriginalUserQuery}\n\n" +
+        var contextualResult = $"**Web search results for '{query}'**:\n{results}";
+
+        return contextualResult.Length > 15000 ? contextualResult[..15000] + "..." : contextualResult;
+        //if (!parameters.TryGetValue("query", out var queryObj) || queryObj is not string query)
+        //    return "Error: Missing 'query' argument";
+
+        //if (string.IsNullOrEmpty(query))
+        //    return "Error: Query is empty";
+
+        //Placeholder implementation -integrate with your actual web search service
+        //For now, return a stub response
+        //return $"Web search results for '{query}': [Integration pending with external search service]";
+    }
+   
+
+    private async Task<string> WebIClientFetch(string url, CancellationToken ct = default)
+    {
+
+
+
+        if (string.IsNullOrEmpty(url))
+            return "Error: URL is empty";
+
+        var searchUrl = "https://ollama.com/api/web_fetch";
+
+        ArgumentNullException.ThrowIfNull(url);
+        OllamaWebFetchResponse? responseC;
+
+        try
+        {
+            using var request = new HttpRequestMessage(HttpMethod.Post, searchUrl);
+            var requestPayload = new { url };
+            var jsonPayload = JsonSerializer.Serialize(requestPayload, _jsonOptions);
+            request.Content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+            if (!string.IsNullOrEmpty(_ollamaApiKey))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _ollamaApiKey);
+                _logger.LogDebug("Added API key header for cloud endpoint");
+            }
+            else
+            {
+                _logger.LogWarning("Cloud endpoint requested but no API key configured");
+            }
+
+            _logger.LogDebug("POST request to {RequestUri}", searchUrl);
+            using var flapperClient = _httpClientFactory.CreateClient("FlapperApiClient");
+            using var response = await flapperClient.SendAsync(request, ct);
+
+            response.EnsureSuccessStatusCode();
+            var responseContent = await response.Content.ReadAsStringAsync(ct);
+
+            responseC = JsonSerializer.Deserialize<OllamaWebFetchResponse>(responseContent, _jsonOptions);
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "HTTP request failed for {RequestUri}: {StatusCode}",
+                searchUrl, ex.StatusCode);
+            throw;
+        }
+        catch (JsonException ex)
+        {
+            _logger.LogError(ex, "Failed to deserialize response from {RequestUri}", searchUrl);
+            throw;
+        }
+        catch (OperationCanceledException ex)
+        {
+            _logger.LogWarning(ex, "Request to {RequestUri} was cancelled", searchUrl);
+            throw;
+        }
+        
+        //Placeholder implementation -integrate with your actual web fetch service
+        var content = responseC?.Content ?? "";
+
+        // ✅ Include original user query and URL context in the tool result
+        //var contextualResult = $"**Original user question**: {context.OriginalUserQuery}\n\n" +
+        var contextualResult = $"**Content fetched from {url}**:\n{content}";
+
+        return contextualResult.Length > 12000 ? contextualResult[..12000] + "..." : contextualResult;
+    }
+
+    private async Task<string> IClientAskTables(string query)
+    {
+        if (string.IsNullOrEmpty(query))
+            return "Error: Missing query parameter";
+
+        
+        //Call your existing TablesAPI
+        TablesRequest tablesRequest = new TablesRequest
+        {
+            UserId = "Flapper", // You can pass actual user ID if needed for logging
+            UserRequest = query,
+            UserEmail = "flapper@example.com",
+            ModelName = "Default",
+            SessionId = convId
+        };
+        var result = await _tablesAPI.AskTablesAsync(tablesRequest);
+        if (result.Success)
+        {
+            //originalQuery = originalQuery.Replace("[REPORT]", "").Replace("[SPEECH]", "").Trim();
+            var tblResponse = $"**Data from database**:\n{JsonSerializer.Serialize(result.Data)}";
+            return tblResponse;
+        }
+        else
+        {
+            return $"Error: {result.Message ?? "Unknown error"}";
+        }
+    }
+
 }
 
 #region Old Code

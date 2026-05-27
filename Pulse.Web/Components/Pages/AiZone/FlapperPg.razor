@@ -592,7 +592,7 @@
                 OnTablesProgressUpdate;
         uName = await dtrf.GetgvUserFirstName();
         groupId = CurrentConversationId.ToString();
-        // // await MsgHubService.JoinGroup(groupId);
+        await MsgHubService.JoinGroup(groupId);
     }
 
     #endregion
@@ -1121,7 +1121,7 @@
         {
             flapper = await dtrf.GetgvFlapper();
             this._available = await this.SpeechRecognition.IsAvailableAsync();
-            CurrentChartConfig = GlobalFunctions.DeserialiseChartConfigString("""{"ChartType":"Bar","Title":"Total Sales for Columbus Stainless Pty Ltd by Financial Year","XAxisTitle":"Financial Year","YAxisTitle":"Total Sales (ZAR)","Series":[{"Name":"Colu","dataP":[{"label":"2011","value":9024639},{"label":"2012","value":8347613},{"label":"2013","value":8970765},{"label":"2014","value":9837427},{"label":"2015","value":14533455},{"label":"2016","value":17631786},{"label":"2017","value":15848810},{"label":"2018","value":17754530},{"label":"2019","value":15831415},{"label":"2020","value":10259007},{"label":"2021","value":12859604},{"label":"2022","value":14123825},{"label":"2023","value":15466854},{"label":"2024","value":21302104},{"label":"2025","value":20431121},{"label":"2026","value":4148269}]},{"Name":"Duf","dataP":[{"label":"2011","value":9024639},{"label":"2012","value":8347613},{"label":"2013","value":8970765},{"label":"2014","value":9837427},{"label":"2015","value":14533455},{"label":"2016","value":17631786},{"label":"2017","value":15848810},{"label":"2018","value":17754530},{"label":"2019","value":15831415},{"label":"2020","value":10259007},{"label":"2021","value":12859604},{"label":"2022","value":14123825},{"label":"2023","value":15466854},{"label":"2024","value":21302104},{"label":"2025","value":20431121},{"label":"2026","value":4148269}]}],"FooterNote":"2024 shows a significant jump of 33%"}""");
+            //CurrentChartConfig = GlobalFunctions.DeserialiseChartConfigString("""{"ChartType":"Bar","Title":"Total Sales for Columbus Stainless Pty Ltd by Financial Year","XAxisTitle":"Financial Year","YAxisTitle":"Total Sales (ZAR)","Series":[{"Name":"Colu","dataP":[{"label":"2011","value":9024639},{"label":"2012","value":8347613},{"label":"2013","value":8970765},{"label":"2014","value":9837427},{"label":"2015","value":14533455},{"label":"2016","value":17631786},{"label":"2017","value":15848810},{"label":"2018","value":17754530},{"label":"2019","value":15831415},{"label":"2020","value":10259007},{"label":"2021","value":12859604},{"label":"2022","value":14123825},{"label":"2023","value":15466854},{"label":"2024","value":21302104},{"label":"2025","value":20431121},{"label":"2026","value":4148269}]},{"Name":"Duf","dataP":[{"label":"2011","value":9024639},{"label":"2012","value":8347613},{"label":"2013","value":8970765},{"label":"2014","value":9837427},{"label":"2015","value":14533455},{"label":"2016","value":17631786},{"label":"2017","value":15848810},{"label":"2018","value":17754530},{"label":"2019","value":15831415},{"label":"2020","value":10259007},{"label":"2021","value":12859604},{"label":"2022","value":14123825},{"label":"2023","value":15466854},{"label":"2024","value":21302104},{"label":"2025","value":20431121},{"label":"2026","value":4148269}]}],"FooterNote":"2024 shows a significant jump of 33%"}""");
             StateHasChanged();
         }
     }

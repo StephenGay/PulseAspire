@@ -371,19 +371,5 @@ namespace Pulse.Web.Services
         }
     }
 
-    // Add these response models if not already present
-    //public class OllamaTagsResponse
-    //{
-    //    [JsonPropertyName("models")]
-    //    public List<OllamaModel> Models { get; set; } = new();
-    //}
-
-    //public class OllamaModel
-    //{
-    //    [JsonPropertyName("name")]
-    //    public string Name { get; set; } = string.Empty;
-
-    //    [JsonPropertyName("size")]
-    //    public long Size { get; set; }
-    //}
+ 
 }

@@ -85,36 +85,114 @@ public class GlobalFunctions
 
     public ChartConfig DeserialiseChartConfigString(string jsonString)
     {
-        
         try
         {
-            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-            var chartConfig = JsonSerializer.Deserialize<ChartConfig>(jsonString, options);
-            List<ChartSeriesConfig>? nSeries = new List<ChartSeriesConfig>();
-
-            foreach (var series in chartConfig?.Series!)
+            if (string.IsNullOrEmpty(jsonString))
             {
-                
-                List<ChartDataPoint>? dataPoints = series?.Data != null ? new List<ChartDataPoint>() : null;
-
-                //foreach (var dp in series.Data)
-                //{
-                //    ChartDataPoint ndp = new ChartDataPoint(dp.Label, dp.Value);
-                //    dataPoints.Add(ndp);
-                //};
-                ChartSeriesConfig newSeries = new ChartSeriesConfig(series.Name, dataPoints);
-                
-                nSeries.Add(newSeries);
+                return new ChartConfig("", "", null, null, null, null);
             }
-            return new ChartConfig(chartConfig.ChartType, chartConfig.Title, chartConfig.XAxisTitle, chartConfig.YAxisTitle, nSeries, chartConfig.FooterNote);
 
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            using (JsonDocument doc = JsonDocument.Parse(jsonString))
+            {
+                var root = doc.RootElement;
+
+                // Extract top-level properties
+                string chartType = root.TryGetProperty("chartType", out var ct)
+                    ? ct.GetString() ?? ""
+                    : "";
+
+                string title = root.TryGetProperty("title", out var t)
+                    ? t.GetString() ?? ""
+                    : "";
+
+                string? xAxisTitle = root.TryGetProperty("xAxisTitle", out var xat)
+                    ? xat.GetString()
+                    : null;
+
+                string? yAxisTitle = root.TryGetProperty("yAxisTitle", out var yat)
+                    ? yat.GetString()
+                    : null;
+
+                string? footerNote = root.TryGetProperty("footerNote", out var fn)
+                    ? fn.GetString()
+                    : null;
+
+                // Deserialize series with datapoints
+                List<ChartSeriesConfig>? series = null;
+                if (root.TryGetProperty("series", out var seriesElement) &&
+                    seriesElement.ValueKind == JsonValueKind.Array)
+                {
+                    series = new List<ChartSeriesConfig>();
+
+                    foreach (var seriesItem in seriesElement.EnumerateArray())
+                    {
+                        string seriesName = seriesItem.TryGetProperty("name", out var sn)
+                            ? sn.GetString() ?? ""
+                            : "";
+
+                        // Deserialize datapoints
+                        List<ChartDataPoint>? dataPoints = null;
+                        if (seriesItem.TryGetProperty("data", out var dataElement) &&
+                            dataElement.ValueKind == JsonValueKind.Array)
+                        {
+                            dataPoints = JsonSerializer.Deserialize<List<ChartDataPoint>>(
+                                dataElement.GetRawText(),
+                                options
+                            );
+                        }
+
+                        series.Add(new ChartSeriesConfig(seriesName, dataPoints));
+                    }
+                }
+
+                return new ChartConfig(chartType, title, xAxisTitle, yAxisTitle, series, footerNote);
+            }
+        }
+        catch (JsonException jsonEx)
+        {
+            showError($"Invalid JSON format: {jsonEx.Message}<br />Please verify the chart configuration.");
+            return new ChartConfig("", "", null, null, null, null);
         }
         catch (Exception ex)
         {
-            showError("There was a problem creating the chart.<br />Please try again.");
+            showError($"There was a problem creating the chart: {ex.Message}<br />Please try again.");
             return new ChartConfig("", "", null, null, null, null);
         }
-        
+        //try
+        //{
+        //    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        //    var chartConfig = JsonSerializer.Deserialize<ChartConfig>(jsonString, options);
+        //    List<ChartSeriesConfig>? nSeries = new List<ChartSeriesConfig>();
+
+        //    foreach (var series in chartConfig?.Series!)
+        //    {
+        //        var seriesData = JsonSerializer.Deserialize<ChartSeriesConfig>(series.ToString(), options);
+
+        //        List<ChartDataPoint>? dataPoints = series?.Data != null ? new List<ChartDataPoint>() : null;
+
+        //        //foreach (var dp in series.Data)
+        //        //{
+        //        //    ChartDataPoint ndp = new ChartDataPoint(dp.Label, dp.Value);
+        //        //    dataPoints.Add(ndp);
+        //        //};
+        //        ChartSeriesConfig newSeries = new ChartSeriesConfig(series.Name, dataPoints);
+
+        //        nSeries.Add(newSeries);
+        //    }
+        //    return new ChartConfig(chartConfig.ChartType, chartConfig.Title, chartConfig.XAxisTitle, chartConfig.YAxisTitle, nSeries, chartConfig.FooterNote);
+
+        //}
+        //catch (Exception ex)
+        //{
+        //    showError("There was a problem creating the chart.<br />Please try again.");
+        //    return new ChartConfig("", "", null, null, null, null);
+        //}
+
     }
     public string ParseToHtml(string markdownContent)
     {

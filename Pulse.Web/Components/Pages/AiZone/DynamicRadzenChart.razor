@@ -20,8 +20,8 @@
         @foreach (var series in Config.Series ?? new List<ChartSeriesConfig>())
         {
             <RadzenLineSeries Data="@series.Data" 
-                              CategoryProperty="label" 
-                              ValueProperty="value" 
+                              CategoryProperty="Label" 
+                              ValueProperty="Value" 
                               Title="@series.Name" />
         }
     }
