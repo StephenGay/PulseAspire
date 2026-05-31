@@ -6,13 +6,13 @@
 @inject Pulse.Web.Services.Pulse_AI pAI
 @inject NavigationManager Navigation
 @inject DataTransferService DTrf
-@inject AppState AppState
+@inject AppState cdAppState
 @* @attribute [StreamRendering(true)] *@
 @rendermode InteractiveServer
 
 <PageTitle>Customer Dashboard</PageTitle>
 
-@if (_client == null)
+@if (isLoading)
 {
     <div>Loading...</div>
 }
@@ -59,7 +59,7 @@ else
             @if (stats.countOpenQuotes > 0)
             {
                 
-                    <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
+                   @*  <FluentGridItem xs="12" sm="10" md="6" lg="4" xl="2" Style="width:100%">
                     <Animation Effect="@Effect.FlipInX" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(1)">
                     <Card IsShadow="true" Color="BootstrapBlazor.Components.Color.Dark" IsCenter="true">
                         <HeaderTemplate>
@@ -71,7 +71,7 @@ else
                     </Card>
                     </Animation>
                 </FluentGridItem>
-                
+                 *@
             }
         }
         @if (cmSales != null)
@@ -194,8 +194,9 @@ else
 @code {
 
     private string _customer_Id = string.Empty;
+    [CascadingParameter]
+    Customer _client { get; set; } = default!;
 
-    private Customer? _client;
     private string? d120 = string.Empty ;
     private string? d90 = string.Empty;
     private string? d60 = string.Empty;
@@ -215,9 +216,13 @@ else
     {
         // Simulate asynchronous loading to demonstrate streaming rendering
         // await Task.Delay(3000);
-        await DTrf.SetgvContextArea(0);
-        ShowAiIcon showAi = new ShowAiIcon();
-        await DTrf.SetgvShowAI(showAi);
+        // await DTrf.SetgvContextArea(0);
+        // ShowAiIcon showAi = new ShowAiIcon();
+        // await DTrf.SetgvShowAI(showAi);
+        cdAppState.OnClientChange += async () =>
+        {
+            await GetClientData();
+        };
         // await AppState.NotifyStateChanged();
         isLoading = false;
     }
@@ -228,36 +233,35 @@ else
     {
         if (firstRender)
         {
-            curPer = await DTrf.GetgvCurrentPeriod();
-            _client = await DTrf.GetgvSelectedClient();
-            StateHasChanged();
-            stats = await DTrf.GetgvSelectedClientStats();
-            if (stats == null || stats.FullClientID != _client.FullClientID)
-            {
-                stats = await pAI.GetClientStatsAsync(_client.FullClientID);
-                await DTrf.SetgvSelectedClientStats(stats);
-            }
-            StateHasChanged();
-            if (_client.Ageing01 > 0) { d120 = "myWarning"; accWarning = true; } else { d120 = "mySuccess"; }
-            if (_client.Ageing02 > 0 && _client.TermDays < 90) { d90 = "myWarning"; accWarning = true; } else { d90 = "mySuccess"; }
-            if (_client.Ageing03 > 0 && _client.TermDays < 60) { d60 = "myWarning"; accWarning = true; } else { d60 = "mySuccess"; }
-            if (_client.Ageing04 > 0 && _client.TermDays < 30) { d30 = "myWarning"; accWarning = true; } else { d30 = "mySuccess"; }
-            if (_client.Ageing05 > 0 && _client.TermDays < 1) { dCur = "myWarning"; accWarning = true; } else { dCur = "mySuccess"; }
-            StateHasChanged();
-            if (_client.ClientSales == null)
-            {
-                _client.ClientSales = await pAI.GetClientSalesAsync(_client.FullClientID);
-                await DTrf.SetgvSelectedClient(_client);
-                
-            }
-            if (_client.ClientSales != null)
-            {
-                cmSales = _client.ClientSales.FirstOrDefault(s => s.PeriodID == curPer.PeriodID);
-                cYtdSales = _client.ClientSales.Where(sa => sa.PeriodID < curPer.PeriodID && sa.Period.FinancialYear == curPer.FinancialYear).Sum(sa => sa.Amount);
-            }
-            StateHasChanged();
+            
+            await GetClientData();
         }
         
+    }
+    private async Task GetClientData()
+    {
+        isLoading = true;
+        curPer = await DTrf.GetgvCurrentPeriod();
+        stats = await DTrf.GetgvSelectedClientStats();
+        if (stats == null || stats.FullClientID != _client.FullClientID)
+        {
+            stats = await pAI.GetClientStatsAsync(_client.FullClientID);
+            await DTrf.SetgvSelectedClientStats(stats);
+        }
+        // StateHasChanged();
+        if (_client.Ageing01 > 0) { d120 = "myWarning"; accWarning = true; } else { d120 = "mySuccess"; }
+        if (_client.Ageing02 > 0 && _client.TermDays < 90) { d90 = "myWarning"; accWarning = true; } else { d90 = "mySuccess"; }
+        if (_client.Ageing03 > 0 && _client.TermDays < 60) { d60 = "myWarning"; accWarning = true; } else { d60 = "mySuccess"; }
+        if (_client.Ageing04 > 0 && _client.TermDays < 30) { d30 = "myWarning"; accWarning = true; } else { d30 = "mySuccess"; }
+        if (_client.Ageing05 > 0 && _client.TermDays < 1) { dCur = "myWarning"; accWarning = true; } else { dCur = "mySuccess"; }
+        
+        if (_client.ClientSales != null)
+        {
+            cmSales = _client.ClientSales.FirstOrDefault(s => s.PeriodID == curPer.PeriodID);
+            cYtdSales = _client.ClientSales.Where(sa => sa.PeriodID < curPer.PeriodID && sa.Period.FinancialYear == curPer.FinancialYear).Sum(sa => sa.Amount);
+        }
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
     }
 
     private void NavigateToProfile()

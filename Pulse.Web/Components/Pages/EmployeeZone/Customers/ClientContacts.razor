@@ -1,7 +1,10 @@
 ﻿@page "/EmployeeZone/Customers/ClientContacts"
 @using Pulse.Models.Customers
 @using Pulse.Models.Misc
+@using Pulse.Web.Components.PulseComponents.Controls
+@using static Pulse.Web.Models.MiscEnumLists
 @using Pulse.Web.Services
+@using Pulse.Models.Api
 @inject PulseApiService pApi
 @inject DataTransferService DTrf
 @inject AppState AppState
@@ -26,9 +29,9 @@
 </style>
  *@
 <div class="cparent">
-    <div class="ccontent">
+    <div class="ccontent" style="text-align:center">
 
-<FluentGrid Style="height:inherit">
+        <FluentGrid Justify="MsFluent.JustifyContent.Center" Style="height:inherit;text-align:center">
             @if(c == null)
             {
                 <div class="div-center-screen">
@@ -37,7 +40,36 @@
             }
             else
             {
-                @foreach(ClientContact clientContact in c.ClientContacts)
+                
+                    noContact = 0;
+                
+                @foreach (ClientContact clientContact in c.ClientContacts)
+                {
+                    
+                    @* <AnimatedObserver Animation="AnimationType.FadeDown" StaggerDelay="@(noContact * 50)"> *@
+                        <Animation Effect="Effect.FadeInUp" Speed="Speed.Fast" Delay="TimeSpan.FromMilliseconds(noContact*50)">
+                        <FluentGridItem>
+                        @* <div class="clientSpeeddialCard" style="height:250px;width:210px" @onclick="async () => await OnContactClick(clientContact)"> *@
+                                <div class="card btnShadow" style="height:100%;width:300px" @onclick="async () => await OnContactClick(clientContact)">
+
+                                <header class="card-header text-start text-truncate" style="padding-right:5px">@clientContact.FullName</header>
+                                <div class="card-body">
+                                    <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Start" Style="gap: 5px;padding:5px">
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;white-space:pre-line">Title: @clientContact.ContactTitle</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;white-space:pre-line">Mobile: @clientContact.ContactMobile</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;white-space:pre-line">Email: @clientContact.ContactEmail</FluentLabel>
+                                    </FluentStack>
+                                </div>
+                            </div>
+
+                        @* </div> *@
+                        </FluentGridItem>
+                    </Animation>
+                    @* </AnimatedObserver> *@
+                    @* if (noContact > 25) { noContact = 0; } else { noContact++; } *@
+                    noContact++;
+                }
+                @* @foreach(ClientContact clientContact in c.ClientContacts)
                 {
                     <FluentGridItem lg="2" md="4" sm="8" xs="12">
                         <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
@@ -53,10 +85,10 @@
                         @* <FluentCard>
                             <FluentLabel><strong>@clientContact.FullName</strong></FluentLabel>
                             <FluentLabel>@clientContact.ContactTitle</FluentLabel>
-                        </FluentCard> *@
+                        </FluentCard> 
                         </Animation>
                     </FluentGridItem>
-                }
+                } *@
             }
         </FluentGrid>
 </div>
@@ -65,6 +97,7 @@
 
 @code {
     Customer? c;
+    int noContact = 0;
 
     protected override async Task OnInitializedAsync()
     {
@@ -82,11 +115,16 @@
             Customer cl = await DTrf.GetgvSelectedClient();
             if (cl.ClientContacts == null)
             {
-                cl.ClientContacts = await pApi.GetAsync<List<ClientContact>>($"/Customers/Details/{cl.FullClientID}/Contacts/GetAll");
+                cl.ClientContacts = await pApi.GetAsync<List<ClientContact>>(ApiEndpoints.Customers.ByFullClientID.Contacts.Get(cl.FullClientID));
                 await DTrf.SetgvSelectedClient(cl);
             }
             c = cl;
             StateHasChanged();
         }
+    }
+    private async Task OnContactClick(ClientContact contact)
+    {
+        // await DTrf.SetgvSelectedClientContact(contact);
+        // Navigate to contact details page or open a dialog, etc.
     }
 }

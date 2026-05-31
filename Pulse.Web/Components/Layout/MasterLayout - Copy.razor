@@ -1,0 +1,503 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI.Ali
+@using Pulse.Models.AI.Flapper
+@using Pulse.Models.AI.Tables
+@using Pulse.Models.Communication
+@using Pulse.Models.CustomComponents
+@using Pulse.Models.Organizational
+@using Pulse.Models.Users
+@using Pulse.Web.Components.Pages.Security
+@using Pulse.Web.Components.Pages.UserSettings
+@using Pulse.Web.Components.PulseComponents.Cards
+@using Pulse.Web.Components.PulseComponents.Containers
+@using Pulse.Web.Components.PulseComponents.Controls
+@using Pulse.Web.Services
+@using Pulse.Web.Components.Pages.Notifications
+@using Toolbelt.Blazor.SpeechSynthesis
+@using System.Security.Claims
+
+@inject MessageHubService MsgHubService
+@inject IJSRuntime JS
+@inject AppState AppState
+@inject DataTransferService dataTrf
+
+
+@inject SpeechSynthesis SpeechSynthesis
+@inject Global_AI_Functions GlobalAI
+@inject IMessageService MessageService
+@inject ILogger<MasterLayout> _logger
+@inject IDialogService DialogService
+
+@* @inject AuthenticationStateProvider AuthStateProvider *@
+@inject CustomAuthenticationStateProvider _authProvider
+@inject NavigationManager Navigation
+@inject AuthService _authService
+
+@inherits LayoutComponentBase
+
+@implements IDisposable
+
+@rendermode InteractiveServer
+
+<style>
+    .drawer {
+        --bb-drawer-body-padding: 0 !important;
+        /* top: 56px !important; */
+        height: calc(100vh - 56px) !important;
+        z-index: 500 !important;
+    }
+
+    .myDivBtn{
+        --pulse-accent-btn-bg: var(--pulse-dark-colour);
+        --pulse-accent-btn-colour: var(--pulse-light-colour);
+        border: 1px solid var(--pulse-light-colour);
+    }
+    .myDivBtn:hover {
+            --pulse-accent-btn-bg: var(--pulse-light-colour);
+        --pulse-accent-btn-colour: var(--pulse-dark-colour);
+    }
+</style>
+
+<CascadingAuthenticationState>
+<AuthorizeView>
+    <Authorized>
+            <RadzenComponents @rendermode="InteractiveAuto" />
+        <FluentDialogProvider />
+
+        <div class="MasterLayoutParent">
+            <div class="MasterLayoutHeader">
+                <MasterAIMenu />
+                <FluentMessageBarProvider Section="MESSAGES_TOP" NewestOnTop="true" Type="MessageType.Notification" />
+            </div>
+
+            <div class="MasterLayoutContent">
+                    @* <div class="mbparent"> *@
+                        @Body
+                    @* </div> *@
+                   
+            </div>
+
+            <div class="MasterLayoutFooter">
+                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height:100%;padding:10px" Width="100%" >
+                    @if (userSettings == null)
+                    {
+                        <FluentProgressRing Width="32px" Color="var(--pulse-light-colour)"></FluentProgressRing>
+                    }
+                    else
+                    {
+                        <FluentPersona Status="@GetPresenceStatus(presence)"
+                                       StatusSize="PresenceBadgeSize.Small"
+                                       Id="btnProfile"
+                                       StatusTitle="@(GetPresenceStatus(presence).ToString())"
+                                       OnClick="() => showProfileMenu = !showProfileMenu"
+                                       aria-label="Show Profile Menu"
+                                       Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                                       ImageSize="40px">
+                        </FluentPersona>
+                        @* <Animation Effect="@Effect.FadeInUp" Enabled="@showProfileMenu" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)"> *@
+                            <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true"  HorizontalPosition="HorizontalPosition.End" VerticalPosition="VerticalPosition.Top" AutoFocus="false" AnchorId="btnProfile" @bind-Open="showProfileMenu">
+                                <Header><FluentLabel Typo="Typography.Header" Weight="FontWeight.Bold" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">@_authService.aspireFullName</FluentLabel></Header>
+                                <Body>
+                                    <FluentStack Orientation="MsFluent.Orientation.Vertical">
+                                        <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">Status</FluentLabel>
+                                        <FluentSelect Value="@presence" @onchange="ChangePresence" TOption="string" Style="border:1px solid var(--pulse-dark-colour)">
+                                            <FluentOption Value="3">Available</FluentOption>
+                                            <FluentOption Value="2">Away</FluentOption>
+                                            <FluentOption Value="0">Busy</FluentOption>
+                                            <FluentOption Value="5">Do Not Disturb</FluentOption>
+                                            <FluentOption Value="4">Offline</FluentOption>
+                                            <FluentOption Value="1">Out Of Office</FluentOption>
+                                            <FluentOption Value="6">Unknown</FluentOption>
+                                        </FluentSelect>
+                                        <ThemeSwitcher />
+                                    </FluentStack>
+                                </Body>
+                                <Footer>
+                                    <FluentButton Appearance="Appearance.Accent" aria-label="Log Out" OnClick="Logout">Logout</FluentButton>
+                                </Footer>
+                            </FluentPopover>
+                        @* </Animation> *@
+                    }
+                    <FluentSpacer />
+                    <Animation Effect="@Effect.Shake" Enabled="@aniMsg" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2" OnAnimationEnd="() => aniMsg=false">
+                        <FluentCounterBadge  Count="@_messages.Count" BackgroundColor="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Fill" Dot="@showChatDot" aria-hidden="false">
+                                <FluentButton id="btnMsg" data-bs-toggle="offcanvas" data-bs-target="#msgCentre" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)">
+                                <FluentIcon Value="@(new Icons.Filled.Size32.Mail().WithColor("var(--pulse-light-colour)"))" />
+                            </FluentButton>
+                        </FluentCounterBadge>
+                    </Animation>
+                    <FluentSpacer />
+                    @if (division == null)
+                    {
+                        <FluentProgressRing Width="32px" Color="var(--pulse-light-colour)"></FluentProgressRing>
+                    }
+                    else
+                    {
+                        <FluentButton class="myDivBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" aria-label="Change to a different Division" style="margin-right:10px" OnClick="ChangeDiv">@division.DivisionName</FluentButton>
+                    }
+                </FluentStack>
+             </div>
+            
+            <div class="offcanvas offcanvas-start" style="width:100%" tabindex="-1" id="msgCentre" aria-labelledby="msgCentreLabel">
+                <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                                IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+                    Close
+                </FluentButton>
+                <UserMsgCentre />
+            </div>
+        </div>
+        
+    </Authorized>
+    
+        <NotAuthorized>
+            <Access_Denied />
+        </NotAuthorized>
+
+    </AuthorizeView>
+
+    </CascadingAuthenticationState>
+
+<FluentTooltipProvider />
+
+@code {
+
+    // User? user;
+    Division? division;
+    Flapper? flapper;
+    Tables? tables;
+    Ali? ali;
+    bool aniMsg = false;
+    bool showProfileMenu = false;
+    bool ShowMsgCentre = false;
+    bool showChatDot = false;
+    string? pTheme;
+    private const int MaxMessages = 50;
+    private List<PulseMessage> _messages = new();
+    
+    string presence = "3";
+    private string _message = "";
+    private string _userId= string.Empty;
+    private string _userName = string.Empty;
+    private ApplicationUserSettings? userSettings;
+    private IDialogReference? _dialog;
+
+    #region Layout Lifecycle Methods
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // await _authService.LoadTokenAsync();
+            // _authProvider.NotifyStateChanged();
+
+
+
+            if (!_authService.IsAuthenticated){
+                Navigation.NavigateTo("/Home", true);
+                return;
+            }
+
+            _userId = _authService.aspireUserId;
+            _userName = _authService.aspireUsername;
+
+            userSettings = await dataTrf.GetgvUserSettings();
+            division =  await dataTrf.GetgvSelectedDivision();
+            flapper = await dataTrf.GetgvFlapper();
+            tables = await dataTrf.GetgvTables();
+            ali = await dataTrf.GetgvAli();
+            //await MsgHubService.StartAsync();
+            StateHasChanged();
+        }
+    }
+    
+    protected override async Task OnInitializedAsync()
+    {
+        if (_authService.IsAuthenticated)
+        {
+            await MsgHubService.EnsureConnectedAsync();
+            MsgHubService.OnReceiveMessage += OnMessageReceived;
+            MsgHubService.OnPresenceListUpdated += OnPresenceListUpdated; 
+            MsgHubService.OnLoadHistory += OnLoadHistory;
+        }
+
+        GlobalAI.OnAISpeakRequested += AISpeak;
+    }
+
+    public void Dispose()
+    {
+        MsgHubService.OnReceiveMessage -= OnMessageReceived;
+        MsgHubService.OnPresenceListUpdated -= OnPresenceListUpdated;
+        MsgHubService.OnLoadHistory -= OnLoadHistory;
+        GlobalAI.OnAISpeakRequested -= AISpeak;
+    }
+
+    #endregion
+
+    #region SignalR Messaging Handlers
+
+    private async void OnLoadHistory(List<PulseMessage> history)
+    {
+        try
+        {
+            await dataTrf.SetgvUserMessages(history);
+            // Update UI state on the renderer thread
+            foreach (var msg in history)
+            {
+                if (msg.Delivered == false)
+                {
+                    showChatDot = true;
+                    break;
+                }
+            }
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception)
+        {
+            // Avoid bubbling exceptions out of event callback
+        }
+    }
+
+    private void OnPresenceListUpdated(List<UserPresenceDto> presenceList)
+    {
+        try
+        {
+            // Find current user's presence in the broadcast list
+            var currentUserPresence = presenceList.FirstOrDefault(p => p.UserId == _userId);
+
+            if (currentUserPresence != null)
+            {
+                // Update the local presence state variable to match server
+                presence = ((int)currentUserPresence.EffectiveStatus).ToString();
+
+                _logger?.LogInformation("Presence updated: {UserId} -> {Status}",
+                    _userId, currentUserPresence.EffectiveStatus);
+            }
+
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogError(ex, "Error handling presence list update");
+        }
+    }
+    // private async Task CloseMsg(Microsoft.FluentUI.AspNetCore.Components.Message message)
+    // {
+    //     int msgId = int.Parse(message.Link.Href);
+    //     await MsgHubService.MarkMessageAsDeliveredAsync(msgId);
+    //     var msgToClose = _messages.FirstOrDefault(m => m.Id == msgId);
+    //     InvokeAsync(StateHasChanged);
+    //     // return Task.CompletedTask;
+    // }
+
+    private async void OnMessageReceived(PulseMessage msg)
+    {
+        try
+        {
+            if (msg.Role == "Flapper") { return; } // Ignore Flapper messages in the general message bar - they will be handled in the Flapper component}
+
+            // Update UI state on the renderer thread
+            await dataTrf.AddgvUserMessage(msg);
+            aniMsg = true;
+            showChatDot = true;
+
+            AISpeak("You have a new message", "PulseAI");
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception)
+        {
+            // Avoid bubbling exceptions out of event callback
+        }
+    }
+
+    // In your Blazor component
+    
+    private async Task ChangePresence(ChangeEventArgs e)
+    {
+        presence = e.Value?.ToString() ?? "3";
+        int code = int.Parse(presence);
+
+        try
+        {
+            await MsgHubService.SetPresenceAsync(code);
+            // Don't update UI here; wait for OnPresenceListUpdated broadcast
+        }
+        catch (Exception ex)
+        {
+            await SendUserMsg("Error", "Presence Update Failed", $"Could not update presence: {ex.Message}");
+        }
+    }
+
+    private async Task NewMsg()
+    {
+        PulseMessage newMsg = new PulseMessage
+        {
+            RecipientUserId = "",
+            SenderUserId = _userId,
+            SenderUserName = _authService.aspireFullName,
+            Content = ""
+        };
+        _dialog = await DialogService.ShowDialogAsync<NewMessage>(newMsg, new Microsoft.FluentUI.AspNetCore.Components.DialogParameters<PulseMessage>()
+        {
+            Content = newMsg,
+            Alignment = Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center,
+            Title = "New Message",
+            Width = "600px",
+            Height = "600px",
+            PrimaryAction = "Send",
+            SecondaryAction = "Cancel",
+        });
+        Microsoft.FluentUI.AspNetCore.Components.DialogResult result = await _dialog.Result;
+
+        if (result.Cancelled == false && result.Data is PulseMessage sentMsg && !string.IsNullOrWhiteSpace(sentMsg.Content))
+        {
+            try
+            {
+                await MsgHubService.SendMessageAsync(sentMsg);
+            }
+            catch (Exception ex)
+            {
+                await SendUserMsg("Error", "Message Send Failed", $"Could not send message: {ex.Message}");
+            }
+        }
+
+        // var parameters = new DialogParameters<PulseMessage>();
+        // parameters.Set(newMsg);
+        // var options = new DialogOptions
+        // {
+        //     Width = "400px",
+        //     Height = "300px",
+        //     IsBlocking = false,
+        //     CloseOnEscapeKey = true
+        // };
+        // await DialogService.ShowAsync<NewMessage>("New Message", parameters, options);
+    }
+
+    // private async Task OnMessageReceived(object? sender, MessageEventArgs e)
+    // {
+    //     try
+    //     {
+    //         // Update UI state on the renderer thread
+    //         await InvokeAsync(() =>
+    //         {
+    //             _messages.Add(new MessageItem(e.User, e.Message));
+    //             if (_messages.Count > MaxMessages)
+    //                 _messages.RemoveAt(0);
+    //             aniMsg = true;
+    //             StateHasChanged();
+    //         });
+
+    //         // Show a message bar (synchronous options creation)
+    //         MessageService.ShowMessageBar(options =>
+    //         {
+    //             options.Title = e.User;
+    //             options.Intent = MessageIntent.Custom;
+    //             options.Body = e.Message;
+    //             options.Icon = new Icons.Filled.Size32.Mail().WithColor("var(--pulse-light-colour)");
+    //             options.Timestamp = DateTime.Now;
+    //             options.Section = "MESSAGES_BOTTOM";
+    //         });
+
+    //         await AISpeak("You have a new message", "PulseAI");
+    //     }
+    //     catch (Exception)
+    //     {
+    //         // Avoid bubbling exceptions out of event callback
+    //     }
+    // }
+
+    // private async Task OnConnectionStatusChanged(object? sender, ConnectionEventArgs e)
+    // {
+    //     if (!e.IsConnected)
+    //     {
+    //         await SendUserMsg("Error", "Disconnected", "You have lost your connection to the server");
+    //     }
+    //     await InvokeAsync(StateHasChanged);
+    // }
+
+    #endregion
+
+    private void ChangeDiv()
+    {
+        // MsgHubService.DisposeAsync();
+        Navigation.NavigateTo("/DivisionLogon");
+    }
+
+    private Microsoft.FluentUI.AspNetCore.Components.PresenceStatus GetPresenceStatus(string value) => value switch
+    {
+        "0" => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.Busy,
+        "1" => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.OutOfOffice,
+        "2" => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.Away,
+        "3" => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.Available,
+        "4" => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.Offline,
+        "5" => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.DoNotDisturb,
+        _ => Microsoft.FluentUI.AspNetCore.Components.PresenceStatus.Unknown
+    };
+
+    // Accessibility: ensure the interactive element (FluentButton) is focusable & labelled.
+    private void ViewMsgCentre()
+    {
+        showChatDot = false;
+        ShowMsgCentre = true;
+    }
+
+    private async Task SendUserMsg(string tType, string tTitle, string tContent)
+    {
+        var cat = tType switch
+        {
+            "Success" => MessageIntent.Success,
+            "Information" => MessageIntent.Info,
+            "Error" => MessageIntent.Error,
+            "Warning" => MessageIntent.Warning,
+            _ => MessageIntent.Warning
+        };
+
+        MessageService.ShowMessageBar(options =>
+        {
+            options.Title = tTitle;
+            options.Intent = cat;
+            options.Body = tContent;
+            options.Section = "MESSAGES_TOP";
+            options.Timeout = 4000;
+        });
+
+        await GlobalAI.AISpeak(tContent, "PulseAI");
+    }
+
+#region AI Interactions
+
+    private async Task AISpeak(string what, string who)
+    {
+        bool isMuted = await dataTrf.GetgvIsMuted();
+        if(userSettings == null || userSettings.AIHasVoice != true || isMuted)
+        {
+            return;
+        }
+
+        SpeechSynthesisVoice? vc = who switch
+        {
+            "Flapper" => flapper?._Voice,
+            "Tables" => tables?._Voice,
+            "Ali" => ali?._Voice,
+            "PulseAI" => await dataTrf.GetgvUserAIVoice(),
+            _ => null
+        };
+        what = what.Replace("\n", " ").Replace("<br />", " ");
+        var utterancet = new SpeechSynthesisUtterance
+        {
+            Text = what,
+            Voice = vc
+        };
+        await this.SpeechSynthesis.SpeakAsync(utterancet);
+    }
+
+#endregion
+    private async Task Logout()
+    {
+        // await AuthService.Logout();
+        await _authService.ClearAsync();
+        _authProvider.NotifyStateChanged();
+        Navigation.NavigateTo("/Home", forceLoad: true);
+    }
+    public record MessageItem(string User, string Message);
+}

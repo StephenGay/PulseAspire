@@ -639,6 +639,7 @@ public class FlapperOllamaAPI
         bool inThinking = false;
         var promptTokens = 0L;
         var outputTokens = 0L;
+        bool isMsgClarification = false;
         string? doneReason = null;
         string? error = null;
         
@@ -670,9 +671,15 @@ public class FlapperOllamaAPI
                     {
                         inThinking = false;
                         streamTxt += "</thinking>";
+                        //FlapperChunk.Thinking += "</thinking>";
+                        //accumulatedThinking += "</thinking>";
                     }
                     streamTxt += ollama.Message.Content;
                     FlapperChunk.Content = ollama.Message.Content;
+                    if(string.IsNullOrEmpty(accumulatedAnswer) && FlapperChunk.Content.StartsWith("["))
+                    {
+                        isMsgClarification = true;
+                    }
                     accumulatedAnswer += ollama.Message.Content;
                 }
 
@@ -699,37 +706,53 @@ public class FlapperOllamaAPI
         if (update.AdditionalProperties?.TryGetValue("eval_count", out var et) == true)
             outputTokens = Convert.ToInt64(et);
 
-  
+		accumulatedText.Append(streamTxt);
+        
+        if(!isMsgClarification) await hubContext.Clients.User(req.UserId.ToString()).SendAsync("ReceiveFlapperResponseChunk", FlapperChunk); 
+	}
 
-				accumulatedText.Append(streamTxt);
+	var rawReply = accumulatedText.ToString().Trim();
+    var thinking = accumulatedThinking;
+    var finalContent = accumulatedAnswer;
+    var Ctype = "YesNo";
+        var endReason = doneReason switch
+    {
+        "length" => "max_tokens_reached",
+        "stop" or "eos" => "natural_stop",
+        "context" => "context_length_exceeded",
+        _ => doneReason ?? "unknown"
+    };
+        if (isMsgClarification && !finalContent.StartsWith("[CLARIFICATION]") || !isMsgClarification && finalContent.StartsWith("[CLARIFICATION]")) isMsgClarification = !isMsgClarification;
+        if (isMsgClarification)
+        {
+            finalContent = finalContent.Replace("[CLARIFICATION]", "").Trim();
+
+            if (finalContent.StartsWith("{TEXT}"))
+            {
+                Ctype = "Text";
+                finalContent = finalContent.Replace("{TEXT}", "").Trim();
+            }
+            else if (finalContent.StartsWith("{YESNO}"))
+            {
+                finalContent = finalContent.Replace("{YESNO}", "").Trim();
+            }
+            finalContent = finalContent.TrimStart((char)40).TrimEnd((char)41);
+        }
+        
 
 
-
-    await hubContext.Clients.User(req.UserId.ToString()).SendAsync("ReceiveFlapperResponseChunk", FlapperChunk);
-    //await hubContext.Clients.User(userId.ToString()).SendAsync("ReceiveFlapperChunk", streamMessage);
-
-			}
-
-			var rawReply = accumulatedText.ToString().Trim();
-var thinking = accumulatedThinking;
-var finalContent = accumulatedAnswer;
-
-var endReason = doneReason switch
-{
-    "length" => "max_tokens_reached",
-    "stop" or "eos" => "natural_stop",
-    "context" => "context_length_exceeded",
-    _ => doneReason ?? "unknown"
-};
         db.FlapperMessages.Add(new FlapperMessage
         {
             ConversationId = conversation.Id,
             Sender = "Flapper",
-            Content = finalContent ?? "No response generated.",
+            IsClarificationQuestion = isMsgClarification,
+            ClarificationType = Ctype,
             SentAt = DateTime.Now,
-            ContentType = string.IsNullOrEmpty(chartJSON) ? "AiResponse" : "Chart", /*isClarification ? "AiQuestion" : "AiResponse",*/
-            RawContent = chartJSON
-            //IsClarificationQuestion = isClarification
+            Content = finalContent,
+            ContentType = isMsgClarification ? "AiQuestion" : string.IsNullOrEmpty(chartJSON) ? "AiResponse" : "Chart", /* "AiResponse",*/
+            RawContent = chartJSON,
+            UserAnswer = $"[DoneReason:{endReason}][PromptTokens:{promptTokens}][OutputTokens:{outputTokens}]"
+            
         });
 
         await db.SaveChangesAsync();
@@ -749,10 +772,20 @@ var endReason = doneReason switch
             RawContent = chJ
             //RawContent = rawReply
         };
-		
 }
+		
+
     private async Task<string> CreateIClientChart(string chartString)
     {
+        if(string.IsNullOrEmpty(chartString))   
+        {
+            return "Invalid";
+        }
+        var chartConfig = chartString?.TryGetChartConfig();
+        if (chartConfig == null)
+        {
+            return "Invalid";
+        }
         chartJSON = chartString;
         return chartString;
     }

@@ -92,8 +92,8 @@
     {
         if (sState == "BUSY")
         {
-             @* <FluentButton IconStart="@(new Icons.Regular.Size24.ArrowClockwise())" Appearance="Appearance.Accent" Loading="true"></FluentButton>  *@
-            <Button Color="BootstrapBlazor.Components.Color.Info" class="btnShadow" style="border: 1px solid white; background-color:#9900FF; color: white;" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="Working..." />
+             <FluentButton IconStart="@(new Icons.Regular.Size24.ArrowClockwise())" Appearance="Appearance.Accent" Loading="true"></FluentButton> 
+            @* <Button Color="BootstrapBlazor.Components.Color.Info" class="btnShadow" style="border: 1px solid white; background-color:#9900FF; color: white;" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="Working..." /> *@
         }
         else if (sState == "VIEW")
         {
@@ -191,7 +191,8 @@ else
 
 @code
 {
-    private Customer? customer;
+    [CascadingParameter]
+    Customer customer { get; set; } = default!;
     private bool isLoading = true;
     private bool onSpeeddial = false;
     private bool openAssists = false;
@@ -243,8 +244,9 @@ else
     protected override async Task OnInitializedAsync()
     {
         // u = await dataTrf.GetgvUser();
-        period = await dataTrf.GetgvCurrentPeriod();
-
+        // period = await dataTrf.GetgvCurrentPeriod();
+        custSpeedDial = await dataTrf.GetgvUserSpeedDial("Customer");
+        onSpeeddial = custSpeedDial.Exists(sd => sd.ItemCode == customer.FullClientID);
         await GetClientInfo();
 
         isLoading = false;
@@ -321,34 +323,33 @@ else
     private async Task GetClientInfo()
     {
 
-        Customer check = await dataTrf.GetgvSelectedClient();
-        if(check != null){
-        if (check?.ClientSales! == null)
-        {
-            check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
-            await dataTrf.SetgvSelectedClient(check);
-        }
-        custSpeedDial = await dataTrf.GetgvUserSpeedDial("Customer");
-        onSpeeddial = custSpeedDial.Exists(sd => sd.ItemCode == check.FullClientID);
+        // Customer check = await dataTrf.GetgvSelectedClient();
+        // if(check != null){
+        // if (check?.ClientSales! == null)
+        // {
+        //     check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
+        //     await dataTrf.SetgvSelectedClient(check);
+        // }
+        
     
-        if(check?.clientBudgets! == null)
-        {
-            check.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>(ApiEndpoints.Customers.ByFullClientID.Budget.ByFinancialYear.Get(check.FullClientID,period.FinancialYear));
-            // if (check.clientBudgets.Any())
-            // {
-                await dataTrf.SetgvSelectedClient(check);
-            // }
-        }
-        if (!check.clientBudgets.Any())
-        {
-            HasAssists = true;
-        }
-        if (check.AiSummary == null || check.AiSummary == "")
+        // if(check?.clientBudgets! == null)
+        // {
+        //     check.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>(ApiEndpoints.Customers.ByFullClientID.Budget.ByFinancialYear.Get(check.FullClientID,period.FinancialYear));
+        //     // if (check.clientBudgets.Any())
+        //     // {
+        //         await dataTrf.SetgvSelectedClient(check);
+        //     // }
+        // }
+        if (!customer.clientBudgets.Any())
         {
             HasAssists = true;
         }
-        customer = check;
+        if (customer.AiSummary == null || customer.AiSummary == "")
+        {
+            HasAssists = true;
         }
+        // customer = check;
+        // }
     }
     private void CheckForAssists()
     {
@@ -423,9 +424,9 @@ else
                     BudgetedSales = bud.BudgetedSales,
                     AIForecast = bud.BudgetedSales
                 };
-                var response = await pApi.PostAsync<ClientBudgets, ClientBudgets>("/Customers/Budgets/Add/", clientBudgets);
+                var response = await pApi.PostAsync<ClientBudgets, ClientBudgets>(ApiEndpoints.Customers.ByFullClientID.Budget.ByPeriodID.Add,clientBudgets);
             }
-            customer.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>($"/Customers/Details/{customer.FullClientID}/Budgets/{period.FinancialYear}");
+            customer.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>(ApiEndpoints.Customers.ByFullClientID.Budget.ByFinancialYear.Get(customer.FullClientID,period.FinancialYear));
             if (customer.clientBudgets.Any())
             {
                 await dataTrf.SetgvSelectedClient(customer);
@@ -611,7 +612,7 @@ else
 
         // await SendToast("Information", "Processing...", "Your request is being processed.<br />You will be notified when it is complete.");
 
-        List<BlankClientBudget> bCb = await pApi.GetAsync<List<BlankClientBudget>>($"/Customers/Details/{customer.FullClientID}/Budgets/{period.FinancialYear}/CreateBlank");
+        List<BlankClientBudget> bCb = await pApi.GetAsync<List<BlankClientBudget>>(ApiEndpoints.Customers.ByFullClientID.Budget.ByFinancialYear.CreateBlank(customer.FullClientID,period.FinancialYear));
         var blankBud = JsonSerializer.Serialize(bCb.ToList(), new JsonSerializerOptions { WriteIndented = true });
         var dataText = JsonSerializer.Serialize(customer.ClientSales.ToList(), new JsonSerializerOptions { WriteIndented = true });
 

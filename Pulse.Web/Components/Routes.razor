@@ -1,10 +1,32 @@
-﻿@using Microsoft.AspNetCore.Components.Authorization
+﻿
+
+
+<Router AppAssembly="@typeof(Program).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="@routeData" DefaultLayout="@typeof(Layout.MasterLayout)" />
+        <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+    </Found>
+    
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MasterLayout)">
+            <Pulse.Web.Components.Error.NotFound />   <!-- we'll create this -->
+        </LayoutView>
+    </NotFound>
+    
+</Router>
+
+
+
+
+
+
+@* @using Microsoft.AspNetCore.Components.Authorization
 @inject NavigationManager Navigation
 @inject AuthService AuthService
 @inject CustomAuthenticationStateProvider AuthProvider
-@inject ILogger<Routes> Logger
+@inject ILogger<Routes> Logger *@
 
-<CascadingAuthenticationState>
+@* <CascadingAuthenticationState>
     <Router AppAssembly="typeof(Program).Assembly">
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.NoLayout)" >
@@ -23,9 +45,9 @@
             </LayoutView>
         </NotFound>
     </Router>
-</CascadingAuthenticationState>
+</CascadingAuthenticationState> *@
 
-@code {
+@* @code {
     private bool _tokenLoaded = false;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -49,3 +71,4 @@
     }
 }
 
+ *@

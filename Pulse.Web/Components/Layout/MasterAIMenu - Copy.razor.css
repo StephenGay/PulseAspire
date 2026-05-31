@@ -1,0 +1,108 @@
+﻿.card-body {
+    padding-top: 0em !important;
+    padding-bottom: 0em !important;
+    padding-right: 0em !important;
+    padding-left: 0em !important;
+}
+
+.layout-top-row {
+}
+
+
+.card-header {
+    background-color: #365b66 !important;
+    color: white !important;
+    font-weight: bolder !important;
+}
+
+.card-footer {
+    background-color: #bcd1d4 !important;
+    border: 1px solid #365b66 !important;
+}
+
+/*.toast {
+    --bs-toast-bg: white !important;
+    --bs-toast-header-color: #365b66 !important;
+    --bs-toast-header-bg: rgba(188, 209, 212, 0.5) !important;
+}
+
+.toast-progress {
+    --bs-bg-opacity: 0.2 !important;
+    height: 65% !important;
+}
+
+.toast-header {
+    height: 30% !important;
+}
+
+.toast-body {
+    height: 70% !important;
+}*/
+
+.drawer {
+    /* --bb-drawer-body-padding : 0 !important; */
+    /*top: 56px !important;*/
+}
+
+hr {
+    color: #365b66 !important;
+    background-color: #365b66 !important;
+}
+
+.custom-popover {
+    --bs-popover-border-color: var(--bs-info);
+    --bs-popover-header-bg: var(--bs-info);
+    --bs-popover-header-color: var(--bs-white);
+    --bs-popover-body-padding-x: 1rem;
+    --bs-popover-body-padding-y: 1rem;
+}
+
+.dparent {
+    display: flex;
+    flex-direction: column; /* Stack children vertically */
+    height: calc(100vh - 112px); /* Or whatever height your parent should be, like 100% */
+    background-color: var(--pulse-light-colour);
+}
+
+.dheader, .dfooter {
+    /* Fixed sizes; flexbox will respect these */
+    min-height: 50px; /* Or min-height if you want flexibility */
+    border-bottom: 1px solid black;
+    /* background: lightgray; */
+}
+
+.dcontent {
+    flex: 1;
+    padding: 10px;
+    overflow: hidden;
+    display: flex;
+    background-color: white;
+    gap: 10px;
+}
+
+.sidebar {
+    flex-shrink: 0;
+    width: 450px;
+    overflow: auto;
+    padding: 10px;
+    /*border: 1px solid var(--pulse-dark-colour);*/
+    border-radius: 8px;
+}
+
+.aiBox {
+    border: 1px solid black;
+    border-radius: 10px;
+    background-color: var(--pulse-light-2-colour);
+    overflow-x: hidden;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+}
+@media (max-width: 768px) {
+    .dcontent {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        /*max-height: 300px;*/
+    }
+}

@@ -356,7 +356,7 @@ public class MessageHubService : IAsyncDisposable
         }
     }
 
-    public async Task JoinGroup(string groupName)
+    public async Task JoinGroup(string groupName, string userName)
     {
         if (_hubConnection?.State != HubConnectionState.Connected)
         {
@@ -368,7 +368,7 @@ public class MessageHubService : IAsyncDisposable
         {
             try
             {
-                await _hubConnection.InvokeAsync("JoinGroup", groupName, _authService.aspireFullName);
+                await _hubConnection.InvokeAsync("JoinGroup", groupName, userName);
             }
             catch (Exception ex)
             {
@@ -378,7 +378,7 @@ public class MessageHubService : IAsyncDisposable
         }
     }
 
-    public async Task LeaveGroup(string groupName)
+    public async Task LeaveGroup(string groupName, string userName)
     {
         if (_hubConnection?.State != HubConnectionState.Connected)
         {
@@ -390,7 +390,7 @@ public class MessageHubService : IAsyncDisposable
         {
             try
             {
-                await _hubConnection.InvokeAsync("LeaveGroup", groupName, _authService.aspireFullName);
+                await _hubConnection.InvokeAsync("LeaveGroup", groupName, userName);
             }
             catch (Exception ex)
             {

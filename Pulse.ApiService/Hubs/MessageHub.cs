@@ -288,7 +288,15 @@ public class MessageHub : Hub
 
         await base.OnConnectedAsync();
     }
-
+    //public async Task<string?> GetUserFullName()
+    //{
+    //    var userId = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+    //    //if (!string.IsNullOrEmpty(userId))
+    //    //{
+    //    var user = await _userManager.GetUserAsync(Context.User);
+    //    var userName = user?.FullName ?? user?.UserName ?? "Unknown";
+    //    return userName;
+    //}
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
         try

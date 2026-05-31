@@ -33,6 +33,7 @@
     /* Bootstrap Info Override */
     --bs-info: #9900FF !important;
     --bs-info-rgb: 153, 0, 255 !important;
+    --rz-grid-header-background-color: var(--pulse-dark-colour) !important;
 }
 /*:root,
 [data-bs-theme] {

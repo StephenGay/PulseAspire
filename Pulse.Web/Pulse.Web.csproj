@@ -69,7 +69,16 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="Components\Layout\MasterAIMenu - Copy.razor.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Components\Layout\MasterAIMenu.razor.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Components\Layout\MasterLayout - Copy %282%29.razor.css">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Update="Components\Layout\MasterLayout - Copy.razor.css">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Update="Components\Layout\MasterLayout.razor.css">

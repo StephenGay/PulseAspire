@@ -15,6 +15,16 @@
                              Title="@series.Name" />
         }
     }
+    else if (Config.ChartType.Equals("Column", StringComparison.OrdinalIgnoreCase))
+    {
+        @foreach (var series in Config.Series ?? new List<ChartSeriesConfig>())
+        {
+            <RadzenColumnSeries Data="@series.Data"
+                             CategoryProperty="Label"
+                             ValueProperty="Value"
+                             Title="@series.Name" />
+        }
+    }
     else if (Config.ChartType.Equals("Line", StringComparison.OrdinalIgnoreCase))
     {
         @foreach (var series in Config.Series ?? new List<ChartSeriesConfig>())

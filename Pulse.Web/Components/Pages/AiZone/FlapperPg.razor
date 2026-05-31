@@ -17,6 +17,7 @@
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Microsoft.FluentUI.AspNetCore.Components.DesignTokens
 @using static Pulse.Models.AI.Tables.TablesChatStructures
+@using Pulse.Models.AI.Flapper
 @using Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Emojis = Microsoft.FluentUI.AspNetCore.Components.Emojis;
 @using Pulse.Models.AI
@@ -365,7 +366,7 @@
                         {
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                 @* <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" onclick=$"()=>LoadHistoryConversation("{@convo.Id}")">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel> *@
-                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" @onclick="() => LoadHistoryConversation(convo.Id)">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" class="btnShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-light-colour)" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" @onclick="() => LoadHistoryConversation(convo.Id)">@convo.StartedAt.ToString("g") - @convo.Title.Replace("[REPORT] ","").Replace("[SPEECH ]","")</FluentLabel>
                             </FluentStack>
                         }
                     }
@@ -377,22 +378,25 @@
                         @if (!string.IsNullOrEmpty(userQry))
                         {
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                    <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%">@userQry</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-light-colour)" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%">@userQry</FluentLabel>
                             </FluentStack>
                         }
                         @if (!string.IsNullOrEmpty(CurrentFlapperResponse))
                         {
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment=" Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin-bottom: 10px;">
                                 <FluentLabel class="divShadow flapper-response" Typo="Typography.Body" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black">
                                     <div style="color: black; word-break: break-word;">
                                         @* <RadzenMarkdown Style="margin:0; padding:0" Text="@CurrentFlapperResponse" AllowHtml="true" /> *@
                                          @((MarkupString)FlapperAddMUcss(FlapperParseToHtml(CurrentFlapperResponse))) 
                                         @* @CurrentFlapperResponse *@
                                     </div>
+                                    
                                 </FluentLabel>
                                 @if (CurrentChartConfig != null)
                                 {
-                                    <DynamicRadzenChart Config="CurrentChartConfig" />
+                                    <div style="background-color: white;border:1px solid var(--pulse-dark-colour); border-radius:10px;margin:10px;width:calc(100% - 20px);padding:10px;">
+                                        <DynamicRadzenChart Config="CurrentChartConfig" />
+                                    </div>
                                 }
                             </FluentStack>
                         }
@@ -430,7 +434,7 @@
                                     else if (message.ContentType.ToUpper() == "AIRESPONSE")
                                     {
                                         
-                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
+                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin-bottom: 10px;">
 
                                             <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black; white-space:pre-line">
                                             @* <RadzenMarkdown Style="margin:0; padding:0" Text="@message.Content" AllowHtml="true" /> *@
@@ -441,7 +445,7 @@
                                             <div class="divShadow" Style=" background-color:lemonchiffon; padding:10px; width:100%; border-radius:15px; border: 1px solid black">
                                                     
                                                     
-                                                <DynamicRadzenChart Config="GetChartConfigFromMessage(message)" />
+                                                <DynamicRadzenChart Config="@GetChartConfigFromMessage(message)" />
                                                 </div>
                                         }
                                         </FluentStack>
@@ -592,7 +596,7 @@
                 OnTablesProgressUpdate;
         uName = await dtrf.GetgvUserFirstName();
         groupId = CurrentConversationId.ToString();
-        await MsgHubService.JoinGroup(groupId);
+
     }
 
     #endregion
@@ -616,6 +620,9 @@
         {
             Messages = response.Data ?? new List<FlapperMessage>();
             viewHistory = false;
+            stream = false;
+            ViewAll = true;
+            oldFirst = true;
             CurrentConversationId = conversationId;
         }
         else
@@ -631,10 +638,11 @@
     {
         try
         {
-            if(groupId != CurrentConversationId.ToString())
+
+            if (string.IsNullOrEmpty(groupId) || groupId != CurrentConversationId.ToString())
             {
-                if(!string.IsNullOrEmpty(groupId)) await MsgHubService.LeaveGroup(groupId);
-                await MsgHubService.JoinGroup(CurrentConversationId.ToString());
+                if(!string.IsNullOrEmpty(groupId)) await MsgHubService.LeaveGroup(groupId,uName);
+                await MsgHubService.JoinGroup(CurrentConversationId.ToString(),uName);
                 groupId = CurrentConversationId.ToString();
                 await GlobalAI.AISpeak("You have connected to a session with Tables", "Flapper");
             }
@@ -819,7 +827,7 @@
                 tablesResponse = update.Message;
                 break;
             case "Validating":
-                tablesResponse = $"{tablesResponse}{update.Message}";
+                tablesResponse += update.Message;
                 break;
             case "Success":
                 tablesResponse = $"{update.Message}\n\n<strong>FINAL SQL STATEMENT</strong>\n{update.GeneratedSql}";
@@ -1413,6 +1421,7 @@
             {
                 await ClearChatHistory();
                 ConversationHistory = response?.Data?.ToList();
+                
             }
         }
         catch (Exception ex)

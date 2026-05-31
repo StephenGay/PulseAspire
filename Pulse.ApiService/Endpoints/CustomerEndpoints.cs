@@ -48,7 +48,7 @@ namespace Pulse.ApiService.Endpoints
                 .WithName("GetClientByID")
                 .Produces<Customer>(StatusCodes.Status200OK);
 
-            group.MapGet(ByIdPath + "/Contacts/GetAll", async (string fullclientid, PulseDbContext db) =>
+            group.MapGet(ByIdPath + "/Contacts/Get/{fullclientid}", async (string fullclientid, PulseDbContext db) =>
             {
                 var contacts = await db.ClientContactMaster
                     .AsNoTracking()

@@ -1,0 +1,14 @@
+/* CSS for MasterLayoutBottomBar component */
+
+.mnuProfile {
+    width: 300px;
+    margin-bottom: 66px;
+    margin-left: 10px;
+    height: 600px !important;
+    border-radius: 10px;
+    /*display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;*/
+    background-color: var(--pulse-light-colour);
+    border: 1px solid var(--pulse-dark-colour);
+}

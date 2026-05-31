@@ -197,7 +197,9 @@
     {
         // await Task.CompletedTask;
         // selClient = await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(selectedCustomer[0].FullClientID));
+
         var fci = selectedCustomer[0].FullClientID;
+
         // await dts.SetgvSelectedClient(selClient);
         // await Task.CompletedTask;
         await CloseDlg(fci);
@@ -238,7 +240,7 @@
     }
     void OnGroupRowRender(GroupRowRenderEventArgs args)
     {
-        if (args.FirstRender && allGroupsExpanded != null)
+        if (args.FirstRender && !allGroupsExpanded)
         {
             args.Expanded = false;
         }
@@ -272,7 +274,7 @@
         await JSRuntime.InvokeVoidAsync("window.localStorage.setItem", "ClientDataGridSettings", JsonSerializer.Serialize<DataGridSettings>(Settings));
     }
 
-    private async Task OnPickedColumnsChanged(DataGridPickedColumnsChangedEventArgs<Customer> args)
+    private async Task OnPickedColumnsChanged(DataGridPickedColumnsChangedEventArgs<CustomerTableItemDto> args)
     {
         await SaveStateAsync();
     }

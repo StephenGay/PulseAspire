@@ -324,6 +324,17 @@ namespace Pulse.Models.Api
                     $"{MasterFilePrefix}/Update/{Uri.EscapeDataString(fullClientId)}";
                 }
 
+                public static class Contacts
+                {
+                    private const string ContactsPrefix = $"{ByFullClientIDPrefix}/Contacts";
+                    public static string Get(string fullClientId) =>
+                    $"{ContactsPrefix}/Get/{Uri.EscapeDataString(fullClientId)}";
+                    public static string Add(string fullClientId) =>
+                    $"{ContactsPrefix}/Add/{Uri.EscapeDataString(fullClientId)}";
+                    public static string Update(string fullClientId) =>
+                    $"{ContactsPrefix}/Update/{Uri.EscapeDataString(fullClientId)}";
+                }
+
                 public static class Budget
                 {
                     private const string BudgetPrefix = $"{ByFullClientIDPrefix}/Budgets";

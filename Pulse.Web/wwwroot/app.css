@@ -260,6 +260,7 @@ fluent-dialog {
 }
 
     .btnShadow:hover {
+        cursor: pointer;
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
     }
 
@@ -279,6 +280,7 @@ fluent-dialog {
         border: 1px solid var(--pulse-accent-btn-colour);
         background-color: var(--pulse-accent-btn-bg);
         color: var(--pulse-accent-btn-colour);
+        cursor: pointer;
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
     }
 
@@ -298,6 +300,7 @@ fluent-dialog {
         border: 1px solid var(--pulse-ok-btn-colour);
         background-color: var(--pulse-ok-btn-bg);
         color: var(--pulse-ok-btn-colour);
+        cursor: pointer;
         /*border: 1px solid var(--pulse-dark-colour);*/
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
     }
@@ -318,6 +321,7 @@ fluent-dialog {
         border: 2px solid var(--pulse-cancel-btn-colour);
         background-color: var(--pulse-cancel-btn-bg);
         color: var(--pulse-cancel-btn-colour);
+        cursor: pointer;
         /*border: 1px solid var(--pulse-dark-colour);*/
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
     }
@@ -328,7 +332,9 @@ fluent-dialog {
     border: 1px solid #206020; /* white;  var(--pulse-mode-btn-on-bg);*/
     /*border-radius:1px;*/
 }
-
+.myModeBtnOn:hover {
+    cursor: pointer;
+}
 .myModeBtnOff {
     --pulse-mode-btn-bg: var(--pulse-mode-btn-off-bg);
     --pulse-mode-btn-item-colour: var(--pulse-mode-btn-off-item-colour);
@@ -339,6 +345,7 @@ fluent-dialog {
 }
     .myModeBtnOff:hover {
         box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+        cursor: pointer;
     }
 
 /*#endregion Pulse Buttons*/
@@ -359,228 +366,41 @@ fluent-dialog {
 .rz-grid-table{
     cursor:pointer;
 }
-
-.rz-grid-table thead th > div:not(.rz-cell-filter) {
-    background-color: var(--pulse-light-colour) !important;
-    color: var(--pulse-dark-colour) !important;
-}
-
-.rz-group-header {
-    justify-content: flex-end !important;
-}
-
-.rz-cell-filter {
-    background-color: var(--pulse-dark-colour) !important;
-}
-
-/*#endregion Radzen Table Formatting*/
-
-/*#region Radzen Dialog Formatting*/
-
-.rz-dialog {
-    border-radius: 10px !important;
-    background-color: var(--pulse-light-colour) !important;
-}
-.rz-dialog-titlebar {
-    background-color: var(--pulse-dark-colour) !important;
-    padding-block: 0px 0px !important;
-    padding-inline: 0px 0px !important;
-    padding: 15px !important;
-}
-.rz-dialog-title {
-    color: var(--pulse-light-colour) !important;
-}
-.rz-dialog-mask {
-    opacity: 0.8 !important;
-}
-.rz-dialog-content {
-    padding: 0px !important;
-    flex: 1 1 !important;
-}
-
-.pulseDialogParent {
-    display: flex;
-    flex-direction: column; /* Stack children vertically */
-    height: 100%; /* Or whatever height your parent should be, like 100% */
-    overflow: hidden;
-}
-
-.pulseDialogHeader, .pulseDialogFooter {
-    /* Fixed sizes; flexbox will respect these */
-    height: 60px; /* Or min-height if you want flexibility */
-    background: var(--pulse-dark-t50-colour);
-}
-
-.pulseDialogContent {
-    flex: 1; /* This magic makes it grow to fill the space */
-    overflow: auto;
-}
-
-/*#endregion Radzen Dialog Formatting*/
-.div-center-screen {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+.rz-group-header-drop {
+    flex: auto;
     text-align: center;
-    min-height: 100vh;
-}
-.ai-toprow {
-    background-color: var(--pulse-dark-colour);
-    height:56px;
-}
+    border: 1px dashed var(--rz-text-tertiary-color);
+    height:100% !important;
+    align-content:center;
 
-.paginator {
-    background-color: var(--pulse-dark-t75-colour) !important;
-    color: var(--pulse-light-colour);
 }
-.zone-toprow {
-    background-color: var(--pulse-light-colour);
-    border-bottom: 1px solid var(--pulse-dark-colour);
-    height: 56px;
+.rz-group-header-items {
+    flex: auto;
+    text-align: center;
+    border: 1px dashed var(--rz-text-tertiary-color);
+    height: 100% !important;
+    justify-content: center;
+    padding:5px;
 }
-.ai-Mnu {
-    background-color: #f7f7f7;
-    background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);
-    border-bottom: 1px solid rgb(54,91,102);
-    /*min-height: 3.5rem;*/
+.rz-group-header-item {
+    border-color: var(--pulse-dark-colour) !important;
 }
-.myCardHdr {
-    background-color: var(--pulse-dark-colour);
-    color: var(--pulse-light-colour);
-}
-a, .btn-link {
-    color: #006bb7;
-}
-
-.btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
-}
-
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-.content {
-    padding-top: 1.1rem;
-}
-.fdgbrd {
-    border-radius: 30px;
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
-}
-
-.fdgrselected {
-    background-color: var(--pulse-dark-t50-colour) !important; /* blue !important;*/
-    color: white !important; /* var(--pulse-dark-colour) !important;*/
-    cursor: pointer;
-}
-
-/*.bb-dg-row-highlight {
-    --bs-table-striped-bg: #bcd1d4;
-    --bs-table-bg: #409eff;
-    --bs-table-hover-bg: #365b66;
-    --bs-table-striped-color: #365b66;
-    --bs-table-color-state: #fff;
-    --bs-table-hover-color: #bcd1d4;
-}*/
-.card-body {
-    padding: 1px !important;
-}
-.fdgrunselected {
-    background-color: white;
+    .rz-group-header-item:hover {
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+        cursor:pointer;
+    }
+.rz-selectable tbody tr.rz-data-row:hover:not(.rz-state-highlight) .rz-cell-data {
+    font-weight: bolder;
+    font-style: italic;
+    --rz-grid-hover-background-color: var(--pulse-light-colour) !important;
     color: var(--pulse-dark-colour) !important;
-    cursor: pointer;
-    /* border-top: 1px solid rgb(54,91,102) !important;*/
 }
-
-    .fdgrunselected :hover {
-        cursor: pointer;
-        /*background-color: var(--pulse-dark-colour) !important;
-        color: var(--pulse-light-colour) !important;*/
-    }
-.table-virtualize-demo {
-    /*height: auto;*/
-    margin: 15px;
-    
-}
-
-    .table-virtualize-demo .table-cell {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .table-virtualize-demo .table-fixed-body {
-        overflow-x: hidden !important;
-    }
-
-h1:focus {
-    outline: none;
-}
-tr[row-type='sticky-header'] > th {
-    position: sticky;
-    top: 0;
-    /*background-color: var(--accent-fill-rest) !important;*/
-    background-color: var(--pulse-dark-colour) !important;
-    /*color: var(--foreground-on-accent-rest) !important;*/
-    color: white !important;
-    align-content: center;
-    border-color: white !important;
-    z-index: 2;
-}
-
-.col-sort-button {
-    width: calc(100% - 20px);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    /*background: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%) !important;*/
-    /*background-color: #365b66 !important;*/
-    color: var(--pulse-dark-colour) !important;
-    opacity: 0.85;
-}
-
-.valid.modified:not([type=checkbox]) {
-    outline: 1px solid #26b050;
-}
-
-.invalid {
-    outline: 1px solid #e50260;
-}
-
-.validation-message {
-    color: #e50260;
-}
-
-.blazor-error-boundary {
-    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
-    padding: 1rem 1rem 1rem 3.7rem;
-    color: white;
-}
-
-    .blazor-error-boundary::after {
-        content: "An error has occurred."
-    }
-
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
-}
-
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
-    text-align: start;
-}
-
-.pulseSelectedCard {
-    /*width: 60vmin;
-    height: 50vmin;
-    display: grid;
-    place-content: center;*/
+.rz-selectable tbody tr.rz-data-row.rz-state-highlight {
     color: white;
     /*text-shadow: 0 1px 0 #000;*/
     --border-angle: 0turn; /* // For animation. */
     --main-bg: conic-gradient( from var(--border-angle), #213, #112 5%, #112 60%, #213 95% );
+    --rz-grid-selected-background-color: var(--main-bg);
     border: solid 5px transparent;
     border-radius: 8px;
     --gradient-border: conic-gradient(from var(--border-angle), transparent 25%, #08f, #f03 99%, transparent);
@@ -594,24 +414,284 @@ tr[row-type='sticky-header'] > th {
     background-position: center center;
     animation: bg-spin 3s linear infinite;
 }
+.rz-column-drag:active {
+    color: var(--pulse-dark-colour) !important;
+}
 
-@keyframes bg-spin {
-    to {
-        --border-angle: 1turn;
+    .rz-grid-table thead th > div:not(.rz-cell-filter) {
+        background-color: var(--pulse-dark-colour) !important;
+        color: var(--pulse-light-colour) !important;
     }
-}
 
-&:hover {
-    animation-play-state: paused;
-}
+    .rz-grid-table thead th .rz-column-title {
+        color: var(--pulse-light-colour) !important;
+    }
 
-@property --border-angle {
-    syntax: "<angle>";
-    inherits: true;
-    initial-value: 0turn;
-}
+    .rz-grid-table thead th .rz-textbox {
+        border: 1px solid var(--pulse-dark-colour) !important;
+    }
 
-/*.fluent-datagrid-header {
+    .rz-grid-table thead th .rz-numeric-input {
+        border: 1px solid var(--pulse-dark-colour) !important;
+    }
+
+    thead tr {
+        background-color: var(--pulse-dark-colour) !important;
+    }
+    /*.rz-group-header {
+            justify-content: flex-end !important;
+        }*/
+
+    .rz-cell-filter {
+        background-color: var(--pulse-light-colour) !important;
+    }
+    /*#endregion Radzen Table Formatting*/
+    /*#region Radzen Dialog Formatting*/
+
+    .rz-dialog {
+        border-radius: 10px !important;
+        background-color: var(--pulse-light-colour) !important;
+    }
+
+    .rz-dialog-titlebar {
+        background-color: var(--pulse-dark-colour) !important;
+        padding-block: 0px 0px !important;
+        padding-inline: 0px 0px !important;
+        padding: 15px !important;
+    }
+
+    .rz-dialog-title {
+        color: var(--pulse-light-colour) !important;
+    }
+
+    .rz-dialog-mask {
+        opacity: 0.8 !important;
+    }
+
+    .rz-dialog-content {
+        padding: 0px !important;
+        flex: 1 1 !important;
+    }
+
+    .pulseDialogParent {
+        display: flex;
+        flex-direction: column; /* Stack children vertically */
+        height: 100%; /* Or whatever height your parent should be, like 100% */
+        overflow: hidden;
+    }
+
+    .pulseDialogHeader, .pulseDialogFooter {
+        /* Fixed sizes; flexbox will respect these */
+        height: 60px; /* Or min-height if you want flexibility */
+        background: var(--pulse-dark-t50-colour);
+    }
+
+    .pulseDialogContent {
+        flex: 1; /* This magic makes it grow to fill the space */
+        overflow: auto;
+    }
+    /*#endregion Radzen Dialog Formatting*/
+    .div-center-screen {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        min-height: 100vh;
+    }
+
+    .ai-toprow {
+        background-color: var(--pulse-dark-colour);
+        height: 56px;
+    }
+
+    .paginator {
+        background-color: var(--pulse-dark-t75-colour) !important;
+        color: var(--pulse-light-colour);
+    }
+
+    .zone-toprow {
+        background-color: var(--pulse-light-colour);
+        border-bottom: 1px solid var(--pulse-dark-colour);
+        height: 56px;
+    }
+
+    .ai-Mnu {
+        background-color: #f7f7f7;
+        background-image: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%);
+        border-bottom: 1px solid rgb(54,91,102);
+        /*min-height: 3.5rem;*/
+    }
+
+    .myCardHdr {
+        background-color: var(--pulse-dark-colour);
+        color: var(--pulse-light-colour);
+    }
+
+    a, .btn-link {
+        color: #006bb7;
+    }
+
+    .btn-primary {
+        color: #fff;
+        background-color: #1b6ec2;
+        border-color: #1861ac;
+    }
+
+    .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
+        box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    }
+
+    .content {
+        padding-top: 1.1rem;
+    }
+
+    .fdgbrd {
+        border-radius: 30px;
+        box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    }
+
+    .fdgrselected {
+        background-color: var(--pulse-dark-t50-colour) !important; /* blue !important;*/
+        color: white !important; /* var(--pulse-dark-colour) !important;*/
+        cursor: pointer;
+    }
+    /*.bb-dg-row-highlight {
+    --bs-table-striped-bg: #bcd1d4;
+    --bs-table-bg: #409eff;
+    --bs-table-hover-bg: #365b66;
+    --bs-table-striped-color: #365b66;
+    --bs-table-color-state: #fff;
+    --bs-table-hover-color: #bcd1d4;
+}*/
+    .card-body {
+        padding: 1px !important;
+    }
+
+    .fdgrunselected {
+        background-color: white;
+        color: var(--pulse-dark-colour) !important;
+        cursor: pointer;
+        /* border-top: 1px solid rgb(54,91,102) !important;*/
+    }
+
+        .fdgrunselected :hover {
+            cursor: pointer;
+            /*background-color: var(--pulse-dark-colour) !important;
+        color: var(--pulse-light-colour) !important;*/
+        }
+
+    .table-virtualize-demo {
+        /*height: auto;*/
+        margin: 15px;
+    }
+
+        .table-virtualize-demo .table-cell {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .table-virtualize-demo .table-fixed-body {
+            overflow-x: hidden !important;
+        }
+
+    h1:focus {
+        outline: none;
+    }
+
+    tr[row-type='sticky-header'] > th {
+        position: sticky;
+        top: 0;
+        /*background-color: var(--accent-fill-rest) !important;*/
+        background-color: var(--pulse-dark-colour) !important;
+        /*color: var(--foreground-on-accent-rest) !important;*/
+        color: white !important;
+        align-content: center;
+        border-color: white !important;
+        z-index: 2;
+    }
+
+    .col-sort-button {
+        width: calc(100% - 20px);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /*background: linear-gradient(90deg, rgb(54,91,102) 20%, #bcd1d4 70%) !important;*/
+        /*background-color: #365b66 !important;*/
+        color: var(--pulse-dark-colour) !important;
+        opacity: 0.85;
+    }
+
+    .valid.modified:not([type=checkbox]) {
+        outline: 1px solid #26b050;
+    }
+
+    .invalid {
+        outline: 1px solid #e50260;
+    }
+
+    .validation-message {
+        color: #e50260;
+    }
+
+    .blazor-error-boundary {
+        background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OUwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+        padding: 1rem 1rem 1rem 3.7rem;
+        color: white;
+    }
+
+        .blazor-error-boundary::after {
+            content: "An error has occurred."
+        }
+
+    .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+        color: var(--bs-secondary-color);
+        text-align: end;
+    }
+
+    .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+        text-align: start;
+    }
+
+    .pulseSelectedCard {
+        /*width: 60vmin;
+    height: 50vmin;
+    display: grid;
+    place-content: center;*/
+        color: white;
+        /*text-shadow: 0 1px 0 #000;*/
+        --border-angle: 0turn; /* // For animation. */
+        --main-bg: conic-gradient( from var(--border-angle), #213, #112 5%, #112 60%, #213 95% );
+        border: solid 5px transparent;
+        border-radius: 8px;
+        --gradient-border: conic-gradient(from var(--border-angle), transparent 25%, #08f, #f03 99%, transparent);
+        background:
+        /* // padding-box clip this background in to the overall element except the border. */
+        var(--main-bg) padding-box,
+        /* // border-box extends this background to the border space */
+        var(--gradient-border) border-box,
+        /* // Duplicate main background to fill in behind the gradient border. You can remove this if you want the border to extend "outside" the box background. */
+        var(--main-bg) border-box;
+        background-position: center center;
+        animation: bg-spin 3s linear infinite;
+    }
+
+    @keyframes bg-spin {
+        to {
+            --border-angle: 1turn;
+        }
+    }
+
+    &:hover {
+        animation-play-state: paused;
+    }
+
+    @property --border-angle {
+        syntax: "<angle>";
+        inherits: true;
+        initial-value: 0turn;
+    }
+    /*.fluent-datagrid-header {
     background-color: #365b66;*/ /* Fluent UI primary color */
     /*color: #bcd1d4;
     font-size: 16px;

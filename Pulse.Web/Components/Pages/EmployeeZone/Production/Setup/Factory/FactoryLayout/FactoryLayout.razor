@@ -88,7 +88,8 @@
     </div>
 </FluentCard>
 
-<Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => { openWC=false ; selectedWC = null ; }" AllowResize="true" width="15%" style="overflow-x:hidden">
+@* <Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => { openWC=false ; selectedWC = null ; }" AllowResize="true" width="15%" style="overflow-x:hidden"> *@
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiAli">
     <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
             <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px;"
@@ -119,7 +120,7 @@
         
         }
     </FluentStack>
-</Drawer>
+</div>
 
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;

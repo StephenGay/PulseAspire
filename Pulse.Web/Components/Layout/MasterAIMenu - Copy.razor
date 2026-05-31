@@ -1,0 +1,1133 @@
+﻿@using System.Runtime.InteropServices
+@using System.Text.Json
+@* @using BootstrapBlazor.Components *@
+@using Markdig
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.AI
+@using Pulse.Models.AI.Ali
+@using Pulse.Models.AI.Flapper
+@using Pulse.Models.AI.Tables
+@using Pulse.Models.Api
+@using Pulse.Models.Communication
+@using Pulse.Models.CustomComponents
+@using Pulse.Models.Customers
+@using Pulse.Models.Misc
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production
+@using Pulse.Models.Users
+@using Pulse.Web.Components.Pages.AiZone
+@using Pulse.Web.Services
+@using Toolbelt.Blazor.SpeechRecognition
+@using Toolbelt.Blazor.SpeechSynthesis
+@using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size20
+
+@inject SpeechRecognition SpeechRecognition
+
+@inject IPulseToastService PulseToastService
+@inject AppState AppState
+@inject Pulse_AI pAI
+@inject PulseApiService pApiClient
+@inject DataTransferService dataTrf
+@inject SpeechSynthesis SpeechSynthesis
+@inject NavigationManager Navigation
+@inject MessageHubService MsgHubService
+@inject Radzen.DialogService mnuAiDialogService
+@inject IJSRuntime JSRuntime
+@inject IHttpClientFactory HttpClientFactory
+@inject GlobalFunctions mnuAiGlobalFunctions
+@inject Global_AI_Functions GlobalAI
+@inject AuthService _authService
+@implements IDisposable
+@rendermode InteractiveServer 
+
+<style>
+    /* .card-header{
+        background-color: var(--pulse-dark-t75-colour) !important;
+        color: white !important;
+        font-weight : bolder !important;
+    }
+
+    .card-footer {
+        background-color: var(--pulse-light-colour) !important;
+        border: 1px solid var(--pulse-dark-colour) !important;
+    } */
+   
+    hr{
+        color: var(--pulse-dark-colour) !important;
+        background-color: var(--pulse-dark-colour) !important;
+    }
+
+    /* .custom-popover {
+        --bs-popover-border-color: var(--bs-info);
+        --bs-popover-header-bg: var(--bs-info);
+        --bs-popover-header-color: var(--bs-white);
+        --bs-popover-body-padding-x: 1rem;
+        --bs-popover-body-padding-y: 1rem;
+    } */
+    /* :root{ */
+    
+
+    /* [_bl_2b8c5e9f-8c48-4db9-b601-e1a55197101e] svg[part="icon-active"] {
+        fill: #365b66 !important;
+        background-color: #bcd1d4 !important;
+    } */
+    .paginator-nav fluent-button{
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    }
+    .paginator-nav fluent-button:hover {
+            box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+        }
+
+    /* .nbMainSel {
+        background-color: var(--pulse-light-colour) !important;
+        border-top-left-radius:10px;
+        border-top-right-radius: 10px;
+    }
+
+        .nbMainSel svg[part="icon-rest"] {
+            fill: var(--pulse-dark-colour) !important;
+        }
+
+        .nbMainSel div[part="label"] {
+            color: var(--pulse-dark-colour) !important;
+        }
+
+    .nbMainUnSel {
+        background-color: var(--pulse-dark-colour) !important;
+    }
+
+        .nbMainUnSel svg[part="icon-rest"] {
+            /* fill: white !important; */
+          /*   fill: var(--pulse-light-colour) !important;
+        }
+
+        .nbMainUnSel div[part="label"] { */
+            /* color: white !important; */
+           /*  color: var(--pulse-light-colour) !important;
+        } */ 
+    fluent-anchored-region > *[b-2ov9fhztky] {
+        background-color: var(--pulse-light-colour) !important;
+        color: var(--pulse-dark-colour) !important;
+        border-radius:10px;
+    }
+    /* .fluent-appbar-item a[class="active"] div[class="stack-vertical"] {
+        background-color: var(--pulse-dark-colour) !important;
+        border-radius:10px;
+    }
+
+    .fluent-appbar-item svg[part="icon-active"] {
+        fill: var(--pulse-light-colour) !important;
+    }
+
+    .fluent-appbar-item a[class="active"] div[part="label"] {
+        color: var(--pulse-light-colour) !important; */
+    /* } */
+   /*  #fab1 > div[part="label"] { */
+    /* .fluent-appbar-item div[part="label"] {
+        color: var(--pulse-dark-colour) !important;
+    } */
+
+    /* .fluent-appbar-item svg[part="icon-rest"] {
+        fill: var(--pulse-dark-colour) !important;
+    } */
+   /*  [_bl_2b8c5e9f-8c48-4db9-b601-e1a55197101e] div[part="label"] {
+        color: white !important;
+    } */
+</style>
+
+
+<FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style=@(sState == "OPEN" ? "height: 100vh;" : "flex: 0;")>
+    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 ai-toprow">
+                
+        @if (sState == "LOAD")
+        {
+            <FluentLabel Typo="Typography.H5" style="color:white">Loading...</FluentLabel>
+        }
+        else
+        {
+            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
+                <FluentAppBar id="fab1" Style="height: 100%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:end" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
+                    <FluentAppBarItem Href="@(null)"
+                                        Match="NavLinkMatch.All"
+                                        IconRest="HomeIcon()"
+                                      IconActive="HomeIcon(active: true)"
+                                          Class="@(homeSel ? "nbMainSel" : "nbMainUnSel")"
+                                        Text="Home"
+                                        OnClick="AppBarClick" />
+                        <FluentAppBarItem Href="@(null)"
+                                        IconRest="CustomersIcon()"
+                                      IconActive="CustomersIcon(active: true)"
+                                          Class="@(custSel ? "nbMainSel" : "nbMainUnSel")"
+                                        Text="Customers"
+                                        OnClick="AppBarClick" />
+                        <FluentAppBarItem Href="@(null)"
+                                        IconRest="ProductionIcon()"
+                                      IconActive="ProductionIcon(active: true)"
+                                          Class="@(prodSel ? "nbMainSel" : "nbMainUnSel")"
+                                        Text="Production"
+                                        OnClick="AppBarClick" />
+                        <FluentAppBarItem Href="@(null)"
+                                        IconRest="AdminIcon()"
+                                      IconActive="AdminIcon(active: true)"
+                                          Class="@(adminSel ? "nbMainSel" : "nbMainUnSel")"
+                                        Text="Admin"
+                                        OnClick="AppBarClick" />
+                </FluentAppBar>
+            </FluentStack>
+            <FluentSpacer />
+        }
+        @if (sState == "IDLE")
+        {
+
+                if (showAi != null)
+                {
+                    if (IsOpen || OpenFlapper || OpenTables)
+                    {
+                        
+                    }
+                    else
+                    {
+                        <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showAli" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
+                            <FluentButton Id="mnuAliBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" Enabled="showAi.showAli" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiAli">
+                                @* @(mAli.emoji.ToMarkup("40px")) *@
+                                <img src="Images/AI/Ali.jpg" alt="Ali" style="height:40px;width:40px" />
+                            </FluentButton>
+                        </Animation>
+                        <FluentTooltip Anchor="mnuAliBtn" HideTooltipOnCursorLeave="true" Style="background-color:burlywood" AutoUpdateMode="AutoUpdateMode.Auto" Delay=100>
+                            <strong>Ali:</strong><br />
+                            When I am enabled, I can provide detailed analysis reports<br />
+                            on what is showing on the screen.
+                            <br /><br />
+                            Choose from preset prompts, or create your own.
+                        </FluentTooltip>
+
+                        <Animation Effect="@Effect.HeartBeat" Enabled="@showAi.showTables" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
+                            <FluentButton Id="mnuTablesBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiTables">
+                                @* @(mTables.emoji.ToMarkup("40px")) *@
+                                <img src="Images/AI/Tables.jpg" alt="Tables" style="height:40px;width:40px;align-content:center" />
+                            </FluentButton>
+                            <FluentTooltip Anchor="mnuTablesBtn" HideTooltipOnCursorLeave="true" AutoUpdateMode="AutoUpdateMode.Anchor" Delay=100>
+                                <strong>Tables:</strong><br />
+                                Tell me what you want and I will fetch the information<br />
+                                from the Pulse database for you and present it in a, <br />
+                                you guessed it, lovely table!
+                                <br /><br />
+                                Choose from a variety of saved queries, or create your own.
+                            </FluentTooltip>
+                        </Animation>
+                        
+
+                        <Animation Effect="@Effect.HeartBeat" Enabled="showAi.showFlapper" Speed="@Speed.Fast" IterationCount="3" Delay="@TimeSpan.FromSeconds(0.5)">
+                            <FluentButton Id="mnuFlapperBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#aiFlapper" >
+                                @* @(mFlapper.emoji.ToMarkup("40px")) *@
+                                <img src="Images/AI/Flapper.jpg" alt="Flapper" style="height:40px;width:40px" />
+                            </FluentButton>
+                            <FluentTooltip Anchor="mnuFlapperBtn" HideTooltipOnCursorLeave="true" Delay=100>
+                                <strong>Flapper:</strong><br />
+                                Need something more than an Analysis or Table of Data?<br />
+                                Have a chat with me, I can go more in depth on a subject<br />
+                                and have access to the complete database as well as the<br />
+                                web.
+                            </FluentTooltip>
+                        </Animation>
+
+                        <FluentButton IconStart="@(isMuted ? new Icons.Filled.Size32.SpeakerMute().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error) : new Icons.Filled.Size32.Speaker2().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Success))" 
+                                                BackgroundColor="rgba(255,255,255,1)"
+                                                Style="height:40px;width:62px;margin-right:15px"
+                                                OnClick="ToggleMute" />
+                        
+                    }
+                }
+                
+        }
+        @if (sState == "BUSY")
+        {
+                <Button Color="BootstrapBlazor.Components.Color.Info" style="border: 1px solid white; background-color:#9900FF; color: white;" class="btnShadow" Icon="fa-solid fa-spinner fa-spin fa-fw" Text="Processing" />
+        }
+        
+        @if (sState == "WAIT")
+        {
+                <FluentButton BackgroundColor="rgba(0,102,0,1)" Style="border: 1px solid white" class="btnShadow"
+                        IconStart="@(new Icons.Filled.Size24.SlideSearch().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                              OnClick="OpenResults" Color="rgba(255,255,255,1)">VIEW</FluentButton>
+        }
+
+    </FluentStack>
+
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiAli">
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            Close
+        </FluentButton>
+        <AliPg />
+    </div>
+
+    
+
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiFlapper">
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            Close
+        </FluentButton>
+        @* <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;margin-left:10px"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" OnClick="NextFlapperVersion">
+            Ver
+        </FluentButton> *@
+        @* @if (flapperVersion == 1)
+        { *@
+            <FlapperPg />
+        @* }
+        else if (flapperVersion == 2)
+        {
+            <FlapperPg_v2 />
+        }
+        else if (flapperVersion == 3)
+        {
+            <FlapperPg_v3 />
+        }
+        else if (flapperVersion == 4)
+        {
+                <FlapperPgv4 />
+        }
+        else if (flapperVersion == 5)
+        {
+            <FlapperPg />
+        } *@
+        </div>
+    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="aiTables">
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            Close
+        </FluentButton>
+        <TablesPg />
+    </div>
+            
+</FluentStack>
+
+
+@code {
+
+    private Customer? customer;
+
+   
+
+
+    private bool OpenAi = false;
+    private bool OpenFlapper = false;
+    private bool OpenTables = false;
+    private bool ChooseAi = false;
+    private bool showResultsPanel = false;
+    private bool viewBox = true;
+
+
+
+    private string _Analysis = string.Empty;
+    private string _AliAnalysis = string.Empty;
+    private int useModelVal = 0;
+    private string aiModel = "gpt-oss:latest";
+    private int flapperVersion = 1;
+    private string txtQ = string.Empty;
+    //public bool isSales { get; set; }
+
+    public bool pdfLoading = false;
+    private bool isLoading = true;
+
+    private string sState = "LOAD";
+    string fileName = string.Empty;
+
+    private string? AIMode; 
+    // private bool useSpeechOutput = true;
+    // private SpeechSynthesisVoice? _voice;
+    private SpeechRecognitionResult[] _results = [];
+    private bool _available = true;
+    private bool _isListening = false;
+
+    private Division? division; 
+    private User? u;
+    private ShowAiIcon? showAi;
+    private Flapper? mFlapper;
+    private Ali? mAli;
+    private Tables? mTables;
+    private string? showWho;
+    private string? line1;
+    private string? line2;
+    private bool homeSel = true;
+    private bool aiSel = false;
+    private bool custSel = false;
+    private bool prodSel = false;
+    private bool adminSel = false;
+    private bool isMuted = false;
+    private string? pTheme;
+
+    private string custTitle = string.Empty;
+    private string custDesc = string.Empty;
+    private bool isEditMode = true;
+    private string? custQryHdr;
+    private string LoadHdr = string.Empty;
+    private string Hdr = string.Empty;
+    private string qry = string.Empty;
+    private bool IsOpen = false;
+    public int? ContextAreaId = 0;
+    public List<ContextualPrompt>? ContextPrompts = null;
+
+    public bool showSave = false;
+    public bool Saving = false;
+
+    #region AppBar Icons
+
+
+    private Icon HomeIcon(bool active = false) =>
+        active || homeSel ? new Icons.Filled.Size24.Home()
+               : new Icons.Regular.Size24.Home();
+
+    private Icon CustomersIcon(bool active = false) =>
+        active || custSel ? new Icons.Filled.Size24.People()
+               : new Icons.Regular.Size24.People();
+
+    private Icon ProductionIcon(bool active = false) =>
+        active || prodSel ? new Icons.Filled.Size24.Production()
+               : new Icons.Regular.Size24.Production();
+
+    private Icon AdminIcon(bool active = false) =>
+        active || adminSel ? new Icons.Filled.Size24.DesktopEdit()
+               : new Icons.Regular.Size24.DesktopEdit();
+    #endregion
+
+    #region AppBar Icons BU
+
+
+    // private static Icon HomeIcon(bool active = false) =>
+    //     active ? new Icons.Filled.Size24.Home().WithColor("#DF6D2F")
+    //            : new Icons.Regular.Size24.Home().WithColor("#ffffff");
+
+    // private static Icon PulseAIIcon(bool active = false) =>
+    //     active ? new Icons.Filled.Size24.Bot().WithColor("#DF6D2F")
+    //            : new Icons.Regular.Size24.Bot().WithColor("#ffffff");
+
+    // private static Icon CustomersIcon(bool active = false) =>
+    //     active ? new Icons.Filled.Size24.People().WithColor("#DF6D2F")
+    //            : new Icons.Regular.Size24.People().WithColor("#ffffff");
+
+    // private static Icon ProductionIcon(bool active = false) =>
+    //     active ? new Icons.Filled.Size24.Production().WithColor("#DF6D2F")
+    //            : new Icons.Regular.Size24.Production().WithColor("#ffffff");
+
+    // private static Icon AdminIcon(bool active = false) =>
+    //     active ? new Icons.Filled.Size24.DesktopEdit().WithColor("#DF6D2F")
+    //            : new Icons.Regular.Size24.DesktopEdit().WithColor("#ffffff");
+    #endregion
+
+    protected override void OnInitialized()
+    {
+        // Subscribe to state changes
+        this.SpeechRecognition.Lang = "en-US";
+        this.SpeechRecognition.InterimResults = true;
+        this.SpeechRecognition.Continuous = true;
+        this.SpeechRecognition.Result += OnSpeechRecognized;
+        this.SpeechRecognition.End += OnSpeechEnded;
+        AppState.OnChange += async () =>
+        {
+            showAi = await dataTrf.GetgvShowAI();
+            ContextAreaId = await dataTrf.GetgvContextArea();
+            isMuted = await dataTrf.GetgvIsMuted();
+            this._available = await this.SpeechRecognition.IsAvailableAsync();
+            if (ContextAreaId > 0)
+            {
+                // ContextPrompts = await pApiClient.GetAsync<List<ContextualPrompt>>($"/AI/GetContextualPromptsByAreaId/{ContextAreaId}");
+            }
+            await InvokeAsync(StateHasChanged);
+        };
+        AppState.OnThemeChange += async () =>
+        {
+            // ApplicationUserSettings uSettings = await dataTrf.GetgvUserSettings();
+            // pTheme = uSettings!.UserTheme ?? "pulse";
+            // await JSRuntime.InvokeVoidAsync("applyPulseTheme", pTheme);
+            await InvokeAsync(StateHasChanged);
+        };
+    }
+
+    private async Task NextFlapperVersion(){
+        flapperVersion++;
+        if (flapperVersion > 5) flapperVersion = 1;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ToggleMute()
+    {
+        isMuted = !isMuted;
+        await dataTrf.SetgvIsMuted(isMuted);
+    }
+
+    private void btnChooseFlapper()
+    {
+        showWho = "Flapper";
+        // ChooseAi = false;
+        OpenFlapper = true;
+    }
+    private void btnChooseTables()
+    {
+        showWho = "Tables";
+        // ChooseAi = false;
+        OpenTables = true;
+    }
+    private void btnOpenMainAi()
+    {
+        OpenAi = true;
+    }
+    private void btnChooseAi()
+    {
+        ChooseAi = true;
+    }
+    // private async Task SayIt(string text)
+    // {
+    //     if (useSpeechOutput)
+    //     {
+    //         var utterancet = new SpeechSynthesisUtterance
+    //         {
+    //         Text = text.Replace("<br />", ""),
+    //         Voice = _voice
+    //         };
+    //         await this.SpeechSynthesis.SpeakAsync(utterancet);
+    //     }
+    // }
+    private async Task CloseResults()
+    {
+        showResultsPanel = false;
+        sState = "WAIT";
+        // IsOpen = true;
+    }
+
+
+    private async Task AppBarClick(IAppBarItem item)
+    {
+        homeSel = false;
+        custSel = false;
+        prodSel = false;
+        adminSel = false;
+        string pgNav = string.Empty;
+
+        switch (item.Text)
+        {
+            case "Home":
+                homeSel = true;
+                pgNav = "/EmployeeZone/";
+                break;
+            case "Customers":
+                
+                    string? result = await mnuAiGlobalFunctions.OpenClientSearch(mnuAiDialogService);
+                    
+                    if (string.IsNullOrEmpty(result))
+                    {
+                        string cErrMsg = "There is no client selected.<br />Please select one to access customer information.";
+                        PulseToastService.ShowToast("Warning",cErrMsg,true);
+                        await GlobalAI.AISpeak(cErrMsg,"PulseAI");
+                        return;
+                    }
+
+                    // customer = await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(result));
+                await dataTrf.SetgvSelectedClient(await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(result)));
+                //
+                custSel = true;
+                pgNav = "/EmployeeZone/Customers/ClientDashboard";
+                break;
+                // custSel = true;
+                // pgNav = "/EmployeeZone/SearchPages/ClientSearch";
+                // break;
+            case "Production":
+                prodSel = true; 
+                pgNav = "/EmployeeZone/Production/ProductionDashboard";
+                break;
+            case "Admin":
+                adminSel = true;
+                pgNav = "/AdminZone/AdminDashboard";
+                break;
+
+        }
+                                          
+        Navigation.NavigateTo(pgNav,true);
+        await InvokeAsync(StateHasChanged);
+    }
+
+    #region Ali
+
+    // private async Task RunCommunityPrompt(int promptId)
+    // {
+    //     IsOpen = false;
+    //     var prompt = await pApiClient.GetAsync<ContextualPrompt>($"/AI/GetContextualPromptById/{promptId}");
+    //     if (prompt != null)
+    //     {
+    //         LoadHdr = "Processing";
+    //         Hdr = prompt.ContextualPromptTitle;
+    //         qry = prompt.Prompt;
+    //         await GeneratePrompt();
+
+    //     }
+    // }
+
+    // private async Task CopyCommunityPrompt(ContextualPrompt prompt)
+    // {
+    //     // showCommunityPanel = false;
+    //     // var prompt = await pApiClient.GetAsync<ContextualPrompt>($"/AI/GetContextualPromptById/{promptId}");
+    //     if (prompt != null)
+    //     {
+    //         txtQ = prompt.Prompt;
+    //         custDesc = prompt.ContextualPromptDescription;
+    //         custQryHdr = prompt.ContextualPromptTitle;
+    //         custTitle =  prompt.ContextualPromptTitle;
+    //         Hdr = prompt.ContextualPromptTitle;
+    //         isEditMode = false;
+    //         showSave = false;
+    //         Saving = false;
+    //     }
+    //     // IsOpen = true;
+    // }
+
+    // private async Task EditPrompt()
+    // {
+    //     // showCommunityPanel = false;
+    //     // var prompt = await pApiClient.GetAsync<ContextualPrompt>($"/AI/GetContextualPromptById/{promptId}");
+
+    //     custDesc = custDesc + "-(Copy)";
+    //     custQryHdr = custQryHdr + "-(Copy)";
+    //     custTitle +=  "-(Copy)";
+    //     Hdr = custQryHdr;
+    //     Saving = false;
+    //     isEditMode = true;
+    //     showSave = true;
+    //     // StateHasChanged();
+    //     // IsOpen = true;
+    // }
+    // private async Task NewPrompt()
+    // {
+    //     // showCommunityPanel = false;
+    //     // var prompt = await pApiClient.GetAsync<ContextualPrompt>($"/AI/GetContextualPromptById/{promptId}");
+
+    //     custDesc = string.Empty;
+    //     custQryHdr = string.Empty;
+    //     custTitle = string.Empty;
+    //     Hdr = custQryHdr;
+    //     txtQ = string.Empty;
+    //     isEditMode = true;
+    //     Saving = false;
+    //     showSave = true;
+    //     // StateHasChanged();
+    //     // IsOpen = true;
+    // }
+
+    #endregion
+
+    private async Task btnOpenAIMenu()
+    {
+        // AIMode = await dataTrf.GetgvAIContextMode();
+        // ContextPrompts = null;
+        // ContextAreaId = await dataTrf.GetgvContextArea();
+        switch (ContextAreaId)
+        {
+            case 1:
+                custQryHdr = $"This is the sales history for the customer. I want you to..."; // {customer.ClientName}...";
+                break;
+            case 2:
+                custQryHdr = $"Here is a Roller Specification for the customer. I want you to..."; //customer {customer.ClientName}...";
+                break;
+            case 3:
+                custQryHdr = $"Here is a the WIP for the Division. I want you to..."; //customer {customer.ClientName}...";
+                break;
+            default:
+                PulseToastService.ShowWarning("This page does not have contextual AI yet.","Invalid Page");
+                break;
+        }
+        IsOpen = true;
+    }
+    private async Task btnOpenSaveDialog()
+    {
+        Saving = true;
+    }
+    private async Task btnCommunityClick()
+    {
+        // IsOpen = false;
+
+        ContextPrompts = await pApiClient.GetAsync<List<ContextualPrompt>>($"/AI/GetContextualPromptsByAreaId/{ContextAreaId}");
+        StateHasChanged();
+        // showCommunityPanel2 = !showCommunityPanel2;
+        //StateHasChanged();
+    }
+    private async Task OpenResults()
+    {
+        sState = "OPEN";
+        showResultsPanel = true;
+        // if(!useSpeechOutput){ return; }
+        // string sp;
+        // if (LoadHdr == "Analysing Sales")
+        // {
+        //     if (_Analysis.IndexOf("Conclusion") > -1)
+        //     {
+        //         sp = _Analysis.Substring(_Analysis.IndexOf("Conclusion") + 10);
+        //         SayIt(sp);
+        //     }
+        // }
+    }
+    protected override async Task OnInitializedAsync()
+    {
+        // await GetClientInfo();
+        division = await dataTrf.GetgvSelectedDivision();
+        // u = await dataTrf.GetgvUser();
+        // useSpeechOutput = u.UserSettings.AIHasVoice;
+        // if (useSpeechOutput)
+        // {
+        //     _voice = await dataTrf.GetgvUserAIVoice();
+        // }
+        custQryHdr = $"Loading...";
+        sState = "IDLE";
+        mFlapper = await dataTrf.GetgvFlapper();
+        mAli = await dataTrf.GetgvAli();
+        mTables = await dataTrf.GetgvTables();
+    }
+
+    private async Task StartRecClick()
+    {
+        if (this._isListening) return;
+        this._isListening = true;
+        this._results = [];
+        txtQ = string.Empty;
+        await this.SpeechRecognition.StartAsync();
+    }
+    private async Task OnClickStop()
+    {
+        if (!this._isListening) return;
+        this._isListening = false;
+        await this.SpeechRecognition.StopAsync();
+    }
+    private void OnSpeechEnded(object? sender, EventArgs args)
+    {
+        if (this._isListening)
+        {
+            this._isListening = false;
+            this.StateHasChanged();
+        }
+    }
+    private void OnSpeechRecognized(object? sender, SpeechRecognitionEventArgs args)
+    {
+        this._results = args.Results?.Skip(args.ResultIndex).ToArray() ?? [];
+        this.StateHasChanged();
+    }
+    public void Dispose()
+    {
+        this.SpeechRecognition.Result -= OnSpeechRecognized;
+        this.SpeechRecognition.End -= OnSpeechEnded;
+    }
+
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+
+            this._available = await this.SpeechRecognition.IsAvailableAsync();
+
+            this.StateHasChanged();
+        }
+    }
+
+    private async Task btnAskAIClick()
+    {
+        // if (ContextAreaId == 1)
+        // {
+        //     LoadHdr = "Processing Sales Qry";
+        //     Hdr = "Custom Sales Qry";
+        //     qry = txtQ;
+        //     await GenerateSalesPrompt();
+        // }
+        // else
+        // {
+        //     LoadHdr = "Processing Production Qry";
+        //     Hdr = "Custom Production Qry";
+        //     qry = txtQ;
+        //     await GenerateProductionPrompt();
+        // }
+        LoadHdr = "Processing";
+        Hdr = "Custom Qry";
+        qry = txtQ;
+        await GeneratePrompt();
+        showSave = true;
+    }
+    private async Task saveQry()
+    {
+        //User u = await dataTrf.GetgvUser();
+        if(string.IsNullOrEmpty(custTitle) || string.IsNullOrEmpty(custDesc) || string.IsNullOrEmpty(txtQ))
+        {
+            var msgErr = "There is a value missing for either:<br /><strong>Title, Description or Prompt.</strong>";
+            PulseToastService.ShowToast("Error", msgErr, true, true, "Ali", "Incomplete");
+            msgErr += "Enter the required data and try again.";
+            await GlobalAI.AISpeak(msgErr, "Ali");
+            return;
+        }
+
+        ContextualPrompt newPrompt = new ContextualPrompt
+        {
+            ContextualAreaId = ContextAreaId ?? 0,
+            ContextualPromptTitle = custTitle,
+            ContextualPromptDescription = custDesc,
+            Prompt = txtQ,
+            ApplicationUserId = _authService.aspireUserId,
+            Likes = 0
+        };
+        try
+        {
+            ContextualPrompt newP = await pApiClient.SaveCustomPromptAsync(newPrompt);
+            Saving = false;
+            txtQ = custTitle = custDesc = string.Empty;
+            showSave = false;
+            ContextPrompts.Add(newP);
+            StateHasChanged(); 
+            return;
+        }
+        catch (Exception ex)
+        {
+            await SendToast("Error", "There was an error saving the prompt","Ali");
+            await GlobalAI.AISpeak("There was an error saving the prompt. Please try again.", "Ali");
+            return;
+        }
+    }
+    // private async Task btnRollAnalysisClick()
+    // {
+    //     LoadHdr = "Analysing Roller";
+    //     Hdr = "Roller Analysis";
+    //     qry = "Examine the history of the ClientRollers included in the specification and see if there is a predictable cycle for when the rollers require work to be done. Take note of the Work Type ";
+    //     qry += "and see if there are any patterns. Provide insights and recommendations based on your analysis. Analyse sales prices and costs to ensure they make sense.";
+    //     await GenerateProductionPrompt();
+    // }
+    private async Task GetClientInfo()
+    {
+
+        Customer check = await dataTrf.GetgvSelectedClient();
+        if (check != null && check.ClientSales == null)
+        {
+            check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
+            await dataTrf.SetgvSelectedClient(check);
+        }
+        customer = check;
+    }
+
+    // private async Task btnForecastClick()
+    // {
+    //     LoadHdr = "Creating Forecast";
+    //     Hdr = "12 Month Sales Forecast";
+    //     qry = "Please analyse them and create a Sales Forecast for the next 12 months. Include your reasoning.";
+    //     await GenerateSalesPrompt();
+    // }
+
+    private async Task ExportHtmlFile()
+    {
+
+        // Call JavaScript function to download the file
+        await JSRuntime.InvokeVoidAsync("downloadHTMLFile", $"{fileName}.html" , AddExportMUcss(_Analysis));
+    }
+    private async Task ExportHtmlMsg()
+    {
+        PulseMessage message = new PulseMessage
+            {
+                RecipientUserId = _authService.aspireUserId,
+                RecipientUserName = _authService.aspireFullName,
+                SenderUserName = "Ali",
+                Subject = $"{line1} - {line2}",
+                Role = "PulseAI",
+                Content = AddMUcss(_Analysis),
+                ContentType = "HTML"
+            };
+        await MsgHubService.SendPrivateMessageAsync(message);
+    }
+    private async Task ExportToPdf()
+    {
+        if (string.IsNullOrEmpty(_Analysis))
+        {
+            await SendToast("Warning", "No Data", "No analysis to export.");
+            return;
+        }
+
+        try
+        {
+            pdfLoading = true;
+            var client = HttpClientFactory.CreateClient("PulseApiClient"); // Named client from Aspire
+            var request = new PdfRequest
+            {
+                Html = AddExportMUcss(_Analysis),
+                FileName = fileName
+            };
+
+            var response = await client.PostAsJsonAsync("/Utilities/pdf/export", request);
+            response.EnsureSuccessStatusCode();
+
+            var pdfBytes = await response.Content.ReadAsByteArrayAsync();
+            var base64 = Convert.ToBase64String(pdfBytes);
+            // var retFileName = response.Content.Headers.ContentDisposition?.FileName?.Trim('"') ?? "analysis.pdf";
+
+            await JSRuntime.InvokeVoidAsync("downloadPdfFile", fileName, base64);
+            // await SendToast("Success", "Exported", $"PDF saved as {fileName}");
+        }
+        catch (Exception ex)
+        {
+            await SendToast("Error", "Export Failed", ex.Message);
+        }
+        finally
+        {
+            pdfLoading = false;
+        }
+    }
+
+    // private async Task btnHistoryClick()
+    // {
+    //     LoadHdr = "Analysing Sales";
+    //     Hdr = "Analysis & Trends - Historic Sales";
+    //     qry = "Please analyse them and provide any Insights you might find, as well as any trends or patterns. Respond with a detailed analysis.";
+    //     await GenerateSalesPrompt();
+    // }
+
+
+
+    private async Task ProcessRequest(string prompt)
+    {
+        IsOpen = false;
+
+        aiModel = await dataTrf.GetgvAIModel();
+
+        try
+        {
+            sState="BUSY";
+            StateHasChanged();
+
+            await SendToast("Information", "Your request is being processed.<br />You will be notified when it is complete.","Ali",true,true);
+            var request = new OllamaRequest
+            {
+                Prompt = prompt,
+                Model = aiModel,
+                Options = { NumCtx = 32000, NumPredict = 8000 }
+                //Options = { NumCtx = Convert.ToInt32(prompt.Length / 4 * 1.3), NumPredict = 8000 }
+            };
+            // _Analysis = await pAI.AskPulseAIAsync(request);
+            _Analysis = await pAI.AskPulseAIAsync(prompt, aiModel);
+
+            if (_Analysis.StartsWith("Error"))
+            {
+                await SendToast("Error", $"Apologies, an error occurred while processing your request.\n Please try again.","Ali",true,true);
+                ResetState();
+                return;
+            }
+
+            if (string.IsNullOrEmpty(_Analysis))
+            {
+                await SendToast("Warning", "Either no data matched your query or there was an error processing your request.\n If there should have been results, please try again","Ali",true,true);
+                ResetState();
+                return;
+            }
+
+            _Analysis = ParseToHtml(_Analysis);
+            _AliAnalysis = AddMUcss(_Analysis);
+
+            // fileName = $"{customer.FullClientID}-{Hdr}";
+            await SendToast("Information", "Your request has been completed.<br />Click the <strong>VIEW</strong> button to see the results.","Ali",true,true);
+            sState = "WAIT";
+
+        }
+        catch (Exception ex)
+        {
+            await SendToast("Error", "Exception", ex.Message);
+            ResetState();
+        }
+    }
+
+    private void ResetState()
+    {
+        qry = LoadHdr = Hdr = _Analysis = _AliAnalysis = fileName = "";
+        sState = "IDLE";
+        showResultsPanel = false;
+    }
+
+    private async Task SendToast(string tType, string tContent, string tAI = "Ali", bool autoHide = true, bool isHtml = false, string? tTitle = null)
+    {
+        await GlobalAI.AISpeak(tContent,tAI);
+        PulseToastService.ShowToast(tType,tContent,isHtml,autoHide,tAI,tTitle);
+    }
+
+    private string ParseToHtml(string markdown)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        return Markdig.Markdown.ToHtml(markdown, pipeline);
+    }
+
+    private string AddMUcss(string html)
+    {
+        return html
+            .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\">")
+            .Replace("<th>", "<th style=\"background-color: var(--pulse-light-colour); color: var(--pulse-dark-colour);\">");
+    }
+    private string AddExportMUcss(string html)
+    {
+        var css = @"
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+                h1, h2, h3 { color: hsl(0,100%,20%); }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th { background-color: hsl(0,100%,20%); color: white; padding: 8px; text-align: left; }
+                td { border: 1px solid #ddd; padding: 8px; }
+                tr:nth-child(even) { background-color: #f9f9f9; }
+                tr:hover { background-color: #f1f1f1; }
+            </style>";
+
+        var htmlHeader = "<div style=\"display:flex;width: 100% ; padding: 8px; border-bottom: 1px solid hsl(0,100%,20%); justify-content: start; \">";
+        htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Ali.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Analysis By Ali</h3></div>";
+
+
+        return css + htmlHeader + html;
+        // .Replace("<table>", "<table class=\"table table-striped table-hover table-bordered\">")
+        // .Replace("<th>", "<th style=\"background-color: grey; color: white;\">");
+    }
+    #region Generate Prompts
+
+    private async Task GeneratePrompt()
+    {
+        switch (ContextAreaId)
+        {
+            case 1:
+                await GenerateSalesPrompt();
+                break;
+            case 2:
+                await GenerateProductionPrompt();
+                break;
+            case 3:
+                await GenerateWIPPrompt();
+                break;
+            default:
+                await SendToast("Warning", "Invalid Page", "This page does not have contextual AI yet.");
+                sState = "IDLE";
+                break;
+        }
+
+    }
+
+    private async Task GenerateSalesPrompt()
+    {
+        customer = await dataTrf.GetgvSelectedClient();
+        if (customer == null || customer.ClientSales == null)
+        {
+            await SendToast("Error", "There is no Sales Data loaded.","Ali");
+            sState = "IDLE";
+            return;
+        }
+
+        qry = $"This is the sales history for customer {customer.ClientName}. {qry}";
+
+        line1 = custTitle;
+        line2 = customer.ClientName;
+        fileName = $"{customer.FullClientID}-{Hdr.Replace(" ", "_")}";
+
+        var dataText = JsonSerializer.Serialize(customer.ClientSales.ToList(), new JsonSerializerOptions { WriteIndented = true });
+
+        var prompt = $@"""
+                You will be given the sales history for a customer. You are a financial analysist and will examine the data and provide
+                meaninful responses to the user query provided.
+
+                The query will include the customers name which is to be used when referencing the customer, not the client id.
+                The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
+                not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
+                field you are using.
+
+                Unless it is specifically asked for in the query, do not include the period sales amounts, just the analysis.
+                Note: All Sales Amounts are in ZAR (South African Rands)
+
+                Data:
+    {dataText}
+
+                Query: {qry}
+                """;
+        await ProcessRequest(prompt);
+
+    }
+
+    private async Task GenerateProductionPrompt()
+    {
+        ClientRollerSpecification? rollerSpec = await dataTrf.GetgvSelectedRollSpec();
+        customer = await dataTrf.GetgvSelectedClient();
+
+        if (rollerSpec == null)
+        {
+            await SendToast("Error", "There is no valid Roller Specification loaded.");
+            sState = "IDLE";
+            return;
+        }
+
+        // qry = $"This is the Roller Specification for customer . {qry}";
+        line1 = custTitle;
+        line2 = customer.ClientName;
+
+        fileName = $"{customer.FullClientID}-{Hdr.Replace(" ", "_")}";
+
+        var dataText = JsonSerializer.Serialize(rollerSpec, new JsonSerializerOptions { WriteIndented = true });
+
+        var prompt = $@"""
+                You area an analyst at H&M Rollers, a company that provides services related to industrial rollers. Primarily this is recovering
+                rollers with new rubber or polyurethane covers, but also includes manufacturing new rollers from scratch based on customer specifications.
+                You will be provided with a roller specification to analyse.
+
+                The contents of the specification is as follows:
+                1. The specification itself provides details on the roller's physical characteristics, such as dimensions, materials, and construction methods. This
+                   is if a new roller is to be manufactured and a new cover is to be applied.
+                2. The actual physical rollers that are worked on are attached as sub-objects within the specification called ClientRoller. These are identified using Roll Numbers where
+                   possible.
+                3. The ClientRoller objects include all the Work Orders when working on them. These Work Orders have sub-objects for Periods and Work Types. It is important to note
+                    the Work Type as rollers may go through a couple of Regrinds before a new cover is applied.
+
+                You are to use the data provided to answer the user query in a meaningful way.Note: Any monetary amounts will be in South African Rands (ZAR).
+
+                The query is for customer {customer.ClientName} ,use the name when referencing the customer, not the client id.
+                The data also includes a sub-object providing details on the period. When referencing periods use the month-calenderyear
+                not the PeriodID. If the user seems to be Refering to Financial Year then use the Financial Year, state in your response which year
+                field you are using.
+
+                Do not include your reasoning in the final response, just the answer.
+
+                The Roller Specification and it's subjects are here followed by the users query.
+
+                Data:
+    {dataText}
+
+                Query: {qry}
+                """;
+        await ProcessRequest(prompt);
+
+    }
+
+    private async Task GenerateWIPPrompt()
+    {
+        List<WorkInProgressDto> divWIP = await dataTrf.GetgvSelectedDivisionWIP();
+        if (divWIP == null)
+        {
+            await SendToast("Error", "The Divisions Work In Progress data is not loaded.");
+            sState = "IDLE";
+            return;
+        }
+
+        qry = $"This is the Work In Progress for the Division. {qry}";
+
+        fileName = $"{Hdr.Replace(" ", "_")}";
+
+        line1 = custTitle;
+        line2 = division.DivisionName;
+        var dataText = JsonSerializer.Serialize(divWIP, new JsonSerializerOptions { WriteIndented = true });
+
+        var prompt = $@"""
+                You will be provided the Work In Progress for a Division. You are a Production expert and will examine the data and provide
+                meaninful responses to the user query provided.
+
+                Note: All Sales Amounts are in ZAR (South African Rands)
+
+                Data:
+                {dataText}
+
+                Query: {qry}
+                """;
+        await ProcessRequest(prompt);
+
+    }
+#endregion
+}
+   

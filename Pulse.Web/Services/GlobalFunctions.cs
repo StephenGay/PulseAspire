@@ -13,6 +13,7 @@ using StackExchange.Redis;
 using System.Drawing;
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 public class GlobalFunctions
 {
@@ -87,112 +88,29 @@ public class GlobalFunctions
     {
         try
         {
-            if (string.IsNullOrEmpty(jsonString))
-            {
-                return new ChartConfig("", "", null, null, null, null);
-            }
+            if (string.IsNullOrWhiteSpace(jsonString))
+                return new ChartConfig();
 
             var options = new JsonSerializerOptions
             {
-                PropertyNameCaseInsensitive = true
+                PropertyNameCaseInsensitive = true,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             };
 
-            using (JsonDocument doc = JsonDocument.Parse(jsonString))
-            {
-                var root = doc.RootElement;
+            var config = JsonSerializer.Deserialize<ChartConfig>(jsonString, options);
 
-                // Extract top-level properties
-                string chartType = root.TryGetProperty("chartType", out var ct)
-                    ? ct.GetString() ?? ""
-                    : "";
-
-                string title = root.TryGetProperty("title", out var t)
-                    ? t.GetString() ?? ""
-                    : "";
-
-                string? xAxisTitle = root.TryGetProperty("xAxisTitle", out var xat)
-                    ? xat.GetString()
-                    : null;
-
-                string? yAxisTitle = root.TryGetProperty("yAxisTitle", out var yat)
-                    ? yat.GetString()
-                    : null;
-
-                string? footerNote = root.TryGetProperty("footerNote", out var fn)
-                    ? fn.GetString()
-                    : null;
-
-                // Deserialize series with datapoints
-                List<ChartSeriesConfig>? series = null;
-                if (root.TryGetProperty("series", out var seriesElement) &&
-                    seriesElement.ValueKind == JsonValueKind.Array)
-                {
-                    series = new List<ChartSeriesConfig>();
-
-                    foreach (var seriesItem in seriesElement.EnumerateArray())
-                    {
-                        string seriesName = seriesItem.TryGetProperty("name", out var sn)
-                            ? sn.GetString() ?? ""
-                            : "";
-
-                        // Deserialize datapoints
-                        List<ChartDataPoint>? dataPoints = null;
-                        if (seriesItem.TryGetProperty("data", out var dataElement) &&
-                            dataElement.ValueKind == JsonValueKind.Array)
-                        {
-                            dataPoints = JsonSerializer.Deserialize<List<ChartDataPoint>>(
-                                dataElement.GetRawText(),
-                                options
-                            );
-                        }
-
-                        series.Add(new ChartSeriesConfig(seriesName, dataPoints));
-                    }
-                }
-
-                return new ChartConfig(chartType, title, xAxisTitle, yAxisTitle, series, footerNote);
-            }
+            return config ?? new ChartConfig();
         }
-        catch (JsonException jsonEx)
+        catch (JsonException ex)
         {
-            showError($"Invalid JSON format: {jsonEx.Message}<br />Please verify the chart configuration.");
-            return new ChartConfig("", "", null, null, null, null);
+            showError($"Invalid JSON format: {ex.Message}");
+            return new ChartConfig();
         }
         catch (Exception ex)
         {
-            showError($"There was a problem creating the chart: {ex.Message}<br />Please try again.");
-            return new ChartConfig("", "", null, null, null, null);
+            showError($"Error creating chart: {ex.Message}");
+            return new ChartConfig();
         }
-        //try
-        //{
-        //    var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        //    var chartConfig = JsonSerializer.Deserialize<ChartConfig>(jsonString, options);
-        //    List<ChartSeriesConfig>? nSeries = new List<ChartSeriesConfig>();
-
-        //    foreach (var series in chartConfig?.Series!)
-        //    {
-        //        var seriesData = JsonSerializer.Deserialize<ChartSeriesConfig>(series.ToString(), options);
-
-        //        List<ChartDataPoint>? dataPoints = series?.Data != null ? new List<ChartDataPoint>() : null;
-
-        //        //foreach (var dp in series.Data)
-        //        //{
-        //        //    ChartDataPoint ndp = new ChartDataPoint(dp.Label, dp.Value);
-        //        //    dataPoints.Add(ndp);
-        //        //};
-        //        ChartSeriesConfig newSeries = new ChartSeriesConfig(series.Name, dataPoints);
-
-        //        nSeries.Add(newSeries);
-        //    }
-        //    return new ChartConfig(chartConfig.ChartType, chartConfig.Title, chartConfig.XAxisTitle, chartConfig.YAxisTitle, nSeries, chartConfig.FooterNote);
-
-        //}
-        //catch (Exception ex)
-        //{
-        //    showError("There was a problem creating the chart.<br />Please try again.");
-        //    return new ChartConfig("", "", null, null, null, null);
-        //}
-
     }
     public string ParseToHtml(string markdownContent)
     {
@@ -407,7 +325,7 @@ public class GlobalFunctions
         _jsRuntime.InvokeVoidAsync("window.localStorage.setItem", dialogSettingsName, JsonSerializer.Serialize<DialogSettings>(Settings));
     }
 
-    DialogSettings _settings;
+    DialogSettings? _settings;
     public DialogSettings Settings
     {
         get

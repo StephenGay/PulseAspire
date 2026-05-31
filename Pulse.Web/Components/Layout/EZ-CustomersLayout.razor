@@ -1,16 +1,17 @@
-﻿@using Microsoft.FluentUI.AspNetCore.Components
+﻿@using System.Threading.Tasks
+@using BootstrapBlazor
+@using BootstrapBlazor.Components
 @using Microsoft.AspNetCore.Components
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Models.Api
 @using Pulse.Models.Customers
 @using Pulse.Models.Organizational
 @using Pulse.Models.Users
 @using Pulse.Web.Services
-@using BootstrapBlazor
-@using BootstrapBlazor.Components
-
-@using System.Threading.Tasks
 @using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16
-@inject DataTransferService dataTrf
-@inject Pulse.Web.Services.Pulse_AI pAI
+@inject AppState clAppState
+@inject DataTransferService clDataTrf
+@inject PulseApiService pApi
 @inherits LayoutComponentBase
 @layout MasterLayout
  
@@ -21,14 +22,83 @@
   height: calc(100vh - 304px); /* Or whatever height your parent should be, like 100% */
 }
 </style>
-@* <FluentStack Orientation="Orientation.Vertical" Width="100%" Style="min-height:100%" >  *@
-    <EZ_CustomersNavMenu />
-    @Body
-@* </FluentStack> *@
+@if (isLoading)
+{
+    <div style="display:flex; align-items:center; justify-content:center; height:200px">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 12px;">
+            <FluentProgressRing IsActive="true" />
+            <FluentLabel Typo="Typography.Body">Loading, please be patient...</FluentLabel>
+        </FluentStack>
+    </div>
+}
+else
+{
+    <CascadingValue Value="@_customer">
+        <EZ_CustomersNavMenu />
+        @Body
+    </CascadingValue>
+}
+
 
 @code{
     [CascadingParameter]
     public MasterLayout? masterLayout { get; set; }
+    public Customer? _customer;
+    private bool isLoading = true;
 
-    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await GetClientInfo().ContinueWith(_ =>
+            {
+                isLoading = false;
+                InvokeAsync(StateHasChanged);
+            });
+        }
+    }
+
+    protected override void OnInitialized()
+    {
+        clAppState.OnClientChange += async() =>
+        {
+            await GetClientInfo();
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        };
+    }
+
+    private async Task GetClientInfo()
+    {
+
+        Customer check = await clDataTrf.GetgvSelectedClient();
+        if (check != null)
+        {
+            if (check?.ClientSales! == null)
+            {
+                // check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
+                check.ClientSales = await pApi.GetAsync<List<ClientSale>>(ApiEndpoints.Customers.ByFullClientID.GetSales(check.FullClientID));
+                await clDataTrf.SetgvSelectedClient(check);
+            }
+            // custSpeedDial = await dataTrf.GetgvUserSpeedDial("Customer");
+            // onSpeeddial = custSpeedDial.Exists(sd => sd.ItemCode == check.FullClientID);
+
+            if (check?.clientBudgets! == null)
+            {
+                var curPer = await clDataTrf.GetgvCurrentPeriod();
+                check.clientBudgets = await pApi.GetAsync<List<ClientBudgets>>(ApiEndpoints.Customers.ByFullClientID.Budget.ByFinancialYear.Get(check.FullClientID, curPer.FinancialYear));
+                await clDataTrf.SetgvSelectedClient(check);
+            }
+            // if (!check.clientBudgets.Any())
+            // {
+            //     HasAssists = true;
+            // }
+            // if (check.AiSummary == null || check.AiSummary == "")
+            // {
+            //     HasAssists = true;
+            // }
+            _customer = check;
+        }
+    }
+
 }

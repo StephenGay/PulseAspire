@@ -1,0 +1,229 @@
+﻿@using Pulse.Models.Communication
+@using Pulse.Models.CustomComponents
+@using Pulse.Web.Components.Pages.UserSettings
+@using Pulse.Web.Components.PulseComponents.Controls
+@using Pulse.Web.Services
+
+@inject MessageHubService mlbbMsgHubService
+@inject DataTransferService mlbbDataTrf
+@inject ILogger<MasterLayoutBottomBar> mlbblogger
+@inject NavigationManager mlbbNavigation
+@inject AuthService mlbbAuthService
+@inject Global_AI_Functions mlbbGlobalAI
+@inject IPulseToastService mlbbToastService
+
+@implements IDisposable
+
+<FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height:100%;padding:10px" Width="100%" >
+        <FluentPersona Status="@GetPresenceStatus(presence)"
+                        StatusSize="PresenceBadgeSize.Small"
+                        Id="btnProfile"
+                        StatusTitle="@(GetPresenceStatus(presence).ToString())"
+                        data-bs-toggle="offcanvas" 
+                        data-bs-target="#mnuProfile"
+                        
+                        aria-label="Show Profile Menu"
+                        Image="@(new Icons.Regular.Size48.Person().ToDataUri(size: "25px", color: "white"))"
+                        ImageSize="40px">
+        </FluentPersona>
+    
+    <FluentSpacer />
+    <Animation Effect="@Effect.Shake" Enabled="@aniMsg" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2" OnAnimationEnd="() => aniMsg=false">
+        <FluentCounterBadge  BackgroundColor="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Fill" Dot="@showChatDot" aria-hidden="false">
+                <FluentButton id="btnMsg" data-bs-toggle="offcanvas" data-bs-target="#msgCentre" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)">
+                <FluentIcon Value="@(new Icons.Filled.Size32.Mail().WithColor("var(--pulse-light-colour)"))" />
+            </FluentButton>
+        </FluentCounterBadge>
+    </Animation>
+
+    <FluentSpacer />
+    
+    
+    <FluentButton class="myDivBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" aria-label="Change to a different Division" style="margin-right:10px" OnClick="ChangeDiv">@masterLayout.division?.DivisionName</FluentButton>
+    
+
+</FluentStack>
+
+<div class="offcanvas offcanvas-bottom mnuProfile" data-bs-backdrop="static" tabindex="-1" id="mnuProfile" aria-labelledby="msgCentreLabel">
+    <div class="offcanvas-body">
+        <FluentStack Orientation="MsFluent.Orientation.Vertical">
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="border-bottom: 1px solid var(--pulse-dark-colour);padding:5px;margin-bottom:10px">
+                <FluentLabel Typo="Typography.H5" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">@masterLayout.UserFullName</FluentLabel>
+                <FluentSpacer />
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </FluentStack>
+            <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">Status</FluentLabel>
+            <FluentSelect Value="@presence" @onchange="ChangePresence" TOption="string" Style="border:1px solid var(--pulse-dark-colour)">
+                <FluentOption Value="3">Available</FluentOption>
+                <FluentOption Value="2">Away</FluentOption>
+                <FluentOption Value="0">Busy</FluentOption>
+                <FluentOption Value="5">Do Not Disturb</FluentOption>
+                <FluentOption Value="4">Offline</FluentOption>
+                <FluentOption Value="1">Out Of Office</FluentOption>
+                <FluentOption Value="6">Unknown</FluentOption>
+            </FluentSelect>
+            <ThemeSwitcher />
+        </FluentStack>
+    </div>
+    <div class="offcanvas-bottom" style="padding:10px">
+        <FluentButton Appearance="Appearance.Accent" aria-label="Log Out" OnClick="Logout">Logout</FluentButton>
+    </div>
+</div>
+            
+<div class="offcanvas offcanvas-start" style="width:100%" tabindex="-1" id="msgCentre" aria-labelledby="msgCentreLabel">
+    <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
+                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+        Close
+    </FluentButton>
+    <UserMsgCentre />
+</div>
+
+@code {
+    [CascadingParameter]
+    public MasterLayout masterLayout { get; set; } = default!;
+    private bool showProfileMenu = false;
+    private bool aniMsg = false;
+    private bool showChatDot = false;
+    private string presence = "3";
+
+    #region Page Lifecycle
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        await mlbbMsgHubService.EnsureConnectedAsync();
+        mlbbMsgHubService.OnReceiveMessage += OnMessageReceived;
+        mlbbMsgHubService.OnPresenceListUpdated += OnPresenceListUpdated;
+        mlbbMsgHubService.OnLoadHistory += OnLoadHistory;
+    }
+
+    public void Dispose()
+    {
+        mlbbMsgHubService.OnReceiveMessage -= OnMessageReceived;
+        mlbbMsgHubService.OnPresenceListUpdated -= OnPresenceListUpdated;
+        mlbbMsgHubService.OnLoadHistory -= OnLoadHistory;
+    }
+
+    #endregion
+
+    #region Presence List Handlers
+
+    private PresenceStatus GetPresenceStatus(string status)
+    {
+        return status switch
+        {
+            "0" => PresenceStatus.Busy,
+            "1" => PresenceStatus.OutOfOffice,
+            "2" => PresenceStatus.Away,
+            "3" => PresenceStatus.Available,
+            "4" => PresenceStatus.Offline,
+            "5" => PresenceStatus.DoNotDisturb,
+            "6" => PresenceStatus.Unknown,
+            _ => PresenceStatus.Unknown
+        };
+    }
+
+    private void OnPresenceListUpdated(List<UserPresenceDto> presenceList)
+    {
+        try
+        {
+            // Find current user's presence in the broadcast list
+            var currentUserPresence = presenceList.FirstOrDefault(p => p.UserId == masterLayout._userId);
+
+            if (currentUserPresence != null)
+            {
+                // Update the local presence state variable to match server
+                presence = ((int)currentUserPresence.EffectiveStatus).ToString();
+
+                mlbblogger?.LogInformation("Presence updated: {UserId} -> {Status}",
+                    masterLayout._userId, currentUserPresence.EffectiveStatus);
+            }
+
+            InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            mlbblogger?.LogError(ex, "Error handling presence list update");
+        }
+    }
+
+    private async Task ChangePresence(ChangeEventArgs e)
+    {
+        presence = e.Value?.ToString() ?? "3";
+        int code = int.Parse(presence);
+
+        try
+        {
+            await mlbbMsgHubService.SetPresenceAsync(code);
+            // Don't update UI here; wait for OnPresenceListUpdated broadcast
+        }
+        catch (Exception ex)
+        {
+            var ErrMsg = "There was a problem updating your Presence Status.<br />Please try again.";
+            mlbbToastService.ShowToast("Error", ErrMsg, true);
+            await mlbbGlobalAI.AISpeak(ErrMsg, "PulseAI");
+        }
+    }
+
+    #endregion
+
+    #region SignalR Messaging Handlers
+
+    private async void OnLoadHistory(List<PulseMessage> history)
+    {
+        try
+        {
+            await mlbbDataTrf.SetgvUserMessages(history);
+            // Update UI state on the renderer thread
+            foreach (var msg in history)
+            {
+                if (msg.Delivered == false)
+                {
+                    showChatDot = true;
+                    break;
+                }
+            }
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception)
+        {
+            // Avoid bubbling exceptions out of event callback
+        }
+    }
+
+    private async void OnMessageReceived(PulseMessage msg)
+    {
+        try
+        {
+            // Update UI state on the renderer thread
+            await mlbbDataTrf.AddgvUserMessage(msg);
+            aniMsg = true;
+            showChatDot = true;
+
+            await mlbbGlobalAI.AISpeak("You have a new message", "PulseAI");
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception)
+        {
+            // Avoid bubbling exceptions out of event callback
+        }
+    }
+
+    #endregion
+
+    #region Button Event Handlers
+
+    private async Task Logout()
+    {
+        await mlbbAuthService.ClearAsync();
+        mlbbNavigation.NavigateTo("/Home", forceLoad: true);
+    }
+
+    private void ChangeDiv()
+    {
+        mlbbNavigation.NavigateTo("/DivisionLogon");
+    }
+
+    #endregion
+
+}

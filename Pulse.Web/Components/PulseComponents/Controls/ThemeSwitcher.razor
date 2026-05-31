@@ -12,28 +12,29 @@
 
 <FluentDesignTheme StorageName="themePulse" @bind-Mode="@thMode" />
 
+<FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">Theme</FluentLabel>
 <div class="theme-switcher">
 <FluentSelect TOption="string" 
                 Value="@selectedTheme"
                 ValueChanged="(newVal => ChangeTheme(newVal))"
-
-              Width="160px"
+                Position="SelectPosition.Below"
+              Width="200px"
                   Style="border:1px solid var(--pulse-dark-colour); transition: all 0.3s ease;">
     <FluentOption Value="pulse">Pulse</FluentOption>
     <FluentOption Value="hm">H&amp;M Rollers</FluentOption>
     <FluentOption Value="ocean">Ocean</FluentOption>
     <FluentOption Value="space">Space</FluentOption>
 </FluentSelect>
-    <FluentButton Appearance="Appearance.Stealth" @onclick="ToggleTheme" Style="border:1px solid var(--pulse-dark-colour); margin-left: 8px">
+    <FluentButton Appearance="Appearance.Stealth" Class="modeButton" @onclick="ToggleTheme" Style="border:1px solid var(--pulse-dark-colour); margin-left: 8px">
     @if (!IsDarkMode)
     {
         <!-- Sun Icon (Light Mode) -->
-        <FluentIcon Value="@(new Icons.Filled.Size24.WeatherSunny().WithColor("#fbbf24"))" />
+        <FluentIcon Class="modeIcon" Value="@(new Icons.Filled.Size24.WeatherSunny().WithColor("#fbbf24"))" />
     }
     else
     {
         <!-- Moon Icon (Dark Mode) -->
-        <FluentIcon Value="@(new Icons.Filled.Size24.WeatherMoon().WithColor("#64748b"))" />
+        <FluentIcon Class="modeIcon" Value="@(new Icons.Filled.Size24.WeatherMoon().WithColor("#64748b"))" />
     }
 
 </FluentButton>

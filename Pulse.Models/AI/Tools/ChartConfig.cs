@@ -1,17 +1,22 @@
-﻿namespace Pulse.Models.AI.Tools;
+﻿using System.Text.Json.Serialization;
+
+namespace Pulse.Models.AI.Tools;
 
 public sealed record ChartConfig(
-    string ChartType = "Bar",                    // "Bar", "Line", "Pie", "Doughnut", "Area", "StackedBar"
-    string Title = "",
-    string? XAxisTitle = null,
-    string? YAxisTitle = null,
-    List<ChartSeriesConfig>? Series = null,
-    string? FooterNote = null
+    [property: JsonPropertyName("chartType")] string ChartType = "Bar",
+    [property: JsonPropertyName("title")] string Title = "",
+    [property: JsonPropertyName("xAxisTitle")] string? XAxisTitle = null,
+    [property: JsonPropertyName("yAxisTitle")] string? YAxisTitle = null,
+    [property: JsonPropertyName("series")] List<ChartSeriesConfig>? Series = null,
+    [property: JsonPropertyName("footerNote")] string? FooterNote = null
 );
 
 public sealed record ChartSeriesConfig(
-    string Name,
-    List<ChartDataPoint> Data
+    [property: JsonPropertyName("name")] string Name,
+    [property: JsonPropertyName("dataPoints")] List<ChartDataPoint> Data
 );
 
-public sealed record ChartDataPoint(string Label, double Value);
+public sealed record ChartDataPoint(
+    [property: JsonPropertyName("label")] string Label,
+    [property: JsonPropertyName("value")] double Value
+);

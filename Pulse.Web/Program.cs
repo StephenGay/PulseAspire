@@ -139,11 +139,11 @@ builder.Services.AddSingleton<HubConnection>(sp =>
 #region UI Frameworks & Tools
 builder.Services.AddScoped<IPulseToastService, PulseToastService>();
 
-builder.Services.AddBootstrapBlazor(options =>
-{
-    options.ToastDelay = 6000;
-    options.ToastPlacement = BootstrapBlazor.Components.Placement.BottomEnd;
-});
+//builder.Services.AddBootstrapBlazor(options =>
+//{
+//    options.ToastDelay = 6000;
+//    options.ToastPlacement = BootstrapBlazor.Components.Placement.BottomEnd;
+//});
 builder.Services.AddSpeechSynthesis();
 builder.Services.AddSpeechRecognition();
 builder.Services.AddFluentUIComponents();
