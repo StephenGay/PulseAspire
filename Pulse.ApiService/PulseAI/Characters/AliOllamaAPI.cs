@@ -70,7 +70,9 @@ namespace Pulse.ApiService.PulseAI.Characters
                     var chat = new ChatRequest
                     {
                         Model = "gpt-oss:latest",   // or pull from config
-                        Messages = cMessages
+                        Messages = cMessages,
+                        Think = "high"
+                        
                     };
 
                     //await foreach (var chunk in _ollamaClient.ChatAsync(chat))

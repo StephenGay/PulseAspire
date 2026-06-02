@@ -178,7 +178,7 @@ public class GlobalFunctions
         try
         {
             var mC = msg.Content;
-            mC = ParseToHtml(mC);
+            if(msg.ContentType == "MARKUP") mC = ParseToHtml(mC);
             mC = AddInternalMarkUp(mC);
 
             PulseMessage msgExp = new PulseMessage()
@@ -190,7 +190,7 @@ public class GlobalFunctions
                 RecipientUserId = msg.RecipientUserId ?? _authService.aspireUserId,
                 RecipientUserName = msg.RecipientUserName ?? _authService.aspireFullName,
                 Role = msg.Role ?? "PulseAI",
-                ContentType = "MARKUP",
+                ContentType = msg.ContentType,
                 Content = mC,
                 Subject = msg.Subject ?? "Pulse Aspire Export"
             };

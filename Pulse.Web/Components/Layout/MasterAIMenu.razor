@@ -150,26 +150,26 @@
                     <FluentAppBarItem Href="@(null)"
                                         Match="NavLinkMatch.All"
                                         IconRest="HomeIcon()"
-                                      IconActive="HomeIcon(active: true)"
-                                          Class="@(homeSel ? "nbMainSel" : "nbMainUnSel")"
+                                        IconActive="HomeIcon(active: true)"
+                                        Class="@(selMnu == "homeSel" ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Home"
                                         OnClick="AppBarClick" />
                         <FluentAppBarItem Href="@(null)"
                                         IconRest="CustomersIcon()"
-                                      IconActive="CustomersIcon(active: true)"
-                                          Class="@(custSel ? "nbMainSel" : "nbMainUnSel")"
+                                        IconActive="CustomersIcon(active: true)"
+                                        Class="@(selMnu == "custSel" ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Customers"
                                         OnClick="AppBarClick" />
                         <FluentAppBarItem Href="@(null)"
                                         IconRest="ProductionIcon()"
-                                      IconActive="ProductionIcon(active: true)"
-                                          Class="@(prodSel ? "nbMainSel" : "nbMainUnSel")"
+                                        IconActive="ProductionIcon(active: true)"
+                                        Class="@(selMnu == "prodSel" ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Production"
                                         OnClick="AppBarClick" />
                         <FluentAppBarItem Href="@(null)"
                                         IconRest="AdminIcon()"
-                                      IconActive="AdminIcon(active: true)"
-                                          Class="@(adminSel ? "nbMainSel" : "nbMainUnSel")"
+                                        IconActive="AdminIcon(active: true)"
+                                        Class="@(selMnu == "adminSel" ? "nbMainSel" : "nbMainUnSel")"
                                         Text="Admin"
                                         OnClick="AppBarClick" />
                 </FluentAppBar>
@@ -254,7 +254,7 @@
 @code {
 
     private Customer? customer;
-
+    private string selMnu = "homeSel";
     private bool homeSel = true;
     private bool aiSel = false;
     private bool custSel = false;
@@ -265,33 +265,33 @@
     #region AppBar Icons and Click Handling
 
     private Icon HomeIcon(bool active = false) =>
-        active || homeSel ? new Icons.Filled.Size24.Home()
+        active || selMnu == "homeSel" ? new Icons.Filled.Size24.Home()
                : new Icons.Regular.Size24.Home();
 
     private Icon CustomersIcon(bool active = false) =>
-        active || custSel ? new Icons.Filled.Size24.People()
+        active || selMnu == "custSel" ? new Icons.Filled.Size24.People()
                : new Icons.Regular.Size24.People();
 
     private Icon ProductionIcon(bool active = false) =>
-        active || prodSel ? new Icons.Filled.Size24.Production()
+        active || selMnu == "prodSel" ? new Icons.Filled.Size24.Production()
                : new Icons.Regular.Size24.Production();
 
     private Icon AdminIcon(bool active = false) =>
-        active || adminSel ? new Icons.Filled.Size24.DesktopEdit()
+        active || selMnu == "adminSel" ? new Icons.Filled.Size24.DesktopEdit()
                : new Icons.Regular.Size24.DesktopEdit();
 
     private async Task AppBarClick(IAppBarItem item)
     {
-        homeSel = false;
-        custSel = false;
-        prodSel = false;
-        adminSel = false;
+        // homeSel = false;
+        // custSel = false;
+        // prodSel = false;
+        // adminSel = false;
         string pgNav = string.Empty;
 
         switch (item.Text)
         {
             case "Home":
-                homeSel = true;
+                selMnu = "homeSel";
                 pgNav = "/EmployeeZone/";
                 break;
             case "Customers":
@@ -309,7 +309,7 @@
                 // customer = await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(result));
                 await dataTrf.SetgvSelectedClient(await pApiClient.GetAsync<Customer>(ApiEndpoints.Customers.ByFullClientID.MasterFile.Get(result)));
                 //
-                custSel = true;
+                selMnu = "custSel";
                 pgNav = "/EmployeeZone/Customers/ClientDashboard";
                 await aiMnuAppState.NotifyClientChanged();
                 break;
@@ -317,11 +317,11 @@
             // pgNav = "/EmployeeZone/SearchPages/ClientSearch";
             // break;
             case "Production":
-                prodSel = true;
+                selMnu = "prodSel";
                 pgNav = "/EmployeeZone/Production/ProductionDashboard";
                 break;
             case "Admin":
-                adminSel = true;
+                selMnu = "adminSel";
                 pgNav = "/AdminZone/AdminDashboard";
                 break;
 

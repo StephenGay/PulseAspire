@@ -3,12 +3,14 @@
 .mnuProfile {
     width: 300px;
     margin-bottom: 66px;
-    margin-left: 10px;
+    margin-left: 15px;
     height: 600px !important;
     border-radius: 10px;
     /*display: flex;
     align-items: center;
     padding: 0.5rem 1rem;*/
-    background-color: var(--pulse-light-colour);
+    /*background-color: var(--pulse-light-colour);*/
+    background-image: linear-gradient(180deg, var(--pulse-dark-colour) 20%, var(--pulse-light-colour) 120%);
     border: 1px solid var(--pulse-dark-colour);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
 }

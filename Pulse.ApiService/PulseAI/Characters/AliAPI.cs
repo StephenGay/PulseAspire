@@ -48,7 +48,7 @@ namespace Pulse.ApiService.PulseAI.Characters
         {
             var chatOptions = new ChatOptions
             {
-                ModelId = modelOverride ?? "gpt-oss:latest"
+                ModelId = modelOverride ?? "phi3:14B" //"gpt-oss:latest"
             };
             //string SessionId = Guid.NewGuid().ToString();
             try
@@ -78,8 +78,8 @@ namespace Pulse.ApiService.PulseAI.Characters
                     var options = new ChatOptions
                     {
                         Temperature = 0.3f,
-                        
-                        ModelId = "gpt-oss:latest"
+
+                        ModelId = modelOverride ?? "phi3:14B"
                         // You can add Tools here later when we add tool calling
                     };
 

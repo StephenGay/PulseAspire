@@ -52,12 +52,12 @@
                         @* <div class="clientSpeeddialCard" style="height:250px;width:210px" @onclick="async () => await OnContactClick(clientContact)"> *@
                                 <div class="card btnShadow" style="height:100%;width:300px" @onclick="async () => await OnContactClick(clientContact)">
 
-                                <header class="card-header text-start text-truncate" style="padding-right:5px">@clientContact.FullName</header>
+                                <header class="card-header text-start text-truncate" >@clientContact.FullName</header>
                                 <div class="card-body">
                                     <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Start" Style="gap: 5px;padding:5px">
-                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;white-space:pre-line">Title: @clientContact.ContactTitle</FluentLabel>
-                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;white-space:pre-line">Mobile: @clientContact.ContactMobile</FluentLabel>
-                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;white-space:pre-line">Email: @clientContact.ContactEmail</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: var(--pulse-dark-colour);white-space:pre-line"><strong>Title:</strong> @clientContact.ContactTitle</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: var(--pulse-dark-colour);white-space:pre-line"><strong>Mobile:</strong> @clientContact.ContactMobile</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: var(--pulse-dark-colour);white-space:pre-line"><strong>Email:</strong> @clientContact.ContactEmail</FluentLabel>
                                     </FluentStack>
                                 </div>
                             </div>

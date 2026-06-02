@@ -41,10 +41,10 @@
                 <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0.5)">
                 
                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Style="padding: 10px;">
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin: 10px;">
+                        @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin: 10px;">
                         <FluentButton OnClick="() => isTableView = true" class=@(!isTableView ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)" IconStart="@(new Icons.Filled.Size24.Table().WithColor("var(--pulse-mode-btn-item-colour)"))">Table</FluentButton>
                         <FluentButton OnClick="() => isTableView = false" class=@(isTableView ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)" IconStart="@(new Icons.Filled.Size24.ChartMultiple().WithColor("var(--pulse-mode-btn-item-colour)"))">Graph</FluentButton>
-                        </FluentStack>
+                        </FluentStack> *@
                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" Class="divShadow" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin: 5px">
                             <FluentDataGrid Items="@salesGrid.AsQueryable()"
                                         

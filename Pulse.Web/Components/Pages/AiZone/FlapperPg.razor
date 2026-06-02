@@ -9,6 +9,8 @@
 @inject MessageHubService MsgHubService
 @inject HttpClient Http
 @inject GlobalFunctions GlobalFunctions
+@inject IHtmlCaptureService HtmlCapture
+
 @implements IAsyncDisposable
 
 @rendermode InteractiveServer
@@ -105,9 +107,10 @@
     <div class="aiHeader" />
     <div class="aiMenu">
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
-                <FluentButton class=@(!viewBox ? "myModeBtnOff" : "flapOn")
+                <FluentButton Appearance="Appearance.Accent"
+                                class=@(!viewBox ? "myModeBtnOff" : "flapOn")
                               BackgroundColor="white"
-                              Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
+                              Style="height:50px;width:50px;margin-left:10px"
                               OnClick="() => viewBox = !viewBox">
                     @if (flapper is not null)
                     {
@@ -246,7 +249,7 @@
                         </FluentStack>
                         @if (showTables)
                         {
-                            <Animation Effect="@Effect.FadeIn" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
+                            <Animation Effect="@Effect.FlipInX" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
                                  <div class="aiAssistBox">
                                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour);padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;">
                                         <img src="Images/AI/Tables.png" style="width:96px;height:96px" />
@@ -261,8 +264,8 @@
                         }
                             @if (!ViewSettings)
                             {
-                                <StackItem >
-                                    @if (IsAwaitingClarification && CurrentClarificationQuestion is not null)
+                                @* <StackItem > *@
+                                    @* @if (IsAwaitingClarification && CurrentClarificationQuestion is not null)
                                     {
                                         <div style="padding: 16px; background-color: var(--neutral-layer-2); border-top: 2px solid var(--accent-fill-rest);">
                                             <p><strong>Flapper asks:</strong></p><p>@CurrentClarificationQuestion</p>
@@ -273,7 +276,7 @@
                                                 <FluentButton Appearance="Appearance.Lightweight" OnClick="() => SendCustomReplyAsync()">Custom Reply</FluentButton>
                                             </FluentStack>
                                         </div>
-                                    }
+                                    } *@
                                     @if (isLoading)
                                     {
                                         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Top">
@@ -289,8 +292,6 @@
                                     {
                                     @if (!IsAwaitingClarification)
                                     {
-                                        
-                                    
                                     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:5px;">
                                             <FluentSpacer />
                                         </FluentStack>
@@ -340,7 +341,7 @@
                                         </div>
                                     }
                                 }
-                                </StackItem>
+                                @* </StackItem> *@
                             }
                             else
                             {
@@ -366,7 +367,7 @@
                         {
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
                                 @* <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" onclick=$"()=>LoadHistoryConversation("{@convo.Id}")">@convo.StartedAt.ToString("g") - @convo.Title</FluentLabel> *@
-                                <FluentLabel Typo="Typography.Body" class="btnShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-light-colour)" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" @onclick="() => LoadHistoryConversation(convo.Id)">@convo.StartedAt.ToString("g") - @convo.Title.Replace("[REPORT] ","").Replace("[SPEECH ]","")</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" class="btnShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-light-colour)" Style=" background-color:var(--pulse-dark-t50-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;font-style:italic" @onclick="() => LoadHistoryConversation(convo.Id)">@convo.StartedAt.ToString("g") - @convo.Title.Replace("[REPORT] ","").Replace("[SPEECH] ","")</FluentLabel>
                             </FluentStack>
                         }
                     }
@@ -394,11 +395,31 @@
                                 </FluentLabel>
                                 @if (CurrentChartConfig != null)
                                 {
-                                    <div style="background-color: white;border:1px solid var(--pulse-dark-colour); border-radius:10px;margin:10px;width:calc(100% - 20px);padding:10px;">
+                                    <div class="flapper-chart">
                                         <DynamicRadzenChart Config="CurrentChartConfig" />
                                     </div>
                                 }
                             </FluentStack>
+                        }
+                        @if (IsAwaitingClarification && CurrentClarificationQuestion is not null)
+                        {
+                            <div class="divShadow" style="padding: 16px; background-color: var(--pulse-light-colour);max-width:30%; border: 1px solid var(--pulse-dark-colour);border-radius:10px;">
+                                <p><strong>Flapper asks:</strong></p>
+                                <p>@CurrentClarificationQuestion</p>
+                                @if (CurrentClarificationType == "Text")
+                                {
+                                    <FluentTextField @bind-Value="CustomReply" Placeholder="Type your custom reply here..." Style="margin:10px;border:1px solid var(--pulse-dark-colour);width:stretch" />
+                                    <FluentButton Appearance="Appearance.Accent" Disabled="@string.IsNullOrEmpty(CustomReply)" OnClick="@(() => SendQuickReplyAsync(CustomReply))">Send Custom Reply</FluentButton>
+                                }
+                                else
+                                {
+                                    
+                                <FluentStack Orientation="MsFluent.Orientation.Horizontal">
+                                    <FluentButton Appearance="Appearance.Accent" OnClick="@(() => SendQuickReplyAsync("Yes"))">Yes</FluentButton>
+                                    <FluentButton Appearance="Appearance.Neutral" OnClick="@(() => SendQuickReplyAsync("No"))">No</FluentButton>
+                                </FluentStack>
+                                }
+                            </div>
                         }
                         @if (stream && !string.IsNullOrEmpty(flapperThinking))
                         {
@@ -418,12 +439,12 @@
                             @if (message.ContentType.ToUpper() == "USERQUERY")
                             {
                                 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" Style="margin-bottom: 10px;">
-                                            <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight" Style=" background-color:var(--pulse-dark-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;">@message.Content</FluentLabel>
+                                    <FluentLabel Typo="Typography.Body" class="divShadow" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-light-colour)" Style=" background-color:var(--pulse-dark-colour); border: 1px solid white; padding:10px; border-radius:15px;width:100%;">@message.Content.Replace("[REPORT] ", "").Replace("[SPEECH] ", "")</FluentLabel>
                                 </FluentStack>
                             }
                             else
                             {
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" Style="margin-bottom: 10px;">
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin-bottom: 10px;">
                                     @if (message.ContentType.ToUpper() == "AITHINKING")
                                     {
                                         if (stream)
@@ -434,21 +455,24 @@
                                     else if (message.ContentType.ToUpper() == "AIRESPONSE")
                                     {
                                         
-                                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin-bottom: 10px;">
+                                       @*  <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalAlignment="VerticalAlignment.Top" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="margin-bottom: 10px;"> *@
 
                                             <FluentLabel Typo="Typography.Body" class="divShadow" Style=" background-color:lemonchiffon; padding:10px; border-radius:15px; border: 1px solid black; white-space:pre-line">
                                             @* <RadzenMarkdown Style="margin:0; padding:0" Text="@message.Content" AllowHtml="true" /> *@
                                             <div style="color: black;">@((MarkupString)FlapperAddMUcss(GlobalFunctions.ParseToHtml(message.Content)))</div>
                                         </FluentLabel>
+                                    }
+                                    else if (message.ContentType.ToUpper() == "CHART")
+                                    {
                                         @if (!string.IsNullOrEmpty(message.RawContent))
                                         {
-                                            <div class="divShadow" Style=" background-color:lemonchiffon; padding:10px; width:100%; border-radius:15px; border: 1px solid black">
+                                            <div class="flapper-chart">
                                                     
                                                     
-                                                <DynamicRadzenChart Config="@GetChartConfigFromMessage(message)" />
+                                                <DynamicRadzenChart Config="@GetChartConfigFromMessage(message.RawContent)" />
                                                 </div>
                                         }
-                                        </FluentStack>
+                                       @*  </FluentStack> *@
                                         
                                     }
                                 </FluentStack>
@@ -473,6 +497,8 @@
     private bool IsAwaitingClarification { get; set; } = false;
     private bool isStreamingResponse = true;
     private string? CurrentClarificationQuestion { get; set; }
+    private string? CurrentClarificationType { get; set; }
+    private string? CustomReply { get; set; }
     private string CurrentFlapperResponse { get; set; } = string.Empty;
     private Guid CurrentConversationId { get; set; } = Guid.NewGuid();
     private string? groupId;
@@ -480,6 +506,8 @@
     private List<FlapperConversation> ConversationHistory = [];
     private bool SpokenResponse = false;
     private ChartConfig? CurrentChartConfig;
+
+    private string capturedHtml = "";
 
     private string? flapperSystemPrompt = string.Empty;
     private string query = string.Empty;
@@ -550,12 +578,12 @@
         }
     }
 
-    private ChartConfig? GetChartConfigFromMessage(FlapperMessage message)
+    private ChartConfig? GetChartConfigFromMessage(string chString)
     {
-        if (string.IsNullOrEmpty(message.RawContent)) return null;
+        if (string.IsNullOrEmpty(chString)) return null;
         try
         {
-            var config = GlobalFunctions.DeserialiseChartConfigString(message.RawContent);
+            var config = GlobalFunctions.DeserialiseChartConfigString(chString);
             return config;
         }
         catch
@@ -790,7 +818,7 @@
             flapperDTO : flapperDTO,
             UserId : _authService.aspireUserId,
             ConversationId : CurrentConversationId,
-            Message : answer,
+            Message : $"[ANSWER]{answer}",
             IsClarificationResponse : true,
             PreferredUserName : uName ?? _authService.aspireFullName   // Yes / No becomes the next user message
         );
@@ -852,103 +880,7 @@
         await InvokeAsync(StateHasChanged);
     }
 
-    // private async void OnFlapperMessageChunkReceived(PulseMessage msg)
-    // {
-    //     if (msg.Role != "Flapper")
-    //     {
-    //         return;
-    //     }
-
-    //     var msgContent = msg.Content;
-
-    //     if(msg.Content.StartsWith("<thinking>"))
-    //     {
-    //         _inThinking = true;
-    //         flapperThinking = "";
-    //         msgContent = msgContent.Replace("<thinking>", "").Trim();
-    //     }
-    //     if (msg.Content.StartsWith("</thinking>"))
-    //     {
-    //         _inThinking = false;
-    //         msgContent = msgContent.Replace("</thinking>", "").Trim();
-    //     }
-
-    //     // Normal streaming content
-    //     if(_inThinking)
-    //     {
-    //         flapperThinking += msgContent;
-    //     }
-    //     else
-    //     {
-    //         if (SpokenResponse){
-    //             // string cleanText = PrepareForSpeech(msgContent);
-    //             await SpeakIncremental(msgContent);
-    //         }
-    //         CurrentFlapperResponse += msgContent;
-
-    //     }
-
-
-    //     var lastMsg = Messages.LastOrDefault(m => m.Sender == "Flapper");
-    //     if (lastMsg == null)
-    //         // lastMsg.Content = CurrentFlapperResponse;
-    //         // else
-    //         Messages.Add(new FlapperMessageDto { Sender = "Flapper", Content = CurrentFlapperResponse });
-    //     // isLoading = false;
-    //     await InvokeAsync(StateHasChanged);
-    // }
-
-    // private async void OnFlapperMessageReceived(PulseMessage msg)
-    // {
-
-    //     if (msg.Role != "Flapper")
-    //     {
-    //         return;
-    //     }
-    //     Messages.Add(new FlapperMessageDto
-    //     {
-    //         Sender = "Flapper",
-    //         Content = msg.Content
-    //     });
-
-    //     // Check if this is a clarification question
-    //     if (msg.Subject?.Contains("Clarification", StringComparison.OrdinalIgnoreCase) == true)
-    //     {
-    //         IsAwaitingClarification = true;
-    //         int ind = msg.Content.LastIndexOf("</thinking>");
-    //         if(ind > -1)
-    //         {
-    //             CurrentClarificationQuestion = msg.Content.Substring(ind + 11).Trim();
-    //         }
-    //         else
-    //         {
-    //             CurrentClarificationQuestion = msg.Content;
-    //         }
-    //     }
-    //     else
-    //     {
-    //         CurrentFlapperResponse = msg.Content;
-    //     }
-    //     // ====================== FINAL FLUSH ======================
-    //     if (SpokenResponse && _answerBuilder.Length > _lastSpokenCharIndex)
-    //     {
-    //         string remainingText = _answerBuilder.ToString().Substring(_lastSpokenCharIndex).Trim();
-
-    //         if (!string.IsNullOrWhiteSpace(remainingText))
-    //         {
-    //             string cleanText = PrepareForSpeech(remainingText);
-    //             await GlobalAI.AISpeak(cleanText, "Flapper");
-    //         }
-    //     }
-
-    //     // Reset for next conversation turn
-    //     _answerBuilder.Clear();
-    //     _lastSpokenCharIndex = 0;
-
-    //     isLoading = false;
-    //     await InvokeAsync(StateHasChanged);
-    // }
-
+    
     private async void OnFlapperChatResponse(FlapperResponse response)
     {
 
@@ -965,6 +897,7 @@
         {
             IsAwaitingClarification = true;
             CurrentClarificationQuestion = response.ClarificationQuestion;
+            CurrentClarificationType = response.ClarificationType;
         }
         else
         {
@@ -1013,7 +946,7 @@
         _answerBuilder.Clear();
         _lastSpokenCharIndex = 0;
 
-        isLoading = false;
+        isLoading = IsAwaitingClarification;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -1207,9 +1140,10 @@
             {
                 foreach (var message in Messages)
                 {
-                    if (message.Sender != "You")
+                    if (message.Sender != "User")
                     {
                         cnt += @message.Content;
+
                     }
                     else
                     {
@@ -1218,6 +1152,7 @@
                 }
             }
 
+            // cnt = await HtmlCapture.CaptureForExportAsync(chatContainer);
             var fileName = "ChatLog" + DateTime.Now.ToShortDateString();
             await GlobalFunctions.ExportToPdf(cnt, fileName);
 
@@ -1261,18 +1196,18 @@
         {
             showDownloadMenu = false;
             pdfLoading = true;
-            string cnt = string.Empty;
+            string cnt = $"<div style=\"width:100%\">";
 
             if (!ViewAll)
             {
-                cnt = $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{flapperAnswer}";
+                cnt += $"<hr><p><strong>USER</strong>: {userQry}</p><hr>{flapperAnswer}";
                 if (stream) { cnt += $"<hr><p><i>{flapperThinking}</i></p><hr>"; }
             }
             else
             {
                 foreach (var message in Messages)
                 {
-                    if (message.Sender != "You")
+                    if (message.Sender != "User")
                     {
                         cnt += @message.Content;
                     }
@@ -1282,7 +1217,8 @@
                     }
                 }
             }
-
+            cnt += "</div>";
+            // cnt = await HtmlCapture.CaptureForExportAsync(chatContainer);
             var subject = "ChatLog" + DateTime.Now.ToShortDateString();
             var msg = new PulseMessage()
                 {
@@ -1318,22 +1254,23 @@
         {
             showDownloadMenu = false;
             pdfLoading = true;
-            string cnt = string.Empty;
+            // string cnt = string.Empty;
 
-            foreach (var message in chatHistory)
-            {
-                cnt += "<br /><br /><strong>" + message.Role.ToUpper() + "</strong>: ";
-                if (message.Role.ToUpper() != "USER")
-                {
-                    cnt += "<br />";
-                }
-                cnt += @message.Content;
-            }
+            // foreach (var message in chatHistory)
+            // {
+            //     cnt += "<br /><br /><strong>" + message.Role.ToUpper() + "</strong>: ";
+            //     if (message.Role.ToUpper() != "USER")
+            //     {
+            //         cnt += "<br />";
+            //     }
+            //     cnt += @message.Content;
+            // }
 
             var fileName = "ChatLog" + DateTime.Now.ToShortDateString() + ".html";
 
-            var Html = cnt;
+            var Html = await HtmlCapture.CaptureForExportAsync(chatContainer);
             await GlobalFunctions.ExportHtmlFile(Html, fileName);
+            // await JSRuntime.InvokeVoidAsync("downloadHTMLFile", $"{fileName}.html", Html.Replace("h5", "h3"));
         }
         catch (Exception ex)
         {
@@ -1379,7 +1316,7 @@
         CurrentFlapperResponse = string.Empty;
         CurrentConversationId = Guid.NewGuid();
         tablesResponse = string.Empty;
-        viewHistory = false;
+        // viewHistory = false;
         flapperAnswer = string.Empty;
         flapperThinking = string.Empty;
         aiSQL = string.Empty;

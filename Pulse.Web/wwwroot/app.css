@@ -109,18 +109,23 @@ fluent-dialog {
     background-color: var(--pulse-light-colour) !important;
     border-top-left-radius: 10px;
     border-top-right-radius: 10px;
+    cursor:pointer;
 }
 
     .nbMainSel svg[part="icon-active"] {
         fill: var(--pulse-dark-colour) !important;
     }
 
+    .nbMainSel svg[part="icon-rest"] {
+        fill: var(--pulse-dark-colour) !important;
+    }
     .nbMainSel div[part="label"] {
         color: var(--pulse-dark-colour) !important;
     }
 
 .nbMainUnSel {
     background-color: var(--pulse-dark-colour) !important;
+    cursor: pointer;
 }
 
     .nbMainUnSel svg[part="icon-rest"] {
@@ -167,6 +172,10 @@ fluent-dialog {
         fill: var(--pulse-light-colour) !important;
     }
 
+    .nbZoneSel svg[part="icon-rest"] {
+        /* fill: white !important; */
+        fill: var(--pulse-light-colour) !important;
+    }
     .nbZoneSel div[part="label"] {
         /* color: white !important; */
         color: var(--pulse-light-colour) !important;
@@ -192,7 +201,7 @@ fluent-dialog {
     height: calc(100vh - 188px);
     margin: 10px;
     padding: 10px;
-    background-color: rgba(255,255,255,0.5);
+    background-color: var(--pulse-dark-t25-colour);
     border-radius: 10px;
     overflow: hidden;
 }
@@ -265,65 +274,100 @@ fluent-dialog {
     }
 
 .myAccentBtn {
-    --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
+    
+    --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-colour);
+    --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-bg);
+    border: 1px solid var(--pulse-accent-btn-colour);
+    background-color: var(--pulse-accent-btn-bg);
+    color: var(--pulse-accent-btn-colour);
+    cursor: pointer;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    /*--pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
     --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-colour);
     border: 1px solid var(--pulse-accent-btn-colour);
     background-color: var(--pulse-accent-btn-bg);
     color: var(--pulse-accent-btn-colour);
-    /*border: 1px solid white;*/
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);*/
 }
 
     .myAccentBtn:hover {
-        --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-colour);
+        --pulse-accent-btn-bg: var(--pulse-accent-btn-theme-bg);
+        --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-colour);
+        border: 1px solid var(--pulse-accent-btn-colour);
+        background-color: var(--pulse-accent-btn-bg);
+        color: var(--pulse-accent-btn-colour);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+        /*--pulse-accent-btn-bg: var(--pulse-accent-btn-theme-colour);
         --pulse-accent-btn-colour: var(--pulse-accent-btn-theme-bg);
         border: 1px solid var(--pulse-accent-btn-colour);
         background-color: var(--pulse-accent-btn-bg);
         color: var(--pulse-accent-btn-colour);
         cursor: pointer;
-        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);*/
     }
 
 .myOkBtn {
-    --pulse-ok-btn-bg: var(--success);
+    /*--pulse-ok-btn-bg: var(--success);
     --pulse-ok-btn-colour: rgb(255,255,255);
     border: 1px solid var(--pulse-ok-btn-colour);
     background-color: var(--pulse-ok-btn-bg);
     color: var(--pulse-ok-btn-colour);
-    /*border: 1px solid white;*/
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);*/
+    --pulse-ok-btn-bg: rgb(255,255,255);
+    --pulse-ok-btn-colour: var(--success);
+    border: 1px solid var(--pulse-ok-btn-colour);
+    background-color: var(--pulse-ok-btn-bg);
+    color: var(--pulse-ok-btn-colour);
+    cursor: pointer;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
 }
 
     .myOkBtn:hover {
-        --pulse-ok-btn-bg: rgb(255,255,255);
+        /*--pulse-ok-btn-bg: rgb(255,255,255);
         --pulse-ok-btn-colour: var(--success);
         border: 1px solid var(--pulse-ok-btn-colour);
         background-color: var(--pulse-ok-btn-bg);
         color: var(--pulse-ok-btn-colour);
         cursor: pointer;
-        /*border: 1px solid var(--pulse-dark-colour);*/
-        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);*/
+        --pulse-ok-btn-bg: var(--success);
+        --pulse-ok-btn-colour: rgb(255,255,255);
+        border: 1px solid var(--pulse-ok-btn-colour);
+        background-color: var(--pulse-ok-btn-bg);
+        color: var(--pulse-ok-btn-colour);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
     }
 
 .myCancelBtn {
-    --pulse-cancel-btn-bg: var(--error);
+    --pulse-cancel-btn-bg: rgb(255,255,255);
+    --pulse-cancel-btn-colour: var(--error);
+    border: 2px solid var(--pulse-cancel-btn-colour);
+    background-color: var(--pulse-cancel-btn-bg);
+    color: var(--pulse-cancel-btn-colour);
+    cursor: pointer;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+    /*--pulse-cancel-btn-bg: var(--error);
     --pulse-ok-btn-colour: rgb(255,255,255);
     border: 1px solid var(--pulse-cancel-btn-colour);
     background-color: var(--pulse-cancel-btn-bg);
     color: var(--pulse-cancel-btn-colour);
-    /*border: 1px solid white;*/
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);*/
 }
 
     .myCancelBtn:hover {
-        --pulse-cancel-btn-bg: rgb(255,255,255);
+        --pulse-cancel-btn-bg: var(--error);
+        --pulse-ok-btn-colour: rgb(255,255,255);
+        border: 1px solid var(--pulse-cancel-btn-colour);
+        background-color: var(--pulse-cancel-btn-bg);
+        color: var(--pulse-cancel-btn-colour);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+        /*--pulse-cancel-btn-bg: rgb(255,255,255);
         --pulse-cancel-btn-colour: var(--error);
         border: 2px solid var(--pulse-cancel-btn-colour);
         background-color: var(--pulse-cancel-btn-bg);
         color: var(--pulse-cancel-btn-colour);
         cursor: pointer;
-        /*border: 1px solid var(--pulse-dark-colour);*/
-        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);*/
     }
 
 .myModeBtnOn {
@@ -332,19 +376,21 @@ fluent-dialog {
     border: 1px solid #206020; /* white;  var(--pulse-mode-btn-on-bg);*/
     /*border-radius:1px;*/
 }
-.myModeBtnOn:hover {
-    cursor: pointer;
-}
+    .myModeBtnOn:hover {
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+        cursor: pointer;
+    }
 .myModeBtnOff {
     --pulse-mode-btn-bg: var(--pulse-mode-btn-off-bg);
     --pulse-mode-btn-item-colour: var(--pulse-mode-btn-off-item-colour);
-    border: 2px solid var(--pulse-mode-btn-off-item-colour);
+    border: 1px solid var(--pulse-mode-btn-off-item-colour);
     color: #9900FF;
     background-color: white;
-    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
+    /*box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);*/
 }
     .myModeBtnOff:hover {
-        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);
+        /*box-shadow: 5px 5px 15px rgba(0, 0, 0, 0);*/
+        box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.8);
         cursor: pointer;
     }
 
@@ -446,6 +492,7 @@ fluent-dialog {
         background-color: var(--pulse-light-colour) !important;
     }
     /*#endregion Radzen Table Formatting*/
+
     /*#region Radzen Dialog Formatting*/
 
     .rz-dialog {

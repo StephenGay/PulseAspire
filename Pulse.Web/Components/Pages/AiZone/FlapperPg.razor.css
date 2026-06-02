@@ -70,6 +70,14 @@ th {
 }
 
 /* For Flapper's response messages */
+.flapper-chart {
+    background-color: white;
+    border: 1px solid var(--pulse-dark-colour);
+    border-radius: 10px;
+    margin: 10px;
+    width: calc(100% - 20px);
+    padding: 10px;
+}
 .flapper-response {
     overflow-wrap: break-word;
     word-break: break-word;
@@ -81,10 +89,14 @@ th {
         border-radius: 8px;
         margin: 10px 0;
     }
-.flapOn {
-    border-color: #1D722A;
+
+.flapOn::part(control) {
+    border: 1px solid var(--success) !important;
 }
 
+/*.flapOn part[control] {
+    border: 1px solid var(--success) !important;
+}*/
 @media (max-width: 768px) {
     .dcontent {
         flex-direction: column;

@@ -91,9 +91,7 @@
             </FluentStack>
             @* <FluentLabel Typo="Typography.Body" Style="color:black;">Number of Rollers: @(cSpec.ClientRollers?.Count ?? 0)</FluentLabel> *@
             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; ">
-                       <Collapse IsAccordion="false" style="width:100%;  border-radius:10px; ">
-                    <CollapseItems>
-                        <CollapseItem Text="Details" Icon="bi bi-card-text" IsCollapsed="true" >
+                      
                             <FluentStack Orientation="MsFluent.Orientation.Vertical"
                                          HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
                                          VerticalAlignment="MsFluent.VerticalAlignment.Center"
@@ -112,12 +110,12 @@
                                     <FluentTextField @bind-Value=cSpec.DrawingNumber Style="min-width:20%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Drawing Number</FluentTextField>
                                 </FluentStack>
                                 
-                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
+                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Width="100%" VerticalGap="0" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Shell Details</FluentLabel>
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal"
                                                  HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
                                                  VerticalAlignment="MsFluent.VerticalAlignment.Center"
-                                                 Style="padding:10px;"
+                                                 Style="padding:10px;background-color: var(--pulse-dark-t50-colour)"
                                                  HorizontalGap="4">
                                         <FluentNumberField @bind-Value=cSpec.ShellDiameter Appearance="FluentInputAppearance.Filled" ReadOnly="true">Shell Diameter</FluentNumberField>
                                         <FluentSpacer />
@@ -131,12 +129,12 @@
                                     </FluentStack>
                                 </FluentStack>
 
-                                <FluentStack Orientation="MsFluent.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
+                                <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="0" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Cover Details</FluentLabel>
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal"
                                                  HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
                                                  VerticalAlignment="MsFluent.VerticalAlignment.Center"
-                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-top:10px;"
+                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-top:10px;background-color: var(--pulse-dark-t50-colour);"
                                                  HorizontalGap="4">
                                         <FluentTextField @bind-Value=cSpec.CompoundCode Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Compound</FluentTextField>
                                         <FluentSpacer />
@@ -149,7 +147,7 @@
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal"
                                                  HorizontalAlignment="MsFluent.HorizontalAlignment.Start"
                                                  VerticalAlignment="MsFluent.VerticalAlignment.Center"
-                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-bottom:10px;"
+                                                 Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-bottom:10px;background-color: var(--pulse-dark-t50-colour);"
                                                  HorizontalGap="4">
                                         <FluentNumberField @bind-Value=cSpec.CoverLength Appearance="FluentInputAppearance.Filled" ReadOnly="true">Cover Length</FluentNumberField>
                                         <FluentSpacer />
@@ -161,7 +159,7 @@
                                     </FluentStack>
                                 </FluentStack>
 
-                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px">
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" VerticalGap="0" Width="100%" Style="border: 1px solid black; border-radius:10px;margin-top:10px;background-color: var(--pulse-dark-t50-colour)">
                                     <FluentLabel Typo="Typography.H6" Style="width:100%;background-color:var(--pulse-dark-colour); color:white;border-bottom: 1px solid black; text-align:center; border-top-left-radius:10px; border-top-right-radius:10px;padding-top:10px;padding-bottom:10px">Operating Environment</FluentLabel>
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal"
                                                  HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Start"
@@ -193,10 +191,10 @@
                                     <FluentTextField @bind-Value=cSpec.RollerFunction Style="padding-left:10px;padding-right:10px;padding-left:10px;padding-bottom:10px;width:100%" Appearance="FluentInputAppearance.Filled" ReadOnly="true">Roller Function</FluentTextField>
                                 </FluentStack>
                             </FluentStack>
-                        </CollapseItem>
-                        <CollapseItem Text="Roll Numbers" Icon="bi bi-disc-fill" IsCollapsed="true" >
+                        @* </CollapseItem>
+                        <CollapseItem Text="Roll Numbers" Icon="bi bi-disc-fill" IsCollapsed="true" > *@
                             
-                            <div style="flex 1">
+                            @* <div style="flex 1">
                                 @if (cSpec.ClientRollers != null)
                                 {
                                     <FluentDataGrid Style="background-color: white; color: black ; width: 100% ; border-radius:20px;" Items="cSpec.ClientRollers.AsQueryable()" TGridItem="ClientRoller">
@@ -208,11 +206,10 @@
                                         <PropertyColumn Property="@(r => r.IsActive)" Title="Active" />
                                     </FluentDataGrid>
                                 }
-                            </div>
-                        </CollapseItem>
-                        <CollapseItem Text="Work Order History" Icon="bi bi-files">
+                            </div> *@
+                       
                             
-                            <div style="flex 1">
+                            @* <div style="flex 1">
                                 @if (cSpec.WorksOrders != null)
                                 {
                                     <FluentDataGrid Style="background-color: white; color: black ; width: 100%;; border-radius:20px;" Items="cSpec.WorksOrders.AsQueryable()" TGridItem="WorksOrder">
@@ -237,14 +234,8 @@
                                         <PropertyColumn Property="@(r => r.CoverDiameter)" Title="Cover Diameter" />
                                     </FluentDataGrid>
                                 }
-                            </div>
-                        </CollapseItem>
-                        <CollapseItem Text="Attachments" Icon="bi bi-paperclip">
-                            <div>User decision-making: according to the scene can give the user action advice or security tips, but can not replace the user to make decisions;</div>
-                            <div>Results controllable: Users are free to perform actions, including undoing, falling back, and terminating the current operation.</div>
-                        </CollapseItem>
-                    </CollapseItems>
-                </Collapse>
+                            </div> *@
+                        
                 
             </FluentStack>
             @* <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" Width="100%" Style="padding: 10px; overflow-y: auto; height:40%;">

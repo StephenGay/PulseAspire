@@ -168,6 +168,25 @@ public class AliAnalysisWorker : BackgroundService
 
                 if (spec == null)
                     throw new InvalidOperationException($"No ClientRollerSpecification found for key: {keyValue}");
+
+                var rollers = await db.ClientRollerMaster
+                    .AsNoTracking()
+                    .Where(r => r.ClientRollerSpecificationID == spec.ClientRollerSpecificationID)
+                    .ToListAsync();
+
+                foreach(var roll in rollers)
+                {
+                    var wo = await db.WorksOrder
+                        .AsNoTracking()
+                        .Where(w => w.ClientRollerID == roll.ClientRollerID)
+                        .Include(p => p.Period)
+                        .Include(wt => wt.WorkType)
+                        .ToListAsync();
+                    if(wo != null) roll.WorksOrders = wo;
+                }
+
+                if(rollers != null) spec.ClientRollers = rollers;
+
                 return spec;
 
             case "WorkInProgressDto":

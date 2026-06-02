@@ -44,15 +44,15 @@
 
 </FluentStack>
 
-<div class="offcanvas offcanvas-bottom mnuProfile" data-bs-backdrop="static" tabindex="-1" id="mnuProfile" aria-labelledby="msgCentreLabel">
+<div class="offcanvas offcanvas-bottom mnuProfile" data-bs-backdrop="true" tabindex="-1" id="mnuProfile" aria-labelledby="msgCentreLabel">
     <div class="offcanvas-body">
         <FluentStack Orientation="MsFluent.Orientation.Vertical">
-            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="border-bottom: 1px solid var(--pulse-dark-colour);padding:5px;margin-bottom:10px">
-                <FluentLabel Typo="Typography.H5" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">@masterLayout.UserFullName</FluentLabel>
+            <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="border-bottom: 1px solid var(--pulse-light-colour);padding:5px;margin-bottom:10px">
+                <FluentLabel Typo="Typography.H5" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-light-colour)">@masterLayout.UserFullName</FluentLabel>
                 <FluentSpacer />
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+                <button type="button" data-bs-dismiss="offcanvas" data-bs-target="#mnuProfile" style="color:var(--pulse-dark-colour);background-color:var(--pulse-light-colour)" aria-label="Close">X</button>
             </FluentStack>
-            <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-dark-colour)">Status</FluentLabel>
+            <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-light-colour)">Status</FluentLabel>
             <FluentSelect Value="@presence" @onchange="ChangePresence" TOption="string" Style="border:1px solid var(--pulse-dark-colour)">
                 <FluentOption Value="3">Available</FluentOption>
                 <FluentOption Value="2">Away</FluentOption>
@@ -65,7 +65,7 @@
             <ThemeSwitcher />
         </FluentStack>
     </div>
-    <div class="offcanvas-bottom" style="padding:10px">
+    <div class="offcanvas-bottom" style="padding:10px;text-align:right">
         <FluentButton Appearance="Appearance.Accent" aria-label="Log Out" OnClick="Logout">Logout</FluentButton>
     </div>
 </div>

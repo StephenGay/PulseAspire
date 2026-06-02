@@ -33,6 +33,7 @@ public class FlapperResponse
     public List<PulseToolResult>? ToolResults { get; set; }
     public bool RequiresClarification { get; set; }
     public string? ClarificationQuestion { get; set; }
+    public string? ClarificationType { get; set; } // YesNo | ShortAnswer
     public ChartConfig? Chart { get; set; }
     public bool Done { get; set; } = false;
     public string EndReason { get; set; } = "unknown"; // "natural_stop", "max_tokens_reached", "context_window_exceeded"

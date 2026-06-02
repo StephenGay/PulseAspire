@@ -597,7 +597,7 @@ public class FlapperOllamaAPI
         db.FlapperMessages.Add(new FlapperMessage
         {
             ConversationId = conversation.Id,
-            Sender = req.IsClarificationResponse ? "tool" : "User",
+            Sender = req.IsClarificationResponse ? "User" : "User",
             ContentType = req.IsClarificationResponse ? "UserAnswer" : "UserQuery",
             Content = req.Message,
             SentAt = DateTime.Now
@@ -765,7 +765,9 @@ public class FlapperOllamaAPI
             Thinking = string.IsNullOrWhiteSpace(thinking) ? null : thinking,
     
             Content = finalContent,
-            RequiresClarification = false,
+            RequiresClarification = isMsgClarification,
+            ClarificationQuestion = isMsgClarification ? finalContent : null,
+            ClarificationType = isMsgClarification ? Ctype : null,
             EndReason = endReason,
             PromptTokens = promptTokens,
             OutputTokens = outputTokens,
@@ -784,7 +786,13 @@ public class FlapperOllamaAPI
         var chartConfig = chartString?.TryGetChartConfig();
         if (chartConfig == null)
         {
-            return "Invalid";
+            if (chartString.EndsWith("}]}}"))
+            {
+                chartString = chartString.Replace("}]}}", "}]}]}");
+                chartConfig = chartString?.TryGetChartConfig();
+            }
+            if (chartConfig == null)           
+                return "Invalid";
         }
         chartJSON = chartString;
         return chartString;

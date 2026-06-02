@@ -231,7 +231,7 @@ builder.Services.AddHttpClient("AliApiClient", client =>
 var remoteTablesUrl = builder.Configuration.GetConnectionString("RemoteAI")
                    ?? "http://127.0.0.1:11434";
 
-var TablesAIUrl = "http://192.168.0.6:11434"; // builder.Configuration.GetConnectionString("RemoteAI") ?? "http://127.0.0.1:11434";
+var TablesAIUrl = "http://127.0.0.1:11434"; // builder.Configuration.GetConnectionString("RemoteAI") ?? "http://127.0.0.1:11434";
 
 builder.Services.AddSingleton<IPulseAiClientFactory>(sp =>
     new PulseAiClientFactory(new Dictionary<string, string>

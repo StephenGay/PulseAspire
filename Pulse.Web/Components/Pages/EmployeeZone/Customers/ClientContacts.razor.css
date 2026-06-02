@@ -1,0 +1,15 @@
+/* CSS for ClientContacts component */
+.card-header {
+    padding-right: 5px;
+    background-color: var(--pulse-dark-colour);
+    color: var(--pulse-light-colour);
+    border: 1px solid var(--pulse-dark-colour);
+}
+.card {
+    border: 1px solid var(--pulse-dark-colour);
+}
+.card-body {
+    padding: 5px;
+    background-color: var(--pulse-light-colour);
+    border-radius: 10px;
+}

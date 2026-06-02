@@ -27,11 +27,12 @@
 <style>
     .ccontent {
         flex: 1; /* This magic makes it grow to fill the space */
-        background: rgba(255,255,255,0.5);
+        background: var(--pulse-dark-t25-colour);
         margin: 10px;
         padding: 10px;
         border-radius: 10px;
-        overflow: auto;
+        overflow-x: hidden;
+        overflow-y: auto;
     }
 </style> 
 <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" class="px-4 zone-toprow" Style="padding-top:5px;padding-bottom:5px;">
@@ -215,28 +216,28 @@ else
 
     #region AppBar Icons
 
-    private static Icon DashboardIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.BoardSplit()
+    private Icon DashboardIcon(bool active = false) =>
+        active || mnuActive == "Dashboard" ? new Icons.Filled.Size24.BoardSplit()
                : new Icons.Regular.Size24.BoardSplit();
 
-    private static Icon ProfileIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.ContentView()
+    private Icon ProfileIcon(bool active = false) =>
+        active || mnuActive == "Profile" ? new Icons.Filled.Size24.ContentView()
                : new Icons.Regular.Size24.ContentView();
 
-    private static Icon RollersIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.CompassNorthwest()
+    private Icon RollersIcon(bool active = false) =>
+        active || mnuActive == "Rollers" ? new Icons.Filled.Size24.CompassNorthwest()
                : new Icons.Regular.Size24.CompassNorthwest();
 
-    private static Icon ContactsIcon(bool active = false) =>
-    active ? new Icons.Filled.Size24.ContactCard()
+    private Icon ContactsIcon(bool active = false) =>
+    active || mnuActive == "Contacts" ? new Icons.Filled.Size24.ContactCard()
     : new Icons.Regular.Size24.ContactCard();
 
-    private static Icon BudgetsIcon(bool active = false) =>
-    active ? new Icons.Filled.Size24.Money()
+    private Icon BudgetsIcon(bool active = false) =>
+    active || mnuActive == "Budgets" ? new Icons.Filled.Size24.Money()
     : new Icons.Regular.Size24.Money();
 
-    private static Icon SalesIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.ChartMultiple()
+    private Icon SalesIcon(bool active = false) =>
+        active || mnuActive == "Sales" ? new Icons.Filled.Size24.ChartMultiple()
                : new Icons.Regular.Size24.ChartMultiple();
 
     #endregion
