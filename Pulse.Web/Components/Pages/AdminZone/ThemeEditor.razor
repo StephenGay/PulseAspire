@@ -1,0 +1,482 @@
+﻿@page "/adminzone/themeeditor"
+@*@attribute [Authorize(Roles = "Admin")]    adjust to your permission system *@
+
+@using Pulse.Models
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Radzen
+@using Radzen.Blazor
+@using System.Text.Json
+@using Pulse.Models.UI
+@inject IHttpClientFactory HttpClientFactory
+@inject IJSRuntime JS
+@inject NavigationManager Navigation
+@inject Radzen.DialogService DialogService
+@inject NotificationService NotificationService
+
+<PageTitle>Theme Builder</PageTitle>
+
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Theme Builder</h2>
+        <p class="text-muted mb-0">Create, edit and activate dynamic themes stored in the database</p>
+    </div>
+    <div>
+        <RadzenButton Icon="add" Text="New Theme" Click="CreateNewTheme" 
+                      ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" />
+        <RadzenButton Icon="refresh" Text="Refresh" Click="LoadThemes" 
+                      ButtonStyle="ButtonStyle.Secondary" class="ms-2" />
+    </div>
+</div>
+<div style="overflow:auto">
+<!-- Current Active Theme Banner -->
+@if (activeTheme != null)
+{
+    <RadzenCard class="mb-4" style="@activeThemeBannerStyle">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <strong>Active Theme:</strong>
+                <span class="fw-bold">@activeTheme.Name</span>
+                <span class="badge bg-success ms-2">LIVE</span>
+            </div>
+            <RadzenButton Text="Edit Active"
+                          Click="() => EditTheme(activeTheme)"
+                          ButtonStyle="ButtonStyle.Light"
+                          Size="ButtonSize.Small" />
+        </div>
+    </RadzenCard>
+}
+
+<!-- Main Content: Grid + Editor/Preview -->
+    <div style="overflow:auto">
+<RadzenRow Gap="1rem">
+        
+    <!-- Themes List -->
+    <RadzenColumn Size="12" SizeLG="5">
+        <RadzenCard>
+            <RadzenDataGrid @ref="grid"
+                            Data="@themes"
+                            TItem="Pulse.Models.UI.PulseTheme"
+                            AllowSorting="true"
+                            AllowPaging="true"
+                            PageSize="10"
+                            SelectionMode="DataGridSelectionMode.Single"
+                            @bind-SelectedItem="@selectedTheme"
+                            RowClick="@(args => EditTheme(args.Data))"
+                            class="theme-grid">
+                <Columns>
+                    <RadzenDataGridColumn TItem="PulseTheme" Property="Name" Title="Name" Width="180px" />
+                    <RadzenDataGridColumn TItem="PulseTheme" Property="Mode" Title="Mode" Width="90px" />
+                    <RadzenDataGridColumn TItem="PulseTheme" Title="Primary" Width="80px">
+                        <Template Context="theme">
+                            <div style="width: 28px; height: 28px; background: @theme.PrimaryColor; border-radius: 4px; border: 1px solid #ccc;"></div>
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PulseTheme" Property="IsActive" Title="Active" Width="70px">
+                        <Template Context="theme">
+                            @if (theme.IsActive)
+                            {
+                                <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Yes" />
+                            }
+                        </Template>
+                    </RadzenDataGridColumn>
+                    <RadzenDataGridColumn TItem="PulseTheme" Title="Actions" Width="160px" Sortable="false">
+                        <Template Context="theme">
+                            <RadzenButton Icon="edit" Click="() => EditTheme(theme)" 
+                                          ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1" />
+                            <RadzenButton Icon="check_circle" Text="Activate" 
+                                          Click="() => ActivateTheme(theme)" 
+                                          ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small" 
+                                          Disabled="@theme.IsActive" class="me-1" />
+                            <RadzenButton Icon="delete" Click="() => DeleteTheme(theme)" 
+                                          ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" 
+                                          Disabled="@theme.IsSystem" />
+                        </Template>
+                    </RadzenDataGridColumn>
+                </Columns>
+            </RadzenDataGrid>
+        </RadzenCard>
+    </RadzenColumn>
+
+    <!-- Editor + Live Preview -->
+    <RadzenColumn Size="12" SizeLG="7">
+        @if (editingTheme != null)
+        {
+            <RadzenCard>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">@(editingTheme.Id == 0 ? "Create New Theme" : $"Edit: {editingTheme.Name}")</h5>
+                    <div>
+                        <RadzenButton Text="Save" Icon="save" Click="SaveTheme" 
+                                      ButtonStyle="ButtonStyle.Primary" Disabled="@isSaving" />
+                        <RadzenButton Text="Save as New" Icon="content_copy" Click="SaveAsNewTheme" 
+                                      ButtonStyle="ButtonStyle.Secondary" class="ms-2" 
+                                      Disabled="@isSaving" />
+                        <RadzenButton Text="Cancel" Icon="close" Click="CancelEdit" 
+                                      ButtonStyle="ButtonStyle.Light" class="ms-2" />
+                    </div>
+                </div>
+
+                <RadzenTabs>
+                    <Tabs>
+                        <RadzenTabsItem Text="General">
+                            <RadzenRow Gap="1rem" class="mt-3">
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <RadzenTextBox @bind-Value="editingTheme.Name" Placeholder="Theme name" 
+                                                   class="w-100 mb-3" />
+                                    <RadzenTextArea @bind-Value="editingTheme.Description" 
+                                                    Placeholder="Description (optional)" 
+                                                    class="w-100" Rows="3" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <label class="form-label">Mode</label>
+                                    <RadzenDropDown @bind-Value="editingTheme.Mode" 
+                                                    Data="@(Enum.GetValues<ThemeMode>())" 
+                                                    class="w-100 mb-3" />
+
+                                    <label class="form-label">Accent (FluentUI)</label>
+                                    <div class="d-flex gap-2 align-items-center">
+                                        <input type="color" @bind="editingTheme.CustomAccentColor" 
+                                               @bind:event="oninput" @onchange="UpdatePreview" 
+                                               class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme.CustomAccentColor" 
+                                                       Placeholder="#0078D4" class="flex-grow-1" />
+                                    </div>
+                                </RadzenColumn>
+                            </RadzenRow>
+                        </RadzenTabsItem>
+
+                        <RadzenTabsItem Text="Colors">
+                            <div class="row g-3 mt-3">
+                                <!-- Primary -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Primary Color</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.PrimaryColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.PrimaryColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Background -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Background Color</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.BackgroundColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.BackgroundColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Surface / Card -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Surface / Card Color</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.SurfaceColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.SurfaceColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Text Primary -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Text Primary</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.TextPrimaryColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.TextPrimaryColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Text Secondary -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Text Secondary</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.TextSecondaryColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.TextSecondaryColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Success -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Success Color</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.SuccessColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.SuccessColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Warning -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Warning Color</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.WarningColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.WarningColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+
+                                <!-- Error / Danger -->
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label">Error / Danger Color</label>
+                                    <div class="d-flex gap-2">
+                                        <input type="color" @bind="editingTheme!.ErrorColor" @bind:event="oninput"
+                                               @onchange="UpdatePreview" class="form-control form-control-color" style="width: 60px; height: 38px;" />
+                                        <RadzenTextBox @bind-Value="editingTheme!.ErrorColor" @oninput="UpdatePreview" class="flex-grow-1" />
+                                    </div>
+                                </div>
+                            </div>
+                        </RadzenTabsItem>
+
+                        <RadzenTabsItem Text="Typography & Layout">
+                            <RadzenRow Gap="1rem" class="mt-3">
+                                <RadzenColumn Size="12" SizeMD="6">
+                                    <label class="form-label">Font Family</label>
+                                    <RadzenTextBox @bind-Value="editingTheme.FontFamily" 
+                                                   @oninput="UpdatePreview" class="w-100" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="6" SizeMD="3">
+                                    <label class="form-label">Base Font Size (px)</label>
+                                    <RadzenNumeric @bind-Value="editingTheme.BaseFontSize" 
+                                                   @oninput="UpdatePreview" Min="10" Max="24" class="w-100" />
+                                </RadzenColumn>
+                                <RadzenColumn Size="6" SizeMD="3">
+                                    <label class="form-label">Border Radius (px)</label>
+                                    <RadzenNumeric @bind-Value="editingTheme.BaseBorderRadius" 
+                                                   @oninput="UpdatePreview" Min="0" Max="24" class="w-100" />
+                                </RadzenColumn>
+                            </RadzenRow>
+                        </RadzenTabsItem>
+                    </Tabs>
+                </RadzenTabs>
+
+                <!-- Live Preview -->
+                <div class="mt-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Live Preview</strong>
+                        <small class="text-muted">Changes apply instantly to this preview</small>
+                    </div>
+                    <div id="theme-preview" class="theme-preview p-4 rounded border" 
+                         style="background: var(--background-color); color: var(--text-primary); font-family: var(--font-family-base);">
+                        
+                        <!-- FluentUI Components -->
+                        <FluentCard Style="margin-bottom: 1rem;">
+                            <FluentText Typo="Typography.Title">FluentUI Card</FluentText>
+                            <p>This card uses your theme colors.</p>
+                            <div class="d-flex gap-2 mt-2">
+                                <FluentButton Appearance="Appearance.Accent">Primary Action</FluentButton>
+                                <FluentButton Appearance="Appearance.Stealth">Secondary</FluentButton>
+                            </div>
+                        </FluentCard>
+
+                        <!-- Radzen Components -->
+                        <RadzenCard class="mb-3">
+                            <RadzenText TextStyle="TextStyle.Subtitle1">Radzen Card</RadzenText>
+                            <RadzenButton Text="Radzen Button" ButtonStyle="ButtonStyle.Primary" class="me-2" />
+                            <RadzenButton Text="Success" ButtonStyle="ButtonStyle.Success" />
+                        </RadzenCard>
+
+                        <!-- Bootstrap + Custom -->
+                        <div class="alert alert-info mb-3">Bootstrap alert styled with theme variables</div>
+
+                        <div class="d-flex gap-2 flex-wrap">
+                            <div class="p-3 rounded" style="background: var(--surface-color); border: 1px solid #ccc;">
+                                Surface color sample
+                            </div>
+                            <div class="p-3 rounded text-white" style="background: var(--primary-color);">
+                                Primary color
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </RadzenCard>
+        }
+        else
+        {
+            <RadzenCard class="text-center py-5">
+                <RadzenIcon Icon="palette" style="font-size: 3rem; color: #ccc;" />
+                <h5 class="mt-3">Select a theme from the list or create a new one</h5>
+                <p class="text-muted">Live preview will appear here when editing.</p>
+            </RadzenCard>
+        }
+    </RadzenColumn>
+    
+</RadzenRow>
+    </div>
+</div>
+@code {
+    private List<PulseTheme> themes = new();
+    private PulseTheme? activeTheme;
+    private PulseTheme? editingTheme;
+    private PulseTheme? selectedTheme;
+    private RadzenDataGrid<PulseTheme> grid = default!;
+    private bool isSaving = false;
+    private string activeThemeBannerStyle => activeTheme is null
+    ? string.Empty
+    : $"background: var(--surface-color); border-left: 5px solid {activeTheme.PrimaryColor};";
+    private HttpClient ApiClient => HttpClientFactory.CreateClient("PulseApiClient"); // adjust name if different
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadThemes();
+    }
+
+    private async Task LoadThemes()
+    {
+        try
+        {
+            themes = await ApiClient.GetFromJsonAsync<List<PulseTheme>>("/ui/pulsethemes") ?? new();
+            activeTheme = themes.FirstOrDefault(t => t.IsActive);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load themes: {ex.Message}");
+        }
+    }
+
+    private void CreateNewTheme()
+    {
+        editingTheme = new PulseTheme
+        {
+            Name = "New Theme",
+            PrimaryColor = "#0F6CBD",
+            BackgroundColor = "#F5F5F5",
+            SurfaceColor = "#FFFFFF",
+            TextPrimaryColor = "#1A1A1A",
+            TextSecondaryColor = "#5C5C5C",
+            Mode = ThemeMode.Light,
+            BaseFontSize = 14,
+            BaseBorderRadius = 6
+        };
+        UpdatePreview();
+    }
+
+    private void EditTheme(PulseTheme theme)
+    {
+        editingTheme = JsonSerializer.Deserialize<PulseTheme>(JsonSerializer.Serialize(theme)); // deep clone
+        UpdatePreview();
+    }
+
+    private async Task SaveTheme()
+    {
+        if (editingTheme is null) return;
+
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (editingTheme.Id == 0)
+            {
+                var response = await ApiClient.PostAsJsonAsync("/ui/pulsethemes", editingTheme);
+                if (response.IsSuccessStatusCode)
+                {
+                    var created = await response.Content.ReadFromJsonAsync<PulseTheme>();
+                    if (created != null) themes.Add(created);
+                }
+            }
+            else
+            {
+                await ApiClient.PutAsJsonAsync($"/ui/pulsethemes/{editingTheme.Id}", editingTheme);
+            }
+
+            NotificationService.Notify(NotificationSeverity.Success, "Theme saved");
+            await LoadThemes();
+            CancelEdit();
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Save failed", ex.Message);
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    private async Task SaveAsNewTheme()
+    {
+        if (editingTheme is null) return;
+        editingTheme.Id = 0; // force create
+        await SaveTheme();
+    }
+
+    private async Task ActivateTheme(PulseTheme theme)
+    {
+        try
+        {
+            var response = await ApiClient.PostAsync($"/ui/pulsethemes/{theme.Id}/activate", null);
+            if (response.IsSuccessStatusCode)
+            {
+                NotificationService.Notify(NotificationSeverity.Success, $"{theme.Name} is now active");
+                await LoadThemes();
+                
+                // Optional: apply immediately via your ThemeService
+                // await themeService.ApplyThemeAsync(theme);
+            }
+        }
+        catch (Exception ex)
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Activation failed", ex.Message);
+        }
+    }
+
+    private async Task DeleteTheme(PulseTheme theme)
+    {
+        if (theme.IsSystem) return;
+
+        bool? confirm = await DialogService.Confirm($"Delete theme \"{theme.Name}\"? This cannot be undone.", 
+                                                    "Confirm Delete", new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+
+        if (confirm == true)
+        {
+            try
+            {
+                await ApiClient.DeleteAsync($"/ui/pulsethemes/{theme.Id}");
+                themes.Remove(theme);
+                if (editingTheme?.Id == theme.Id) CancelEdit();
+                NotificationService.Notify(NotificationSeverity.Info, "Theme deleted");
+            }
+            catch (Exception ex)
+            {
+                NotificationService.Notify(NotificationSeverity.Error, "Delete failed", ex.Message);
+            }
+        }
+    }
+
+    private void CancelEdit()
+    {
+        editingTheme = null;
+        selectedTheme = null;
+        StateHasChanged();
+    }
+
+    // === Live Preview Helpers ===
+    private async Task UpdatePreview()
+    {
+        if (editingTheme is null) return;
+
+        var vars = new Dictionary<string, string>
+        {
+            ["--primary-color"] = editingTheme.PrimaryColor,
+            ["--background-color"] = editingTheme.BackgroundColor,
+            ["--surface-color"] = editingTheme.SurfaceColor,
+            ["--text-primary"] = editingTheme.TextPrimaryColor,
+            ["--text-secondary"] = editingTheme.TextSecondaryColor,
+            ["--font-family-base"] = editingTheme.FontFamily,
+            ["--base-font-size"] = $"{editingTheme.BaseFontSize}px",
+            ["--base-border-radius"] = $"{editingTheme.BaseBorderRadius}px"
+        };
+
+        if (!string.IsNullOrWhiteSpace(editingTheme.CustomAccentColor))
+            vars["--accent-base-color"] = editingTheme.CustomAccentColor;
+
+        await JS.InvokeVoidAsync("applyThemeVariablesToPreview", "theme-preview", vars);
+    }
+
+    
+
+    // Optional: call this from your ThemeService or layout after activation
+    public async Task RefreshAfterExternalChange() => await LoadThemes();
+}

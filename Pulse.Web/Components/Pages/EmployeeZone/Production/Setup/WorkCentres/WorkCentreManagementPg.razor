@@ -168,27 +168,27 @@
                                 <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 1px; align-items: flex-start;">
                                     @if(pgWCMode != "ViewSetup")
                                     {
+                                        <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)" >Work Centre Name</FluentLabel>
                                         <FluentTextField @bind-Value="selectedWC.WorkCentreName"
                                             Placeholder="Enter a Work Centre Name"
                                             Required="true"
-                                            Label="Work Centre Name"
                                             Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px" />
                                     }
+                                    <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">Description</FluentLabel>
                                     <FluentTextField @bind-Value="selectedWC.Description"
                                             Placeholder="@(pgWCMode == "ViewSetup" ? "" : "Enter a Work Centre Description")"
                                             Required="false"
-                                            Label="Description"
                                             ReadOnly ="@(pgWCMode == "ViewSetup" ? true : false)"
                                             Style="width:stretch; min-width: 200px;border: 1px solid var(--pulse-dark-colour);margin-bottom:5px;" />
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
                                         <RadzenColorPicker Value="@selWCBackrgba" disabled="@(pgWCMode == "ViewSetup" ? true : false)" ShowHSV="true" ShowRGBA="true" ShowColors="true" ShowButton="true" ValueChanged="@((args) => ChangeWCColour("Background", args))" />
                                         @* <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="colorPicker" @bind-value="selectedWC.Colour"> *@
-                                        <FluentLabel Typo="Typography.Body">Background Colour</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">Background Colour</FluentLabel>
                                     </FluentStack>
                                     <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="margin-bottom:5px">
                                         <RadzenColorPicker Value="@selWCTextrgba" disabled="@(pgWCMode == "ViewSetup" ? true : false)" ShowHSV="true" ShowRGBA="true" ShowColors="true" ShowButton="true" ValueChanged="@((args) => ChangeWCColour("Text", args))" />
                                         @* <input type="color" disabled="@(pgWCMode == "ViewSetup" ? true : false)" id="textColorPicker" @bind-value="selectedWC.TextColour"> *@
-                                        <FluentLabel Typo="Typography.Body">Text Colour</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">Text Colour</FluentLabel>
                                     </FluentStack>
                                     @if (pgWCMode != "ViewSetup")
                                     {
@@ -197,14 +197,14 @@
                                         {
                                             <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
                                                 <FluentSpacer />
+                                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">Minimum: </FluentLabel>
                                                 <FluentNumberField @bind-Value="selectedWC.TargetMinUnitsPerDay"
                                                 Required="true"
-                                                Label="Minimum"
                                                 Style="width:100px;text-align:center" />
                                                 <FluentSpacer />
+                                                <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">Maximum: </FluentLabel>
                                                 <FluentNumberField @bind-Value="selectedWC.TargetMaxUnitsPerDay"
                                                 Required="true"
-                                                Label="Maximum"
                                                 Style="width:100px;text-align:center" />
                                                 <FluentSpacer />
                                             </FluentStack>
@@ -214,11 +214,11 @@
                                     {
                                         if (selectedWC.ApplyTargets)
                                         {
-                                            <FluentLabel Typo="Typography.Body">Target Quantity Per Day : @selectedWC.TargetMinUnitsPerDay TO @selectedWC.TargetMaxUnitsPerDay</FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)">Target Quantity Per Day : @selectedWC.TargetMinUnitsPerDay TO @selectedWC.TargetMaxUnitsPerDay</FluentLabel>
                                         }
                                         else
                                         {
-                                            <FluentLabel Typo="Typography.Body" Weight="MsFluent.FontWeight.Bolder"><em>Targets Not Implemented For This Work Centre</em></FluentLabel>
+                                            <FluentLabel Typo="Typography.Body" Weight="MsFluent.FontWeight.Bolder" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="var(--pulse-dark-colour)"><em>Targets Not Implemented For This Work Centre</em></FluentLabel>
                                         }
                                     }
                                         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="padding: 12px;">

@@ -28,6 +28,7 @@ namespace Pulse.Models.CustomComponents
         public string? Description { get; init; } = string.Empty;
         public string? WorkType { get; init; } = string.Empty;
         public string? Stage { get; init; } = string.Empty;
+        public string[]? ClassNames { get; init; } = [string.Empty];
 
         //public string? Url { get; init; }                       // optional link to detail page
     }

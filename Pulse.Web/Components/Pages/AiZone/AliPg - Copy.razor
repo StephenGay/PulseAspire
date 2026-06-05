@@ -16,8 +16,6 @@
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
 @using Pulse.Models.Users
-@using Pulse.Web.Components.PulseComponents.Controls
-@using static Pulse.Web.Models.MiscEnumLists
 @using Pulse.Web.Services
 @using Pulse.Web.Models
 @using System.Data
@@ -68,18 +66,26 @@
 </style>
 <div class="aiParent">
     <div class="aiHeader" />
-        <div class="aiMenu">
-            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
-                <FluentButton Appearance="Appearance.Accent" class=@(!viewBox ? "myModeBtnOff" : "myModeBtnOn")
-                                BackgroundColor="var(--pulse-mode-btn-bg)"
-                                Color="var(--pulse-mode-btn-item-colour)"
-                                Style="border: 1px solid var(--pulse-mode-btn-item-colour) ;height:50px;width:50px;margin-left:10px"
-                                OnClick="() => viewBox = !viewBox">
+    <div class="aiMenu">
+        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
+                @* <FluentButton Appearance="Appearance.Accent" class="btnShadow" IconStart="@(new Icons.Filled.Size24.GridDots().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                              Style="border: 1px solid white" OnClick="() => viewBox = !viewBox"></FluentButton> *@
+            <FluentButton Appearance="Appearance.Accent" class=@(!viewBox ? "myModeBtnOff" : "myModeBtnOn")
+                               BackgroundColor="white" 
+                          Color="var(--pulse-mode-btn-item-colour)"
+                              Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
+                              OnClick="() => viewBox = !viewBox">
                     @if (ali != null)
                     {
                         @(ali.emoji.ToMarkup("45px"))
                     }
                 </FluentButton>
+                <FluentButton Appearance="Appearance.Accent" class=@(!stream ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                              Color="var(--pulse-mode-btn-item-colour)"
+                              IconStart="@(new Icons.Filled.Size24.Thinking().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px"
+                              Title="Toggle Thinking"
+                              OnClick="() => stream = !stream"></FluentButton>
+            
                 <AuthorizeView Roles="Admin">
                     <Authorized>
                         <!-- Create Role Form (only shown to admins) -->
@@ -89,167 +95,243 @@
                                       Style="height:50px;width:50px"
                                       Title="Flapper Settings"
                                       OnClick="() => ViewSettings = !ViewSettings"></FluentButton>
-                        @* <FluentButton Appearance="Appearance.Accent" class=@(!AdminMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                        <FluentButton Appearance="Appearance.Accent" class=@(!AdminMode ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
                                       Color="var(--pulse-mode-btn-item-colour)"
                                       Style="height:50px;width:50px"
                                       IconStart="@(new Icons.Filled.Size24.PersonEdit().WithColor("var(--pulse-mode-btn-item-colour)"))"
                                       Title="Admin Mode"
-                                      OnClick="() => AdminMode = !AdminMode"></FluentButton> *@
+                                      OnClick="() => AdminMode = !AdminMode"></FluentButton>
                     </Authorized>
                 </AuthorizeView>
-            </FluentStack>
-        </div>
-        <div class="aiContent" style="background-color: white">
-            @if (viewBox)
-            {
-                <div class="aiSidebar">
-                    <div class="aiBox divShadow">
-                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour); border-bottom: 1px solid var(--pulse-dark-colour); border-top-left-radius: 10px; border-top-right-radius: 10px; padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:0px;">
-                            <img src="Images/AI/Ali.png" style="height:96px;width:96px" />
-                            <FluentSpacer />
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
-                                <FluentLabel Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255,255,255,1)" Typo="Typography.H4">DATA ANALYSIS</FluentLabel>
-                                <FluentLabel Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255,255,255,1)" Typo="Typography.Body">by Ali</FluentLabel>
-                            </FluentStack>
+            
+                @* @if (ViewAll)
+                { *@
+            
+                @* }
+                else
+                {
+                    <FluentButton Appearance="Appearance.Accent" class="btnShadow"
+                                  Style="border: 1px solid white" OnClick="() => ViewAll = true">View All</FluentButton>
+                } *@
+                <FluentSpacer />
+                <FluentButton id="btnView" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                              IconStart="@(new Icons.Filled.Size24.Eye().WithColor("var(--pulse-accent-btn-colour)"))"
+                              Title="View"
+                              Style="height:50px;width:50px" OnClick="() => showViewMenu = !showViewMenu"></FluentButton>
+                <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Start" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnView" @bind-Open="showViewMenu">
+                    <Body>
+                        <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+                            <FluentButton Appearance="Appearance.Accent" class=@(!ViewAll ? "myModeBtnOff" : "myModeBtnOn") BackgroundColor="var(--pulse-mode-btn-bg)"
+                                            Color="var(--pulse-mode-btn-item-colour)"
+                                            Style="height:40px;width:80%"
+                                            OnClick="() => ViewAll = !ViewAll">View All</FluentButton>
+                           
                         </FluentStack>
-                        <StackItem>
-                            <FluentLabel Typo="Typography.H6" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding:5px;margin-top:10px;width:100%;">@custTitle.ToUpper()</FluentLabel>
-                            <FluentTextArea rows="10" style="width:95%; height:100%;margin-left: 2.5%;margin-right:2.55%;margin-bottom:10px; border:1px solid var(--pulse-dark-colour);border-radius:5px" @bind-Value="txtQ" ReadOnly="!isEditMode" PlaceHolder="Ask a question or select a prompt..." />
-                            <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:20px;">
-                                @if (!Saving)
+                    </Body>
+                </FluentPopover>
+                <FluentButton id="btnDownload" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                              IconStart="@(new Icons.Filled.Size24.ArrowDownload().WithColor("var(--pulse-accent-btn-colour)"))"
+                              Title="Download"
+                              Style="height:50px;width:50px" OnClick="() => showDownloadMenu = !showDownloadMenu"></FluentButton>
+                <FluentPopover Style="width: 300px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="HorizontalPosition.Start" VerticalPosition="VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnDownload" @bind-Open="showDownloadMenu">
+                    <Body>
+                        <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center">
+                            <FluentButton IconStart="@(new Icons.Filled.Size24.DocumentPdf().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                          class="btnShadow"
+                                          BackgroundColor="rgba(255,0,0,0.4)"
+                                          Style="height:40px; width:80%; border:1px solid white"
+                                          Color="rgba(255,255,255,1)"
+                                          OnClick="ExportToPdf">
+                                <strong>PDF</strong>
+                            </FluentButton>
+                            <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                          BackgroundColor="rgba(0,0,0,1)"
+                                          class="btnShadow"
+                                          Style="height:40px; width:80%; border:1px solid white"
+                                          Color="rgba(255,255,255,1)"
+                                          OnClick="ExportHtmlFile">
+                                <strong>HTML</strong>
+                            </FluentButton>
+                            <FluentButton IconStart="@(new Icons.Filled.Size24.Globe().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Lightweight))"
+                                          BackgroundColor="rgba(0,0,0,1)"
+                                          class="btnShadow"
+                                          Style="height:40px; width:80%; border:1px solid white"
+                                          Color="rgba(255,255,255,1)"
+                                          OnClick="ExportToPulseMsg">
+                                <strong>PULSE MSG</strong>
+                            </FluentButton>
+                        </FluentStack>
+                    </Body>
+                </FluentPopover>
+            
+        </FluentStack>
+    </div>
+    <div class="aiContent" style="background-color: white">
+        <FluentMessageBarProvider Section="MESSAGES_TOP" />
+    
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <FluentMessageBar Intent="@MessageIntent.Error">@errorMessage</FluentMessageBar>
+        }
+        @if (viewBox)
+        {
+            <div class="aiSidebar">
+                <div class="aiBox divShadow">
+                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" VerticalAlignment="VerticalAlignment.Center" style="background-color: var(--pulse-dark-t75-colour); border-bottom: 1px solid var(--pulse-dark-colour); border-top-left-radius: 10px; border-top-right-radius: 10px; padding-left: 20px;padding-right: 20px;padding-top:10px;padding-bottom:10px;margin-bottom:0px;">
+                        <img src="Images/AI/Ali.png" style="height:96px;width:96px" />
+                        <FluentSpacer />
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
+                            <FluentLabel Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255,255,255,1)" Typo="Typography.H4">DATA ANALYSIS</FluentLabel>
+                            <FluentLabel Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255,255,255,1)" Typo="Typography.Body">by Ali</FluentLabel>
+                        </FluentStack>
+                    </FluentStack>
+                    <StackItem>
+                        <FluentLabel Typo="Typography.H6" Alignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Center" Style="padding:5px;margin-top:10px;width:100%;">@custTitle.ToUpper()</FluentLabel>
+                        <FluentTextArea rows="10" style="width:95%; height:100%;margin-left: 2.5%;margin-right:2.55%;margin-bottom:10px; border:1px solid var(--pulse-dark-colour);border-radius:5px" @bind-Value="txtQ" ReadOnly="!isEditMode" PlaceHolder="Ask a question or select a prompt..." />
+                        <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center" style="padding-left: 20px;padding-right: 20px;margin-top:5px;margin-bottom:20px;">
+                            @if (!Saving)
+                            {
+                                @if (this._isListening)
                                 {
-                                    @if (this._isListening)
-                                    {
-                                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                            <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" Title="Turn Off Microphone" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="OnClickStop"></FluentButton>
-                                        </Animation>
-                                    }
-                                    else
-                                    {
-                                        <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
-                                            <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" Disabled="!isEditMode" Title="Turn On Microphone" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="StartRecClick"></FluentButton>
-                                        </Animation>
-                                    }
-                                            
-                                    <FluentSpacer />
-                                    <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                  IconStart="@(new Icons.Filled.Size24.ChatAdd().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                  Title="New Prompt"
-                                                  Style="height:50px;width:50px" OnClick="@NewPrompt"></FluentButton>
-                                    <FluentSpacer />
-                                    @if (showSave)
-                                    {
-                                        <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                      IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                      Style="height:50px;width:50px"
-                                                      OnClick="() => {Saving = true; showSave = false;}"></FluentButton>
-                                        <FluentSpacer />
-                                    }
-                                    else if (!isEditMode)
-                                    {
-                                        <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
-                                                      IconStart="@(new Icons.Filled.Size24.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
-                                                      Title="Edit Prompt"
-                                                      Style="height:50px;width:50px" OnClick="@EditPrompt"></FluentButton>
-                                        <FluentSpacer />
-                                    }
+                                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                        <FluentButton class="myModeBtnOn" BackgroundColor="var(--pulse-mode-btn-bg)" Title="Turn Off Microphone" IconStart="@(new Icons.Filled.Size24.MicOff().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="OnClickStop"></FluentButton>
+                                    </Animation>
                                 }
-                                <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-ok-btn-colour"))"
-                                              Disabled="@string.IsNullOrEmpty(txtQ)" Style="height:50px;width:50px" OnClick="@btnAskAIClick"></FluentButton>
-                            </FluentStack>
-                            @if (_isListening)
-                            {
-                                <div>
-                                    @foreach (var result in this._results)
-                                    {
-                                        txtQ = @result.Items![0].Transcript;
-                                    }
-                                </div>
+                                else
+                                {
+                                    <Animation Effect="@Effect.FadeIn" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)">
+                                        <FluentButton class="myModeBtnOff" BackgroundColor="var(--pulse-mode-btn-bg)" Disabled="!isEditMode" Title="Turn On Microphone" IconStart="@(new Icons.Filled.Size24.Mic().WithColor("var(--pulse-mode-btn-item-colour)"))" style="height:50px;width:50px" OnClick="StartRecClick"></FluentButton>
+                                    </Animation>
+                                }
+                                            
+                                <FluentSpacer />
+                                <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                                              IconStart="@(new Icons.Filled.Size24.ChatAdd().WithColor("var(--pulse-accent-btn-colour)"))"
+                                              Title="New Prompt"
+                                              Style="height:50px;width:50px" OnClick="@NewPrompt"></FluentButton>
+                                <FluentSpacer />
+                                @if (showSave)
+                                {
+                                    <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                                                  IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-accent-btn-colour)"))"
+                                                  Style="height:50px;width:50px"
+                                                  OnClick="() => {Saving = true; showSave = false;}"></FluentButton>
+                                    <FluentSpacer />
+                                }
+                                else if (!isEditMode)
+                                {
+                                    <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)"
+                                                  IconStart="@(new Icons.Filled.Size24.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
+                                                  Title="Edit Prompt"
+                                                  Style="height:50px;width:50px" OnClick="@EditPrompt"></FluentButton>
+                                    <FluentSpacer />
+                                }
                             }
-                            <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
-                                <FluentLabel style="margin-bottom:5px;width:50%">@keyPropertyLbl</FluentLabel>
-                                <FluentTextField @bind-Value=keyPropertyVal style="margin-bottom:5px;width:50%" Required="true" Label="Title" Placeholder="Enter Value"></FluentTextField>
+                            <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Send().WithColor("--pulse-ok-btn-colour"))"
+                                          Disabled="@string.IsNullOrEmpty(txtQ)" Style="height:50px;width:50px" OnClick="@btnAskAIClick"></FluentButton>
+                        </FluentStack>
+                        @if (_isListening)
+                        {
+                            <div>
+                                @foreach (var result in this._results)
+                                {
+                                    txtQ = @result.Items![0].Transcript;
+                                }
                             </div>
-                            @if (Saving)
+                        }
+                        <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
+                            <FluentLabel style="margin-bottom:5px;width:50%">@keyPropertyLbl</FluentLabel>
+                            <FluentTextField @bind-Value=keyPropertyVal style="margin-bottom:5px;width:50%" Required="true" Label="Title" Placeholder="Enter Value"></FluentTextField>
+                        </div>
+                        @if (Saving)
+                        {
+                            <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
+                                <FluentTextField @bind-Value=custTitle style="margin-bottom:5px;width:100%" Required="true" Label="Title" Placeholder="Enter A Prompt Title"></FluentTextField>
+                                <FluentTextField @bind-Value=custDesc Required="true" style="margin-bottom:5px;width:100%" Label="Description" Placeholder="Enter A Short Description"></FluentTextField>
+                                <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Style="margin-top:15px;margin-bottom:15px;">
+                                    <FluentButton Class="myCancelBtn"
+                                                  BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                                  Color="var(--pulse-cancel-btn-colour)"
+                                                  Style="height:40px;"
+                                                  IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
+                                                  OnClick="() => {Saving = false; showSave = true;}">
+                                        Cancel
+                                    </FluentButton>
+                                    <FluentSpacer />
+                                    <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
+                                                  Style="height:40px;" 
+                                                  Disabled="string.IsNullOrEmpty(selAreaId) || string.IsNullOrEmpty(custTitle) || string.IsNullOrEmpty(custDesc)"
+                                                  OnClick="saveQry">Save Prompt</FluentButton>
+                                </FluentStack>
+                            </div>
+                        }
+                    </StackItem>
+                </div>
+            </div>
+        }
+        <div class="chat-area" style="overflow:auto">
+            @if (isLoadingAreas)
+            {
+                <FluentProgressRing></FluentProgressRing>
+                <p>Loading Contextual Areas...</p>
+            }
+            else if (contextualAreas?.Any() == true)
+            {
+                @* <div style="margin-top: 16px;width:stretch">
+                                <h4>All Permissions (@permissions.Count)</h4>
+                                </div> *@
+                
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="height:100%">
+                    @foreach (var area in contextualAreas)
+                    {
+                        <div class="ali-pulse-column-grid">
+                            @* <FluentStack Orientation="MsFluent.Orientation.Vertical" Wrap="true"> *@
+                        <h5 style="break-before: column;margin: 0 0 12px 0;background-color: var(--pulse-dark-t50-colour); color:white;border-radius:10px;padding:8px;width:320px">@area.AreaDescription</h5>
+                        @* <div class="pulse-column-grid"> *@
+                            @foreach (var prompt in area.ContextualPrompts!)
                             {
-                                <div style="margin-left: 5%;margin-right: 5%;margin-bottom:10px;border: 1px solid var(--pulse-dark-colour);background-color:var(--pulse-light-2-colour);border-radius:10px;width:90%;padding:5px;">
-                                    <FluentTextField @bind-Value=custTitle style="margin-bottom:5px;width:100%" Required="true" Label="Title" Placeholder="Enter A Prompt Title"></FluentTextField>
-                                    <FluentTextField @bind-Value=custDesc Required="true" style="margin-bottom:5px;width:100%" Label="Description" Placeholder="Enter A Short Description"></FluentTextField>
-                                    <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" Style="margin-top:15px;margin-bottom:15px;">
-                                        <FluentButton Class="myCancelBtn"
-                                                      BackgroundColor="var(--pulse-cancel-btn-bg)"
-                                                      Color="var(--pulse-cancel-btn-colour)"
-                                                      Style="height:40px;"
-                                                      IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("--pulse-cancel-btn-colour"))"
-                                                      OnClick="() => {Saving = false; showSave = true;}">
-                                            Cancel
-                                        </FluentButton>
-                                        <FluentSpacer />
-                                        <FluentButton class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Color="var(--pulse-ok-btn-colour)" IconStart="@(new Icons.Filled.Size24.Save().WithColor("--pulse-ok-btn-colour"))"
-                                                      Style="height:40px;" 
-                                                      Disabled="string.IsNullOrEmpty(selAreaId) || string.IsNullOrEmpty(custTitle) || string.IsNullOrEmpty(custDesc)"
-                                                      OnClick="saveQry">Save Prompt</FluentButton>
+                                <div class="ali-pulse-grid-item @(prompt == selPrompt ? "box" : "divShadow")" style=" margin-bottom:10px" @onclick="() => CopyCommunityPrompt(prompt)">
+                                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
+                                        <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" 
+                                                     CustomColor='@(prompt == selPrompt ? "rgba(255,255,255,1)" : "rgba(0,0,0,1)")' 
+                                                     Style="font-weight: bold; padding: 0 12px 0 12px">
+                                            @prompt.ContextualPromptTitle
+                                        </FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom"
+                                                     CustomColor='@(prompt == selPrompt ? "rgba(255,255,255,1)" : "rgba(0,0,0,1)")'
+                                                     Style='@($"border-top: 1px solid;border-bottom: 1px solid; border-color: {(prompt == selPrompt ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.1)")} ; width:100%; height:50px;  padding: 0 12px 0 12px")'>
+                                            @prompt.ContextualPromptDescription
+                                        </FluentLabel>
+                                        @* <FluentTextArea rows="2" Cols="75" 
+                                                        Style='@($"width:100%; height:100%; margin-bottom:2px; background-color:rgba(0,0,0,0); color: {(prompt == selPrompt ? "white" : "black")}")' 
+                                                    
+                                                        Value="@prompt.ContextualPromptDescription">
+                                        </FluentTextArea> *@
+                                        <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;padding: 0 12px 0 12px">ID: @prompt.ContextualPromptId</FluentLabel>
                                     </FluentStack>
                                 </div>
                             }
-                        </StackItem>
-                    </div>
-                </div>
+                            </div>
+                            @* </FluentStack> *@
+                        
+                    }
+                </FluentStack>
+                @* </div> *@
+                        
             }
-            <div class="chat-area" style="overflow:auto">
-                @if (isLoadingAreas)
-                {
-                <div style="display: flex; flex-direction: column; height:100%; justify-content: center; align-items: center; text-align: center;">
-                        <FluentProgressRing Width="128px"></FluentProgressRing>
-                        <p>Loading...</p>
-                    </div>
-                }
-                else if (contextualAreas?.Any() == true)
-                {
-                    <FluentSelect Items="contextualAreas" 
-                                    TOption="ContextualArea" 
-                                    OptionValue="@(a => a.ContextAreaId.ToString())" 
-                                    OptionText="@(a => a.AreaDescription)"
-                                    SelectedOption="@filteredArea"
-                                    SelectedOptionChanged="(newVal) => ChangeArea(newVal)"
-                                    />
-                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="height:100%">
-                        <div class="ali-pulse-column-grid">
-                            @if (filteredArea != null)
-                            {
-                                PromptCounter = 0;
-                                @foreach (var prompt in filteredArea.ContextualPrompts!)
-                                {
-                                    <AnimatedObserver Animation="AnimationType.FadeUp" StaggerDelay="@(PromptCounter * 120)">
-                                        <div class="ali-pulse-grid-item @(prompt == selPrompt ? "box" : "divShadow")" style=" margin-bottom:10px" @onclick="() => CopyCommunityPrompt(prompt)">
-                                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
-                                                <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom" 
-                                                            CustomColor='@(prompt == selPrompt ? "rgba(255,255,255,1)" : "rgba(0,0,0,1)")' 
-                                                            Style="font-weight: bold; padding: 0 12px 0 12px">
-                                                    @prompt.ContextualPromptTitle
-                                                </FluentLabel>
-                                                <FluentLabel Typo="Typography.Body" Color="MsFluent.Color.Custom"
-                                                            CustomColor=@(prompt == selPrompt ? "rgba(255,255,255,1)" : "rgba(0,0,0,1)")
-                                                            Style='@($"border-top: 1px solid;border-bottom: 1px solid; border-color: {(prompt == selPrompt ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.1)")} ; width:100%; height:50px;  padding: 0 12px 0 12px")'>
-                                                    @prompt.ContextualPromptDescription
-                                                </FluentLabel>
-                                                <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;padding: 0 12px 0 12px">ID: @prompt.ContextualPromptId</FluentLabel>
-                                            </FluentStack>
-                                        </div>
-                                    </AnimatedObserver>
-                                
-                                    PromptCounter++;
-                                }
-                            }
-                        </div>
-                    </FluentStack>
-                }
-            </div>
         </div>
+    </div>
     <div class="aiFooter" />
 </div> 
 
-@* <FluentMenuProvider /> *@
+        
+
+       
+
+  
+    
+@* </FluentLayout> *@
+<FluentMenuProvider />
 
 @code {
 
@@ -283,8 +365,7 @@
 
     public bool showSave = false;
     public bool Saving = false;
-    private List<ContextualArea>? contextualAreas = null;
-    private ContextualArea? filteredArea;
+    public List<ContextualArea>? contextualAreas = null;
     private ContextualPrompt? selPrompt;
     private string? selAreaId;
 
@@ -332,7 +413,6 @@
     private bool isLoadingSaved = false;
     private string? uName;
     private HttpClient? ollamaClient;
-    private int PromptCounter = 0;
     // FluentTextArea? txtQ;
 
     #region Ali
@@ -372,17 +452,6 @@
                 await GlobalAI.AISpeak(msg, "Ali");
             }
         }
-    }
-
-    private async Task ChangeArea(ContextualArea newVal)
-    {
-        isLoadingAreas = true;
-        await InvokeAsync(StateHasChanged);
-        await Task.Delay(500);
-        PromptCounter = 0;
-        filteredArea = newVal;
-        isLoadingAreas = false;
-        await InvokeAsync(StateHasChanged);
     }
 
     private async Task SendToast(string tType, string tContent, string tAI = "Ali", bool autoHide = true, bool isHtml = false, string? tTitle = null)

@@ -56,6 +56,12 @@
                               OnClick="@(() => mnuActive="Layout")"
                               Class="@(mnuActive == "Layout" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Factory Layout" />
+            <FluentAppBarItem Href="/EmployeeZone/Production/Setup/Equipment/EquipmentPg"
+                              IconRest="SetupIcon()"
+                              IconActive="SetupIcon(active: true)"
+                              OnClick="@(() => mnuActive="Equipment")"
+                              Class="@(mnuActive == "Equipment" ? "nbZoneSel" : "nbZoneUnSel")"
+                              Text="Equipment" />
         </FluentAppBar>
 
     </FluentStack>

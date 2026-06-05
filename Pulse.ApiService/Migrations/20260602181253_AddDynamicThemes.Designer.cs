@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260602181253_AddDynamicThemes")]
+    partial class AddDynamicThemes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2143,9 +2146,6 @@ namespace Pulse.ApiService.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("Barcode")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("DivisionID")
                         .IsRequired()
                         .HasMaxLength(5)
@@ -2161,12 +2161,8 @@ namespace Pulse.ApiService.Migrations
                         .HasDefaultValue(1m);
 
                     b.Property<string>("EquipmentItemDescription")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("EquipmentItemDescription2")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("FixedAssetNo")
                         .HasMaxLength(20)
@@ -2177,23 +2173,9 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<bool>("IsOperational")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
                     b.Property<string>("ManufacturerName")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("Model")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SerialNo")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ZoneID")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("EquipmentItemID");
 
@@ -2227,9 +2209,6 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(5)");
 
                     b.Property<string>("EquipmentCapabilityID")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EquipmentID")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<double>("Height")

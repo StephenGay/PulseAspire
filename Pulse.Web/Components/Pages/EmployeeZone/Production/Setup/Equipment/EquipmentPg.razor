@@ -1,0 +1,262 @@
+﻿@page "/EmployeeZone/Production/Setup/Equipment/EquipmentPg"
+
+@using Pulse.Models.Api
+@using Pulse.Models.Dtos.Equipment
+@using Pulse.Web.Services
+@using Pulse.Models.Production
+@using Pulse.Models.Misc
+
+@inject PulseApiService pApi
+@rendermode InteractiveServer
+
+<FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px 16px 16px 5px;">
+    <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:26px;width:fit-content;padding: 5px" Color="var(--pulse-accent-btn-colour)" Disabled="@pgMain" OnClick="@(() => { pgMain = true; })">
+        <FluentIcon Value="@(new Icons.Filled.Size16.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))" />
+    </FluentButton>
+    <FluentLabel Typo="Typography.PaneHeader" Style="margin-left:10px;color:var(--pulse-light-colour);">
+        Equipment
+    </FluentLabel>
+</FluentHeader>
+@* <div Id="divOverview" style="height:stretch;width:stretch"> *@
+@if (pgMain)
+{
+    <Animation Effect="@(pgFrom == "Main" ? Effect.BounceOutUp : Effect.BounceInDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100% - 66px);" OnAnimationEnd="@(() => EndAnimation("Main"))">
+    <RadzenDataGrid @ref="eqGrid"
+    Data="@equipmentTableItemDtos"
+    TItem="EquipmentTableItemDto"
+    AllowSorting="true"
+    AllowVirtualization="true"
+    AllowPaging="false"
+    PageSize="11"
+    AllowGrouping="true"
+    Style="display: flex; height:stretch;overflow:auto;"
+    FilterMode="FilterMode.Simple"
+    AllowFiltering="true"
+                        
+    SelectionMode="DataGridSelectionMode.Single"
+    @bind-Value="@selectedEquipDto">
+        @* RowClick="@(args => EditTheme(args.Data))" *@
+        <Columns>
+            <RadzenDataGridColumn TItem="EquipmentTableItemDto" Property="Description" Title="Description" Width="180px" />
+            <RadzenDataGridColumn TItem="EquipmentTableItemDto" Property="Category" Title="Category" FilterMode="FilterMode.CheckBoxList" Width="90px" />
+            <RadzenDataGridColumn TItem="EquipmentTableItemDto" Property="ManufacturerName" Title="Manufacturer" FilterMode="FilterMode.CheckBoxList" Width="80px" />
+            <RadzenDataGridColumn TItem="EquipmentTableItemDto" Property="Model" Title="Model" Width="80px" />
+                <RadzenDataGridColumn TItem="EquipmentTableItemDto" Property="IsOperational" Title="Operational" Width="70px">
+                <Template Context="equip">
+                    @if (equip.isOperational)
+                    {
+                        <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="Yes" />
+                    }
+                    else
+                    {
+                        <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="No" />
+                    }
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn TItem="EquipmentTableItemDto" Title="Actions" Width="160px" Sortable="false">
+                <Template Context="equip">
+                    <RadzenButton Icon="edit" Click="() => EditEquip(equip)"
+                    ButtonStyle="ButtonStyle.Light" Size="ButtonSize.Small" class="me-1" />
+                    @* <RadzenButton Icon="check_circle" Text="Activate"
+                                  Click="() => ActivateTheme(theme)"
+                                  ButtonStyle="ButtonStyle.Success" Size="ButtonSize.Small"
+                                  Disabled="@theme.IsActive" class="me-1" /> *@
+                    <RadzenButton Icon="delete" Click="() => DeleteEquip(equip)"
+                    ButtonStyle="ButtonStyle.Danger" Size="ButtonSize.Small" />
+                </Template>
+            </RadzenDataGridColumn>
+        </Columns>
+    </RadzenDataGrid>
+    </Animation>
+}
+else
+{
+    @if(editingEquip == null)
+    {
+
+    }
+    else
+    {
+        
+        <Animation Effect="@(pgFrom == "Main" ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100% - 66px);" OnAnimationEnd="@(() => EndAnimation("Edit"))">
+
+            <FluentCard >
+                <div style="overflow:auto">
+                    <RadzenRow Gap="1rem">
+                        <div class="d-flex justify-content-between align-items-center mb-3" style="width:stretch">
+                            <h5 class="mb-0">@(editingEquip == null ? "New Equipment Item" : $"Edit: {editingEquip.EquipmentItemDescription}")</h5>
+                            <div>
+                                <FluentButton Class="myOkBtn"
+                                              BackgroundColor="var(--pulse-ok-btn-bg)"
+                                              Color="var(--pulse-ok-btn-colour)"
+                                              @onclick="SaveEquipment"
+                                              IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-ok-btn-colour)"))"
+                                              Style="height:40px;"
+                                              Disabled="@isSaving">
+                                    Save
+                                </FluentButton>
+                                <FluentButton Class="myCancelBtn"
+                                              BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                              Color="var(--pulse-cancel-btn-colour)"
+                                              IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("var(--pulse-cancel-btn-colour)"))"
+                                              Style="height:40px"
+                                              onclick="CancelEdit">
+                                    Cancel
+                                </FluentButton>
+                            </div>
+                        </div>
+                        <RadzenColumn Size="4" >
+                            <FluentTextField @bind-Value="editingEquip.EquipmentItemDescription" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter a description for the item" Label="Description" />
+                            <FluentTextField @bind-Value="editingEquip.EquipmentItemDescription2" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter an alternative description for the item" Label="Description (Alternate)" />
+                                <FluentSelect @bind-Value="editingEquip.EquipmentCategoryID"
+                                                Items=@eqCat
+                                                Appearance="Appearance.Filled"  
+                                                Label="Category" 
+                                                TOption="EquipmentCategory" 
+                                          Style="width:stretch"
+                                                OptionValue="@(i => i.EquipmentCategoryID)"
+                                                OptionText="@(i => i.EquipmentCategoryName)"
+                                                />
+                            <FluentTextField @bind-Value="editingEquip.ManufacturerName" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the name of the Manufacturer" Label="Manufacturer" />
+                            <FluentTextField @bind-Value="editingEquip.Model" Style="width:stretch" Appearance=" FluentInputAppearance.Filled" Placeholder="Enter the Model Name" Label="Model" />
+                            <FluentTextField @bind-Value="editingEquip.FixedAssetNo" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the Fixed Asset Code" Label="Fixed Asset Code" />
+                            <FluentTextField @bind-Value="editingEquip.SerialNo" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the Serial Number" Label="Serial Number" />
+                        </RadzenColumn>
+                        <RadzenColumn Size="4" >
+            
+                            <FluentSwitch @bind-Value="editingEquip.IsOperational" Label="Is the item currently in operation?" /><br />
+                            <FluentSwitch @bind-Value="editingEquip.IsActive" Label="Is the item still Active?" /><br />
+                            <FluentTextField @bind-Value="editingEquip.Barcode" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the QR Code" Label="QR Code" Style="width:stretch" />
+                            <RadzenStack AlignItems="AlignItems.Center" JustifyContent="Radzen.JustifyContent.Center" >
+                                <RadzenQRCode Value="@editingEquip.Barcode" Style="width:50%;height:auto" />
+                            </RadzenStack>
+                        </RadzenColumn>
+                    </RadzenRow>
+                </div>
+            </FluentCard>
+        </Animation>
+    }
+}
+@* </div> *@
+@*  *@
+@code {
+    [CascadingParameter]
+    MasterLayout masterLayout { get; set; } = default!;
+
+    private bool pgMain = true;
+    private string pgFrom = "Main";
+    private List<EquipmentTableItemDto> equipmentTableItemDtos = [];
+    private RadzenDataGrid<EquipmentTableItemDto> eqGrid = default!;
+    private EquipmentTableItemDto? selectedEquip;
+    private IList<EquipmentTableItemDto>? selectedEquipDto;
+    private EquipmentItem? editingEquip;
+    private List<EquipmentCategory> eqCat = [];
+    private bool startAni = false;
+    private bool isSaving = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEquipmentCategories();
+        await LoadEquipment();
+        await InvokeAsync(StateHasChanged);
+    }
+    private async Task SaveEquipment()
+    {
+        isSaving = true;
+        var response = await pApi.PostAsync<EquipmentItem, ApiResponse>(ApiEndpoints.Production.Equipment.MasterFile.Update, editingEquip);
+        if (response.Success)
+        {
+            editingEquip = new EquipmentItem();
+            await LoadEquipment();
+            isSaving = false;
+            startAni = true;
+            // await InvokeAsync(StateHasChanged);
+        }
+        
+    }
+    private async Task CancelEdit()
+    {
+        editingEquip = new EquipmentItem();
+        startAni = true;
+        // await InvokeAsync(StateHasChanged);
+    }
+    private async Task LoadEquipment()
+    {
+        try
+        {
+            equipmentTableItemDtos = (await pApi.GetAsync<ApiResponse<List<EquipmentTableItemDto>>>(ApiEndpoints.Production.Equipment.ByDivision.GetList(masterLayout.division.DivisionID))).Data;
+
+            // StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load themes: {ex.Message}");
+        }
+    }
+
+    private async Task LoadEquipmentCategories()
+    {
+        try
+        {
+            eqCat = (await pApi.GetAsync<ApiResponse<List<EquipmentCategory>>>(ApiEndpoints.Production.Equipment.Categories.Get)).Data;
+
+            // StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            // NotificationService.Notify(NotificationSeverity.Error, "Error", $"Failed to load themes: {ex.Message}");
+        }
+    }
+
+    private void EndAnimation(string pgCalling)
+    {
+        if (pgCalling == pgFrom)
+        {
+            pgMain = !pgMain;
+        }
+        else
+        {
+            if (pgMain)
+            {
+                pgFrom = "Main";
+            }
+            else
+            {
+                pgFrom = "Edit";
+            }
+            startAni = false;
+        }
+    }
+    private async Task EditEquip(EquipmentTableItemDto equip)
+    {
+        var itemID = equip.EquipmentID.ToString();
+        editingEquip = (await pApi.GetAsync<ApiResponse<EquipmentItem>>(ApiEndpoints.Production.Equipment.GetByID(itemID))).Data;
+        await InvokeAsync(StateHasChanged);
+        startAni = true;
+        //JsonSerializer.Deserialize<PulseTheme>(JsonSerializer.Serialize(theme)); // deep clone
+        // UpdatePreview();
+    }
+
+    private async Task DeleteEquip(EquipmentTableItemDto equip)
+    {
+        // if (theme.IsSystem) return;
+
+        // bool? confirm = await DialogService.Confirm($"Delete theme \"{theme.Name}\"? This cannot be undone.",
+        //                                             "Confirm Delete", new ConfirmOptions { OkButtonText = "Delete", CancelButtonText = "Cancel" });
+
+        // if (confirm == true)
+        // {
+        //     try
+        //     {
+        //         await ApiClient.DeleteAsync($"/ui/pulsethemes/{theme.Id}");
+        //         themes.Remove(theme);
+        //         if (editingTheme?.Id == theme.Id) CancelEdit();
+        //         NotificationService.Notify(NotificationSeverity.Info, "Theme deleted");
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         NotificationService.Notify(NotificationSeverity.Error, "Delete failed", ex.Message);
+        //     }
+        // }
+    }
+}

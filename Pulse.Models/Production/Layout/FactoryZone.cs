@@ -15,6 +15,7 @@ namespace Pulse.Models.Production.Layout
         public int Level { get; set; } = 0; // Level in the hierarchy, e.g., 0 for top-level zones, 1 for sub-zones, etc.
         public string? ParentZoneId { get; set; } // Nullable for top-level zones
         public int? WorkCentreID { get; set; }
+        public string? EquipmentID { get; set; }
         public string? EquipmentCapabilityID { get; set; }
         [MaxLength(50)]
         public string? Description { get; set; }

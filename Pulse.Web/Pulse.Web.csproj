@@ -90,6 +90,9 @@
     <None Update="Components\Pages\AdminZone\SiteSensorManagement.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Components\Pages\AiZone\AliPg - Copy.razor.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Update="Components\Pages\AiZone\AliPg.razor.css">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

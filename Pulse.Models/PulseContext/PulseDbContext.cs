@@ -25,6 +25,7 @@ using Pulse.Models.Production.WorkTypes;
 using Pulse.Models.AI.Ali;
 using Pulse.Models.AI.Flapper;
 using Pulse.Models.Inventory;
+using Pulse.Models.UI;
 
 namespace Pulse.Models.PulseContext
 {
@@ -66,7 +67,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<WorkCentreFunctions> WorkCentreFunctionsMaster { get; set; }
         public DbSet<ProductionPlanItem> ProductionPlanItems {  get; set; }  
         public DbSet<EquipmentCategory> EquipmentCategoryMaster { get; set; }
-        public DbSet<EquipmentItem> EquipmentItemMaster { get; set; }
+        public DbSet<EquipmentItem> EquipmentItems { get; set; }
         public DbSet<EquipmentCapability> EquipmentCapabilities {  get; set; }
         public DbSet<ClientCalendarEvent> ClientCalendarEvents {  get; set; }
         public DbSet<ContextualArea> ContextualAreaMaster { get; set; }
@@ -92,6 +93,7 @@ namespace Pulse.Models.PulseContext
         public DbSet<InventoryItem> InventoryItems { get; set; }
         public DbSet<InventoryTypeDivisionSetting> InventoryTypeDivisionSettings { get; set; }
         public DbSet<InventoryGroupDivisionSetting> InventoryGroupDivisionSettings { get; set; }
+        public DbSet<PulseTheme> PulseThemes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -157,7 +159,7 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new InventoryItemMap());
             modelBuilder.ApplyConfiguration(new InventoryTypeDivisionSettingMap());
             modelBuilder.ApplyConfiguration(new InventoryGroupDivisionSettingMap());
-
+            modelBuilder.ApplyConfiguration(new PulseThemeConfigurationMap());
 
             base.OnModelCreating(modelBuilder);
         }

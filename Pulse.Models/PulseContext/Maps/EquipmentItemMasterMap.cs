@@ -36,12 +36,16 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasMaxLength(4);
 
             builder.Property(e => e.EquipmentItemDescription)
-                .HasColumnType("nvarchar(50)")
-                .HasMaxLength(50);
+                .HasColumnType("nvarchar(150)")
+                .HasMaxLength(150);
+
+            builder.Property(e => e.EquipmentItemDescription2)
+                .HasColumnType("nvarchar(150)")
+                .HasMaxLength(150);
 
             builder.Property(e => e.ManufacturerName)
-                .HasColumnType("nvarchar(50)")
-                .HasMaxLength(50);
+                .HasColumnType("nvarchar(150)")
+                .HasMaxLength(150);
 
             builder.Property(e => e.EquipmentDifficultyMultiplier)
                 .HasColumnType("decimal(18,4)") // Assuming reasonable precision; adjust if needed
@@ -53,6 +57,10 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasDefaultValue(true)
                 .IsRequired();
 
+            builder.Property(e => e.IsOperational)
+                .HasColumnType("bit")
+                .HasDefaultValue(true);
+                
             // Relationship to EquipmentCategory (many-to-one)
             builder.HasOne(e => e.EquipmentCategory)
                 .WithMany(c => c.EquipmentItems)

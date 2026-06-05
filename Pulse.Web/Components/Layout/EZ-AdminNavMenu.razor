@@ -38,18 +38,26 @@
                                         Match="NavLinkMatch.All"
                                         IconRest="DashboardIcon()"
                                         IconActive="DashboardIcon(active: true)"
+                              OnClick="@(() => mnuActive="Dashboard")"
+                              Class="@(mnuActive == "Dashboard" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Dashboard" />
             <FluentAppBarItem Href="/AdminZone/RoleManagementPg"
                                         IconRest="ProfileIcon()"
                                         IconActive="ProfileIcon(active: true)"
+                              OnClick="@(() => mnuActive="Roles")"
+                              Class="@(mnuActive == "Roles" ? "nbZoneSel" : "nbZoneUnSel")"
                                         Text="Roles" />
             <FluentAppBarItem Href="/AdminZone/PermissionManagementPg"
                               IconRest="ProfileIcon()"
                               IconActive="ProfileIcon(active: true)"
+                              OnClick="@(() => mnuActive="Permissions")"
+                              Class="@(mnuActive == "Permissions" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Permissions" />
             <FluentAppBarItem Href="/AdminZone/UserManagementPg"
                               IconRest="ContactsIcon()"
                               IconActive="ContactsIcon(active: true)"
+                              OnClick="@(() => mnuActive="Users")"
+                              Class="@(mnuActive == "Users" ? "nbZoneSel" : "nbZoneUnSel")"
                               Text="Users" />
             <FluentAppBarItem Href="/AdminZone/SiteSensorManagement"
                               IconRest="ContactsIcon()"
@@ -63,6 +71,12 @@
                               IconRest="BudgetsIcon()"
                               IconActive="BudgetsIcon(active: true)"
                               Text="Debug" />
+            <FluentAppBarItem Href="/AdminZone/ThemeEditor"
+                              IconRest="BudgetsIcon()"
+                              IconActive="BudgetsIcon(active: true)"
+                              OnClick="@(() => mnuActive="Themes")"
+                              Class="@(mnuActive == "Themes" ? "nbZoneSel" : "nbZoneUnSel")"
+                              Text="Theme Editor" />
         </FluentAppBar>
 
     </FluentStack>
@@ -88,6 +102,7 @@
     private string _Analysis = string.Empty;
     private string _AssistWith = string.Empty;
     private IDialogReference? _dialog;
+    private string mnuActive = "Dashboard";
     Period? period;
     private User? u;
     bool? canceled;
@@ -95,20 +110,20 @@
     #region AppBar Icons
 
     private static Icon DashboardIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.BoardSplit().WithColor("#365b66")
-               : new Icons.Regular.Size24.BoardSplit().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.BoardSplit()
+               : new Icons.Regular.Size24.BoardSplit();
 
     private static Icon ProfileIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.ContentView().WithColor("#365b66")
-               : new Icons.Regular.Size24.ContentView().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.ContentView()
+               : new Icons.Regular.Size24.ContentView();
 
     private static Icon RollersIcon(bool active = false) =>
-        active ? new Icons.Filled.Size24.CompassNorthwest().WithColor("#365b66")
-               : new Icons.Regular.Size24.CompassNorthwest().WithColor("#365b66");
+        active ? new Icons.Filled.Size24.CompassNorthwest()
+               : new Icons.Regular.Size24.CompassNorthwest();
 
     private static Icon ContactsIcon(bool active = false) =>
-    active ? new Icons.Filled.Size24.ContactCard().WithColor("#365b66")
-    : new Icons.Regular.Size24.ContactCard().WithColor("#365b66");
+    active ? new Icons.Filled.Size24.ContactCard()
+    : new Icons.Regular.Size24.ContactCard();
 
     private static Icon BudgetsIcon(bool active = false) =>
     active ? new Icons.Filled.Size24.Money().WithColor("#365b66")

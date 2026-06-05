@@ -154,7 +154,7 @@ namespace Pulse.ApiService.Endpoints
             });
 
             group.MapGet(ByDivIdPath + "/GetDivisionEquipment", async (string divisionId, PulseDbContext db) =>
-                await db.EquipmentItemMaster
+                await db.EquipmentItems
                 .AsNoTracking()
                 .Where(eq => eq.DivisionID == divisionId && eq.IsActive)
                 .Include(e => e.EquipmentCategory)
@@ -281,7 +281,7 @@ namespace Pulse.ApiService.Endpoints
                     {
                         Id = p.ProductionPlanItemID,
                         ResourceId = p.EquipmentItemID,
-                        Title = p.WorkOrderNo.ToString(),
+                        Title = $"{p.WorkOrderNo.ToString()} {p.WorksOrder.Customer.ClientName} {p.WorksOrder.Description}",
                         Start = p.Status == "Started" ? p.ActualStartTime : p.PlannedStartTime,
                         End = p.Status == "Started" ? p.ActualStartTime + d : p.PlannedEndTime,
                         BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
@@ -434,12 +434,13 @@ namespace Pulse.ApiService.Endpoints
                     {
                         Id = p.ProductionPlanItemID,
                         ResourceId = p.EquipmentItemID,
-                        Title = p.WorkOrderNo.ToString(),
+                        Title = $"{p.WorkOrderNo.ToString()} {p.WorksOrder.Customer.ClientName} {p.WorksOrder.Description}",
                         Start = p.PlannedStartTime,
                         End = p.PlannedEndTime,
 
 
                         BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
+                        ClassNames = p.PlannedStartTime > DateTime.Now ? new string[] { "overdueNotStarted" } : null,
                         ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
                         Description = p.WorksOrder != null ? p.WorksOrder.Description : null
                     })

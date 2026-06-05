@@ -12,6 +12,9 @@
 @rendermode InteractiveServer
 
 <style>
+    :root{
+        --bs-link-color-rgb: var(--pulse-light-colour);
+    }
     #external-events {
         padding: 10px;
         /* width: 150px; */
@@ -34,6 +37,35 @@
     .wcSelect{
         border: 1px solid black;
         text-align:center;
+    }
+    thead tr{
+        background-color: var(--pulse-dark-colour) !important;
+        color: var(--pulse-light-colour) !important;
+    }
+
+    .fc .fc-timeline-header-row:last-child .fc-timeline-slot-frame{
+        background-color: var(--pulse-dark-colour) !important;
+        color: var(--pulse-light-colour) !important;
+    }
+    .fc-button-group {
+        background-color: var(--pulse-dark-colour) !important;
+        color: var(--pulse-light-colour) !important;
+    }
+
+    .fc-event-past{
+        border: 1px double var(--pulse-dark-colour);
+        /*background-color:  var(--pulse-dark-t25-colour);*/
+        animation: overdueNotStarted-pulse 2s infinite;
+    }
+
+    @@keyframes overdueNotStarted-pulse {
+        0%, 100% {
+            box-shadow: 0 0 0 0 rgba(255,0,0,0.1);
+        }
+
+        50% {
+            box-shadow: 0 0 7px 4px rgba(255,0,0,0.5);
+        }
     }
 </style>
 
@@ -269,6 +301,7 @@
         updatedEvent.PlannedStartTime = start;
         updatedEvent.PlannedEndTime = eD;
         updatedEvent.EquipmentItemID = equipID;
+        updatedEvent.Status = "Planned";
         await pApi.UpdatePlanItemAsync(updatedEvent);
     }
 

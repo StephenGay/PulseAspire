@@ -169,7 +169,7 @@
         {
             await dts.SetgvContextArea(0);
             com = await dts.GetgvCompany();
-            _allCustomers = await pApiClient.GetAsync<List<CustomerTableItemDto>>(ApiEndpoints.Customers.GetAllByCompany(com.CompanyID));
+            _allCustomers = (await pApiClient.GetAsync<ApiResponse<List<CustomerTableItemDto>>>(ApiEndpoints.Customers.GetAllByCompany(com.CompanyID))).Data;
             if (_allCustomers == null)
             {
                 _allCustomers = new();

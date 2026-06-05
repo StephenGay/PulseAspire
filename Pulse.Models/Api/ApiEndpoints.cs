@@ -393,6 +393,32 @@ namespace Pulse.Models.Api
                     public static string Add(string divisionId) => $"{DivisionPrefix}/{Uri.EscapeDataString(divisionId)}/Add";
                 }
             }
+
+            public static class Equipment
+            {
+                private const string EquipmentPrefix = $"{Prefix}/Equipment";
+                public static string GetByID(string equipmentId) => $"{EquipmentPrefix}/GetByID/{Uri.EscapeDataString(equipmentId)}";
+
+                public static class MasterFile
+                {
+                    private const string EquipmentMasterFilePrefix = $"{EquipmentPrefix}/MasterFile";
+                    public const string Update = $"{EquipmentMasterFilePrefix}/Update";
+                }
+                public static class ByDivision
+                {
+                    private const string EquipmentByDivisionPrefix = $"{EquipmentPrefix}/ByDivision";
+                    public static string GetList(string divisionId) => $"{EquipmentByDivisionPrefix}/GetList/{Uri.EscapeDataString(divisionId)}";
+                    public static string GetFullList(string divisionId) => $"{EquipmentByDivisionPrefix}/GetFullList/{Uri.EscapeDataString(divisionId)}";
+
+                }
+
+                public static class Categories
+                {
+                    private const string EquipmentCategoryPrefix = $"{EquipmentPrefix}/Categories";
+                    public static string Get => $"{EquipmentCategoryPrefix}/Get";
+
+                }
+            }
             ////public static class ProductionPlanning
             ////{
             ////    private const string ProductionPlanItemsPrefix = $"{Prefix}/ProductionPlanItems";

@@ -356,7 +356,7 @@ fluent-dialog {
 
     .myCancelBtn:hover {
         --pulse-cancel-btn-bg: var(--error);
-        --pulse-ok-btn-colour: rgb(255,255,255);
+        --pulse-cancel-btn-colour: rgb(255,255,255);
         border: 1px solid var(--pulse-cancel-btn-colour);
         background-color: var(--pulse-cancel-btn-bg);
         color: var(--pulse-cancel-btn-colour);

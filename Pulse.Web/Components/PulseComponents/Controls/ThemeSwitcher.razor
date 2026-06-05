@@ -26,7 +26,7 @@
     <FluentOption Value="space">Space</FluentOption>
 </FluentSelect>
     <FluentButton Appearance="Appearance.Stealth" Class="modeButton" @onclick="ToggleTheme" Style="border:1px solid var(--pulse-dark-colour); margin-left: 8px">
-    @if (!IsDarkMode)
+    @if (IsDarkMode)
     {
         <!-- Sun Icon (Light Mode) -->
         <FluentIcon Class="modeIcon" Value="@(new Icons.Filled.Size24.WeatherSunny().WithColor("#fbbf24"))" />

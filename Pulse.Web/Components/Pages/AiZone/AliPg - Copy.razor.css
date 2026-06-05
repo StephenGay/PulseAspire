@@ -1,0 +1,148 @@
+﻿body {
+    /*color: white !important;*/
+}
+.h3-overide {
+    color: white !important;
+}
+
+.ali-pulse-column-grid {
+    display: grid;
+    grid-auto-flow: column;
+    grid-template-columns: repeat(auto-fill, minmax(325px, 325px));
+    /*grid-auto-columns: minmax(320px, 1fr);*/
+    grid-template-rows: repeat(auto-fill, minmax(120px, auto));
+    gap: 15px;
+    padding: 20px;
+    height: 100%;
+    overflow: auto;
+}
+
+.ali-pulse-grid-item {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    background-color:white;
+    width:320px;
+    height:120px;
+    padding: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+    .ali-pulse-grid-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    /*.pulse-grid-item.box {
+        border: 2px solid var(--pulse-dark-colour);
+        background: linear-gradient(135deg, var(--pulse-dark-t25-colour), var(--pulse-dark-t50-colour));
+    }*/
+    /*.pulse-grid-item.box {
+        border: 2px solid var(--pulse-dark-colour);
+        background: linear-gradient(135deg, var(--pulse-dark-t25-colour), var(--pulse-dark-t50-colour));
+    }*/
+
+.box {
+    /*width: 60vmin;
+    height: 50vmin;
+    display: grid;
+    place-content: center;*/
+    color: white;
+    /*text-shadow: 0 1px 0 #000;*/
+    --border-angle: 0turn; /* // For animation. */
+    --main-bg: conic-gradient( from var(--border-angle), #213, #112 5%, #112 60%, #213 95% );
+    border: solid 5px transparent;
+    border-radius: 8px;
+    --gradient-border: conic-gradient(from var(--border-angle), transparent 25%, #08f, #f03 99%, transparent);
+    background:
+    /* // padding-box clip this background in to the overall element except the border. */
+    var(--main-bg) padding-box,
+    /* // border-box extends this background to the border space */
+    var(--gradient-border) border-box,
+    /* // Duplicate main background to fill in behind the gradient border. You can remove this if you want the border to extend "outside" the box background. */
+    var(--main-bg) border-box;
+    background-position: center center;
+    animation: bg-spin 3s linear infinite;
+}
+
+@keyframes bg-spin {
+    to {
+        --border-angle: 1turn;
+    }
+}
+
+&:hover {
+    animation-play-state: paused;
+}
+
+@property --border-angle {
+    syntax: "<angle>";
+    inherits: true;
+    initial-value: 0turn;
+}
+
+th {
+    border-bottom: 1px solid #365b66 !important;
+}
+.td {
+    background-color: #bcd1d4 !important;
+    color: rgb(54,91,102) !important;
+}
+.form-select {
+    border: 1px solid white;
+    background-color: #0078d4;
+    color: white;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+.form-select:hover {
+    background-color: white;
+    color: black;
+}
+
+.tableB {
+    border: 1px solid var(--pulse-dark-colour);
+}
+
+
+.chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--pulse-dark-colour);
+    background-color: var(--pulse-dark-t25-colour);
+    border-radius: 8px;
+}
+
+.chat-messages {
+    flex: 1;
+    overflow: auto;
+    padding: 10px;
+}
+
+.flapOn {
+    border-color: #1D722A;
+}
+
+@media (max-width: 768px) {
+    .dcontent {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        /*max-height: 300px;*/
+    }
+
+    .chat-area {
+        flex: 1;
+    }
+}
+/*
+@media (max-width: 480px) {
+    .sidebar {
+        display: none;
+    }*/
+}

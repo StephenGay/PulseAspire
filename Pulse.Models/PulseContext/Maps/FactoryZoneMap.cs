@@ -60,6 +60,8 @@ public class FactoryZoneMap : IEntityTypeConfiguration<FactoryZone>
             .HasForeignKey(z => z.WorkCentreID)
             .OnDelete(DeleteBehavior.SetNull);      // or Restrict / NoAction
 
+        builder.Property(z => z.EquipmentID)
+            .IsRequired(false);
         // EquipmentCapabilityID - optional foreign key
         builder.Property(z => z.EquipmentCapabilityID)
             .IsRequired(false);

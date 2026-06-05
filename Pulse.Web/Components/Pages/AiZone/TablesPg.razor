@@ -97,10 +97,11 @@
         <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left" VerticalAlignment="VerticalAlignment.Center" style="padding:10px">
             @if (!showResults)
             {
-                <FluentButton class=@(!viewBox ? "myModeBtnOff" : "tblsOn")
-                                  BackgroundColor="white"
-                              Style="border: 2px solid ;height:50px;width:50px;margin-left:10px"
-                                  OnClick="() => viewBox = !viewBox" >
+                <FluentButton class=@(!viewBox ? "myModeBtnOff" : "myModeBtnOn")
+                                BackgroundColor="var(--pulse-mode-btn-bg)"
+                                Color="var(--pulse-mode-btn-item-colour)"
+                                Style="border: 1px solid var(--pulse-mode-btn-item-colour) ;height:50px;width:50px;margin-left:10px"
+                                OnClick="() => viewBox = !viewBox" >
                     @if (tables != null)
                     {
                         @(tables.emoji.ToMarkup("45px"))

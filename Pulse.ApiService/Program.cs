@@ -370,6 +370,8 @@ app.MapWorkTypeEndpoints();
 app.MapPulseAiEndpoints();
 app.MapAliEndpoints();
 app.MapFlapperEndpoints();
+app.MapPulseThemeEndpoints();
+app.MapEquipmentEndpoints();
 
 // SignalR Hub
 app.MapHub<MessageHub>("/messagehub");

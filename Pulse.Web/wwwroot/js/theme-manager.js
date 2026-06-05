@@ -54,6 +54,20 @@
     console.log(`✅ Theme applied: ${themeName}`);
 };
 
+// Pulse Themes v2
+
+window.applyThemeVariables = (vars) => {
+    const root = document.documentElement;
+    Object.entries(vars).forEach(([k, v]) => root.style.setProperty(k, v));
+};
+
+window.applyThemeVariablesToPreview = (elementId, vars) => {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    Object.entries(vars).forEach(([key, value]) => {
+        el.style.setProperty(key, value);
+    });
+};
 // Auto-apply saved theme on load
 // document.addEventListener('DOMContentLoaded', () => {
 //     const saved = localStorage.getItem('pulse-theme');
