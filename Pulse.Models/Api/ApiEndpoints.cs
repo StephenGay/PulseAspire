@@ -189,9 +189,9 @@ namespace Pulse.Models.Api
         }
         #endregion
 
-            #region Division Endpoints
+        #region Division Endpoints
 
-            public static class Divisions
+        public static class Divisions
         {
             private const string Prefix = $"{ApiPrefix}/Divisions";
             public const string GetActive = $"{Prefix}/GetActive";
@@ -417,6 +417,11 @@ namespace Pulse.Models.Api
                     private const string EquipmentCategoryPrefix = $"{EquipmentPrefix}/Categories";
                     public static string Get => $"{EquipmentCategoryPrefix}/Get";
 
+                }
+                public static class ByWorkCentre
+                {
+                    private const string EquipmentByWorkCentrePrefix = $"{EquipmentPrefix}/ByWorkCentre";
+                    public static string Unzoned(int WorkCentreId) => $"{EquipmentByWorkCentrePrefix}/Unzoned/{WorkCentreId}";
                 }
             }
             ////public static class ProductionPlanning

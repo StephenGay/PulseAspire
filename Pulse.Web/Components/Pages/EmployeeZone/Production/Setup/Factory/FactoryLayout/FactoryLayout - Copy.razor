@@ -1,4 +1,4 @@
-﻿@page "/EmployeeZone/Production/Setup/Factory/FactoryLayout/FactoryLayout"
+﻿@page "/EmployeeZone/Production/Setup/Factory/FactoryLayout/FactoryLayoutBU"
 @using Pulse.Models.Api
 @using Pulse.Models.Organizational
 @using Pulse.Models.Production
@@ -44,62 +44,30 @@
 
 </style>
 
-<FluentCard style="width:100%; margin-left:auto;margin-right:auto;background-color: var(--pulse-light-2-colour);padding: 0px !important;">
-    @if (EditMode)
-    {
-        <FluentToolbar Style="background-color: var(--pulse-light-2-colour);width:stretch">
-            @if (layoutLevel == 0)
-            {
-                <FluentButton Appearance="Appearance.Accent" OnClick="() => openWC = true">+ New Zone</FluentButton>
-            }
-            else
-            {
-                <FluentButton Id="addEquipBtn" Appearance="Appearance.Accent" data-bs-toggle="offcanvas" data-bs-target="#zoneEquip">+ Equipment</FluentButton>
-            }
-            
-            
-            <FluentButton OnClick="EditZoneClick">Edit Zone</FluentButton>
-            <FluentSpacer />
-            <FluentButton OnClick="SaveLayout">Save Layout</FluentButton>
-            @* <FluentButton OnClick="LoadLayout">Load</FluentButton> *@
-            
-            <FluentSwitch @bind-Value="SnapToGrid">Snap to Grid (10px)</FluentSwitch>
-            <FluentSpacer />
-            <FluentButton OnClick="() => EditMode=false">Close</FluentButton>
-            @* <FluentButton OnClick="ZoomIn">+</FluentButton>
-            <FluentButton OnClick="ZoomOut">-</FluentButton>
-            <FluentButton OnClick="ResetView">Reset</FluentButton>
-            <FluentBadge Appearance="Appearance.Neutral">
-                Zoom: @(zoomLevel.ToString("F2"))×
-            </FluentBadge> *@
-        </FluentToolbar>
-    }
-    else
-    {
-        <RadzenButton Click="() => EditMode=true" Icon="lock" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Large" class="rz-border-radius-10 rz-shadow-10" Style="position:absolute;z-index:900;margin-left:10px;margin-top:10px" />
-    }
-    <RadzenFabMenu Icon="search" Style="margin-right:10px" Direction="Radzen.FabMenuDirection.Start">
-        <RadzenFabMenuItem Icon="recenter" Click="ResetView" />
-        <RadzenFabMenuItem Icon="zoom_in" Click="ZoomIn" />
-        <RadzenFabMenuItem Icon="zoom_out" Click="ZoomOut" />
-    </RadzenFabMenu>
+@* <FluentCard style="width:100%; max-width:1920px;margin-left:auto;margin-right:auto;background-color: var(--pulse-light-2-colour)">
+    <FluentToolbar Style="background-color: var(--pulse-light-2-colour)">
+        <FluentButton Appearance="Appearance.Accent" OnClick="() => openWC = true">+ New Zone</FluentButton>
+        <FluentButton OnClick="EditZoneClick">Edit Zone</FluentButton>
+        <FluentButton OnClick="SaveLayout">Save Layout</FluentButton>
+        <FluentButton OnClick="LoadLayout">Load</FluentButton>
+        <FluentButton Id="addEquipBtn" Style="height:40px;width:62px;margin-right:15px" class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" data-bs-target="#zoneEquip">+ Equipment</FluentButton>
+        <FluentSwitch @bind-Value="SnapToGrid">Snap to Grid (10px)</FluentSwitch>
+        <FluentButton OnClick="ZoomIn">+</FluentButton>
+        <FluentButton OnClick="ZoomOut">-</FluentButton>
+        <FluentButton OnClick="ResetView">Reset</FluentButton>
+        <FluentBadge Appearance="Appearance.Neutral">
+            Zoom: @(zoomLevel.ToString("F2"))×
+        </FluentBadge>
+    </FluentToolbar>
+
     <div @ref="layoutContainer" 
-         style="position: relative; width: 100%; min-height: 700px; height:stretch; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;"
+         style="position: relative; width: 100%; min-height: 700px; height:calc(100% - 40px); background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;"
          @onpointerdown="HandlePointerDown"
          @onpointermove="HandleMouseMove" 
          @onpointerup="HandleMouseUp" 
          @onpointerleave="HandleMouseUp"
          @onwheel="HandleWheel"
          @onwheel:preventDefault="true">
-        @if (layoutLevel > 0)
-        {
-            <FluentLabel Style="position:absolute;z-index:900;margin-left:10px;margin-top:10px;font-size:1.25rem;font-weight:bold;color:var(--pulse-dark-colour)">@selectedZone?.Description</FluentLabel>
-            <RadzenButton Click="GoUpALevel" Icon="upgrade" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" class="rz-shadow-10" Style="position:absolute;z-index:900;right:40px" />
-        }
-        else
-        {
-            <RadzenButton Click="LoadLayout" Icon="download_2" Disabled="@(selectedZone == null ? true : false)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" class="rz-shadow-10" Style="position:absolute;z-index:900;right:40px" />
-        }
 
         <svg @ref="svgRef"
              width="100%" height="100%" 
@@ -123,7 +91,7 @@
 </FluentCard>
 
 @* <Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => { openWC=false ; selectedWC = null ; }" AllowResize="true" width="15%" style="overflow-x:hidden"> *@
-    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="zoneWC">
+    @* <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="zoneWC">
         <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
             <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
                 <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px;"
@@ -186,9 +154,9 @@
 
         }
     </FluentStack>
-</div>
+</div> *@ 
 
-@code {
+@* @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private DotNetObjectReference<FactoryLayout>? dotNetRef;
@@ -201,7 +169,6 @@
     private double maxZoom = 5.0;
     private double panX = 0.0;   // in viewBox units
     private double panY = 0.0;
-    private bool EditMode = false;
     private bool isPanning;
     private bool openWC = false;
     private double startPanMouseX, startPanMouseY, startPanX, startPanY;
@@ -252,17 +219,6 @@
         // StateHasChanged();
     }
 
-    private async Task GoUpALevel()
-    {
-        if (layoutParentId == "0") return; // already at top
-        var parentZone = AllZones.FirstOrDefault(z => z.Id.ToString() == layoutParentId);
-        if (parentZone == null) return; // safety check
-        layoutParentId = parentZone.ParentZoneId ?? "0";
-        layoutLevel--;
-        selectedZone = parentZone; // optional: select the parent zone when going up
-        await LoadZonesForParent(layoutParentId);
-        StateHasChanged();
-    }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -600,4 +556,4 @@
 
         return (svgX, svgY);
     }
-}
+} *@

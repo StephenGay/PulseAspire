@@ -9,18 +9,21 @@
 @inject PulseApiService pApi
 @rendermode InteractiveServer
 
-<FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 16px 16px 16px 5px;">
-    <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:26px;width:fit-content;padding: 5px" Color="var(--pulse-accent-btn-colour)" Disabled="@pgMain" OnClick="@(() => { pgMain = true; })">
-        <FluentIcon Value="@(new Icons.Filled.Size16.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))" />
-    </FluentButton>
+<FluentHeader Style="background-color: var(--pulse-dark-t75-colour); margin: -16px -16px 16px -16px; padding: 10px;">
+    
     <FluentLabel Typo="Typography.PaneHeader" Style="margin-left:10px;color:var(--pulse-light-colour);">
-        Equipment
+        @(pgMain ? "Equipment" : (editingEquip.EquipmentItemID == null ? "New Equipment Item" : $"{(isEditing ? "Edit: " : "")}  {editingEquip.EquipmentItemDescription}"))
     </FluentLabel>
+    <FluentSpacer />
+    <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" style="height:35px;width:fit-content;padding: 5px;margin-top:5px" Color="var(--pulse-accent-btn-colour)" Disabled="@(pgMain || isEditing ? true : false)" OnClick="@(() => { startAni = true; })">
+        <FluentIcon Value="@(new Icons.Filled.Size16.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))" />
+        Back
+    </FluentButton>
 </FluentHeader>
 @* <div Id="divOverview" style="height:stretch;width:stretch"> *@
 @if (pgMain)
 {
-    <Animation Effect="@(pgFrom == "Main" ? Effect.BounceOutUp : Effect.BounceInDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100% - 66px);" OnAnimationEnd="@(() => EndAnimation("Main"))">
+    <Animation Effect="@(pgFrom == "Main" ? Effect.BounceOutDown : Effect.BounceInUp)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100% - 66px);" OnAnimationEnd="@(() => EndAnimation("Main"))">
     <RadzenDataGrid @ref="eqGrid"
     Data="@equipmentTableItemDtos"
     TItem="EquipmentTableItemDto"
@@ -80,60 +83,103 @@ else
         
         <Animation Effect="@(pgFrom == "Main" ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100% - 66px);" OnAnimationEnd="@(() => EndAnimation("Edit"))">
 
-            <FluentCard >
-                <div style="overflow:auto">
+            @* <FluentCard Style="@(isEditing ? "opacity:0.5" : "opacity:1")"> *@
+            <div style="background-color:rgba(0,0,0,0);overflow:auto;padding:20px;">
                     <RadzenRow Gap="1rem">
-                        <div class="d-flex justify-content-between align-items-center mb-3" style="width:stretch">
-                            <h5 class="mb-0">@(editingEquip == null ? "New Equipment Item" : $"Edit: {editingEquip.EquipmentItemDescription}")</h5>
-                            <div>
-                                <FluentButton Class="myOkBtn"
-                                              BackgroundColor="var(--pulse-ok-btn-bg)"
-                                              Color="var(--pulse-ok-btn-colour)"
-                                              @onclick="SaveEquipment"
-                                              IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-ok-btn-colour)"))"
+                        @* <div class="d-flex justify-content-between align-items-center mb-3" style="width:stretch;padding-top:10px">
+                        <FluentLabel Typo="Typography.H5">@(editingEquip.EquipmentItemID == null ? "New Equipment Item" : $"{(isEditing ? "Edit: " : "")}  {editingEquip.EquipmentItemDescription}")</FluentLabel>
+                            @* <h5 class="mb-0">@(editingEquip.EquipmentItemID == null ? "New Equipment Item" : $"{(isEditing ? "Edit: " : "")}  {editingEquip.EquipmentItemDescription}")</h5> *@
+                    @* <div>
+                                <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" 
+                                                Color="var(--pulse-accent-btn-colour)"
+                                              @onclick="() => isEditing = true"
+                                              IconStart="@(new Icons.Filled.Size24.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
                                               Style="height:40px;"
-                                              Disabled="@isSaving">
-                                    Save
+                                              Disabled="@isEditing">
+                                    Edit
                                 </FluentButton>
-                                <FluentButton Class="myCancelBtn"
-                                              BackgroundColor="var(--pulse-cancel-btn-bg)"
-                                              Color="var(--pulse-cancel-btn-colour)"
-                                              IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("var(--pulse-cancel-btn-colour)"))"
-                                              Style="height:40px"
-                                              onclick="CancelEdit">
-                                    Cancel
+                                <FluentButton Class="myAccentBtn" 
+                                                BackgroundColor="var(--pulse-accent-btn-bg)"
+                                                Color="var(--pulse-accent-btn-colour)"
+                                                IconStart="@(new Icons.Filled.Size24.ArrowCircleLeft().WithColor("var(--pulse-accent-btn-colour)"))"
+                                                Style="height:40px"
+                                                onclick="() => startAni = true"
+                                                Disabled="@isEditing">
+                                    Back
                                 </FluentButton>
                             </div>
-                        </div>
+                        </div> *@
                         <RadzenColumn Size="4" >
-                            <FluentTextField @bind-Value="editingEquip.EquipmentItemDescription" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter a description for the item" Label="Description" />
-                            <FluentTextField @bind-Value="editingEquip.EquipmentItemDescription2" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter an alternative description for the item" Label="Description (Alternate)" />
+                            <div class="@(isEditing ? "colEditMode" : "colViewMode")" style="margin-bottom:20px">
+                            <FluentTextField @bind-Value="editingEquip.EquipmentItemDescription" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter a description for the item" ReadOnly="!isEditing" Label="Description" />
+                            <FluentTextField @bind-Value="editingEquip.EquipmentItemDescription2" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter an alternative description for the item" ReadOnly="!isEditing" Label="Description (Alternate)" />
                                 <FluentSelect @bind-Value="editingEquip.EquipmentCategoryID"
+                                                ReadOnly="!isEditing"
                                                 Items=@eqCat
                                                 Appearance="Appearance.Filled"  
                                                 Label="Category" 
                                                 TOption="EquipmentCategory" 
                                           Style="width:stretch"
                                                 OptionValue="@(i => i.EquipmentCategoryID)"
-                                                OptionText="@(i => i.EquipmentCategoryName)"
-                                                />
-                            <FluentTextField @bind-Value="editingEquip.ManufacturerName" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the name of the Manufacturer" Label="Manufacturer" />
-                            <FluentTextField @bind-Value="editingEquip.Model" Style="width:stretch" Appearance=" FluentInputAppearance.Filled" Placeholder="Enter the Model Name" Label="Model" />
-                            <FluentTextField @bind-Value="editingEquip.FixedAssetNo" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the Fixed Asset Code" Label="Fixed Asset Code" />
-                            <FluentTextField @bind-Value="editingEquip.SerialNo" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the Serial Number" Label="Serial Number" />
+                                                OptionText="@(i => i.EquipmentCategoryName)" />
+                            <FluentTextField @bind-Value="editingEquip.ManufacturerName" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the name of the Manufacturer" ReadOnly="!isEditing" Label="Manufacturer" />
+                            <FluentTextField @bind-Value="editingEquip.Model" Style="width:stretch" Appearance=" FluentInputAppearance.Filled" Placeholder="Enter the Model Name" ReadOnly="!isEditing" Label="Model" />
+                            <FluentTextField @bind-Value="editingEquip.FixedAssetNo" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the Fixed Asset Code" ReadOnly="!isEditing" Label="Fixed Asset Code" />
+                            <FluentTextField @bind-Value="editingEquip.SerialNo" Style="width:stretch" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the Serial Number" ReadOnly="!isEditing" Label="Serial Number" />
+                            <FluentLabel Typo="Typography.Body">Operational Status</FluentLabel>
+                            <FluentSwitch @bind-Value="editingEquip.IsOperational" CheckedMessage="Operational" UncheckedMessage="Currently Offline" ReadOnly="!isEditing" /><br />
+                            <br />
+                            <FluentLabel Typo="Typography.Body">Active / Decommisioned</FluentLabel>
+                            <FluentSwitch @bind-Value="editingEquip.IsActive" CheckedMessage="Active" UncheckedMessage="Decommisioned" ReadOnly="!isEditing" /><br />
+                            <div class="d-flex justify-content-center align-items-center mb-3" style="width:stretch; margin-top:20px">
+                                    @if (isEditing)
+                                    {
+                                        <FluentButton Class="myCancelBtn"
+                                                      BackgroundColor="var(--pulse-cancel-btn-bg)"
+                                                      Disabled="!isEditing"
+                                                      Color="var(--pulse-cancel-btn-colour)"
+                                                      IconStart="@(new Icons.Filled.Size24.DismissCircle().WithColor("var(--pulse-cancel-btn-colour)"))"
+                                                      Style="height:40px;margin-right:10px"
+                                                      onclick="CancelEdit">
+                                            Cancel
+                                        </FluentButton>
+                                        <FluentButton Class="myOkBtn"
+                                                      BackgroundColor="var(--pulse-ok-btn-bg)"
+                                                      Color="var(--pulse-ok-btn-colour)"
+                                                      @onclick="SaveEquipment"
+                                                      IconStart="@(new Icons.Filled.Size24.Save().WithColor("var(--pulse-ok-btn-colour)"))"
+                                                      Style="height:40px;"
+                                                      Disabled="@(isSaving || !isEditing ? true : false)">
+                                            Save
+                                        </FluentButton>
+                                    }
+                                    else
+                                    {
+                                        <FluentButton Class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)"
+                                                      Color="var(--pulse-accent-btn-colour)"
+                                                      @onclick="() => isEditing = true"
+                                                      IconStart="@(new Icons.Filled.Size24.Edit().WithColor("var(--pulse-accent-btn-colour)"))"
+                                                      Style="height:40px;margin-left:10px;"
+                                                      Disabled="@isEditing">
+                                            Edit
+                                        </FluentButton>
+                                    }
+                                    
+                                
+                            </div>
+                            </div>
                         </RadzenColumn>
                         <RadzenColumn Size="4" >
-            
-                            <FluentSwitch @bind-Value="editingEquip.IsOperational" Label="Is the item currently in operation?" /><br />
-                            <FluentSwitch @bind-Value="editingEquip.IsActive" Label="Is the item still Active?" /><br />
-                            <FluentTextField @bind-Value="editingEquip.Barcode" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the QR Code" Label="QR Code" Style="width:stretch" />
+                            <div class="@(isEditing ? "colEditMode" : "colViewMode")" style="margin-bottom:20px">
+                            <FluentTextField @bind-Value="editingEquip.Barcode" Appearance="FluentInputAppearance.Filled" Placeholder="Enter the QR Code" ReadOnly="!isEditing" Label="QR Code" Style="width:stretch" />
                             <RadzenStack AlignItems="AlignItems.Center" JustifyContent="Radzen.JustifyContent.Center" >
                                 <RadzenQRCode Value="@editingEquip.Barcode" Style="width:50%;height:auto" />
                             </RadzenStack>
+                            </div>
                         </RadzenColumn>
                     </RadzenRow>
                 </div>
-            </FluentCard>
+            @* </FluentCard> *@
         </Animation>
     }
 }
@@ -153,6 +199,7 @@ else
     private List<EquipmentCategory> eqCat = [];
     private bool startAni = false;
     private bool isSaving = false;
+    private bool isEditing = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -166,18 +213,20 @@ else
         var response = await pApi.PostAsync<EquipmentItem, ApiResponse>(ApiEndpoints.Production.Equipment.MasterFile.Update, editingEquip);
         if (response.Success)
         {
-            editingEquip = new EquipmentItem();
+            // editingEquip = new EquipmentItem();
             await LoadEquipment();
             isSaving = false;
-            startAni = true;
+            isEditing = false;
+            // startAni = true;
             // await InvokeAsync(StateHasChanged);
         }
-        
+
     }
     private async Task CancelEdit()
     {
-        editingEquip = new EquipmentItem();
-        startAni = true;
+        // editingEquip = new EquipmentItem();
+        isEditing = false;
+        // startAni = true;
         // await InvokeAsync(StateHasChanged);
     }
     private async Task LoadEquipment()

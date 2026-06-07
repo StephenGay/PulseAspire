@@ -50,7 +50,8 @@ public class BarcodeSetup
     public required string qrImageBackground { get; set; } = "#FFFFFF";
     [Required]
     public string? codeValue { get; set; }
-
+    [DefaultValue(false)]
+    public bool IsActive { get; set; } = true;
 }
 public enum BarcodeCategory
 {

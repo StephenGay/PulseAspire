@@ -1,0 +1,25 @@
+/* CSS for EquipmentPg component */
+
+.colEditMode {
+    border: 1px solid var(--pulse-dark-colour);
+    box-shadow: 15px 15px 15px rgba(0, 0, 0, 0.8);
+    border-radius: 10px;
+    background-color: var(--fill-color);
+    /*opacity: 1;*/
+    padding:10px;
+}
+    .colEditMode > .fluent-input-label {
+        color: var(--neutral-foreground-rest);
+    }
+
+    .colViewMode {
+        border: 1px solid var(--pulse-dark-colour);
+        box-shadow: 0px 0px 0px 0px rgba(0, 0, 0, 0);
+        background-color: var(--pulse-dark-t50-colour);
+        /* var(--fill-color);*/
+        border-radius: 10px;
+        padding: 10px;
+    }
+        .colViewMode > .fluent-input-label[b-hum22yrq17] {
+            color: var(--pulse-dark-colour) !important;
+        }
