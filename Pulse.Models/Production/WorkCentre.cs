@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Pulse.Models.Production.Layout;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
@@ -38,6 +39,9 @@ namespace Pulse.Models.Production
         public string? TextColour { get; set; } = "#000000";
         [DefaultValue(true)]
         public bool IsActive { get; set; } = true;
+        public ICollection<ProductionStage>? ProductionStages { get; set; }
         public ICollection<WorkCentreFunctions>? WorkCentreFunctions { get; set; }
+        public ICollection<FactoryZone>? FactoryZones { get; set; }
+        public ICollection<ProductionPlanItem>? ProductionPlanItems { get; set; }
     }
 }

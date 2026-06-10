@@ -372,6 +372,7 @@ app.MapAliEndpoints();
 app.MapFlapperEndpoints();
 app.MapPulseThemeEndpoints();
 app.MapEquipmentEndpoints();
+app.MapWorkInProgressEndpoints();
 
 // SignalR Hub
 app.MapHub<MessageHub>("/messagehub");

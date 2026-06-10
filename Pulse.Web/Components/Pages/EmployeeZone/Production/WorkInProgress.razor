@@ -128,7 +128,8 @@
                             ExpandMode="DataGridExpandMode.Multiple"
                             ShowExpandAll="true"
                             ExpandAllTitle="Ex"
-                            ShowGroupExpandColumn="true"
+                            ShowGroupExpandColumn=true
+                            CollapseAllTitle="Collapse"
                             Style="height:100%;border-radius:10px"
                             AllowVirtualization="true"
                             AllowColumnPicking="true"
@@ -149,6 +150,7 @@
                     <div style="text-align:left;width:stretch">
                     @* <RadzenButton Text="Expand all groups" Click="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true) />
                         <RadzenButton Text="Collapse all groups" Click="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true) /> *@
+                        
                         <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class=@(allGroupsExpanded == false ? "btnShadow" : "") style="border: 1px solid var(--pulse-accent-btn-colour); width:50px;height:50px" OnClick="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true)>
                             <FluentIcon Value="@(new Icons.Filled.Size28.PanelLeftExpand())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-accent-btn-colour)" />
                         </FluentButton>
@@ -270,10 +272,10 @@
                         await InvokeAsync(StateHasChanged);
                         break;
                     case 2: // Add To Todays Plan
-                            // Your logic here
+                        // Your logic here
                         break;
                     case 3: // Complete This Stage
-                            // Your logic here
+                        // Your logic here
                         break;
                 }
             }
@@ -285,6 +287,7 @@
     {
         allGroupsExpanded = value;
     }
+
     void OnGroupRowRender(GroupRowRenderEventArgs args)
     {
 
@@ -292,7 +295,6 @@
         args.Expandable = true;
     }
     
-
     DataGridSettings _WIPdgSettings;
     public DataGridSettings WIPdgSettings
     {

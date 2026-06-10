@@ -22,7 +22,7 @@
             try
             {
                 // Add a small delay to ensure Ollama container is fully ready
-                await Task.Delay(2000, stoppingToken);
+                //await Task.Delay(2000, stoppingToken);
 
                 // Preload with keep_alive forever and GPU options to preserve layer offloading
                 var payload = new
@@ -32,8 +32,7 @@
                     stream = false,
                     options = new
                     {
-                        num_gpu = 25,  // Match your GPU layer configuration
-                        num_ctx = 32000
+                        num_gpu = 25
                     }
                 };
 

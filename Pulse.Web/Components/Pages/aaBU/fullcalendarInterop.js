@@ -44,10 +44,10 @@ window.fullCalendarInterop = {
                   },
                 resourceAreaWidth: '20%',
                   
-                resourceAreaColumns: [
+                  resourceAreaColumns: [
                     {
-                        headerContent: 'Work Centre',
-                        field: 'title'
+                          headerContent: 'Equipment',
+                      field: 'title'
                     }
                   ],
                   resources: resources,

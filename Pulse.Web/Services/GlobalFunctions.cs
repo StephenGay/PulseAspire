@@ -5,8 +5,10 @@ using Pulse.Models.AI.Tools;
 using Pulse.Models.Api;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Production.Layout;
 using Pulse.Models.Users;
 using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs;
+using Pulse.Web.Components.Pages.EmployeeZone.Production.Setup.Factory.FactoryLayout;
 using Pulse.Web.Services;
 using Radzen;
 using StackExchange.Redis;
@@ -112,24 +114,9 @@ public class GlobalFunctions
             return new ChartConfig();
         }
     }
-    public string ParseToHtml(string markdownContent)
-    {
-        if (string.IsNullOrEmpty(markdownContent))
-        {
-            return string.Empty;
-        }
-        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
-        var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
+    
 
-        html = System.Text.RegularExpressions.Regex.Replace(
-            html,
-            @"<a\s+href=""([^""]*)""",
-            @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
-        );
-
-        return html;
-    }
-
+#region Export Functions
     public async Task ExportToPdf(string html, string filename)
     {
         if (string.IsNullOrEmpty(html))
@@ -167,7 +154,6 @@ public class GlobalFunctions
             return;
         }
     }
-
     public async Task ExportToPulseMsg(PulseMessage msg)
     {
         if (string.IsNullOrEmpty(msg.Content))
@@ -202,7 +188,6 @@ public class GlobalFunctions
             return;
         }
     }
-
     public async Task ExportHtmlFile(string html, string filename)
     {
         if (string.IsNullOrEmpty(html))
@@ -227,7 +212,23 @@ public class GlobalFunctions
             return;
         }
     }
+    public string ParseToHtml(string markdownContent)
+    {
+        if (string.IsNullOrEmpty(markdownContent))
+        {
+            return string.Empty;
+        }
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        var html = Markdig.Markdown.ToHtml(markdownContent, pipeline);
 
+        html = System.Text.RegularExpressions.Regex.Replace(
+            html,
+            @"<a\s+href=""([^""]*)""",
+            @"<a href=""$1"" target=""_blank"" rel=""noopener noreferrer"""
+        );
+
+        return html;
+    }
     private string AddInternalMarkUp(string html)
     {
         if (string.IsNullOrEmpty(html)) return html;
@@ -241,7 +242,6 @@ public class GlobalFunctions
             .Replace("h2", "h5")
          .Replace("h3", "h5");
     }
-
     private string AddExportCss(string html)
     {
         var css = @"
@@ -263,7 +263,9 @@ public class GlobalFunctions
         
     }
 
-    #region Dialog Functions
+#endregion
+
+#region Dialog Pages
 
     public async Task<string> OpenClientSearch(Radzen.DialogService dialogService)
     {
@@ -294,7 +296,40 @@ public class GlobalFunctions
         return result;
         //await _jsRuntime.InvokeVoidAsync("window.localStorage.setItem", dialogSettingsName, JsonSerializer.Serialize<DialogSettings>(Settings));
     }
+    public async Task<FactoryZone> OpenEditZoneDialog(Radzen.DialogService dialogService, FactoryZone factoryZone)
+    {
+        dialogSettingsName = "EditZoneDialogSettings";
+        //var result = await _jsRuntime.InvokeAsync<string>("window.localStorage.getItem", dialogSettingsName);
+        //if (!string.IsNullOrEmpty(result))
+        //{
+        //    _settings = JsonSerializer.Deserialize<DialogSettings>(result);
+        //}
+        await LoadStateAsync();
+        var result = await dialogService.OpenAsync<EditZoneDialog>(title: "Factory Zone", parameters: new Dictionary<string, object?>() { { "zone", factoryZone } }, options:
+               new DialogOptions()
+               {
+                   Resizable = true,
+                   Draggable = true,
+                   Resize = OnResize,
+                   Drag = OnDrag,
+                   Icon = "edit",
+                   ShowClose = true,
+                   CloseDialogOnEsc = false,
+                   CloseDialogOnOverlayClick = true,
+                   Width = Settings != null ? Settings.Width : "500px",
+                   Height = Settings != null ? Settings.Height : "512px",
+                   Left = Settings != null ? Settings.Left : null,
+                   Top = Settings != null ? Settings.Top : null
+               });
+        await SaveStateAsync();
+        if(result == null) { result = factoryZone; }
+        return result;
+        //await _jsRuntime.InvokeVoidAsync("window.localStorage.setItem", dialogSettingsName, JsonSerializer.Serialize<DialogSettings>(Settings));
+    }
 
+#endregion
+
+#region Dialog Functions
     void OnDrag(System.Drawing.Point point)
     {
         _jsRuntime.InvokeVoidAsync("eval", $"console.log('Dialog drag. Left:{point.X}, Top:{point.Y}')");
@@ -368,9 +403,9 @@ public class GlobalFunctions
         public string Height { get; set; }
     }
 
-    #endregion
+#endregion
 
-    #region Colour Converter
+#region Colour Converter
 
     // Source - https://stackoverflow.com/a/69295742
     // Posted by Mehmet Erdoğdu
@@ -473,7 +508,7 @@ public class GlobalFunctions
         }
     }
 
+#endregion
 
-    #endregion
 }
 

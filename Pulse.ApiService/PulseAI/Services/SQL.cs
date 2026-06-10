@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
-using System.Linq;
-using System.IO;
-using System.Threading.Tasks;
-using Microsoft.Data.SqlClient;
+﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.SqlServer.TransactSql.ScriptDom;
 using Pulse.Models.Api;
 using Pulse.Models.PulseContext;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Diagnostics;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace Pulse.ApiService.PulseAI.Services;
 
@@ -110,6 +111,10 @@ public class TablesSQL
     private async Task<List<AiQueryValidationError>> ValidateQuery(string query, string connectionString)
     {
         var errors = new List<AiQueryValidationError>();
+        try
+        {
+
+        
 
         // Parse the SQL query
         using var reader = new StringReader(query);
@@ -175,7 +180,7 @@ public class TablesSQL
         foreach (var columnRef in visitor.Columns)
         {
             // Skip wildcard selections (e.g., *, table.*)
-            if (columnRef.MultiPartIdentifier.Identifiers.Last().Value == "*")
+            if (columnRef.ColumnType == ColumnType.Wildcard) //  .MultiPartIdentifier.Identifiers.Last().Value == "*")
                 continue;
 
             var columnName = columnRef.MultiPartIdentifier.Identifiers.Last().Value;
@@ -219,6 +224,19 @@ public class TablesSQL
         }
 
         return errors;
+        }
+        catch(Exception ex)
+        {
+            errors.Add(new AiQueryValidationError
+            {
+                ErrorType = "General",
+                Message = ex.Message,
+                ObjectName = "Unknown",
+                Suggestion = "None",
+                AvailableAlternatives = null
+            });
+            return errors;
+        }
     }
 
     /// <summary>

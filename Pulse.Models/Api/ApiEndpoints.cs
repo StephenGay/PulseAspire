@@ -424,6 +424,35 @@ namespace Pulse.Models.Api
                     public static string Unzoned(int WorkCentreId) => $"{EquipmentByWorkCentrePrefix}/Unzoned/{WorkCentreId}";
                 }
             }
+
+            public static class WorkInProgress
+            {
+                private const string WIPPrefix = $"{Prefix}/WorkInProgress";
+
+                public static class ByDivision
+                {
+                    private const string WIPByDivisionPrefix = $"{WIPPrefix}/ByDivision";
+                    public static class Basic
+                    {
+                        private const string BasicPrefix = $"{WIPByDivisionPrefix}/Basic";
+                        public static string Get(string divisionId) => $"{BasicPrefix}/{Uri.EscapeDataString(divisionId)}";
+                        public static string WithPlan(string divisionId) => $"{BasicPrefix}/WithPlan/{Uri.EscapeDataString(divisionId)}";
+                    }
+                    public static class Plan
+                    {
+                        private const string PlanPrefix = $"{WIPByDivisionPrefix}/Plan";
+                        public static string GetTodaysItems(string divisionId) => $"{PlanPrefix}/Today/{Uri.EscapeDataString(divisionId)}";
+                        public static string GetResources(string divisionId) => $"{PlanPrefix}/GetResources/{Uri.EscapeDataString(divisionId)}";
+
+                        public static class WorkCentres
+                        {
+                            private const string WorkCentresPrefix = $"{PlanPrefix}/WorkCentres";
+                            public static string GetStats(string divisionId) => $"{WorkCentresPrefix}/GetStats/{Uri.EscapeDataString(divisionId)}";
+                        }
+                    }
+                }
+            }
+
             ////public static class ProductionPlanning
             ////{
             ////    private const string ProductionPlanItemsPrefix = $"{Prefix}/ProductionPlanItems";

@@ -30,18 +30,19 @@ namespace Pulse.Models.AI.Flapper
 
         [JsonPropertyName("options")]
         public OllamaOptions Options { get; set; } = new OllamaOptions
-            { Temperature = 0.0,
+            { Temperature = 0.7,
             NumCtx = 32000,
-            NumPredict = 1024,
+            NumPredict = 2048,
             TopK = 40,
-            TopP = 0.7,
-            RepeatPenalty = 2,
-            NumThread = Environment.ProcessorCount,
-            NumGpu = 25,
-
-            FrequencyPenalty = 2,
-            PresencePenalty = 2
+            TopP = 0.9,
+            RepeatPenalty = 1.1
         };
+        //    ,
+        //    NumThread = Environment.ProcessorCount,
+        //    NumGpu = 25,
+        //    FrequencyPenalty = 2,
+        //    PresencePenalty = 2
+        //};
 
         public string BuildSystemMessage(SystemMessageData systemMessageData)
         {

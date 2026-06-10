@@ -48,8 +48,10 @@ namespace Pulse.Models.Production
         public decimal BaseValue { get; set; } = decimal.Zero;
         [DefaultValue(0)]
         public int BaseMinutesAtStage { get; set; } = 0;
+        public int? WorkCentreID { get; set; }
         public Division? Division { get; set; }
         public WorkType? WorkType { get; set; }
+        public WorkCentre? WorkCentre { get; set; }
         public DivisionWorkType? DivisionWorkType { get; set; }
         public ICollection<EquipmentCapability>? EquipmentCapabilities { get; set; }
 

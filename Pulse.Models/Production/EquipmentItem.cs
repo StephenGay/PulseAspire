@@ -1,5 +1,6 @@
 ﻿using Pulse.Models.Misc;
 using Pulse.Models.Organizational;
+using Pulse.Models.Production.Layout;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -35,12 +36,16 @@ namespace Pulse.Models.Production
         public bool IsActive { get; set; } = true;
         [DefaultValue(true)]
         public bool IsOperational { get; set; } = true;
-        public string? ZoneID { get; set; }
+        public Guid? ZoneID { get; set; }
+        [MaxLength(150)]
         public string? SerialNo { get; set; }
+        [MaxLength(150)]
         public string? Model { get; set; }
         public string? Barcode { get; set; }
         public EquipmentCategory? EquipmentCategory { get; set; }
         public Division? Division { get; set; }
+        public FactoryZone? FactoryZone { get; set; }
         public ICollection<EquipmentCapability>? EquipmentCapabilities { get; set; }
+        public ICollection<ProductionPlanItem>? ProductionPlanItems { get; set; }
     }
 }

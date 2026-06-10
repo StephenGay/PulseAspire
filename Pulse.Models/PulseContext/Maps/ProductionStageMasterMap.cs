@@ -30,6 +30,9 @@ namespace Pulse.Models.PulseContext.Maps
                 .IsRequired()
                 .HasMaxLength(5);
 
+            builder.Property(e => e.WorkCentreID)
+                .IsRequired(false);
+
             builder.Property(e => e.WorkTypeID)
                 .IsRequired();
 
@@ -80,8 +83,14 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasForeignKey(e => e.DivisionID)
                 .HasPrincipalKey(d => d.DivisionID)
                 .IsRequired()
-                .OnDelete(DeleteBehavior.Restrict); 
-                
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.HasOne(e => e.WorkCentre)
+                .WithMany(wc => wc.ProductionStages) 
+                .HasForeignKey(e => e.WorkCentreID)
+                .HasPrincipalKey(wc => wc.WorkCentreId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(e => e.WorkType)
                 .WithMany() // Add .HasMany(w => w.ProductionStages) if collection exists in WorkType
@@ -99,6 +108,7 @@ namespace Pulse.Models.PulseContext.Maps
 
             builder.HasIndex(e => e.IsActive);
             builder.HasIndex(e => e.StepNo);
+            builder.HasIndex(e => e.WorkCentreID);
             builder.HasIndex(e => new { e.DivisionID, e.WorkTypeID });        // Useful for the composite relationship
             builder.HasIndex(e => new { e.DivisionID, e.WorkTypeID, e.StepNo });
         }

@@ -1,0 +1,16 @@
+/* CSS for ProductionCalendar component */
+.overdueNotStarted {
+    border: 2px double var(--pulse-dark-colour);
+    /*background-color:  var(--pulse-dark-t25-colour);*/
+    animation: overdueNotStarted-pulse 2s infinite;
+}
+
+@keyframes overdueNotStarted-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 rgba(255,0,0,0.1);
+    }
+
+    50% {
+        box-shadow: 0 0 15px 8px rgba(255,0,0,1);
+    }
+}

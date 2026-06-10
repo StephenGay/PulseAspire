@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260610000832_AddProdPlanUpdates2")]
+    partial class AddProdPlanUpdates2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2168,6 +2171,9 @@ namespace Pulse.ApiService.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<Guid?>("FactoryZoneId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<string>("FixedAssetNo")
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
@@ -2202,6 +2208,8 @@ namespace Pulse.ApiService.Migrations
                     b.HasIndex("DivisionID");
 
                     b.HasIndex("EquipmentCategoryID");
+
+                    b.HasIndex("FactoryZoneId");
 
                     b.HasIndex("ZoneID");
 
@@ -4042,8 +4050,12 @@ namespace Pulse.ApiService.Migrations
                         .HasForeignKey("EquipmentCategoryID")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Pulse.Models.Production.Layout.FactoryZone", "FactoryZone")
+                    b.HasOne("Pulse.Models.Production.Layout.FactoryZone", null)
                         .WithMany("EquipmentItems")
+                        .HasForeignKey("FactoryZoneId");
+
+                    b.HasOne("Pulse.Models.Production.Layout.FactoryZone", "FactoryZone")
+                        .WithMany()
                         .HasForeignKey("ZoneID");
 
                     b.Navigation("Division");

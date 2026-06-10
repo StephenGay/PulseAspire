@@ -77,6 +77,17 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasForeignKey(e => e.BranchID)
             .OnDelete(DeleteBehavior.NoAction);
 
+            builder.HasMany(e => e.ProductionStages)
+                .WithOne(ps => ps.WorkCentre)
+                .HasForeignKey(ps => ps.WorkCentreID);
+
+            builder.HasMany(e => e.FactoryZones)
+                .WithOne(fz => fz.WorkCentre)
+                .HasForeignKey(fz => fz.WorkCentreID);
+
+            builder.HasMany(e => e.ProductionPlanItems)
+                .WithOne(pp => pp.WorkCentre)
+                .HasForeignKey(pp => pp.WorkCentreID);
             // 3. WorkCentreFunctions (one-to-many)
             builder.HasMany(e => e.WorkCentreFunctions)
                 .WithOne(wcf => wcf.WorkCentre) // Add .HasOne(wcf => wcf.WorkCentre) if navigation exists in WorkCentreFunction

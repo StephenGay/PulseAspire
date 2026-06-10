@@ -1,9 +1,7 @@
-﻿@page "/EmployeeZone/Production/ProductionCalendar"
+﻿@page "/EmployeeZone/Production/ProductionCalendarOld"
 @using Pulse.Models.CustomComponents
 @using Pulse.Models.Organizational
-@using Pulse.Models.Dtos.Production
 @using Pulse.Models.Production
-@using Pulse.Models.Api
 @using Pulse.Web.Services
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
@@ -171,7 +169,7 @@
     private List<ProductionPlanEvent>? events;
     private List<ProductionUnPlannedEvent>? unplannedWO;
     private List<ProductionPlanResource>? resources;
-    private DotNetObjectReference<ProductionCalendar>? dotNetRef;
+    private DotNetObjectReference<ProductionCalendarOld>? dotNetRef;
     private List<WorkCentre>? workCentres;
     private WorkCentre? workCentre;
     private FluentDialog? _myFluentDialog;
@@ -196,7 +194,7 @@
         selWC = string.Empty;
         unplannedWO = null;
         events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
-        resources = await pApi.GetAsync<List<ProductionPlanResource>>(ApiEndpoints.Production.WorkInProgress.ByDivision.Plan.GetResources(DivisionId));
+        resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
 
         try
         {
@@ -222,8 +220,7 @@
             events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/{DivisionId}/GetWIP/PlanItems");
 
             //resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
-            // resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
-            resources = (await pApi.GetAsync<ApiResponse<List<ProductionPlanResource>>>(ApiEndpoints.Production.WorkInProgress.ByDivision.Plan.GetResources(DivisionId))).Data;
+            resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/{DivisionId}/GetPlanningEquipment");
             dotNetRef = DotNetObjectReference.Create(this);
             calendarModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/fullcalendarInterop.js");
             await JS.InvokeVoidAsync("fullCalendarInterop.initialize", "#calendar", events, resources, dotNetRef);
@@ -248,7 +245,7 @@
         selWC = wc.WorkCentreId.ToString();
         unplannedWO = null;
         //resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
-        // resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
+        resources = await pApi.GetAsync<List<ProductionPlanResource>>($"/Divisions/GetPlanningEquipment/ByWorkCentre/{selWC}");
         events = await pApi.GetAsync<List<ProductionPlanEvent>>($"/Divisions/GetWIP/PlanItems/ByWorkCentre/{selWC}");
         unplannedWO = await pApi.GetAsync<List<ProductionUnPlannedEvent>>($"/Divisions/GetWIP/UnPlannedItems/ByWorkCentre/{selWC}");
 
@@ -276,20 +273,25 @@
     }
 
     [JSInvokable]
-    public async Task OnEventDropped(string planId, string timeStart, string resourceID, string dur)
+    public async Task OnEventDropped(string planId, string timeStart, string equipID, string dur)
     {
         ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
         var start = DateTime.Parse(timeStart);
         DateTime eD;
-        int x = resourceID.IndexOf("_");
-        string? wcID = x > 0 ? resourceID.Substring(0, x) : null;
-        string? zID = x > 0 ? resourceID.Substring(x + 1) : null;
-        x = zID.IndexOf("_", x + 1);
-        
-        
-        string? eID = x > 0 ? zID.Substring(x + 1) : null;
-        zID = x > 0 ? zID.Substring(0, x) : zID;
 
+        // if (dur == "move")
+        // {
+        // if(updatedEvent.PlannedStartTime != null && updatedEvent.PlannedEndTime != null)
+        // {
+
+        // }
+        // DateTime? st = updatedEvent.PlannedStartTime;
+        // DateTime? end = if (updatedEvent.PlannedEndTime == null) { st; }else { updatedEvent.PlannedEndTime; }
+        // TimeSpan duration = end - updatedEvent.PlannedStartTime;
+        //     eD = start.Add(dur);
+        // }
+        // else
+        // {
         int Hrs = Convert.ToInt32(dur.Substring(0, dur.IndexOf(":")));
         int min = Convert.ToInt32(dur.Substring(dur.IndexOf(":") + 1, 2));
         TimeSpan d = new TimeSpan(Hrs, min, 0);
@@ -298,9 +300,7 @@
 
         updatedEvent.PlannedStartTime = start;
         updatedEvent.PlannedEndTime = eD;
-        if (Int32.TryParse(wcID, out Int32 w)) { updatedEvent.WorkCentreID = w; }
-        if (Guid.TryParse(zID, out Guid guidValue)) { updatedEvent.ZoneId = guidValue; }
-        updatedEvent.EquipmentItemID = eID;
+        updatedEvent.EquipmentItemID = equipID;
         updatedEvent.Status = "Planned";
         await pApi.UpdatePlanItemAsync(updatedEvent);
     }
@@ -341,7 +341,7 @@
     }
 
     [JSInvokable]
-    public async Task OnEventChanged(string planId, string timeStart, string timeEnd, string resourceID)
+    public async Task OnEventChanged(string planId, string timeStart, string timeEnd, string equipID)
     {
         ProductionPlanItem updatedEvent = await pApi.GetAsync<ProductionPlanItem>($"/Divisions/WIP/GetPlanItem/{planId}");
         var start = DateTime.Parse(timeStart);
@@ -349,19 +349,9 @@
 
         updatedEvent.PlannedStartTime = start;
         updatedEvent.PlannedEndTime = end;
-        if(resourceID != "Same")
+        if(equipID != "Same")
         {
-            int x = resourceID.IndexOf("_");
-            string? wcID = x > 0 ? resourceID.Substring(0, x) : null;
-            string? zID = x > 0 ? resourceID.Substring(x + 1) : null;
-            x = zID.IndexOf("_", x + 1);
-            
-            // x = zID.IndexOf("_");
-            string? eID = x > 0 ? zID.Substring(x + 1) : null;
-            zID = x > 0 ? zID.Substring(0, x) : zID;
-            if (Int32.TryParse(wcID, out Int32 w)) { updatedEvent.WorkCentreID = w; }
-            if (Guid.TryParse(zID, out Guid guidValue)) { updatedEvent.ZoneId = guidValue; }
-            updatedEvent.EquipmentItemID = eID;
+            updatedEvent.EquipmentItemID = equipID;
         }
         
         await pApi.UpdatePlanItemAsync(updatedEvent);

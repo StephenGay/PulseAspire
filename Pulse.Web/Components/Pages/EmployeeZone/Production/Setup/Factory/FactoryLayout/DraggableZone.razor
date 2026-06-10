@@ -1,51 +1,80 @@
 ﻿@using Pulse.Models.Production.Layout
 @implements IAsyncDisposable
 
+
 <!-- DraggableZone.razor -->
 <g transform="translate(@Zone.X, @Zone.Y)"
        @onpointerdown="OnPointerDownWithSelection"
        @onpointerdown:stopPropagation="true"
-       style="cursor: move; user-select: none;">
+        style="cursor: @(GetCursorStyle()); user-select: none; transition: all 0.2s ease-out;">
 
-    @* <rect width="@Zone.Width" height="@Zone.Height"
-          fill="@Zone.Color" stroke="#1f2937" stroke-width="2" rx="6" /> *@
+    @if (IsSelected)
+    {
+        <defs>
+            <filter id="@($"shadow-{Zone.Id}")" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="4" />
+                <feOffset dx="3" dy="6" result="offsetblur" />
+                <feComponentTransfer>
+                    <feFuncA type="linear" slope="0.6" />
+                </feComponentTransfer>
+                <feMerge>
+                    <feMergeNode />
+                    <feMergeNode in="SourceGraphic" />
+                </feMerge>
+            </filter>
+        </defs>
+    }
 
     <rect width="@Zone.Width" height="@Zone.Height"
-          fill="@Zone.Color" fill-opacity="0.7"
-          stroke="@Zone.TextColor" stroke-width="2" rx="6" />
+          fill="@Zone.Color" fill-opacity="0.85"
+          stroke="@Zone.TextColor" stroke-width="@(IsSelected ? "4" : "2")" rx="8"
+          filter="@(IsSelected ? $"url(#shadow-{Zone.Id})" : "")" 
+          style="transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);" />
+    @* transform: @(IsSelected ? "scale(1.04)" : "scale(1)");
+                transform-origin: center center;" /> *@
 
-    <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 - 8)"
-          text-anchor="middle" fill="@Zone.TextColor" font-size="14" font-weight="500">
+    <text x="@(Zone.Width / 2)" y="@((Zone.Height - 5) / 2 )"
+          text-anchor="middle" 
+          fill="@Zone.TextColor" 
+          font-size="14" 
+          font-weight="500">
+          @* style="transition: all 0.25s ease-out;
+                transform: @(IsSelected ? "scale(1.04)" : "scale(1)");
+                transform-origin: center center;"> *@
         @Zone.Description
     </text>
 
-    <text x="@(Zone.Width / 2)" y="@(Zone.Height / 2 + 8)"
-          text-anchor="middle" fill="@Zone.TextColor" font-size="14" font-weight="500">
+    <text x="@(Zone.Width / 2)" y="@(((Zone.Height - 5) / 2) + 16)"
+          text-anchor="middle" fill="@Zone.TextColor" font-size="14"
+          font-weight="500">
+          @* style="transition: all 0.25s ease-out;
+        transform: @(IsSelected ? "scale(1.04)" : "scale(1)");
+        transform-origin: center center;" >*@
         @Zone.Name
     </text>
 
-    @if (IsSelected) 
+    @if (IsEditMode && IsSelected) 
     {
-        <circle cx="@(Zone.Width)" cy="0" r="6" fill="white" stroke="#2563eb" stroke-width="2"
+        <circle cx="@(Zone.Width)" cy="0" r="7" fill="white" stroke="#2563eb" stroke-width="2"
                 @onpointerdown="@(e => StartResize(e, ResizeHandle.SE))"
                 @onpointerdown:stopPropagation="true"
-                style="cursor: nwse-resize;" />
-        <circle cx="@(Zone.Width)"     cy="@(Zone.Height)"  r="6" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.SW))" @onpointerdown:stopPropagation="true" style="cursor: nesw-resize;" />
-        <circle cx="0"                 cy="@(Zone.Height)"  r="6" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.NE))" @onpointerdown:stopPropagation="true" style="cursor: nesw-resize;" />
-        <circle cx="0"                 cy="0"               r="6" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.NW))" @onpointerdown:stopPropagation="true" style="cursor: nwse-resize;" />
+                style="cursor: nesw-resize;transition: all 0.2s ease;" />
+        <circle cx="@(Zone.Width)"     cy="@(Zone.Height)"  r="7" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.SW))" @onpointerdown:stopPropagation="true" style="cursor: nwse-resize;transition: all 0.25s ease-out;" />
+        <circle cx="0"                 cy="@(Zone.Height)"  r="7" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.NE))" @onpointerdown:stopPropagation="true" style="cursor: nesw-resize;transition: all 0.2s ease;" />
+        <circle cx="0"                 cy="0"               r="7" fill="white" stroke="#2563eb" stroke-width="2" 
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.NW))" @onpointerdown:stopPropagation="true" style="cursor: nwse-resize;transition: all 0.2s ease;" />
 
         <!-- Edge handles (midpoints) - optional for finer control -->
         <circle cx="@(Zone.Width / 2)" cy="0"               r="5" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.N))" @onpointerdown:stopPropagation="true" style="cursor: ns-resize;" />
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.N))" @onpointerdown:stopPropagation="true" style="cursor: ns-resize;transition: all 0.2s ease;" />
         <circle cx="@(Zone.Width / 2)" cy="@(Zone.Height)"  r="5" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.S))" @onpointerdown:stopPropagation="true" style="cursor: ns-resize;" />
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.S))" @onpointerdown:stopPropagation="true" style="cursor: ns-resize;transition: all 0.2s ease;" />
         <circle cx="0"                 cy="@(Zone.Height/2)"r="5" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.W))" @onpointerdown:stopPropagation="true" style="cursor: ew-resize;" />
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.W))" @onpointerdown:stopPropagation="true" style="cursor: ew-resize;transition: all 0.2s ease;" />
         <circle cx="@(Zone.Width)"     cy="@(Zone.Height/2)" r="5" fill="white" stroke="#2563eb" stroke-width="2" 
-                @onpointerdown="@(e => StartResize(e, ResizeHandle.E))" @onpointerdown:stopPropagation="true" style="cursor: ew-resize;" />
+                @onpointerdown="@(e => StartResize(e, ResizeHandle.E))" @onpointerdown:stopPropagation="true" style="cursor: ew-resize;transition: all 0.2s ease;" />
     }
 </g>
 
@@ -55,13 +84,14 @@
     [Parameter] public EventCallback<FactoryZone> OnSizeChanged { get; set; }
     [Parameter] public bool SnapToGrid { get; set; }
     [Parameter] public bool IsSelected { get; set; } = true;
+    [Parameter] public bool IsEditMode { get; set; } = false;
     [Parameter] public ElementReference ContainerRef { get; set; }
     [Parameter] public EventCallback<FactoryZone> OnZoneSelected { get; set; }
     [Parameter]
     public Func<double, double, Task<(double SvgX, double SvgY)>> GetSvgPointFromMouse { get; set; } = default!;
     [Inject] private IMouseService MouseService { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
-
+    
     private bool isDragging;
     private bool isResizing;
     private ResizeHandle activeHandle;
@@ -75,8 +105,17 @@
         MouseService.OnUp += HandleGlobalUp;
     }
 
+    private string GetCursorStyle()
+    {
+        if (!IsEditMode) return "pointer";
+        return "move";
+    }
+
+    
     private async Task StartResize(PointerEventArgs e, ResizeHandle handle)
     {
+        if (!IsEditMode) return;
+
         var (svgX, svgY) = await GetSvgPointFromMouse.Invoke(e.ClientX, e.ClientY);
 
         isResizing = true;
@@ -97,7 +136,7 @@
 
     private async Task OnPointerDown(PointerEventArgs e)
     {
-        if (e.Button != 0) return;  // only left click
+        if (!IsEditMode || e.Button != 0) return;  // only left click
 
         var (svgX, svgY) = await GetSvgPointFromMouse.Invoke(e.ClientX, e.ClientY);
 
@@ -110,7 +149,7 @@
 
     private async void HandleGlobalMove(object? sender, PointerEventArgs e)
     {
-        if (!isDragging && !isResizing) return;
+        if (!IsEditMode || (!isDragging && !isResizing)) return;
 
         var (currentSvgX, currentSvgY) = await GetSvgPointFromMouse.Invoke(e.ClientX, e.ClientY);
         double dx = currentSvgX - startX;

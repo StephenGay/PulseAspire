@@ -154,10 +154,10 @@
             selectedItem.PlannedEndTime = DateTime.Today.AddMinutes(30);
             selectedItem.Status = "Planned";
         }
-        if (selectedItem.EquipmentItemID == null)
-        {
-            selectedItem.EquipmentItemID = "0";
-        }
+        // if (selectedItem.EquipmentItemID == null)
+        // {
+        //     selectedItem.EquipmentItemID = "0";
+        // }
         await pApi.UpdatePlanItemAsync(selectedItem);
         StateHasChanged();
     }

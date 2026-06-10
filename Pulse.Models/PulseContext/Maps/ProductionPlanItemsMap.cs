@@ -57,8 +57,8 @@ namespace Pulse.Models.PulseContext.Maps
             builder.Property(p => p.ClosedByUserID)
                 .HasColumnType("nvarchar(MAX)");
 
-            builder.Property(p => p.ZoneId)
-                .HasColumnType("nvarchar(MAX)");
+            builder.Property(p => p.ZoneId);
+                //.HasColumnType("nvarchar(MAX)");
 
             builder.Property(p => p.Status)
                 .HasColumnType("nvarchar(15)")
@@ -74,13 +74,19 @@ namespace Pulse.Models.PulseContext.Maps
             //If there are relationships(e.g., to WorkOrder, Division, ProductionStage, User), add them here.
             // For example:
             builder.HasOne(p => p.WorksOrder)
-                .WithMany()
+                .WithMany(w => w.ProductionPlanItems)
                 .HasForeignKey(p => p.WorkOrderNo);
             //     .OnDelete(DeleteBehavior.Cascade); // Adjust as needed
+
+            builder.HasOne(p => p.FactoryZone)
+                .WithMany(fz => fz.ProductionPlans)
+                .HasForeignKey(p => p.ZoneId)
+                .OnDelete(DeleteBehavior.Restrict); // Adjust as needed
 
             builder.HasOne(p => p.ProductionStage)
                 .WithMany()
                 .HasForeignKey(p => p.ProductionStageID);
+
             builder.HasOne(p => p.EquipmentItem)
                 .WithMany()
                 .HasForeignKey(p => p.EquipmentItemID);

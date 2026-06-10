@@ -9,10 +9,11 @@
 @inject PulseApiService ApiService
 @inject IPulseToastService PulseToastService
 @inject Global_AI_Functions GlobalAI
+@inject GlobalFunctions gFunc
 @inject DataTransferService dTrf
 @inject IMouseService MouseService
 
-@inject IDialogService DialogService
+@* @inject IDialogService DialogService *@
 @rendermode InteractiveServer
 
 <style>
@@ -45,12 +46,12 @@
 </style>
 
 <FluentCard style="width:100%; margin-left:auto;margin-right:auto;background-color: var(--pulse-light-2-colour);padding: 0px !important;">
-    @if (EditMode)
+    @if (IsEditMode)
     {
-        <FluentToolbar Style="background-color: var(--pulse-light-2-colour);width:stretch">
+        <FluentToolbar Style="width:stretch">
             @if (layoutLevel == 0)
             {
-                <FluentButton Appearance="Appearance.Accent" OnClick="() => openWC = true">+ New Zone</FluentButton>
+                <FluentButton Appearance="Appearance.Accent" OnClick="() => openWC = true">+ Zone</FluentButton>
             }
             else
             {
@@ -58,14 +59,15 @@
             }
             
             
-            <FluentButton OnClick="EditZoneClick">Edit Zone</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="EditZoneClick">Edit Zone</FluentButton>
             <FluentSpacer />
-            <FluentButton OnClick="SaveLayout">Save Layout</FluentButton>
+            
             @* <FluentButton OnClick="LoadLayout">Load</FluentButton> *@
             
             <FluentSwitch @bind-Value="SnapToGrid">Snap to Grid (10px)</FluentSwitch>
             <FluentSpacer />
-            <FluentButton OnClick="() => EditMode=false">Close</FluentButton>
+            <FluentButton Appearance="Appearance.Accent" OnClick="SaveLayout">Save Layout</FluentButton>
+            <FluentButton Appearance="Appearance.Neutral" OnClick="() => OnEditModeChanged(false)">Close</FluentButton>
             @* <FluentButton OnClick="ZoomIn">+</FluentButton>
             <FluentButton OnClick="ZoomOut">-</FluentButton>
             <FluentButton OnClick="ResetView">Reset</FluentButton>
@@ -76,7 +78,7 @@
     }
     else
     {
-        <RadzenButton Click="() => EditMode=true" Icon="lock" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Large" class="rz-border-radius-10 rz-shadow-10" Style="position:absolute;z-index:900;margin-left:10px;margin-top:10px" />
+        <RadzenButton Click="() => OnEditModeChanged(true)" Icon="lock" ButtonStyle="ButtonStyle.Warning" Size="ButtonSize.Large" class="rz-border-radius-10 rz-shadow-10" Style="position:absolute;z-index:900;margin-left:10px;margin-top:10px" />
     }
     <RadzenFabMenu Icon="search" Style="margin-right:10px" Direction="Radzen.FabMenuDirection.Start">
         <RadzenFabMenuItem Icon="recenter" Click="ResetView" />
@@ -84,41 +86,52 @@
         <RadzenFabMenuItem Icon="zoom_out" Click="ZoomOut" />
     </RadzenFabMenu>
     <div @ref="layoutContainer" 
-         style="position: relative; width: 100%; min-height: 700px; height:stretch; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; overflow: hidden;"
+         style="position: relative; width: 100%; min-height: 700px;  @(IsEditMode ? "height: calc(100% - 40px)" : "height:100%"); background: #f8fafc; border: 2px solid @(IsEditMode ? "#2563eb" : "#e2e8f0"); border-radius: 6px; overflow: hidden;"
          @onpointerdown="HandlePointerDown"
          @onpointermove="HandleMouseMove" 
          @onpointerup="HandleMouseUp" 
          @onpointerleave="HandleMouseUp"
          @onwheel="HandleWheel"
          @onwheel:preventDefault="true">
-        @if (layoutLevel > 0)
+
+        @if (containerWidth <= 0 || containerHeight <= 0)
         {
-            <FluentLabel Style="position:absolute;z-index:900;margin-left:10px;margin-top:10px;font-size:1.25rem;font-weight:bold;color:var(--pulse-dark-colour)">@selectedZone?.Description</FluentLabel>
-            <RadzenButton Click="GoUpALevel" Icon="upgrade" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" class="rz-shadow-10" Style="position:absolute;z-index:900;right:40px" />
+            <div style="height: 700px; display: flex; align-items: center; justify-content: center;">
+                <RadzenProgressBar Value="100" ShowValue="false" Mode="ProgressBarMode.Indeterminate" />
+            </div>
         }
         else
         {
-            <RadzenButton Click="LoadLayout" Icon="download_2" Disabled="@(selectedZone == null ? true : false)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" class="rz-shadow-10" Style="position:absolute;z-index:900;right:40px" />
-        }
-
-        <svg @ref="svgRef"
-             width="100%" height="100%" 
-             viewBox="@CurrentViewBox"
-             preserveAspectRatio="xMidYMid meet"
-             @onpointerdown="DeselectZoneOnSvgClick"
-             style="background: white; display: block; user-select: none;">
-            
-            @foreach (var zone in Zones)
+            @if (layoutLevel > 0)
             {
-                <DraggableZone 
+                <FluentLabel Style="position:absolute;z-index:900;margin-left:10px;margin-top:10px;font-size:1.25rem;font-weight:bold;color:var(--pulse-dark-colour)">@selectedZone?.Description</FluentLabel>
+                <RadzenButton Click="GoUpALevel" Icon="upgrade" Disabled="IsEditMode" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" class="rz-shadow-10" Style="position:absolute;z-index:900;right:30px;margin-top:10px" />
+            }
+            else
+            {
+                <RadzenButton Click="LoadLayout" Icon="download_2" Disabled="@(selectedZone == null || IsEditMode ? true : false)" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Large" class="rz-shadow-10" Style="position:absolute;z-index:900;right:30px;margin-top:10px" />
+            }
+
+            <svg @ref="svgRef"
+            width="100%" height="100%" 
+            viewBox="@CurrentViewBox"
+            preserveAspectRatio="xMidYMid meet"
+            @onpointerdown="DeselectZoneOnSvgClick"
+            style="background: white; display: block; user-select: none;">
+
+                @foreach (var zone in Zones)
+                {
+                    <DraggableZone 
                     Zone="zone" 
                     OnPositionChanged="UpdateZonePosition" 
                     OnZoneSelected="SelectZone"
                     SnapToGrid="SnapToGrid"
+                    IsEditMode="IsEditMode"
                     IsSelected="@(selectedZone?.Id == zone.Id)"
                     GetSvgPointFromMouse="ConvertClientToSvgCoordinates" />
-            }
-        </svg>
+                }
+            </svg>
+        }
     </div>
 </FluentCard>
 
@@ -190,6 +203,7 @@
 
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private Radzen.DialogService RadzenDialogService { get; set; } = default!;
 
     private DotNetObjectReference<FactoryLayout>? dotNetRef;
     private bool isObserving;
@@ -201,7 +215,7 @@
     private double maxZoom = 5.0;
     private double panX = 0.0;   // in viewBox units
     private double panY = 0.0;
-    private bool EditMode = false;
+    private bool IsEditMode { get; set; } = false;
     private bool isPanning;
     private bool openWC = false;
     private double startPanMouseX, startPanMouseY, startPanX, startPanY;
@@ -279,6 +293,37 @@
         }
     }
 
+    private async Task OnEditModeChanged(bool newValue)
+    {
+        if (!newValue && IsEditMode) // User is turning OFF edit mode
+        {
+            var confirmed = await ShowExitEditModeDialogAsync();
+            if (!confirmed)
+            {
+                IsEditMode = true;   // Cancel the switch
+                return;
+            }
+        }
+
+        IsEditMode = newValue;
+        StateHasChanged();
+    }
+
+    private async Task<bool> ShowExitEditModeDialogAsync()
+    {
+        var result = await RadzenDialogService.Confirm(
+            "Any unsaved changes will be lost.\n\nAre you sure you want to exit Edit Mode?",
+            "Exit Edit Mode?",
+            new ConfirmOptions
+            {
+                OkButtonText = "Yes, Exit",
+                CancelButtonText = "Cancel"
+                // OkButtonColor = ButtonColor.Danger
+            });
+
+        return result == true;
+    }
+
     private async Task EditZoneClick(){
         if (selectedZone == null) return;
         zData = new FactoryZone 
@@ -305,19 +350,21 @@
 
     private async Task EditZone()
     {
-        if (zData == null) return;
+        if (selectedZone == null) return;
+        // if (zData == null) return;
 
-        var dialog = await DialogService.ShowDialogAsync<ZoneDialog>(zData, new DialogParameters()
-            {
-                Title = "Factory Layout Zone",
-                Width = "550px"
-            });
+        var result = await gFunc.OpenEditZoneDialog(RadzenDialogService, selectedZone);
+        // var dialog = await DialogService.ShowDialogAsync<ZoneDialog>(zData, new DialogParameters()
+        //     {
+        //         Title = "Factory Layout Zone",
+        //         Width = "550px"
+        //     });
 
-        var result = await dialog.Result;
+        // var result = await dialog.Result;
 
-        if(!result.Cancelled)
+        if(result != null)
         {
-            await LoadZonesForParent(layoutParentId);
+            // await LoadZonesForParent(layoutParentId);
             StateHasChanged();
         }
     }

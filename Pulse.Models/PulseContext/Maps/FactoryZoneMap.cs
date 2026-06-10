@@ -56,9 +56,11 @@ public class FactoryZoneMap : IEntityTypeConfiguration<FactoryZone>
             .IsRequired(false);
 
         builder.HasOne(z => z.WorkCentre)
-            .WithMany()                             // assuming WorkCentre doesn't have collection of zones
+            .WithMany(wc => wc.FactoryZones)                             // assuming WorkCentre has collection of zones
             .HasForeignKey(z => z.WorkCentreID)
             .OnDelete(DeleteBehavior.SetNull);      // or Restrict / NoAction
+
+     
 
         builder.Property(z => z.EquipmentID)
             .IsRequired(false);
@@ -66,6 +68,9 @@ public class FactoryZoneMap : IEntityTypeConfiguration<FactoryZone>
         builder.Property(z => z.EquipmentCapabilityID)
             .IsRequired(false);
 
+        builder.HasMany(z => z.EquipmentItems)
+            .WithOne(wc => wc.FactoryZone)                             // assuming WorkCentre has collection of zones
+            .HasForeignKey(wc => wc.ZoneID);
         //builder.HasOne(z => z.equipmentCapability)
         //    .WithMany()             // assuming no navigation back
         //    .HasForeignKey(z => z.EquipmentCapabilityID)

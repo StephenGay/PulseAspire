@@ -1,5 +1,6 @@
 ﻿@using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Users
+@using Pulse.Web.Components.Pages.EmployeeZone.Production.Dialogs
 @using Pulse.Web.Services
 @inject DataTransferService dtrf
 
@@ -66,7 +67,26 @@
 
     </FluentStack>
     <FluentSpacer />
+    <FluentButton Id="mnuProdPlanViewBtn" Style="height:40px;margin-right:15px;border:2px solid var(--pulse-dark-colour)" 
+                            class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" 
+                          IconStart="@(new Icons.Filled.Size32.CalendarEye().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Info))"
+                          data-bs-target="#ocProdPlan">
+                <strong>TODAY'S PLAN</strong>
+    </FluentButton>
 </FluentStack>
+
+<div class="offcanvas offcanvas-top" style="width:100%;height:100%" tabindex="-1" id="ocProdPlan">
+    <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="width:100%;height:60px;background-color:var(--pulse-dark-colour);padding:10px" HorizontalAlignment="HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center">
+        <FluentLabel Typo="Typography.H3" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-light-colour)">Production Plan For @DateTime.Today.ToString("dd-MM-yy")</FluentLabel>
+        <FluentSpacer />
+        <FluentButton BackgroundColor="rgba(255,255,255,1)" Style=" border: 1px solid red;height:40px;margin-right:10px"
+                        IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            Close
+        </FluentButton>
+    </FluentStack>
+    <TodaysPlan />
+    
+</div>
 
 @code
 {

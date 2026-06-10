@@ -24,6 +24,7 @@ namespace Pulse.Models.CustomComponents
         public DateTime? End { get; init; }
         public string? ResourceId { get; init; }      // EquipmentID
         public string? BackgroundColor { get; init; }
+        public string? TextColor { get; init; }
         public string? ClientName { get; init; } = string.Empty;
         public string? Description { get; init; } = string.Empty;
         public string? WorkType { get; init; } = string.Empty;
@@ -48,6 +49,6 @@ namespace Pulse.Models.CustomComponents
     {
         public string id { get; init; } = string.Empty;          // EquipmentID
         public string title { get; init; } = string.Empty;       // e.g. Equipment Name
-
+        public string? parentId { get; init; } = string.Empty;
     }
 }

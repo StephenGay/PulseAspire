@@ -52,6 +52,19 @@ namespace Pulse.Models.PulseContext.Maps
                 .HasDefaultValue(1)
                 .IsRequired();
 
+            builder.Property(e => e.ZoneID);
+            
+            builder.Property(e => e.SerialNo)
+                .HasColumnType("nvarchar(150)")
+                .HasMaxLength(150);
+
+            builder.Property(e => e.Model)
+                .HasColumnType("nvarchar(150)")
+                .HasMaxLength(150);
+
+            builder.Property(e => e.Barcode)
+                .HasColumnType("nvarchar(MAX)");
+                
             builder.Property(e => e.IsActive)
                 .HasColumnType("bit")
                 .HasDefaultValue(true)
@@ -71,8 +84,18 @@ namespace Pulse.Models.PulseContext.Maps
             builder.HasOne(e => e.Division)
                 .WithMany() // Adjust if Division doesn't have this navigation
                 .HasForeignKey(e => e.DivisionID);
-                //.OnDelete(DeleteBehavior.Restrict); // Prevent deleting Division if items exist
+            //.OnDelete(DeleteBehavior.Restrict); // Prevent deleting Division if items exist
 
+            builder.HasOne(e => e.FactoryZone)
+                .WithMany() // Adjust if FactoryZone doesn't have this navigation
+                .HasForeignKey(e => e.ZoneID);
+
+            builder.HasMany(e => e.ProductionPlanItems)
+                 .WithOne(p => p.EquipmentItem)
+                 .HasForeignKey(p => p.EquipmentItemID);
+
+            //     .WithOne(c => c.EquipmentItem)
+            //     .HasForeignKey(c => c.EquipmentItemID)
             // Relationship to EquipmentCapabilities (one-to-many; assuming EquipmentCapability has FK to EquipmentItemID)
             // builder.HasMany(e => e.EquipmentCapabilities)
             //     .WithOne(c => c.EquipmentItem)

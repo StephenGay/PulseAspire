@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Pulse.Models.PulseContext;
 
@@ -11,9 +12,11 @@ using Pulse.Models.PulseContext;
 namespace Pulse.ApiService.Migrations
 {
     [DbContext(typeof(PulseDbContext))]
-    partial class PulseDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608214957_AddProdStageUpdates")]
+    partial class AddProdStageUpdates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -2144,7 +2147,7 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(10)");
 
                     b.Property<string>("Barcode")
-                        .HasColumnType("nvarchar(MAX)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("DivisionID")
                         .IsRequired()
@@ -2187,23 +2190,19 @@ namespace Pulse.ApiService.Migrations
                         .HasColumnType("nvarchar(150)");
 
                     b.Property<string>("Model")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SerialNo")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
+                        .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("ZoneID")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<string>("ZoneID")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("EquipmentItemID");
 
                     b.HasIndex("DivisionID");
 
                     b.HasIndex("EquipmentCategoryID");
-
-                    b.HasIndex("ZoneID");
 
                     b.ToTable("EquipmentItems", (string)null);
                 });
@@ -2547,8 +2546,11 @@ namespace Pulse.ApiService.Migrations
                     b.Property<int>("WorkOrderNo")
                         .HasColumnType("int");
 
-                    b.Property<Guid?>("ZoneId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int?>("WorksOrderNo")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ZoneId")
+                        .HasColumnType("nvarchar(MAX)");
 
                     b.HasKey("ProductionPlanItemID");
 
@@ -2556,11 +2558,9 @@ namespace Pulse.ApiService.Migrations
 
                     b.HasIndex("ProductionStageID");
 
-                    b.HasIndex("WorkCentreID");
-
                     b.HasIndex("WorkOrderNo");
 
-                    b.HasIndex("ZoneId");
+                    b.HasIndex("WorksOrderNo");
 
                     b.ToTable("ProductionPlanItems", (string)null);
                 });
@@ -4042,21 +4042,15 @@ namespace Pulse.ApiService.Migrations
                         .HasForeignKey("EquipmentCategoryID")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Pulse.Models.Production.Layout.FactoryZone", "FactoryZone")
-                        .WithMany("EquipmentItems")
-                        .HasForeignKey("ZoneID");
-
                     b.Navigation("Division");
 
                     b.Navigation("EquipmentCategory");
-
-                    b.Navigation("FactoryZone");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.Layout.FactoryZone", b =>
                 {
                     b.HasOne("Pulse.Models.Production.WorkCentre", "WorkCentre")
-                        .WithMany("FactoryZones")
+                        .WithMany()
                         .HasForeignKey("WorkCentreID")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -4066,7 +4060,7 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Production.ProductionPlanItem", b =>
                 {
                     b.HasOne("Pulse.Models.Production.EquipmentItem", "EquipmentItem")
-                        .WithMany("ProductionPlanItems")
+                        .WithMany()
                         .HasForeignKey("EquipmentItemID");
 
                     b.HasOne("Pulse.Models.Production.ProductionStage", "ProductionStage")
@@ -4075,28 +4069,19 @@ namespace Pulse.ApiService.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Pulse.Models.Production.WorkCentre", "WorkCentre")
-                        .WithMany("ProductionPlanItems")
-                        .HasForeignKey("WorkCentreID");
-
                     b.HasOne("Pulse.Models.Production.WorksOrder", "WorksOrder")
-                        .WithMany("ProductionPlanItems")
+                        .WithMany()
                         .HasForeignKey("WorkOrderNo")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Pulse.Models.Production.Layout.FactoryZone", "FactoryZone")
-                        .WithMany("ProductionPlans")
-                        .HasForeignKey("ZoneId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                    b.HasOne("Pulse.Models.Production.WorksOrder", null)
+                        .WithMany("ProductionPlanItems")
+                        .HasForeignKey("WorksOrderNo");
 
                     b.Navigation("EquipmentItem");
 
-                    b.Navigation("FactoryZone");
-
                     b.Navigation("ProductionStage");
-
-                    b.Navigation("WorkCentre");
 
                     b.Navigation("WorksOrder");
                 });
@@ -4455,15 +4440,6 @@ namespace Pulse.ApiService.Migrations
             modelBuilder.Entity("Pulse.Models.Production.EquipmentItem", b =>
                 {
                     b.Navigation("EquipmentCapabilities");
-
-                    b.Navigation("ProductionPlanItems");
-                });
-
-            modelBuilder.Entity("Pulse.Models.Production.Layout.FactoryZone", b =>
-                {
-                    b.Navigation("EquipmentItems");
-
-                    b.Navigation("ProductionPlans");
                 });
 
             modelBuilder.Entity("Pulse.Models.Production.ProductionStage", b =>
@@ -4473,10 +4449,6 @@ namespace Pulse.ApiService.Migrations
 
             modelBuilder.Entity("Pulse.Models.Production.WorkCentre", b =>
                 {
-                    b.Navigation("FactoryZones");
-
-                    b.Navigation("ProductionPlanItems");
-
                     b.Navigation("ProductionStages");
 
                     b.Navigation("WorkCentreFunctions");

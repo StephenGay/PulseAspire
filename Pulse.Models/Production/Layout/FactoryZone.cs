@@ -36,6 +36,9 @@ namespace Pulse.Models.Production.Layout
         public string TextColor { get; set; } = "#ffffff"; // Fluent blue by default
         public string? Notes { get; set; }
         public WorkCentre? WorkCentre { get; set; }
+        public ICollection<ProductionPlanItem>? ProductionPlans { get; set; }
+        public ICollection<EquipmentItem>? EquipmentItems { get; set; }
+
         //public EquipmentCapability? equipmentCapability { get; set; }
     }
 }

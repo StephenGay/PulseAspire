@@ -1,0 +1,186 @@
+﻿@using System.Text.Json
+@using Pulse.Models.Api
+@using Pulse.Models.Dtos.Production
+@using Pulse.Models.Organizational
+@using Pulse.Web.Services
+
+@inject DataTransferService dTrf
+@inject PulseApiService pApiClient
+@inject IJSRuntime JSRuntime
+
+@if (isLoading)
+{
+    
+}
+else
+{
+    <RadzenDataGrid @ref="radPlanGrid"
+    Data="@todaysPlan"
+                    FilterMode="FilterMode.Simple"
+                    AllowFiltering="true"
+                    AllowPaging="true"
+                    AllowSorting="true"
+                    AllowColumnResize="true"
+                    Style="height:100%;border-radius:10px"
+                    AllowVirtualization="true"
+                    AllowColumnPicking="true"
+                    @bind-Settings="@Settings"
+                    LoadSettings="@LoadSettings"
+                    AllowGrouping="true"
+                    PageSize="15"
+                    ExpandMode="DataGridExpandMode.Single"
+                    ShowExpandAll="true"
+                    ExpandAllTitle="Ex"
+                    ShowGroupExpandColumn="true"
+                    HideGroupedColumn="true"
+                    GroupRowRender="OnGroupRowRender"
+                    @bind-AllGroupsExpanded="@allGroupsExpanded"
+                    IsLoading="@isLoading"
+                    SelectionMode="DataGridSelectionMode.Single"
+                    @bind-Value="@selectedPlan"
+                    FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
+                    LogicalFilterOperator="LogicalFilterOperator.And"
+                    ColumnWidth="200px">
+        <HeaderTemplate>
+            <div style="text-align:left;width:stretch">
+                @* <RadzenButton Text="Expand all groups" Click="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true) />
+                        <RadzenButton Text="Collapse all groups" Click="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true) /> *@
+                <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class=@(allGroupsExpanded == false ? "btnShadow" : "") style="border: 1px solid var(--pulse-accent-btn-colour); width:50px;height:50px" OnClick="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true)>
+                    <FluentIcon Value="@(new Icons.Filled.Size28.PanelLeftExpand())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-accent-btn-colour)" />
+                </FluentButton>
+                <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class="myAccentBtn" style="border: 1px solid var(--pulse-accent-btn-colour); width:50px;height:50px" OnClick="@(args => ToggleGroups(false))" Disabled=@(allGroupsExpanded == false)>
+                    <FluentIcon Value="@(new Icons.Filled.Size28.PanelRightExpand())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-accent-btn-colour)" />
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Neutral" Class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Style="margin-left:30px;margin-right:30px;height:50px;padding-left:10px;padding-right:10px;" id="btnSaveLayout" OnClick="() => InvokeAsync(SaveStateAsync)">
+                    <FluentIcon Value="@(new Icons.Filled.Size28.Save())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-ok-btn-colour)" />
+                    Save Layout
+                </FluentButton>
+                <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class="myAccentBtn" Style="margin-right:30px;height:50px;padding-left:10px;padding-right:10px" id="btnPlanByWO" data-bs-toggle="offcanvas" data-bs-target="#WOPlan">
+                    <FluentIcon Value="@(new Icons.Filled.Size28.DocumentOnePageMultiple())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-accent-btn-colour)" />
+                    WO Details
+                </FluentButton>
+            </div>
+        </HeaderTemplate>
+        <Columns>
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WorkOrderNo" Title="WO No" Width="70px" Visible="false" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ClientName" Title="Client Name" FilterMode="FilterMode.SimpleWithMenu" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WODescription" Visible="false" Title="WO Description" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WorkCentreName" Visible="false" Title="Work Centre" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="FactoryZoneName" Visible="false" Title="Factory Zone" /> 
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="EquipmentItemDescription" Visible="false" Title="Equipment" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="PlannedStartTime" Visible="false" Title="Planned Start Time" FormatString="{0:dd-MM-yy HH:mm}" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="PlannedEndTime" Visible="false" Title="Planned End Time" FormatString="{0:dd-MM-yy HH:mm}" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ActualStartTime" Visible="false" Title="Actual Start Time" FormatString="{0:dd-MM-yy HH:mm}" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ActualEndTime" Visible="false" Title="Actual End Time" FormatString="{0:dd-MM-yy HH:mm}" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="StepNo" Visible="false" Title="Step No" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ProductionStageDescription" Visible="false" Title="Production Stage" />
+        </Columns>
+    </RadzenDataGrid>
+}
+@code {
+    [CascadingParameter]
+    public MasterLayout? masterLayout { get; set; } = default!;
+
+    private RadzenDataGrid<ProductionPlanDto> radPlanGrid;
+    private List<ProductionPlanDto> todaysPlan = new List<ProductionPlanDto>();
+    private IList<ProductionPlanDto>? selectedPlan;
+    private bool isLoading = true;
+    private bool? allGroupsExpanded = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+
+    }
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadStateAsync();
+            await GetTodaysPlanAsync();
+        }
+    }
+    private async Task GetTodaysPlanAsync()
+    {
+        try
+        {
+            isLoading = true;
+            Division d = await dTrf.GetgvSelectedDivision();
+            var response = await pApiClient.GetAsync<ApiResponse<List<ProductionPlanDto>>>(ApiEndpoints.Production.WorkInProgress.ByDivision.Plan.GetTodaysItems(d.DivisionID));
+            if (response != null && response.Success)
+            {
+                todaysPlan = response.Data ?? new List<ProductionPlanDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Handle exceptions
+        }
+        finally
+        {
+            isLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    void ToggleGroups(bool value)
+    {
+        allGroupsExpanded = value;
+    }
+    
+
+    private void OnPickedColumnsChanged(object sender, EventArgs e)
+    {
+        // Handle column picking changes if needed
+    }
+    DataGridSettings _settings;
+    public DataGridSettings Settings
+    {
+        get
+        {
+            return _settings;
+        }
+        set
+        {
+            if (_settings != value)
+            {
+                _settings = value;
+                InvokeAsync(SaveStateAsync);
+            }
+        }
+    }
+    void OnGroupRowRender(GroupRowRenderEventArgs args)
+    {
+        if (args.FirstRender)
+        {
+            args.Expanded = false;
+        }
+
+        args.Expandable = true;
+    }
+
+    void LoadSettings(DataGridLoadSettingsEventArgs args)
+    {
+        if (Settings != null)
+        {
+            args.Settings = Settings;
+        }
+    }
+
+    private async Task LoadStateAsync()
+    {
+        await Task.CompletedTask;
+
+        var result = await JSRuntime.InvokeAsync<string>("window.localStorage.getItem", "ProductionPlanDataGridSettings");
+        if (!string.IsNullOrEmpty(result))
+        {
+            _settings = JsonSerializer.Deserialize<DataGridSettings>(result);
+        }
+    }
+
+    private async Task SaveStateAsync()
+    {
+        await Task.CompletedTask;
+
+        await JSRuntime.InvokeVoidAsync("window.localStorage.setItem", "ProductionPlanDataGridSettings", JsonSerializer.Serialize<DataGridSettings>(Settings));
+    }
+    
+}

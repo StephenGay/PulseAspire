@@ -271,20 +271,22 @@ namespace Pulse.ApiService.Endpoints
             group.MapGet(ByDivIdPath + "/GetWIP/PlanItems", async (string divisionId, PulseDbContext db) =>
             {
                 TimeSpan d = new TimeSpan(0, 30, 0);
-
+                //ResourceId = $"{p.WorkCentreID.ToString()}{(!string.IsNullOrEmpty(p.ZoneId.ToString()) ? "_" + p.ZoneId.ToString() : null)}{(!string.IsNullOrEmpty(p.EquipmentItemID) && p.EquipmentItemID != "0" ? "_" + p.EquipmentItemID : null)}",
                 var items = await db.ProductionPlanItems
                     .Where(p => p.DivisionID == divisionId && (p.Status == "Planned" || p.Status == "Started"))
+                    .Include(wc => wc.WorkCentre)
                     .Include(wo => wo.WorksOrder)
                         .ThenInclude(c => c.Customer)
 
                     .Select(p => new ProductionPlanEvent
                     {
                         Id = p.ProductionPlanItemID,
-                        ResourceId = p.EquipmentItemID,
+                        ResourceId = $"{p.WorkCentreID.ToString()}{(!string.IsNullOrEmpty(p.ZoneId.ToString()) ? "_" + p.ZoneId.ToString() : null)}{(!string.IsNullOrEmpty(p.EquipmentItemID) && p.EquipmentItemID != "0" ? "_" + p.EquipmentItemID : null)}".ToUpper(),
                         Title = $"{p.WorkOrderNo.ToString()} {p.WorksOrder.Customer.ClientName} {p.WorksOrder.Description}",
                         Start = p.Status == "Started" ? p.ActualStartTime : p.PlannedStartTime,
                         End = p.Status == "Started" ? p.ActualStartTime + d : p.PlannedEndTime,
-                        BackgroundColor = p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
+                        BackgroundColor = p.WorkCentre.Colour, //p.Status == "Started" ? "#009900" : p.PlannedStartTime > DateTime.Now ? "#66c2ff" : "#ff3333",
+                        TextColor = p.WorkCentre.TextColour,
                         ClientName = p.WorksOrder != null ? p.WorksOrder.Customer.ClientName : null,
                         Description = p.WorksOrder != null ? p.WorksOrder.Description : null
                     })
@@ -433,7 +435,7 @@ namespace Pulse.ApiService.Endpoints
                     .Select(p => new ProductionPlanEvent
                     {
                         Id = p.ProductionPlanItemID,
-                        ResourceId = p.EquipmentItemID,
+                        ResourceId = $"{p.WorkCentreID.ToString()}_{p.ZoneId.ToString()}_{p.EquipmentItemID}",
                         Title = $"{p.WorkOrderNo.ToString()} {p.WorksOrder.Customer.ClientName} {p.WorksOrder.Description}",
                         Start = p.PlannedStartTime,
                         End = p.PlannedEndTime,
@@ -553,6 +555,8 @@ namespace Pulse.ApiService.Endpoints
                 item.ActualEndTime = updatedItem.ActualEndTime;
                 item.StepNo = updatedItem.StepNo;
                 item.Status = updatedItem.Status;
+                item.WorkCentreID = updatedItem.WorkCentreID;
+                item.ZoneId = updatedItem.ZoneId;
                 await db.SaveChangesAsync();
                 return Results.Ok();
             })
@@ -602,7 +606,7 @@ private static async Task<IResult> SaveFactoryLayout(
                     .ToListAsync();
 
                 //db.FactoryZones.RemoveRange(existing);
-
+                
                 foreach (var zone in zones)
                 {
                     var existingZone = existing.FirstOrDefault(e => e.Id == zone.Id);
@@ -617,6 +621,24 @@ private static async Task<IResult> SaveFactoryLayout(
                     }
                 }
                 await db.SaveChangesAsync();
+
+                if (parentId != "0")
+                {
+                    foreach (var zone in zones)
+                    {
+                        if (!string.IsNullOrEmpty(zone.EquipmentID))
+                        {
+                            var e = await db.EquipmentItems
+                                .FirstOrDefaultAsync(eq => eq.EquipmentItemID == zone.EquipmentID);
+                            if(e != null)
+                            {
+                                if(Guid.TryParse(zone.ParentZoneId, out Guid guidValue)){ e.ZoneID = guidValue; }
+                                db.Entry(e).CurrentValues.SetValues(e);
+                                await db.SaveChangesAsync();
+                            }
+                        }
+                    }
+                }
 
                 return Results.Ok(new ApiResponse
                 {
@@ -824,7 +846,7 @@ private static async Task<IResult> SaveFactoryLayout(
                 await db.SaveChangesAsync();
 
                 var fzones = await db.FactoryZones
-                    .Where(wc => wc.WorkCentreID == workCentre.WorkCentreId)
+                    .Where(wc => wc.WorkCentreID == workCentre.WorkCentreId && wc.Level == 0)
                     .ToListAsync();
 
                 if (fzones != null && fzones.Count > 0)

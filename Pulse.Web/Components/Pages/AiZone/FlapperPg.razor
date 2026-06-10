@@ -242,13 +242,19 @@
                                  @(flapper.emoji.ToMarkup("64px")) 
                             }  *@
                             <img src="Images/AI/Flapper.png" style="width:96px;height:96px" />
+                            @if (showTables)
+                            {
+                                <Animation Effect="@Effect.FadeIn" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
+                                    <img src="Images/AI/Tables.png" style="width:96px;height:96px" />
+                                </Animation>
+                            }
                             <FluentSpacer />
                             <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Vertical" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Right" VerticalAlignment="VerticalAlignment.Center">
                                 <FluentLabel Typo="Typography.H4" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">FLAPPER</FluentLabel>
                                 <FluentLabel Typo="Typography.Body" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Custom" CustomColor="rgba(255, 255, 255, 1)">@(!ViewSettings ? "Conversation" : "Settings")</FluentLabel>
                             </FluentStack>
                         </FluentStack>
-                        @if (showTables)
+                        @* @if (showTables)
                         {
                             <Animation Effect="@Effect.FlipInX" Speed="Speed.Fast" Enabled="@showTables" Delay="@TimeSpan.FromSeconds(0)">
                                  <div class="aiAssistBox">
@@ -262,7 +268,7 @@
                                     </FluentStack>
                                 </div> 
                             </Animation>
-                        }
+                        } *@
                             @if (!ViewSettings)
                             {
                                 @* <StackItem > *@

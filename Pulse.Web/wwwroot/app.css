@@ -500,7 +500,8 @@ fluent-dialog {
         background-color: var(--pulse-light-colour) !important;
     }
     /*#endregion Radzen Table Formatting*/
-    /*#region Radzen Dialog Formatting*/
+
+/*#region Radzen Dialog Formatting*/
 
     .rz-dialog {
         border-radius: 10px !important;
@@ -523,7 +524,7 @@ fluent-dialog {
     }
 
     .rz-dialog-content {
-        padding: 0px !important;
+        padding: 0.5em !important;
         flex: 1 1 !important;
     }
 
