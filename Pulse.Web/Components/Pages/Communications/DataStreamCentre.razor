@@ -1,4 +1,4 @@
-﻿@page "/UserSettings/UserMsgCentre"
+﻿@page "/Communications/DataStreamCentre"
 
 @using Markdig
 @using Microsoft.AspNetCore.Authorization
@@ -10,9 +10,13 @@
 @using Pulse.Models.Api
 @using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
+@using Pulse.Models.Dtos.Production
+@using Pulse.Models.Organizational
+@using Pulse.Models.Users
+@using Pulse.Web.Components.Layout
 @using System.Security.Claims
 @using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs
-@using Pulse.Web.Components.Pages.Notifications
+
 @using Pulse.Web.Services
 @attribute [Authorize]
 @inject PulseApiService pApi
@@ -21,6 +25,7 @@
 @inject MessageHubService MsgHubService
 @inject AuthService _authService
 @inject DataTransferService dataTrf
+@inject AppState appState
 @inject CustomAuthenticationStateProvider AuthStateProvider
 @inject IDialogService DialogService
 
@@ -28,7 +33,7 @@
 
 @* <CascadingValue Value="this"> *@
     
-    <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important;">
+    @* <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important;">
         <FluentButton Id="btnMsgFilter" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:40px; width:40px;margin-left:10px;margin-top:8px" Title="Filter" OnClick="() => showFilterMenu = !showFilterMenu">
             <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Filter().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
         </FluentButton>
@@ -90,14 +95,14 @@
                 </FluentStack>
             </Body>
         </FluentPopover>
-    </div>
+    </div> *@
     <div style="display: flex; height: calc(100vh - 112px); background-color: var(--pulse-light-colour);">
         
     <!-- Sidebar - Message List -->
         <div style="width: 350px; border-right: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);height: calc(100% -112px)">
         <!-- Header with Tabs -->
         <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
-            <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Messages</FluentLabel>
+            <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Subscriptions</FluentLabel>
 @*             <FluentStack Orientation="Orientation.Vertical">
                 
         
@@ -112,39 +117,36 @@
 
         <!-- Message List -->
         <div style="height:calc(100% - 112px);  border: 1px solid var(--pulse-dark-colour); border-radius:10px; padding: 8px;margin:10px; background-color: white">
-            @if (messages == null)
+            @if (IsLoading)
             {
                 <div style="overflow: auto; justify-content: center; align-items: center; height: 100%;">
                     <FluentProgressRing />
                 </div>
             }
-            else if (filteredMessages.Count == 0)
+            else if (Subscribed.Count == 0)
             {
                 <FluentCard Style="padding: 16px; text-align: center;">
-                    <FluentLabel>No @(messageFilter == MessageFilter.Active ? "active" : "archived") messages</FluentLabel>
+                    <FluentLabel>No Subscriptions Found</FluentLabel>
                 </FluentCard>
             }
             else
             {
                 <div style="height: 100%;overflow-y: auto; justify-content: center;  ">
-                @foreach (var msg in filteredMessages.OrderByDescending(m => m.SentAt))
-                {
-                    var isSelected = selectedMessage?.Id == msg.Id;
-                <div style="@($"padding: 8px; margin: 4px 0; border-radius: 6px; border: 1px solid var(--pulse-dark-colour); cursor: pointer; border-bottom: {(isSelected ? "3px solid var(--pulse-dark-colour)" : "1px solid var(--pulse-dark-colour)")}; background-color: {(isSelected ? "white" : "var(--pulse-dark-t50-colour)")}; {(isSelected ? "color: var(--pulse-dark-colour)" : "color: white;")}")"
-                         @onclick="() => SelectMessage(msg)">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <FluentLabel Style="@(isSelected ? "color: var(--pulse-dark-colour); font-weight: 600;" : "font-weight: 600; color: white;")" Typo="Typography.Body">
-                                @msg.SenderUserName
-                            </FluentLabel>
+                    @foreach (var sub in Subscribed)
+                    {
+                        var isSelected = selectedSub?.Id == sub.Id;
+                        <div style="@($"padding: 8px; margin: 4px 0; border-radius: 6px; border: 1px solid var(--pulse-dark-colour); cursor: pointer; border-bottom: {(isSelected ? "3px solid var(--pulse-dark-colour)" : "1px solid var(--pulse-dark-colour)")}; background-color: {(isSelected ? "white" : "var(--pulse-dark-t50-colour)")}; {(isSelected ? "color: var(--pulse-dark-colour)" : "color: white;")}")"
+                             @onclick="() => SelectSubscription(sub)">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <FluentLabel Style="@(isSelected ? "color: var(--pulse-dark-colour); font-weight: 600;" : "font-weight: 600; color: white;")" Typo="Typography.Body">
+                                    @sub.StreamName
+                                </FluentLabel>
+                            </div>
+                            <div style="font-size: 11px; margin-top: 2px; @(isSelected ? "color: var(--pulse-dark-colour);" : "color: white;")" title="@sub.StreamDivisionID">
+                                Division: @sub.StreamDivisionID
+                            </div>
                         </div>
-                    <div style="font-size: 12px; margin-top: 4px; @(isSelected ? "color: var(--pulse-dark-colour);" : "color: white;")" title="@msg.Subject">
-                        @(msg.Subject?.Length > 50 ? msg.Subject.Substring(0, 50) + "..." : msg.Subject)
-                        </div>
-                    <div style="font-size: 11px; margin-top: 2px; @(isSelected ? "color: var(--pulse-dark-colour);" : "color: white;")" title="@msg.SentAt">
-                            @msg.SentAt.ToString()
-                        </div>
-                    </div>
-                }
+                    }
                 </div>
             }
         </div>
@@ -153,157 +155,124 @@
     <!-- Main Content Area - Message Detail -->
     <div style="flex: 1; display: flex; flex-direction: column; background-color: var(--pulse-light-colour);">
         <!-- Header Bar -->
-        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider); background-color: var(--pulse-light-colour);">
-            @if (selectedMessage != null)
-            {
-                
-                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="12">
-                        @* <div style="flex: 1;"> *@
-                            <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="12">
-                            <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">@selectedMessage.SenderUserName</FluentLabel>
-                            <FluentLabel Typo="Typography.Body" Style="color: var(--pulse-dark-colour); font-size: 12px;">@selectedMessage.SentAt.ToString()</FluentLabel>
-                            </FluentStack>
-                        @* </div> *@
-                        
-                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="8">
-                                <FluentSpacer />
-                            
-                            @* <FluentButton Appearance="MsFluent.Appearance.Outline" @onclick="() => OpenNewMessageDialog()" aria-label="Compose new message">
-                                Broadcast
-                            </FluentButton> *@
-                        </FluentStack>
-                    
-                </FluentStack>
-            }
-            else
-            {
-                <FluentLabel Typo="Typography.PageTitle" Style="color: var(--neutral-foreground-hint);">Select a message to view</FluentLabel>
-            }
-        </div>
+        @* <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider); background-color: var(--pulse-light-colour);">
+           
+                <FluentLabel Typo="Typography.PageTitle" Style="color: var(--neutral-foreground-hint);">Select a Data Stream to view</FluentLabel>
+            
+        </div> *@
 
         <!-- Message Content -->
     <div style="flex: 1; padding: 24px; overflow: hidden; background-color: white;">
-            @if (composeMode != ComposeMode.None && composingMessage != null)
-            {
-                <!-- Compose Form -->
-                <FluentCard class="divShadow" Style="padding: 20px; display: flex; flex-direction: column; height: 100%;">
-                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height: 100%; overflow: hidden;" VerticalGap="12">
-                        <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">
-                            @(composeMode == ComposeMode.Reply ? $"Reply to {composingMessage.RecipientUserName}" : "New Message")
-                        </FluentLabel>
-
-                        @if (composeMode == ComposeMode.NewMessage)
-                        {
-                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
-                                <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
-                                <FluentTextField @bind-Value="composingMessage.RecipientUserName" Placeholder="Select recipient" Style="flex: 1;" />
-                            </FluentStack>
-                        }
-                        else
-                        {
-                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
-                                <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
-                                <FluentLabel>@composingMessage.RecipientUserName</FluentLabel>
-                            </FluentStack>
-                        }
-
-                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
-                            <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
-                            <FluentTextField @bind-Value="composingMessage.Subject" Style="flex: 1;" />
-                        </FluentStack>
-
-                        <FluentLabel Style="font-weight: 600;">Message:</FluentLabel>
-                        @* <FluentTextArea @bind-Value="composingMessage.Content" Rows="8" Style="flex: 1; resize: none;width:stretch" /> *@
-                        <RadzenHtmlEditor @bind-Value=@composingMessage.Content style="flex: 1;width:stretch;" UploadUrl="upload/image">
-                            <RadzenHtmlEditorUndo />
-                            <RadzenHtmlEditorRedo />
-                            <RadzenHtmlEditorSeparator />
-                            <RadzenHtmlEditorBold />
-                            <RadzenHtmlEditorItalic />
-                            <RadzenHtmlEditorUnderline />
-                            <RadzenHtmlEditorStrikeThrough />
-                            <RadzenHtmlEditorAlignLeft />
-                            <RadzenHtmlEditorAlignCenter />
-                            <RadzenHtmlEditorAlignRight />
-                            <RadzenHtmlEditorJustify />
-                            <RadzenHtmlEditorIndent />
-                            <RadzenHtmlEditorOutdent />
-                            <RadzenHtmlEditorUnorderedList />
-                            <RadzenHtmlEditorOrderedList />
-                            <RadzenHtmlEditorSeparator />
-                            <RadzenHtmlEditorColor />
-                            <RadzenHtmlEditorBackground />
-                            <RadzenHtmlEditorRemoveFormat />
-                            <RadzenHtmlEditorSubscript />
-                            <RadzenHtmlEditorSuperscript />
-                            <RadzenHtmlEditorFontName />
-                            <RadzenHtmlEditorFontSize />
-                            <RadzenHtmlEditorFormatBlock />
-                        </RadzenHtmlEditor>
-
-
-                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="8" HorizontalAlignment="MsFluent.HorizontalAlignment.Right">
-                            <FluentButton Appearance="Appearance.Outline" @onclick="CancelCompose" aria-label="Cancel compose">
-                                Cancel
-                            </FluentButton>
-                            <FluentButton Appearance="Appearance.Accent" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Disabled="isSendingEmail || string.IsNullOrWhiteSpace(composingMessage.Content)" @onclick="SendComposedMessage" aria-label="Send message">
-                                @(isSendingEmail ? "Sending..." : "Send")
-                            </FluentButton>
-                        </FluentStack>
-                    </FluentStack>
-                </FluentCard>
-            }
-            else if (selectedMessage != null)
-            {
-                <FluentCard class="divShadow" Style="padding: 20px">
-                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height:100%" VerticalGap="16">
-                        <!-- To -->
-                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
-                            <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
-                            <FluentLabel>@selectedMessage.RecipientUserName</FluentLabel>
-                            <FluentSpacer />
-                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => StartReply(selectedMessage)" aria-label="Reply to message">
-                                Reply
-                            </FluentButton>
-                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => SendToEmail(selectedMessage)" aria-label="Forward to your E-mail">
-                                @(isSendingEmail ? "Sending..." : "My E-Mail")
-                            </FluentButton>
-                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="ArchiveMsg" Disabled=@(selectedMessage.Delivered == true || isSendingEmail ? true : false) aria-label="Archive message">
-                                Archive
-                            </FluentButton>
-                        </FluentStack>
-
-                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0" Style="padding-bottom: 5px; border-bottom: 1px solid var(--pulse-dark-colour)">
-                            <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
-                            <FluentLabel>@selectedMessage.Subject</FluentLabel>
-                        </FluentStack>
-
-                        <!-- Message Content -->
-                        <div style="border-top: 1px solid var(--neutral-stroke-divider); padding-top: 5px;margin-bottom: 5px;padding-bottom:5px; margin-top: 5px;flex: 1;overflow: auto;">
-                            <p style="white-space: pre-wrap; word-wrap: break-word; color: var(--neutral-foreground-rest);">@((MarkupString)ParseToHtml(@selectedMessage.Content))</p>
-                        </div>
-                </FluentStack>
-                </FluentCard>
-            }
-            else
-            {
+            
                 <FluentCard class="divShadow" Style="padding: 40px; text-align: center;">
-                    <FluentLabel Typo="Typography.Body">Select a message from the inbox to view its content</FluentLabel>
-                </FluentCard>
-            }
-                </div>
+                @if (IsLoading)
+                {
+                    <FluentProgressRing Width="32px"></FluentProgressRing>
+                    <p>Loading Data Stream...</p>
+                } 
+                else if (selectedSub == null)
+                {
+                    <FluentLabel Typo="Typography.Body">Select a data stream from the list to view its content</FluentLabel>
+                }
+                else if (filteredStreamMessages.Count == 0)
+                {
+                    <FluentLabel Typo="Typography.Body">No messages found for the selected data stream</FluentLabel>
+                }
+                else
+                {
+                    <div style="height: 60vh; overflow-y: auto; text-align: left;">
+                        @foreach (var msg in filteredStreamMessages)
+                        {
+                            <div style="border-bottom: 1px solid var(--neutral-stroke-divider); padding: 12px 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <FluentLabel Typo="Typography.H4"><strong>@msg.Title</strong></FluentLabel>
+                                    
+                               @*  </div>
+                                <div style="margin-top: 4px;"> *@
+                                    @if (msg.StreamType == ProductionStreamType.Message)
+                                    {
+                                        <FluentLabel Typo="Typography.Body">@msg.Message</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-hint);">@msg.UserName</FluentLabel>
+                                    }
+                                    else if (msg.StreamType == ProductionStreamType.StageCompleted)
+                                    {
+                                        <FluentLabel Typo="Typography.Body">WO No: @msg.WorkOrderNo</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body">Stage: @msg.ProductionStageName</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body">Completed By: @msg.UserName</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body">Result: @msg.Result</FluentLabel>
+                                        <FluentLabel Typo="Typography.Body">Date/Time: @msg.MsgActionDateTime.Value.ToLocalTime().ToString("g")</FluentLabel>
+
+                                    }
+                                    <FluentLabel Typo="Typography.Body" Style="color: var(--neutral-foreground-hint);width: 100%;border-top:1px solid var(--pulse-dark-colour);text-align: right;">@msg.MsgTimestamp.ToLocalTime().ToString("g")</FluentLabel>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </FluentCard>
+            
             </div>
+        </div>
 
             <!-- Right Sidebar - User Presence List -->
-<div style="width: 280px; border-left: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);">
+        <div style="width: 280px; border-left: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);">
                 <!-- Header -->
                 <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
-                    <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Users</FluentLabel>
+                    <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Streams</FluentLabel>
                 </div>
 
                 <!-- User Presence List -->
                 <div style="flex: 1; overflow-y: auto; padding: 8px; ">
-                    <UserPresenceList OnUserSelected="OnPresenceUserSelected" />
+                    @if (IsLoading)
+                    {
+                        <FluentProgressRing Width="32px"></FluentProgressRing>
+                        <p>Loading Data Streams...</p>
+                    }
+                    else if (Unsubscribed.Count == 0)
+                    {
+                        <p>No Streams Available</p>
+                    }
+                    else
+                    {
+                        <!-- Search Box -->
+                        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px; margin-bottom: 12px; border-bottom: 1px solid var(--pulse-dark-colour);">
+                            <FluentTextField 
+                                @bind-Value="searchStreams"
+                                @oninput="OnSearchInput"
+                                Placeholder="Search Streams..."
+                                TextFieldType="TextFieldType.Search"
+                                Appearance="FluentInputAppearance.Filled"
+                                Style="width: 100%;">
+                                <FluentIcon Value="@(new Icons.Regular.Size20.Search())" Slot="start" Color="MsFluent.Color.Neutral" />
+                            </FluentTextField>
+                        </FluentStack>
+
+                        <!-- Streams List -->
+                        @if (GetFilteredStreams().Count == 0)
+                        {
+                            <p style="text-align: center; color: var(--neutral-foreground-hint);">No streams match your search</p>
+                        }
+                        else
+                        {
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
+                                @foreach (var stream in GetFilteredStreams())
+                                {
+                                        <div style="@($"padding: 8px;border: 1px solid var(--pulse-dark-colour);border-radius:10px; cursor: pointer; transition: background-color 0.2s;width:100%; background-color: {(hoveredStreamName == stream.StreamName ? "var(--accent-fill-rest)" : "transparent")}; color: {(hoveredStreamName == stream.StreamName ? "white" : "inherit")};")"
+                                         @onmouseover="@((e) => hoveredStreamName = stream.StreamName)" 
+                                         @onmouseout="@((e) => hoveredStreamName = null)"
+                                         @onclick="@(() => OnStreamClicked(stream))">
+                                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" Style="gap: 12px;">
+                                            <div>
+                                                <span>@(stream.StreamName)</span>
+                                                <br />
+                                                <small style="@(hoveredStreamName == stream.StreamName ? "color: rgba(255,255,255,0.7);" : "color: gray;")">@(stream.Description.Length > 50 ? stream.Description.Substring(0, 50) + "..." : stream.Description)</small>
+                                            </div>
+                                        </FluentStack>
+                                    </div>
+                                }
+                            </FluentStack>
+        }
+    }
                 </div>
                         </div>
                     </div>
@@ -312,6 +281,21 @@
 @* <FluentDialogProvider /> *@
 
 @code {
+    [Inject] private Radzen.DialogService RadzenDialogService { get; set; } = default!;
+    [CascadingParameter] 
+    private MasterLayout MasterLayout { get; set; } = default!;
+
+    private List<ProductionStreamMessageDto> productionMessages = new();
+    private List<ApplicationUserStream> Subscribed = [];
+    private List<SystemDataStream> Unsubscribed = [];
+    private List<SystemDataStream> DivisionStreams = [];
+    private List<ProductionStreamMessageDto> filteredStreamMessages = new();
+    private ApplicationUserStream? selectedSub;
+    private SystemDataStream? selectedDivStream;
+    private bool IsLoading = true;
+    private string? searchStreams = string.Empty;
+    private string? hoveredStreamName = null;
+
     private enum MessageFilter { Active, Archived }
     private enum ComposeMode { None, Reply, NewMessage }
 
@@ -345,23 +329,134 @@
     {
         // Ensure connection
         await MsgHubService.EnsureConnectedAsync();
-
+        appState.OnProductionChange += async () => await LoadMessagesAsync();
         // Subscribe to events
-        MsgHubService.OnReceiveMessage += HandleReceiveMessage;
-        MsgHubService.OnPresenceListUpdated += HandlePresenceListUpdated;
+        
 
-        // Get current user ID
-        currentUserId = _authService.aspireUserId;
 
-        // Load initial messages
-        await LoadMessagesAsync();
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            Division d = await dataTrf.GetgvSelectedDivision();
+            currentUserId = _authService.aspireUserId;
+            var uResponse = await pApi.GetAsync<ApiResponse<List<ApplicationUserStream>>>(ApiEndpoints.User.Subscriptions.GetSystemStreams(currentUserId));
+            if (uResponse != null && uResponse.Success && uResponse.Data != null)
+            {
+                var uSub = uResponse.Data;
+                Subscribed = new List<ApplicationUserStream>();
+                foreach(var st in uSub)
+                {
+                    Subscribed.Add(new ApplicationUserStream { StreamName = st.StreamName, StreamDivisionID = st.StreamDivisionID, Id = st.Id });
+                }
+            }
+            var response = await pApi.GetAsync<ApiResponse<List<SystemDataStream>>>(ApiEndpoints.Divisions.WithDivisionID.GetSystemDataStreams(d.DivisionID));
+            if ( response != null && response.Success && response.Data != null)
+            {
+                DivisionStreams = response.Data;
+                Unsubscribed = DivisionStreams.Where(ds => Subscribed.All(s => s.StreamID != ds.StreamID && s.StreamDivisionID != MasterLayout?.division!.DivisionID)).ToList();
+            }
+
+            IsLoading = false;
+            await InvokeAsync(StateHasChanged);
+        }
+
+    }
+    private void OnSearchInput(ChangeEventArgs e)
+    {
+        searchStreams = e.Value?.ToString() ?? string.Empty;
+        StateHasChanged();
+    }
+
+    private List<SystemDataStream> GetFilteredStreams()
+    {
+        if (Unsubscribed == null || string.IsNullOrWhiteSpace(searchStreams))
+        {
+            return Unsubscribed?.OrderBy(u => u.StreamName).ToList() ?? new();
+        }
+
+        var query = searchStreams.ToLower();
+        return Unsubscribed
+            .Where(u => (u.StreamName).ToLower().Contains(query))
+            .OrderBy(u => u.StreamName)
+            .ToList();
+    }
+
+    private async Task OnStreamClicked(SystemDataStream stream)
+    {
+        var confirmed = await ConfirmSubscriptionDialogAsync(stream.StreamName);
+        if (!confirmed)
+        {
+            return;
+        }
+        ApplicationUserStream userStream = new ApplicationUserStream
+            {
+                ApplicationUserID = currentUserId,
+                StreamName = stream.StreamName,
+                StreamID = stream.StreamID,
+                StreamType = StreamType.System,
+                StreamDivisionID = MasterLayout?.division!.DivisionID!
+            };
+        var response = await pApi.PostAsync<ApplicationUserStream, ApiResponse<ApplicationUserStream>>(ApiEndpoints.User.Subscriptions.Subscribe, userStream);
+        if (response != null && response.Success && response.Data != null)
+        {
+            Subscribed.Add(response.Data);
+            Unsubscribed.RemoveAll(s => s.StreamID == stream.StreamID);
+            await MsgHubService.JoinGroup($"{stream.StreamName}_{MasterLayout?.division!.DivisionID}", MasterLayout?.UserPreferredName!);
+            PulseToastService.ShowToast("Success", $"You are now subscribed to the {stream.StreamName} data stream for this Division.", true);
+            await Global_AI.AISpeak($"You are now subscribed to the {stream.StreamName} data stream for this Division.", "PulseAI");
+        }
+        else
+        {
+            PulseToastService.ShowToast("Error", $"There was an error subscribing to the {stream.StreamName} data stream.<br />Please try again.", true);
+            await Global_AI.AISpeak($"There was an error subscribing to the {stream.StreamName} data stream.<br />Please try again.", "PulseAI");
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task<bool> ConfirmSubscriptionDialogAsync(string streamName)
+    {
+        var result = await RadzenDialogService.Confirm(
+            // $"Do you want to subscribe to the Data Stream\n\n<div style=\"text-align:center\">{streamName}?</div>",
+            GetMessage(streamName),
+            "Confirm",
+            new ConfirmOptions
+            {
+                OkButtonText = "Subscribe",
+                CancelButtonText = "Cancel"
+                // OkButtonColor = ButtonColor.Danger
+            });
+
+        return result == true;
+    }
+    RenderFragment GetMessage(string streamName)
+    {
+        return __builder =>
+        {
+            <text>
+                Click <b>Subscribe</b> to start receiving updates from the following Data Stream:
+            </text>
+            <br />
+            <br />
+            <div style="text-align:center">Division   : @MasterLayout?.division!.DivisionName</div>
+            <div style="text-align:center">Data Stream: @streamName</div>
+            <br />
+        };
+    }
     private async Task LoadMessagesAsync()
     {
         // Wait a moment for MasterLayout to load messages via SignalR and save to DataTransferService
+        IsLoading = true;
+        filteredStreamMessages = [];
         await Task.Delay(1500);
-        messages = await dataTrf.GetgvUserMessages();
+        productionMessages = await dataTrf.GetProductionStream();
+        if (selectedSub != null)
+        {
+            filteredStreamMessages = productionMessages.Where(m => m.ProductionGroupName == $"0_{selectedSub.StreamID}_{selectedSub.StreamDivisionID}").OrderByDescending(m => m.MsgTimestamp).ToList();
+        }
+        IsLoading = false;
         await InvokeAsync(StateHasChanged);
     }
 
@@ -394,11 +489,10 @@
         InvokeAsync(StateHasChanged);
     }
 
-    private void SelectMessage(PulseMessage msg)
+    private async Task SelectSubscription(ApplicationUserStream sub)
     {
-        selectedMessage = msg;
-        composeMode = ComposeMode.None;
-        composingMessage = null;
+        selectedSub = sub;
+        await LoadMessagesAsync();
     }
 
     private void StartReply(PulseMessage msgToReplyTo)

@@ -26,9 +26,10 @@
                 @bind-Value="searchQuery"
                 @oninput="OnSearchInput"
                 Placeholder="Search users..."
-                IconStart="@(new Icons.Regular.Size20.Search())"
+                TextFieldType="TextFieldType.Search"
                 Appearance="FluentInputAppearance.Filled"
                 Style="width: 100%;">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Search())" Slot="start" Color="MsFluent.Color.Neutral" />
             </FluentTextField>
         </FluentStack>
 

@@ -1,7 +1,7 @@
 ﻿using Markdig;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.AI;
-using Microsoft.Identity.Client;
+
 using OllamaSharp;
 using OllamaSharp.Models.Chat;
 

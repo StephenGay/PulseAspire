@@ -8,6 +8,7 @@ public class AppState
     public event Func<Task>? OnChange;
     public event Func<Task>? OnThemeChange;
     public event Func<Task>? OnClientChange;
+    public event Func<Task>? OnProductionChange;
 
     public async Task NotifyStateChanged()
     {
@@ -23,6 +24,11 @@ public class AppState
     {
         if (OnClientChange != null)
             await OnClientChange.Invoke();
+    }
+    public async Task NotifyProductionChanged()
+    {
+        if (OnProductionChange != null)
+            await OnProductionChange.Invoke();
     }
 }
 

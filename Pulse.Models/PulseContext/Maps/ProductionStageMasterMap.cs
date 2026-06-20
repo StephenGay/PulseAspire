@@ -92,12 +92,12 @@ namespace Pulse.Models.PulseContext.Maps
                 .IsRequired(false)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(e => e.WorkType)
-                .WithMany() // Add .HasMany(w => w.ProductionStages) if collection exists in WorkType
-                .HasForeignKey(e => e.WorkTypeID)
-                .HasPrincipalKey(w => w.WorkTypeID)
-               .IsRequired()
-               .OnDelete(DeleteBehavior.Restrict);
+            //builder.HasOne(e => e.WorkType)
+            //    .WithMany() // Add .HasMany(w => w.ProductionStages) if collection exists in WorkType
+            //    .HasForeignKey(e => e.WorkTypeID)
+            //    .HasPrincipalKey(w => w.WorkTypeID)
+            //   .IsRequired()
+            //   .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(e => e.DivisionWorkType)
                .WithMany()                                      // You can add a back navigation later if needed

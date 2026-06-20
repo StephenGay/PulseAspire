@@ -23,6 +23,7 @@
         border-radius: 10px;
         padding: 12px;
         background: white;
+        margin-bottom:10px;
     }
     .wc-card-unselected{
         border: 1px solid var(--pulse-dark-colour);
@@ -136,7 +137,7 @@
 </FluentCard>
 
 @* <Drawer Placement="Placement.Left" @bind-IsOpen="@openWC" IsBackdrop="true" @OnCloseAsync="() => { openWC=false ; selectedWC = null ; }" AllowResize="true" width="15%" style="overflow-x:hidden"> *@
-    <div class="offcanvas offcanvas-end" style="width:100%" tabindex="-1" id="zoneWC">
+    <div class="offcanvas offcanvas-end" style="width:30%" tabindex="-1" id="zoneWC">
         <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
             <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
                 <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px;"
@@ -168,8 +169,8 @@
             }
         </FluentStack>
     </div>
-<div class="offcanvas offcanvas-start" style="width:100%" tabindex="-1" id="zoneEquip">
-    <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;">
+<div class="offcanvas offcanvas-start" style="width:30%" tabindex="-1" id="zoneEquip">
+    <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" Style="gap: 8px; padding: 16px;height:stretch">
         <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="gap: 8px; padding: 16px;">
             <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px;"
                           IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
@@ -184,19 +185,20 @@
         }
         else
         {
-            if (wcUnzoned?.Any() == true)
-            {
-                @foreach (var eq in wcUnzoned)
+            <div style="overflow:auto; width:100%;justify-items:center">
+                @if (wcUnzoned?.Any() == true)
                 {
-                    <div class="wc-card @(selectedEquip != eq ? "wc-card-unselected" : "wc-card-selected")" @onclick="@(() => @selectedEquip = eq)">
-                        <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
-                            <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@eq.Description</FluentLabel>
-                            <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @eq.id</FluentLabel>
-                        </FluentStack>
-                    </div>
+                    @foreach (var eq in wcUnzoned)
+                    {
+                        <div class="wc-card @(selectedEquip != eq ? "wc-card-unselected" : "wc-card-selected")" @onclick="@(() => @selectedEquip = eq)">
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="gap: 8px;">
+                                <FluentLabel Typo="Typography.Body" Style="font-weight: bold;">@eq.Description</FluentLabel>
+                                <FluentLabel Typo="Typography.Body" Style="font-size: 0.75rem; color: #999;">ID: @eq.id</FluentLabel>
+                            </FluentStack>
+                        </div>
+                    }
                 }
-            }
-
+            </div>
         }
     </FluentStack>
 </div>

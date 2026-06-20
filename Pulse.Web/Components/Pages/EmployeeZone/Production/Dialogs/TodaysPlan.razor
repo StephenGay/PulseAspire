@@ -4,10 +4,17 @@
 @using Pulse.Models.Organizational
 @using Pulse.Web.Services
 
+@inject AppState _appState
+
 @inject DataTransferService dTrf
 @inject PulseApiService pApiClient
 @inject IJSRuntime JSRuntime
 
+<style>
+    .rz-grid-table td .rz-cell-data {
+        color: currentColor !important;
+    }
+</style>
 @if (isLoading)
 {
     
@@ -17,8 +24,9 @@ else
     <RadzenDataGrid @ref="radPlanGrid"
     Data="@todaysPlan"
                     FilterMode="FilterMode.Simple"
+                    AllowAlternatingRows="false"
                     AllowFiltering="true"
-                    AllowPaging="true"
+                    AllowPaging="false"
                     AllowSorting="true"
                     AllowColumnResize="true"
                     Style="height:100%;border-radius:10px"
@@ -27,20 +35,23 @@ else
                     @bind-Settings="@Settings"
                     LoadSettings="@LoadSettings"
                     AllowGrouping="true"
+                    AllowColumnReorder="true"
                     PageSize="15"
                     ExpandMode="DataGridExpandMode.Single"
                     ShowExpandAll="true"
                     ExpandAllTitle="Ex"
-                    ShowGroupExpandColumn="true"
-                    HideGroupedColumn="true"
+                    ShowGroupExpandColumn="indentGroupedCol"
+                    @bind-HideGroupedColumn="@showGroupedCol"
                     GroupRowRender="OnGroupRowRender"
+                    RowRender="@RowRender"
+                    CellRender="@CellRender"
                     @bind-AllGroupsExpanded="@allGroupsExpanded"
                     IsLoading="@isLoading"
                     SelectionMode="DataGridSelectionMode.Single"
                     @bind-Value="@selectedPlan"
                     FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive"
                     LogicalFilterOperator="LogicalFilterOperator.And"
-                    ColumnWidth="200px">
+                    >
         <HeaderTemplate>
             <div style="text-align:left;width:stretch">
                 @* <RadzenButton Text="Expand all groups" Click="@(args => ToggleGroups(true))" Disabled=@(allGroupsExpanded == true) />
@@ -51,29 +62,42 @@ else
                 <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class="myAccentBtn" style="border: 1px solid var(--pulse-accent-btn-colour); width:50px;height:50px" OnClick="@(args => ToggleGroups(false))" Disabled=@(allGroupsExpanded == false)>
                     <FluentIcon Value="@(new Icons.Filled.Size28.PanelRightExpand())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-accent-btn-colour)" />
                 </FluentButton>
-                <FluentButton Appearance="Appearance.Neutral" Class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" Style="margin-left:30px;margin-right:30px;height:50px;padding-left:10px;padding-right:10px;" id="btnSaveLayout" OnClick="() => InvokeAsync(SaveStateAsync)">
-                    <FluentIcon Value="@(new Icons.Filled.Size28.Save())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-ok-btn-colour)" />
-                    Save Layout
+                <FluentButton Appearance="Appearance.Neutral" Class="myOkBtn" BackgroundColor="var(--pulse-ok-btn-bg)" IconStart="@(new Icons.Filled.Size28.Save().WithColor("var(--pulse-ok-btn-colour)"))" Style="margin-left:30px;margin-right:30px;height:50px;padding-left:10px;padding-right:10px;" id="btnSaveLayout" Title="Save Current Layout" OnClick="() => InvokeAsync(SaveStateAsync)">
+                    @* <FluentIcon Value="@(new Icons.Filled.Size28.Save())" Slot="Center" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-ok-btn-colour)" /> *@
                 </FluentButton>
-                <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class="myAccentBtn" Style="margin-right:30px;height:50px;padding-left:10px;padding-right:10px" id="btnPlanByWO" data-bs-toggle="offcanvas" data-bs-target="#WOPlan">
+                <FluentButton Appearance="Appearance.Accent" class=@(showGroupedCol ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                              Color="var(--pulse-mode-btn-item-colour)"
+                              IconStart="@(new Icons.Filled.Size28.TableCellCenterSearch().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                              style="margin-left:30px;margin-right:30px; width:50px;height:50px;"
+                              Title="Show Grouped Columns"
+                              OnClick="() => {showGroupedCol = !showGroupedCol; StateHasChanged();}"></FluentButton>
+                <FluentButton Appearance="Appearance.Accent" class=@(indentGroupedCol ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                              Color="var(--pulse-mode-btn-item-colour)"
+                              IconStart="@(new Icons.Filled.Size28.TextArrowDownRightColumn().WithColor("var(--pulse-mode-btn-item-colour)"))"
+                              style="margin-left:30px;margin-right:30px;height:50px; width:50px"
+                              Title="Indent Grouped Columns"
+                              OnClick="() => {indentGroupedCol = !indentGroupedCol; StateHasChanged();}"></FluentButton>
+                @* <FluentButton BackgroundColor="var(--pulse-accent-btn-bg)" Class="myAccentBtn" Style="margin-right:30px;height:50px;padding-left:10px;padding-right:10px" id="btnPlanByWO" data-bs-toggle="offcanvas" data-bs-target="#WOPlan">
                     <FluentIcon Value="@(new Icons.Filled.Size28.DocumentOnePageMultiple())" Width="36px" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-accent-btn-colour)" />
                     WO Details
-                </FluentButton>
+                </FluentButton> *@
             </div>
         </HeaderTemplate>
         <Columns>
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WorkOrderNo" Title="WO No" Width="70px" Visible="false" TextAlign="TextAlign.Center" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ClientName" Title="Client Name" FilterMode="FilterMode.SimpleWithMenu" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WODescription" Visible="false" Title="WO Description" />
-            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WorkCentreName" Visible="false" Title="Work Centre" />
-            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="FactoryZoneName" Visible="false" Title="Factory Zone" /> 
-            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="EquipmentItemDescription" Visible="false" Title="Equipment" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WorkCentreName" Visible="false" Title="Work Centre" FilterMode="FilterMode.CheckBoxList" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="FactoryZoneName" Visible="false" Title="Factory Zone" FilterMode="FilterMode.CheckBoxList" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="EquipmentItemDescription" Visible="false" Title="Equipment" FilterMode="FilterMode.CheckBoxList" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="PlannedStartTime" Visible="false" Title="Planned Start Time" FormatString="{0:dd-MM-yy HH:mm}" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="PlannedEndTime" Visible="false" Title="Planned End Time" FormatString="{0:dd-MM-yy HH:mm}" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ActualStartTime" Visible="false" Title="Actual Start Time" FormatString="{0:dd-MM-yy HH:mm}" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ActualEndTime" Visible="false" Title="Actual End Time" FormatString="{0:dd-MM-yy HH:mm}" />
             <RadzenDataGridColumn TItem="ProductionPlanDto" Property="StepNo" Visible="false" Title="Step No" />
-            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ProductionStageDescription" Visible="false" Title="Production Stage" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="ProductionStageDescription" Visible="false" Title="Production Stage" FilterMode="FilterMode.CheckBoxList" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="WoAtStep" Visible="false" Title="WO At Step" />
+            <RadzenDataGridColumn TItem="ProductionPlanDto" Property="Progress" Visible="false" Title="Progress" TextAlign="TextAlign.Center" FilterMode="FilterMode.CheckBoxList" />
         </Columns>
     </RadzenDataGrid>
 }
@@ -86,9 +110,16 @@ else
     private IList<ProductionPlanDto>? selectedPlan;
     private bool isLoading = true;
     private bool? allGroupsExpanded = false;
+    private bool showGroupedCol = false;
+    private bool indentGroupedCol = false;
 
     protected override async Task OnInitializedAsync()
     {
+        _appState.OnProductionChange += async () =>
+        {
+            await GetTodaysPlanAsync();
+            // await InvokeAsync(radPlanGrid.Reload);
+        };
 
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -125,8 +156,121 @@ else
     {
         allGroupsExpanded = value;
     }
-    
 
+    void RowRender(RowRenderEventArgs<ProductionPlanDto> args)
+    {
+        var colourBG = "white";
+        var colourText = "black";
+        var stBorder = "0px solid transparent";
+        var fontWeight = "normal";
+        var fontStyle = ";";
+        var font = string.Empty;
+
+        switch (args.Data.Progress)
+        {
+            case "Completed Late":
+                colourBG = "#ffffcc";
+                colourText = "#339933";
+                fontStyle = "; font-style: italic;";
+                stBorder = "1px solid #339933";
+                break;
+            case "Completed On Time":
+                colourBG = "#006f00";
+                colourText = "#c2f0c2";
+                stBorder = "1px solid #c2f0c2";
+                break;
+            case "Started Late":
+                colourBG = "#ffff66";
+                colourText = "#ff3300";
+                fontStyle = "; font-style: italic;";
+                stBorder = "1px solid #ff3300";
+                break;
+            case "Started On Time":
+                colourBG = "#c2f0c2";
+                colourText = "#006f00";
+                stBorder = "1px solid #006f00";
+                break;
+            case "Past Due":
+            case "Previous Stage Incomplete":
+                colourBG = "#ffb3b3";
+                colourText = "#660000";
+                stBorder = "1px solid #660000";
+                fontWeight = "bold";
+                fontStyle = "; font-style: italic;";
+                break;
+            case "Due Now":
+                colourBG = "#000099";
+                colourText = "#ffffff";
+                stBorder = "1px solid #ffffff";
+                break;
+            case "Upcoming":
+                colourBG = "#cce6ff";
+                colourText = "#003366";
+                stBorder = "1px solid #003366";
+                break;
+        }
+
+        font = $"font-weight: {fontWeight}{fontStyle}";
+
+        args.Attributes.Add("style", $"{font} background-color: {colourBG}; color: {colourText}; border: {stBorder};");
+    }
+    void CellRender(DataGridCellRenderEventArgs<ProductionPlanDto> args)
+    {
+        var colourBG = "white";
+        var colourText = "black";
+        var stBorder = "0px solid transparent";
+        var fontWeight = "normal";
+        var fontStyle = ";";
+        var font = string.Empty;
+
+        switch (args.Data.Progress)
+        {
+            case "Completed Late":
+                colourBG = "#ffffcc";
+                colourText = "#339933";
+                fontStyle = "; font-style: italic;";
+                stBorder = "1px solid #339933";
+                break;
+            case "Completed On Time":
+                colourBG = "#006f00";
+                colourText = "#c2f0c2";
+                stBorder = "1px solid #c2f0c2";
+                break;
+            case "Started Late":
+                colourBG = "#ffff66";
+                colourText = "#ff3300";
+                fontStyle = "; font-style: italic;";
+                stBorder = "1px solid #ff3300";
+                break;
+            case "Started On Time":
+                colourBG = "#c2f0c2";
+                colourText = "#006f00";
+                stBorder = "1px solid #006f00";
+                break;
+            case "Past Due":
+            case "Previous Stage Incomplete":
+                colourBG = "#ffb3b3";
+                colourText = "#660000";
+                stBorder = "1px solid #660000";
+                fontWeight = "bold";
+                fontStyle = "; font-style: italic;";
+                break;
+            case "Due Now":
+                colourBG = "#000099";
+                colourText = "#ffffff";
+                stBorder = "1px solid #ffffff";
+                break;
+            case "Upcoming":
+                colourBG = "#cce6ff";
+                colourText = "#003366";
+                stBorder = "1px solid #003366";
+                break;
+        }
+
+        font = $"font-weight: {fontWeight}{fontStyle}";
+
+        args.Attributes.Add("style", $"{font} background-color: {colourBG}; color: {colourText} !important; border: {stBorder} !important;");
+    }
     private void OnPickedColumnsChanged(object sender, EventArgs e)
     {
         // Handle column picking changes if needed

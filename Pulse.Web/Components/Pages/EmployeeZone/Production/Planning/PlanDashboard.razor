@@ -1,0 +1,143 @@
+﻿@page "/dashboard"
+@using Pulse.Models.Production.Layout
+@using Pulse.Web.Services
+@inject PulseApiService ApiService
+@inject DialogService RadzenDialogService
+
+<RadzenLayout>
+    <RadzenHeader>
+        <RadzenRow JustifyContent="JustifyContent.SpaceBetween" AlignItems="AlignItems.Center" class="rz-px-4">
+            <RadzenText TextStyle="TextStyle.H4" class="rz-m-0">Pulse Factory Dashboard</RadzenText>
+            <RadzenButton Text="Refresh Data" Icon="refresh" Click="LoadData" />
+        </RadzenRow>
+    </RadzenHeader>
+
+    <RadzenBody>
+        <div class="rz-p-4">
+            <!-- KPI Cards Row -->
+            <RadzenRow Gap="1rem" class="rz-mb-4">
+                <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                    <KpiCard Title="Total Zones" Value="@TotalZones" Icon="factory" Color="#3b82f6" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                    <KpiCard Title="Work Orders Planned" Value="@TotalPlanned" Icon="assignment" Color="#3b82f6" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                    <KpiCard Title="Work Orders Complete" Value="@TotalComplete" Icon="check_circle" Color="#10b981" />
+                </RadzenColumn>
+                <RadzenColumn Size="12" SizeMD="6" SizeLG="3">
+                    <KpiCard Title="Behind Schedule" Value="@ZonesBehind" Icon="warning" Color="#ef4444" />
+                </RadzenColumn>
+            </RadzenRow>
+
+            <!-- Charts + Factory Layout -->
+            <RadzenRow Gap="1rem">
+                <!-- Work Order Status Chart -->
+                <RadzenColumn Size="12" SizeLG="5">
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.H6" class="rz-mb-3">Work Order Status</RadzenText>
+                        <RadzenChart>
+                            <RadzenPieSeries Data="@WorkOrderStatusData" 
+                                             CategoryProperty="Status" 
+                                             ValueProperty="Count"
+                                             Title="Work Orders" />
+                        </RadzenChart>
+                    </RadzenCard>
+                </RadzenColumn>
+
+                <!-- Factory Layout (View Mode) -->
+                <RadzenColumn Size="12" SizeLG="7">
+                    <RadzenCard style="padding:0; overflow:hidden;">
+                        <div style="border-bottom: 1px solid #e5e7eb; padding: 12px 16px; background:#f8fafc;">
+                            <RadzenText TextStyle="TextStyle.Subtitle2" class="rz-m-0">Factory Floor – Live View</RadzenText>
+                        </div>
+                        <FactoryLayout IsEditMode="false" />   <!-- ← Embedded in View Mode -->
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+
+            <!-- DataGrid -->
+            <RadzenRow class="rz-mt-4">
+                <RadzenColumn>
+                    <RadzenCard>
+                        <RadzenText TextStyle="TextStyle.H6" class="rz-mb-3">Zone Summary</RadzenText>
+                        <RadzenDataGrid Data="@Zones" 
+                                        AllowFiltering="true" 
+                                        AllowSorting="true" 
+                                        AllowPaging="true" 
+                                        PageSize="10"
+                                        TItem="FactoryZone">
+                            <Columns>
+                                <RadzenDataGridColumn TItem="FactoryZone" Property="Name" Title="Zone" />
+                                <RadzenDataGridColumn TItem="FactoryZone" Property="WorkOrdersPlanned" Title="Planned" />
+                                <RadzenDataGridColumn TItem="FactoryZone" Property="WorkOrdersComplete" Title="Complete" />
+                                <RadzenDataGridColumn TItem="FactoryZone" Title="Progress">
+                                    <Template Context="zone">
+                                        @{
+                                            var pct = zone.WorkOrdersPlanned > 0 
+                                                ? Math.Round((double)zone.WorkOrdersComplete / zone.WorkOrdersPlanned * 100) 
+                                                : 0;
+                                        }
+                                        <RadzenProgressBar Value="@pct" Max="100" ShowValue="true" />
+                                    </Template>
+                                </RadzenDataGridColumn>
+                                <RadzenDataGridColumn TItem="FactoryZone" Title="Status">
+                                    <Template Context="zone">
+                                        @if (zone.IsBehindSchedule)
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Danger" Text="Behind Schedule" />
+                                        }
+                                        else
+                                        {
+                                            <RadzenBadge BadgeStyle="BadgeStyle.Success" Text="On Track" />
+                                        }
+                                    </Template>
+                                </RadzenDataGridColumn>
+                            </Columns>
+                        </RadzenDataGrid>
+                    </RadzenCard>
+                </RadzenColumn>
+            </RadzenRow>
+        </div>
+    </RadzenBody>
+</RadzenLayout>
+
+@code {
+    private List<FactoryZone> Zones = new();
+    private int TotalZones => Zones.Count;
+    private int TotalPlanned => Zones.Sum(z => z.WorkOrdersPlanned);
+    private int TotalComplete => Zones.Sum(z => z.WorkOrdersComplete);
+    private int ZonesBehind => Zones.Count(z => z.IsBehindSchedule);
+
+    private List<WorkOrderStatus> WorkOrderStatusData = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        // Replace with your actual API call
+        var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID));
+        Zones = response?.Data ?? new();
+
+        // Prepare chart data
+        int planned = Zones.Sum(z => z.WorkOrdersPlanned);
+        int complete = Zones.Sum(z => z.WorkOrdersComplete);
+        int behind = Zones.Count(z => z.IsBehindSchedule);
+
+        WorkOrderStatusData = new List<WorkOrderStatus>
+        {
+            new() { Status = "Completed", Count = complete },
+            new() { Status = "Planned", Count = planned - complete },
+            new() { Status = "Behind Schedule", Count = behind }
+        };
+    }
+
+    public class WorkOrderStatus
+    {
+        public string Status { get; set; } = "";
+        public int Count { get; set; }
+    }
+}

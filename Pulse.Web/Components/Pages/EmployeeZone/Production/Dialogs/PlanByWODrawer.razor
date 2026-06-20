@@ -1,6 +1,10 @@
 ﻿@using Pulse.Models.Api
+@using Pulse.Models.Dtos.Production
 @using Pulse.Models.Production
 @inject Pulse.Web.Services.PulseApiService pApi
+@inject AuthService authService
+@inject AppState appState
+
 @* @implements IDialogContentComponent<WorkInProgressDto> *@
 
 
@@ -106,13 +110,13 @@
             // Handle error (e.g., show a message to the user)
             // return false;
         }
-        
-        
-            productionPlanItems = null;
-            productionPlanItems = await pApi.GetAsync<List<ProductionPlanItem>>(ApiEndpoints.Divisions.Production.WorkOrder.CreateProductionPlan(SelectedWorkOrder.WorksOrderNo));
-                productionPlanItems = await pApi.GetWorkOrderProductionPlanAsync(SelectedWorkOrder.WorksOrderNo);
-        
-        
+
+
+        productionPlanItems = null;
+        productionPlanItems = await pApi.GetAsync<List<ProductionPlanItem>>(ApiEndpoints.Divisions.Production.WorkOrder.CreateProductionPlan(SelectedWorkOrder.WorksOrderNo));
+        productionPlanItems = await pApi.GetWorkOrderProductionPlanAsync(SelectedWorkOrder.WorksOrderNo);
+
+
         await InvokeAsync(StateHasChanged);
     }
 
@@ -183,19 +187,35 @@
     }
     private async Task completeStage()
     {
+        var completedStep = new CompleteProductionPlanDto{
+            ProductionPlanItemID = selectedItem.ProductionPlanItemID,
+            ClosedByUserID = authService.aspireUserId,
+            UserName = authService.aspireFullName,
+            DivisionID = selectedItem.DivisionID,
+            ActualEndTime = DateTime.Now,
+            Status = "Completed"
+        };
+        // if (selectedItem.PlannedEndTime == null)
+        // {
+        //     selectedItem.PlannedEndTime = DateTime.Now;
+        // }
+        // selectedItem.ActualEndTime = DateTime.Now;
+        // selectedItem.Status = "Completed";
+
+        // if (selectedItem.EquipmentItemID == null)
+        // {
+        //     selectedItem.EquipmentItemID = "0";
+        // }
+        await pApi.PatchAsync<CompleteProductionPlanDto>(ApiEndpoints.Production.WorkInProgress.ByDivision.Plan.CompleteStage(selectedItem.ProductionPlanItemID), completedStep);
         if (selectedItem.PlannedEndTime == null)
         {
-            selectedItem.PlannedEndTime = DateTime.Now;
+            selectedItem.PlannedEndTime = completedStep.ActualEndTime;
         }
-        selectedItem.ActualEndTime = DateTime.Now;
-        selectedItem.Status = "Completed";
+        selectedItem.ActualEndTime = completedStep.ActualEndTime;
+        selectedItem.Status = completedStep.Status;
 
-        if (selectedItem.EquipmentItemID == null)
-        {
-            selectedItem.EquipmentItemID = "0";
-        }
-        await pApi.UpdatePlanItemAsync(selectedItem);
-        StateHasChanged();
+        await InvokeAsync(StateHasChanged);
+        // await appState.NotifyProductionChanged();
     }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

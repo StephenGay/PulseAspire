@@ -48,7 +48,7 @@ namespace Pulse.Models.PulseContext.Maps
                    .HasMaxLength(50);
 
             builder.Property(wo => wo.CoverCompoundCode)
-                   .HasMaxLength(5);
+                   .HasMaxLength(4);
 
             builder.Property(wo => wo.ClientOrderNo)
                    .HasMaxLength(100);

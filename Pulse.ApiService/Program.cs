@@ -374,8 +374,10 @@ app.MapPulseThemeEndpoints();
 app.MapEquipmentEndpoints();
 app.MapWorkInProgressEndpoints();
 
-// SignalR Hub
+// SignalR Hubs
 app.MapHub<MessageHub>("/messagehub");
+//app.MapHub<NotificationHub>("/notificationhub");
+//app.MapHub<SystemDataStreamHub>("/systemdatastreamhub");
 
 #endregion
 

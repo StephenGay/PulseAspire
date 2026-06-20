@@ -14,6 +14,7 @@ using Pulse.Models.Users;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Toolbelt.Blazor.SpeechSynthesis;
+using Pulse.Models.Dtos.Production;
 
 namespace Pulse.Web.Services
 {
@@ -31,6 +32,7 @@ namespace Pulse.Web.Services
         public Customer gv_Selected_Client { get; set; }
         public ClientCurrentStats gv_Selected_ClientStats { get; set; }
         public List<PulseMessage> gv_UserMessages { get; set; }
+        public List<ProductionStreamMessageDto> gv_ProductionStream { get; set; } = new List<ProductionStreamMessageDto>();
         public Division gv_Selected_Division { get; set; }
         public List<WorkInProgressDto> gv_Selected_Division_WIP { get; set; }
         public ClientRollerSpecification gv_Selected_Roll_Spec { get; set; }
@@ -58,6 +60,16 @@ namespace Pulse.Web.Services
         public async Task<List<PulseMessage>> GetgvUserMessages()
         {
             return gv_UserMessages;
+        }
+        public async Task AddProductionStream(ProductionStreamMessageDto productionStream)
+        {
+            gv_ProductionStream.Add(productionStream);
+            gv_ProductionStream = gv_ProductionStream.OrderByDescending(ps => ps.MsgTimestamp).ToList();
+            await Task.CompletedTask;
+        }
+        public async Task<List<ProductionStreamMessageDto>> GetProductionStream()
+        {
+            return gv_ProductionStream;
         }
         public async Task SetgvUserSpeedDial(List<ApplicationUserSpeedDial> speedDial)
         {
@@ -287,6 +299,8 @@ namespace Pulse.Web.Services
         //public Task<User> GetgvUser();
         public Task<List<PulseMessage>> GetgvUserMessages();
         public Task SetgvUserMessages(List<PulseMessage> messages);
+        public Task AddProductionStream(ProductionStreamMessageDto productionStream);
+        public Task<List<ProductionStreamMessageDto>> GetProductionStream();
         public Task SetgvUserSpeedDial(List<ApplicationUserSpeedDial> speedDial);
         public Task<List<ApplicationUserSpeedDial>> GetgvUserSpeedDial(string category);
         public Task SetgvIsMuted(bool isMuted);

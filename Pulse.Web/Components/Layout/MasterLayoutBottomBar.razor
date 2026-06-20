@@ -1,5 +1,7 @@
 ﻿@using Pulse.Models.Communication
 @using Pulse.Models.CustomComponents
+@using Pulse.Models.Dtos.Production
+@using Pulse.Web.Components.Pages.Communications
 @using Pulse.Web.Components.Pages.UserSettings
 @using Pulse.Web.Components.PulseComponents.Controls
 @using Pulse.Web.Services
@@ -11,6 +13,7 @@
 @inject AuthService mlbbAuthService
 @inject Global_AI_Functions mlbbGlobalAI
 @inject IPulseToastService mlbbToastService
+@inject AppState appState
 
 @implements IDisposable
 
@@ -30,12 +33,18 @@
     <FluentSpacer />
     <Animation Effect="@Effect.Shake" Enabled="@aniMsg" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2" OnAnimationEnd="() => aniMsg=false">
         <FluentCounterBadge  BackgroundColor="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Fill" Dot="@showChatDot" aria-hidden="false">
-                <FluentButton id="btnMsg" data-bs-toggle="offcanvas" data-bs-target="#msgCentre" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)">
+                <FluentButton id="btnMsg" OnClick="@(() => cView = cChangeTo = ViewCentre.UserMessages)" data-bs-toggle="offcanvas" data-bs-target="#msgCentre" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)">
                 <FluentIcon Value="@(new Icons.Filled.Size32.Mail().WithColor("var(--pulse-light-colour)"))" />
             </FluentButton>
         </FluentCounterBadge>
     </Animation>
-
+    <Animation Effect="@Effect.Shake" Enabled="@aniStream" Speed="@TimeSpan.FromSeconds(1)" Delay="@TimeSpan.FromSeconds(0)" IterationCount="2" OnAnimationEnd="() => aniStream = false">
+        <FluentCounterBadge BackgroundColor="@Microsoft.FluentUI.AspNetCore.Components.Color.Error" Color="Microsoft.FluentUI.AspNetCore.Components.Color.Fill" Dot="@showStreamDot" aria-hidden="false">
+            <FluentButton id="btnMsg" OnClick="@(() => cView = cChangeTo = ViewCentre.SystemStreams)" data-bs-toggle="offcanvas" data-bs-target="#msgCentre" aria-label="Chat messages, unread count" BackgroundColor="rgba(0,0,0,0)">
+                <FluentIcon Value="@(new Icons.Filled.Size32.Chat().WithColor("var(--pulse-light-colour)"))" />
+            </FluentButton>
+        </FluentCounterBadge>
+    </Animation>
     <FluentSpacer />
     
     
@@ -71,11 +80,62 @@
 </div>
             
 <div class="offcanvas offcanvas-start" style="width:100%" tabindex="-1" id="msgCentre" aria-labelledby="msgCentreLabel">
-    <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="position:absolute; border: 1px solid red;height:40px;margin-top:8px;left:calc(100vw - 50%)"
-                    IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
-        Close
-    </FluentButton>
-    <UserMsgCentre />
+    <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important;">
+        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="25" Style="padding:8px">
+            <FluentButton Appearance="Appearance.Accent" 
+                            class=@(cChangeTo == ViewCentre.UserMessages ? "myModeBtnOn" : "myModeBtnOff")
+                            BackgroundColor="var(--pulse-mode-btn-bg)"
+                            Color="var(--pulse-mode-btn-item-colour)"
+                            @onclick="() => ChangeView(ViewCentre.UserMessages)"
+                            Style="height:40px">
+                <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="5" Style="padding:8px">
+                    <FluentEmoji Value="@(new Emojis.PeopleBody.Color.MediumLight.PersonBlondHair())" Width="32px" />
+                    Users
+                </FluentStack>
+            </FluentButton>
+
+            <FluentButton Appearance="Appearance.Accent" 
+                            class=@(cChangeTo == ViewCentre.SystemStreams ? "myModeBtnOn" : "myModeBtnOff")
+                            BackgroundColor="var(--pulse-mode-btn-bg)"
+                            Color="var(--pulse-mode-btn-item-colour)"
+                            @onclick="() => ChangeView(ViewCentre.SystemStreams)"
+                          Style="height:40px">
+                          <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="5" Style="padding:8px">
+                <FluentEmoji Value="@(new Emojis.Symbols.Color.Default.Information())" Width="32px" />
+                System Streams
+                </FluentStack>
+            </FluentButton>
+
+            <FluentButton Appearance="Appearance.Accent"
+                            class=@(cChangeTo == ViewCentre.Notifications ? "myModeBtnOn" : "myModeBtnOff")
+                            BackgroundColor="var(--pulse-mode-btn-bg)"
+                            Color="var(--pulse-mode-btn-item-colour)"
+                            @onclick="() => ChangeView(ViewCentre.Notifications)"
+                            Style="height:40px;padding-right:10px">
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="5" Style="padding:8px">
+                <FluentEmoji Value="@(new Emojis.Objects.Color.Default.Bell())" Width="32px" />
+                Notifications
+                </FluentStack>
+            </FluentButton>
+            <FluentSpacer />
+            <FluentButton BackgroundColor="rgba(255,255,255,1)" Style="border: 1px solid red;height:40px"
+                            IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
+            </FluentButton>
+        </FluentStack>
+    </div>
+    @if(cView == ViewCentre.UserMessages)
+    {
+        <Animation Effect="@(cChangeTo == ViewCentre.UserMessages ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Fast" Style="height:calc(100vh - 56px);" OnAnimationEnd="@(() => EndAnimation(ViewCentre.UserMessages))">
+            <UserMsgCentre />
+        </Animation>
+    }
+    else if (cView == ViewCentre.SystemStreams)
+    {
+        <Animation Effect="@(cChangeTo == ViewCentre.SystemStreams ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Fast" Style="height:calc(100vh - 56px);" OnAnimationEnd="@(() => EndAnimation(ViewCentre.SystemStreams))">
+            <DataStreamCentre />
+        </Animation>
+    }
+    
 </div>
 
 @code {
@@ -83,8 +143,14 @@
     public MasterLayout masterLayout { get; set; } = default!;
     private bool showProfileMenu = false;
     private bool aniMsg = false;
+    private bool aniStream = false;
     private bool showChatDot = false;
+    private bool showStreamDot = false;
+    // private string showCentre = "user";
+    private ViewCentre cView = ViewCentre.UserMessages;
+    private ViewCentre cChangeTo = ViewCentre.UserMessages;
     private string presence = "3";
+    private bool startAni = false;
 
     #region Page Lifecycle
 
@@ -95,6 +161,8 @@
         mlbbMsgHubService.OnReceiveMessage += OnMessageReceived;
         mlbbMsgHubService.OnPresenceListUpdated += OnPresenceListUpdated;
         mlbbMsgHubService.OnLoadHistory += OnLoadHistory;
+        mlbbMsgHubService.OnProductionStreamBroadcast += OnReceiveProductionStreamBroadcast;
+        mlbbMsgHubService.OnReceiveSystemStreamMessage += OnReceiveSystemStreamMessage;
     }
 
     public void Dispose()
@@ -102,6 +170,8 @@
         mlbbMsgHubService.OnReceiveMessage -= OnMessageReceived;
         mlbbMsgHubService.OnPresenceListUpdated -= OnPresenceListUpdated;
         mlbbMsgHubService.OnLoadHistory -= OnLoadHistory;
+        mlbbMsgHubService.OnProductionStreamBroadcast -= OnReceiveProductionStreamBroadcast;
+        mlbbMsgHubService.OnReceiveSystemStreamMessage -= OnReceiveSystemStreamMessage;
     }
 
     #endregion
@@ -211,6 +281,52 @@
 
     #endregion
 
+    #region Production Stream Handlers
+
+    private async void OnReceiveSystemStreamMessage(string msg)
+    {
+        try
+        {
+            var sysMsg = new ProductionStreamMessageDto
+            {
+                StreamType = ProductionStreamType.Message,
+                Title = "Message",
+                Message = msg,
+                ProductionGroupName = $"0_1_{masterLayout.division?.DivisionID}",
+                MsgTimestamp = DateTime.UtcNow
+            };
+            await mlbbDataTrf.AddProductionStream(sysMsg);
+            aniStream = true;
+            showStreamDot = true;
+            await mlbbGlobalAI.AISpeak("You have a new message", "PulseAI");
+            await InvokeAsync(StateHasChanged);
+            await appState.NotifyProductionChanged();
+        }
+        catch (Exception)
+        {
+            // Avoid bubbling exceptions out of event callback
+        }
+    }
+    private async void OnReceiveProductionStreamBroadcast(ProductionStreamMessageDto broadcast)
+    {
+        try
+        {
+            await mlbbDataTrf.AddProductionStream(broadcast);
+            aniStream = true;
+            showStreamDot = true;
+
+            await mlbbGlobalAI.AISpeak("You have a new message", "PulseAI");
+            await InvokeAsync(StateHasChanged);
+            await appState.NotifyProductionChanged();
+        }
+        catch (Exception)
+        {
+            // Avoid bubbling exceptions out of event callback
+        }
+    }
+
+    #endregion
+
     #region Button Event Handlers
 
     private async Task Logout()
@@ -226,4 +342,33 @@
 
     #endregion
 
+    private async Task ChangeView(ViewCentre vc)
+    {
+        if (vc != cView)
+        {
+            cChangeTo = vc;
+            startAni = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task EndAnimation(ViewCentre vFrom)
+    {
+        if (vFrom != cChangeTo)
+        {
+            cView = cChangeTo;
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            startAni = false;
+        }
+    }
+    private enum ViewCentre
+    {
+        UserMessages,
+        GroupMessages,
+        SystemStreams,
+        Notifications,
+        PulseAIMessages
+    }
 }

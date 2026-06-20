@@ -94,6 +94,9 @@ namespace Pulse.Models.PulseContext
         public DbSet<InventoryTypeDivisionSetting> InventoryTypeDivisionSettings { get; set; }
         public DbSet<InventoryGroupDivisionSetting> InventoryGroupDivisionSettings { get; set; }
         public DbSet<PulseTheme> PulseThemes { get; set; }
+        public DbSet<SystemDataStream> SystemDataStreams { get; set; }
+        public DbSet<GroupChat> GroupChats { get; set; }
+        public DbSet<ApplicationUserStream> AspNetUserStreams { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -160,6 +163,9 @@ namespace Pulse.Models.PulseContext
             modelBuilder.ApplyConfiguration(new InventoryTypeDivisionSettingMap());
             modelBuilder.ApplyConfiguration(new InventoryGroupDivisionSettingMap());
             modelBuilder.ApplyConfiguration(new PulseThemeConfigurationMap());
+            modelBuilder.ApplyConfiguration(new SystemDataStreamsMap());
+            modelBuilder.ApplyConfiguration(new ApplicationUserStreamsMap());
+            modelBuilder.ApplyConfiguration(new GroupChatMap());
 
             base.OnModelCreating(modelBuilder);
         }

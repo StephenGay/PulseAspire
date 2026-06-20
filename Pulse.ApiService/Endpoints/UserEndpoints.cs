@@ -32,9 +32,9 @@ namespace Pulse.ApiService.Endpoints
                 return Results.Ok(favQrys);
             });
 
-            
 
-            group.MapPost("/Favourites/Queries/Add/",async (UserFavouriteQuery qry, PulseDbContext dbContext) =>
+
+            group.MapPost("/Favourites/Queries/Add/", async (UserFavouriteQuery qry, PulseDbContext dbContext) =>
             {
                 dbContext.UserFaveQueries.Add(qry);
                 await dbContext.SaveChangesAsync();
@@ -59,7 +59,7 @@ namespace Pulse.ApiService.Endpoints
                     .AsNoTracking()
                     .Where(p => p.ApplicationUserId == UserId)
                     .ToListAsync();
-                if (speedDials == null )
+                if (speedDials == null)
                 {
                     speedDials = new List<ApplicationUserSpeedDial>();
                 }
@@ -135,6 +135,87 @@ namespace Pulse.ApiService.Endpoints
             })
                 .WithName("UpdateAppUserSettings");
 
+            #region Group Chats
+
+            //group.MapPost("/GroupChat/Invite", async (ApplicationUserStream stream, PulseDbContext dbContext) =>
+            //{
+            //    stream.IsInvite = true;
+            //    dbContext.AspNetUserStreams.Add(stream);
+            //    await dbContext.SaveChangesAsync();
+            //    return Results.Created($"/User/GroupChat/Invite/{stream.StreamName}", ApiResponse<ApplicationUserStream>.SuccessResponse(stream));
+            //})
+            //    .WithName("InviteUserToGroupChat")
+            //    .Produces<ApiResponse<ApplicationUserStream>>(StatusCodes.Status201Created);
+
+            group.MapPost("/GroupChat/Create", async (GroupChat groupChat, PulseDbContext dbContext) =>
+            {
+                dbContext.GroupChats.Add(groupChat);
+                await dbContext.SaveChangesAsync();
+                return Results.Created($"/User/GroupChat/Create/{groupChat.GroupName}", ApiResponse<GroupChat>.SuccessResponse(groupChat));
+            })
+                .WithName("CreateUserStream")
+                .Produces<ApiResponse<GroupChat>>(StatusCodes.Status201Created);
+
+
+            group.MapPost("/Subscriptions/Subscribe", AddUserSubscription)
+                .WithName("AddUserSubscription")
+                .Produces<ApiResponse<ApplicationUserStream>>(StatusCodes.Status201Created);
+
+            group.MapGet("/Subscriptions/GetSystemStreams/{UserId}", async (string UserId, PulseDbContext db) =>
+            {
+                var streams = await db.AspNetUserStreams
+                    .AsNoTracking()
+                    .Where(p => p.ApplicationUserID == UserId && p.StreamType == StreamType.System)
+                    .ToListAsync();
+                if (streams == null)
+                {
+                    streams = new List<ApplicationUserStream>();
+                }
+                return Results.Ok(new ApiResponse<List<ApplicationUserStream>> { Data = streams, Success = true });
+            })
+                .WithName("GetUserSystemStreams")
+                .Produces<ApiResponse<List<ApplicationUserStream>>>(StatusCodes.Status200OK);
+
+            group.MapGet("/Subscriptions/GetGroupChats/{UserId}", async (string UserId, PulseDbContext db) =>
+            {
+                var streams = await db.AspNetUserStreams
+                    .AsNoTracking()
+                    .Where(p => p.ApplicationUserID == UserId && p.StreamType == StreamType.ChatGroup)
+                    .ToListAsync();
+                if (streams == null)
+                {
+                    streams = new List<ApplicationUserStream>();
+                }
+                return Results.Ok(new ApiResponse<List<ApplicationUserStream>> { Data = streams, Success = true });
+            })
+                .WithName("GetUserGroupChats")
+                .Produces<ApiResponse<List<ApplicationUserStream>>>(StatusCodes.Status200OK);
+
+            group.MapDelete("/Subscriptions/Unsubscribe/{id}", async (int id, PulseDbContext dbContext) =>
+            {
+                var item = await dbContext.AspNetUserStreams.FindAsync(id);
+                if (item == null)
+                {
+                    return Results.NotFound($"Item with ID {id} not found.");
+                }
+                dbContext.AspNetUserStreams.Remove(item);
+                await dbContext.SaveChangesAsync();
+                return Results.Ok(new ApiResponse<string> { Data = $"Item with ID {id} has been deleted.", Success = true });
+            });
+
+            group.MapPut("/DataStream/AcceptInvite", async (ApplicationUserStream updatedStream, PulseDbContext dbContext) =>
+            {
+                var item = await dbContext.AspNetUserStreams.FindAsync(updatedStream.ApplicationUserID, updatedStream.StreamName);
+                if (item == null)
+                {
+                    return Results.NotFound($"Item with ID {updatedStream.ApplicationUserID} and StreamName {updatedStream.StreamName} not found.");
+                }
+                await dbContext.SaveChangesAsync();
+                return Results.Ok(new ApiResponse<ApplicationUserStream> { Data = item, Success = true });
+            });
+
+#endregion
+
             #region Broken - Keeping till sure to remove
             group.MapGet("/Favourites/SavedQueries/GetById/{UserId}", async (string UserId, PulseDbContext dbContext) =>
             {
@@ -167,5 +248,16 @@ namespace Pulse.ApiService.Endpoints
             });
             #endregion
         }
+        private static async Task<ApiResponse<ApplicationUserStream>> AddUserSubscription(ApplicationUserStream stream, PulseDbContext dbContext)
+        {
+            dbContext.AspNetUserStreams.Add(stream);
+            var result = await dbContext.SaveChangesAsync();
+            if(result <= 0)
+            {
+                return new ApiResponse<ApplicationUserStream> { Data = null, Success = false, Message = "Failed to add user subscription." };
+            }
+            return new ApiResponse<ApplicationUserStream> { Data = stream, Success = true };
+        }
     }
 }
+

@@ -29,6 +29,8 @@ namespace Pulse.Models.PulseContext.Maps
                    .IsRequired()
                    .HasMaxLength(50);
 
+            builder.Property(c => c.CompoundRangeId);
+
             builder.Property(c => c.PolymerName)
                    .HasMaxLength(50);
 
@@ -115,7 +117,7 @@ namespace Pulse.Models.PulseContext.Maps
 
             // Compound → CompoundRange (Many-to-One)
             builder.HasOne(c => c.CompoundRange)
-                   .WithMany()                          // Add back-navigation on CompoundRange if needed later
+                   .WithMany(r => r.Compounds)                          // Add back-navigation on CompoundRange if needed later
                    .HasForeignKey(c => c.CompoundRangeId)
                    .IsRequired(false)
                    .OnDelete(DeleteBehavior.Restrict);
@@ -133,8 +135,8 @@ namespace Pulse.Models.PulseContext.Maps
 
             builder.HasMany(c => c.WorksOrders)
                    .WithOne()
-                   .HasForeignKey("CompoundCode")
-                   .OnDelete(DeleteBehavior.Restrict);  // Safer for WorksOrders
+                   .HasForeignKey("CoverCompoundCode");
+                   /*.OnDelete(DeleteBehavior.Restrict); */ // Safer for WorksOrders
 
             // Indexes
             builder.HasIndex(c => c.CompoundType);

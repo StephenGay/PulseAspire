@@ -9,7 +9,6 @@ using System.Data;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Azure.Core;
 
 namespace Pulse.Web.Services
 {

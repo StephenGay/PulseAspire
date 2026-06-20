@@ -49,8 +49,8 @@ var PulseWebUI = builder.AddProject<Projects.Pulse_Web>("PulseWebUI")
     .WaitFor(cache);
 
 
-builder.AddProject<Projects.Pulse_DesktopApp>("PulseDesktop")
-    .WithReference(PulseApi);
+//builder.AddProject<Projects.Pulse_DesktopApp>("PulseDesktop")
+//    .WithReference(PulseApi);
 
 // Note: Pulse.MobileApp is a .NET MAUI project and is run independently.
 // It connects to the PulseApi endpoint at runtime via configuration.

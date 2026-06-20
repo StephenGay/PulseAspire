@@ -1,10 +1,13 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using Pulse.ApiService.Hubs;
 using Pulse.Models.Api;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Dtos.Production;
 using Pulse.Models.Production;
 using Pulse.Models.PulseContext;
 using System.Data;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace Pulse.ApiService.Endpoints.Production;
 
@@ -40,6 +43,11 @@ internal static class WorkInProgressEndpoints
         byDivisionGroup.MapGet("/Plan/GetResources/{divisionID}", GetWipPlanResources)
             .WithName("GetWipPlanResourcesByDivision")
             .Produces<ApiResponse<List<ProductionPlanResource>>>(StatusCodes.Status200OK)
+            .Produces(StatusCodes.Status404NotFound);
+
+        byDivisionGroup.MapPatch("/Plan/CompleteStage/{StepID}", CompleteProductionStep)
+            .WithName("CompleteWipStageByDivision")
+            .Produces<ApiResponse<string>>(StatusCodes.Status200OK)
             .Produces(StatusCodes.Status404NotFound);
 
     }
@@ -129,7 +137,8 @@ internal static class WorkInProgressEndpoints
                     ActualEndTime = wo.ActualEndTime,
                     ClosedByUserID = wo.ClosedByUserID,
                     Status = wo.Status,
-                    IsPulsePlan = wo.IsPulsePlan
+                    IsPulsePlan = wo.IsPulsePlan,
+                    WoAtStep = wo.WorksOrder != null && wo.WorksOrder.ProductionStage != null ? wo.WorksOrder.ProductionStage.StepNo : 0
                 });
             };
 
@@ -139,6 +148,8 @@ internal static class WorkInProgressEndpoints
         }
         return Results.Ok(ApiResponse<List<ProductionPlanDto>>.SuccessResponse(wipPlannedTodayDtos));
     }
+
+#region Production Plan Stats
     private static async Task<IResult> GetWipWorkCentreStats(string divisionID, PulseDbContext dbPulse)
     {
         //var wipPlannedToday = await dbPulse.ProductionPlanItems
@@ -189,6 +200,8 @@ internal static class WorkInProgressEndpoints
             .Where(wo => wo.WorkCentreID == workCentreID && wo.PlannedStartTime.HasValue && wo.PlannedStartTime.Value.Date == DateTime.Today)
             .Count();
     }
+
+#endregion
     private static async Task<IResult> GetWipPlanResources(string divisionID, PulseDbContext dbPulse)
     {
         var WCresources = await dbPulse.WorkCentreMaster
@@ -227,4 +240,64 @@ internal static class WorkInProgressEndpoints
         return Results.Ok(ApiResponse<List<ProductionPlanResource>>.SuccessResponse(resources));
 
     }
+
+#region Production Plan Events
+
+    private static async Task<IResult> CompleteProductionStep(
+        int StepID, 
+        CompleteProductionPlanDto CompletePlanDto, 
+        IHubContext<MessageHub> hubContext,
+        PulseDbContext dbPulse)
+    {
+        var planItem = await dbPulse.ProductionPlanItems
+            .Where(pp => pp.ProductionPlanItemID == StepID)
+            .Include(ppps => ppps.ProductionStage)
+            .FirstAsync();
+
+        if(planItem == null) { return Results.NotFound(ApiResponse<string>.ErrorResponse("Production plan item not found.", statusCode: StatusCodes.Status404NotFound)); }
+
+        planItem.ActualEndTime = CompletePlanDto.ActualEndTime;
+        planItem.ClosedByUserID = CompletePlanDto.ClosedByUserID;
+        planItem.Status = CompletePlanDto.Status;
+
+        var nextStep = await dbPulse.ProductionPlanItems
+            .Where(pp => pp.WorkOrderNo == planItem.WorkOrderNo && pp.StepNo == planItem.StepNo + 1)
+            .Include(ps => ps.ProductionStage)
+            .FirstOrDefaultAsync();
+
+        var wo = await dbPulse.WorksOrder
+        .Where(wo => wo.WorksOrderNo == planItem.WorkOrderNo)
+        .FirstAsync();
+        if (wo != null)
+        {
+            wo.ProductionStageID = nextStep != null ? nextStep.ProductionStageID : wo.ProductionStageID;
+            wo.ProductionStageName = nextStep?.ProductionStage?.ProductionStageName ?? wo.ProductionStageName;
+            wo.ProgressChange = DateTime.Now;
+            //wo.ProgressComment = $"{wo.ProgressComment} ; Pulse Aspire Completed step {planItem.StepNo} - {(planItem.ProductionStage != null ? planItem.ProductionStage.ProductionStageName : "Unknown Stage")}";
+        }
+
+        await dbPulse.SaveChangesAsync();
+
+        ProductionStreamMessageDto productionStreamMessageDto = new ProductionStreamMessageDto
+        {
+            ProductionGroupName = $"0_1_{CompletePlanDto.DivisionID}",
+            StreamType = ProductionStreamType.StageCompleted,
+            WorkOrderNo = planItem.WorkOrderNo,
+            StepNo = planItem.StepNo,
+            Status = planItem.Status,
+            MsgTimestamp = DateTime.Now,
+            MsgActionDateTime = planItem.ActualEndTime ?? DateTime.Now,
+            UserName = CompletePlanDto.UserName,
+            Result = $"Work Order {planItem.WorkOrderNo} - Step {planItem.StepNo} marked as completed.",
+            ProductionStageName = planItem.ProductionStage != null ? planItem.ProductionStage.ProductionStageName : null,
+            Title = $"WO No:{planItem.WorkOrderNo} - Step {planItem.StepNo} - {(planItem.ProductionStage != null ? planItem.ProductionStage.ProductionStageName : null)} Completed"
+        };
+
+        await hubContext.Clients.Group($"0_1_{CompletePlanDto.DivisionID}")
+                .SendAsync("ProductionStreamBroadcast", productionStreamMessageDto);
+
+        return Results.Ok(ApiResponse<string>.SuccessResponse("Production plan item completed successfully."));
+    }
+
+    #endregion
 }

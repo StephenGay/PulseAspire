@@ -1,5 +1,6 @@
 ﻿using Pulse.Models.Customers;
 using Pulse.Models.Production;
+using Pulse.Models.Users;
 using static Pulse.Models.Api.ApiEndpoints.Customers;
 
 namespace Pulse.Models.Api
@@ -139,6 +140,23 @@ namespace Pulse.Models.Api
             public const string SendWelcomeEmail = $"{ApiPrefix}/Security/SendWelcomeEmail";
             public const string SendForcePasswordResetEmail = $"{ApiPrefix}/Security/ForcePasswordReset";
 
+            public static class Subscriptions
+            {
+                private const string SubscriptionsPrefix = $"{Prefix}/Subscriptions";
+                public static string GetSystemStreams(string userId) => $"{SubscriptionsPrefix}/GetSystemStreams/{userId}";
+                public static string Subscribe => $"{SubscriptionsPrefix}/Subscribe";
+
+            }
+                public static class DataStreams
+            {
+                private const string DataStreamsPrefix = $"{Prefix}/DataStream";
+                public static string Create => $"{DataStreamsPrefix}/Create";
+                public static string Invite => $"{DataStreamsPrefix}/Invite";
+                public static string Subscribe => $"{DataStreamsPrefix}/Subscribe";
+                public static string Unsubscribe(string userId, string streamName) => $"{DataStreamsPrefix}/Unsubscribe/{userId}/{streamName}";
+                public static string AcceptInvite => $"{DataStreamsPrefix}/AcceptInvite";
+                public static string GetByUserID(string userId) => $"{DataStreamsPrefix}/GetByUserId/{userId}";
+            }
             public static class Settings
             {
                 private const string SettingsPrefix = $"{Prefix}/Settings";
@@ -199,6 +217,7 @@ namespace Pulse.Models.Api
             public static class WithDivisionID
             {
                 private const string WithDivisionIDPrefix = $"{Prefix}/WithDivisionID";
+                public static string GetSystemDataStreams(string divisionId) => $"{WithDivisionIDPrefix}/GetSystemDataStreams/{Uri.EscapeDataString(divisionId)}";
 
                 public static class Factory
                 {
@@ -443,6 +462,7 @@ namespace Pulse.Models.Api
                         private const string PlanPrefix = $"{WIPByDivisionPrefix}/Plan";
                         public static string GetTodaysItems(string divisionId) => $"{PlanPrefix}/Today/{Uri.EscapeDataString(divisionId)}";
                         public static string GetResources(string divisionId) => $"{PlanPrefix}/GetResources/{Uri.EscapeDataString(divisionId)}";
+                        public static string CompleteStage(int planItemId) => $"{PlanPrefix}/CompleteStage/{planItemId}";
 
                         public static class WorkCentres
                         {

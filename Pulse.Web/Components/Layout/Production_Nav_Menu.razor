@@ -1,6 +1,7 @@
 ﻿@using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Users
 @using Pulse.Web.Components.Pages.EmployeeZone.Production.Dialogs
+@using Pulse.Web.Components.Pages.EmployeeZone.Production.Setup.Factory.FactoryLayout
 @using Pulse.Web.Services
 @inject DataTransferService dtrf
 
@@ -68,10 +69,10 @@
     </FluentStack>
     <FluentSpacer />
     <FluentButton Id="mnuProdPlanViewBtn" Style="height:40px;margin-right:15px;border:2px solid var(--pulse-dark-colour)" 
-                            class="btnShadow" BackgroundColor="white" data-bs-toggle="offcanvas" 
-                          IconStart="@(new Icons.Filled.Size32.CalendarEye().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Info))"
+                  class="btnShadow" BackgroundColor="white" Color="var(--pulse-dark-colour)" data-bs-toggle="offcanvas"
+                          IconStart="@(new Icons.Filled.Size32.CalendarEye().WithColor("var(--pulse-dark-colour)"))"
                           data-bs-target="#ocProdPlan">
-                <strong>TODAY'S PLAN</strong>
+                <strong>MONITOR</strong>
     </FluentButton>
 </FluentStack>
 
@@ -79,18 +80,44 @@
     <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="width:100%;height:60px;background-color:var(--pulse-dark-colour);padding:10px" HorizontalAlignment="HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center">
         <FluentLabel Typo="Typography.H3" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-light-colour)">Production Plan For @DateTime.Today.ToString("dd-MM-yy")</FluentLabel>
         <FluentSpacer />
+        <FluentButton class=@(pView == ProductionView.FactoryLayout ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)" Style="height:40px;margin-right:10px"
+                      OnClick="() => ChangeView(ProductionView.FactoryLayout)">
+            Factory
+        </FluentButton>
+        <FluentButton class=@(pView == ProductionView.DataGrid ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)" Style="height:40px;margin-right:10px"
+                      OnClick="() => ChangeView(ProductionView.DataGrid)">
+            Grid
+        </FluentButton>
+        @* <FluentSpacer /> *@
         <FluentButton BackgroundColor="rgba(255,255,255,1)" Style=" border: 1px solid red;height:40px;margin-right:10px"
                         IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
-            Close
         </FluentButton>
-    </FluentStack>
-    <TodaysPlan />
+    </FluentStack> @* Style="height:calc(100vh - 60px);" *@
+    @if(pView == ProductionView.DataGrid)
+    {
+        <Animation Effect="@(pChangeTo == ProductionView.DataGrid ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100vh - 60px);" OnAnimationEnd="@(() => EndAnimation(ProductionView.DataGrid))">
+            <TodaysPlan />                    
+        </Animation>
+    }
+
+    else if(pView == ProductionView.FactoryLayout)
+    {
+        <Animation Effect="@(pChangeTo == ProductionView.FactoryLayout ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100vh - 60px);" OnAnimationEnd="@(() => EndAnimation(ProductionView.FactoryLayout))">
+            <FactoryLayout />
+        </Animation>
+    }
+    
     
 </div>
 
 @code
 {
+    private ProductionView pView = ProductionView.DataGrid;
+    private ProductionView pChangeTo = ProductionView.DataGrid;
     private string mnuActive = "Dashboard";
+    private bool startAni = false;
     #region AppBar Icons
 
     private static Icon DashboardIcon(bool active = false) =>
@@ -104,7 +131,7 @@
     private static Icon PlanIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.CalendarEdit().WithColor("#365b66")
                : new Icons.Regular.Size24.CalendarEdit().WithColor("#365b66");
-   
+
     private static Icon SetupIcon(bool active = false) =>
         active ? new Icons.Filled.Size24.Settings().WithColor("#365b66")
                : new Icons.Regular.Size24.Settings().WithColor("#365b66");
@@ -118,9 +145,34 @@
     // protected override async Task OnInitializedAsync()
     // {
     //     // Simulate asynchronous loading to demonstrate streaming rendering
-        
+
     //     user = await dtrf.GetgvUser();
 
     // }
-
+    private async Task ChangeView(ProductionView pw)
+    {
+        if(pw != pView)
+        {
+            pChangeTo = pw;
+            startAni = true;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+    private async Task EndAnimation(ProductionView vFrom)
+    {
+        if (vFrom != pChangeTo)
+        {
+            pView = pChangeTo;
+            await InvokeAsync(StateHasChanged);
+        }
+        else
+        {
+            startAni = false;
+        }
+    }
+    private enum ProductionView
+    {
+        DataGrid,
+        FactoryLayout
+    } 
 }

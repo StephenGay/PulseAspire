@@ -1,6 +1,7 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Pulse.Models.Api;
+using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
 using Pulse.Models.Customers;
 using Pulse.Models.Organizational;
@@ -590,6 +591,27 @@ namespace Pulse.ApiService.Endpoints
                     await dbContext.SaveChangesAsync();
                     return Results.Ok($"Production Plan Items for Work Order {WorkOrderNo} have been deleted.");
                 });
+            group.MapGet("/WithDivisionID/GetSystemDataStreams/{divisionId}", async (string divisionId, PulseDbContext db) =>
+            {
+                var dataStreams = await db.SystemDataStreams
+                    //.Where(ds => ds.IsSystemStream && (ds.DivisionID == divisionId || ds.DivisionID == "All"))
+                    .ToListAsync();
+                if (dataStreams == null || dataStreams.Count == 0)
+                {
+                    dataStreams = new List<SystemDataStream>();
+                }
+                //else
+                //{
+                //    foreach (var stream in dataStreams)
+                //    {
+                //        if (stream.DivisionID == "All")
+                //        {
+                //            stream.DivisionID = divisionId;
+                //        }
+                //    }
+                //}
+                return Results.Ok(ApiResponse<List<SystemDataStream>>.SuccessResponse(dataStreams));
+            });
         }
 private static async Task<IResult> SaveFactoryLayout(
             string divisionid,

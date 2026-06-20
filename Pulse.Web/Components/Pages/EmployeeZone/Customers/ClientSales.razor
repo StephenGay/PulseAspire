@@ -81,7 +81,7 @@
                         <FluentButton Loading=@(!IsByYear ? @loading : false) class=@(IsByYear ? "myModeBtnOff" : "myModeBtnOn") OnClick="() => { IsByYear = false; toggleGraphAsync(); }" BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)" >Month</FluentButton>
                         <FluentButton Loading=@(IsByYear? @loading : false) class=@(!IsByYear ? "myModeBtnOff" : "myModeBtnOn") OnClick="() => { IsByYear = true; toggleGraphAsync(); }" BackgroundColor="var(--pulse-mode-btn-bg)" Color="var(--pulse-mode-btn-item-colour)">Financial Year</FluentButton>
                         </FluentStack>
-                        <Chart OnInitAsync="OnInitAsync" Height="100%" Width="100%" @ref="chart" />
+                       @*  <Chart OnInitAsync="OnInitAsync" Height="100%" Width="100%" @ref="chart" /> *@
                     </FluentStack>
                 }
             }
@@ -101,8 +101,8 @@
     private bool isLoading = true;
     private string errorMessage = string.Empty;
     PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
-    private Chart? chart;
-    private ChartDataSource chartDS = new();
+    // private Chart? chart;
+    // private ChartDataSource chartDS = new();
     private bool isTableView = true;
 
     protected override async Task OnInitializedAsync()
@@ -124,8 +124,8 @@
         try
         {
             showYears++;
-            await RefreshData();
-            chart.Reload();
+            // await RefreshData();
+            // chart.Reload();
         }
         catch
         {
@@ -140,8 +140,8 @@
         {
             showYears--;
             if(showYears==0){ showYears++; }
-            await RefreshData();
-            chart.Reload();
+            // await RefreshData();
+            // chart.Reload();
         }
         catch
         {
@@ -164,8 +164,8 @@
     {
         // IsByYear = !IsByYear;
         loading = true;
-        await RefreshData();
-        chart.Reload();
+        // await RefreshData();
+        // chart.Reload();
         loading = false;
     }
     private async Task LoadSalesGrid()
@@ -238,124 +238,124 @@
         }
     }
 
-    private async Task<ChartDataSource> OnInitAsync()
-    {
-        var ds = new ChartDataSource();
-        /* ds.Type = (IsByYear ? "ChartType.Bar" : "ChartType.Line");  */ // Explicitly set to line
-        // ds.Options.Title = (IsByYear ? "" : "Monthly ") + "Sales by Financial Year";
-        // ds.Options.X.Title = (IsByYear ? "Financial Year" : "Month");
-        ds.Options.Y.Title = "Amount";
-        ds.Options.LegendPosition = ChartLegendPosition.Bottom;
-        ds.Options.Responsive = true;
+    // private async Task<ChartDataSource> OnInitAsync()
+    // {
+    //     var ds = new ChartDataSource();
+    //     /* ds.Type = (IsByYear ? "ChartType.Bar" : "ChartType.Line");  */ // Explicitly set to line
+    //     // ds.Options.Title = (IsByYear ? "" : "Monthly ") + "Sales by Financial Year";
+    //     // ds.Options.X.Title = (IsByYear ? "Financial Year" : "Month");
+    //     ds.Options.Y.Title = "Amount";
+    //     ds.Options.LegendPosition = ChartLegendPosition.Bottom;
+    //     ds.Options.Responsive = true;
 
-        var borderColors = new[]
-        {
-            "rgba(255, 0, 0, 1)","rgba(255, 99, 132, 0.5)", "rgba(54, 162, 235, 1)", "rgba(255, 206, 86, 1)",
-            "rgba(75, 192, 192, 1)", "rgba(153, 102, 255, 1)", "rgba(255, 159, 64, 1)"
-        };
-        var backgroundColors = new[]
-        {
-            "rgba(255, 0, 0, 1)", "rgba(255, 99, 132, 0.8)", "rgba(54, 162, 235, 0.8)", "rgba(255, 206, 86, 0.8)",
-            "rgba(75, 192, 192, 0.8)", "rgba(153, 102, 255, 0.8)", "rgba(255, 159, 64, 0.8)"
-            , "rgba(255, 99, 132, 0.6)", "rgba(54, 162, 235, 0.6)", "rgba(255, 206, 86, 0.6)",
-            "rgba(75, 192, 192, 0.6)", "rgba(153, 102, 255, 0.6)", "rgba(255, 159, 64, 0.6)"
-            , "rgba(255, 99, 132, 0.8)", "rgba(54, 162, 235, 0.4)", "rgba(255, 206, 86, 0.4)",
-            "rgba(75, 192, 192, 0.4)", "rgba(153, 102, 255, 0.4)", "rgba(255, 159, 64, 0.4)"
-            , "rgba(255, 99, 132, 0.2)", "rgba(54, 162, 235, 0.2)", "rgba(255, 206, 86, 0.2)",
-            "rgba(75, 192, 192, 0.2)", "rgba(153, 102, 255, 0.2)", "rgba(255, 159, 64, 0.2)"
-        };
+    //     var borderColors = new[]
+    //     {
+    //         "rgba(255, 0, 0, 1)","rgba(255, 99, 132, 0.5)", "rgba(54, 162, 235, 1)", "rgba(255, 206, 86, 1)",
+    //         "rgba(75, 192, 192, 1)", "rgba(153, 102, 255, 1)", "rgba(255, 159, 64, 1)"
+    //     };
+    //     var backgroundColors = new[]
+    //     {
+    //         "rgba(255, 0, 0, 1)", "rgba(255, 99, 132, 0.8)", "rgba(54, 162, 235, 0.8)", "rgba(255, 206, 86, 0.8)",
+    //         "rgba(75, 192, 192, 0.8)", "rgba(153, 102, 255, 0.8)", "rgba(255, 159, 64, 0.8)"
+    //         , "rgba(255, 99, 132, 0.6)", "rgba(54, 162, 235, 0.6)", "rgba(255, 206, 86, 0.6)",
+    //         "rgba(75, 192, 192, 0.6)", "rgba(153, 102, 255, 0.6)", "rgba(255, 159, 64, 0.6)"
+    //         , "rgba(255, 99, 132, 0.8)", "rgba(54, 162, 235, 0.4)", "rgba(255, 206, 86, 0.4)",
+    //         "rgba(75, 192, 192, 0.4)", "rgba(153, 102, 255, 0.4)", "rgba(255, 159, 64, 0.4)"
+    //         , "rgba(255, 99, 132, 0.2)", "rgba(54, 162, 235, 0.2)", "rgba(255, 206, 86, 0.2)",
+    //         "rgba(75, 192, 192, 0.2)", "rgba(153, 102, 255, 0.2)", "rgba(255, 159, 64, 0.2)"
+    //     };
 
-        if (IsByYear)
-        {
-            int indexYear = 0;
-            List<string> varYrLbl = new();
-            List<object> YrTot = new();
+    //     if (IsByYear)
+    //     {
+    //         int indexYear = 0;
+    //         List<string> varYrLbl = new();
+    //         List<object> YrTot = new();
 
-            foreach (var row in salesGrid.OrderByDescending(r => r["Financial Year"]))  // Ascending years for logical order
-            {
-                if (indexYear < showYears)
-                {
-                    var year = row["Financial Year"].ToString();
-                    varYrLbl.Add(year);
-                    YrTot.Add(Convert.ToDecimal(row["Total"]));
-                }
-                indexYear++;
-            }
-            ds.Labels = varYrLbl;
-            ds.Data.Add(new ChartDataset
-            {
-                Label = "Sales",
-                Data = YrTot,
-                BorderColor = new List<string> { borderColors[indexYear % borderColors.Length] },
-                BackgroundColor = new List<string> { backgroundColors[indexYear % backgroundColors.Length] },
-                // BorderWidth = (index == 0 ? 8 : 2),
-                Fill = false // (index == 0)  // Optional: Area fill under line
-            });
-        }
-        else
-        {
-            // X-axis labels: Months in fiscal order (abbreviated)
-            var fiscalMonthOrder = new[] { "November", "December", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October" };
-            var presentMonths = salesGrid.Any() ? monthColumns.Skip(1).Take(monthColumns.Count - 2).ToList() : new List<string>();  // e.g., ["Nov", "Dec", ...]
-            ds.Labels = presentMonths;
+    //         foreach (var row in salesGrid.OrderByDescending(r => r["Financial Year"]))  // Ascending years for logical order
+    //         {
+    //             if (indexYear < showYears)
+    //             {
+    //                 var year = row["Financial Year"].ToString();
+    //                 varYrLbl.Add(year);
+    //                 YrTot.Add(Convert.ToDecimal(row["Total"]));
+    //             }
+    //             indexYear++;
+    //         }
+    //         ds.Labels = varYrLbl;
+    //         ds.Data.Add(new ChartDataset
+    //         {
+    //             Label = "Sales",
+    //             Data = YrTot,
+    //             BorderColor = new List<string> { borderColors[indexYear % borderColors.Length] },
+    //             BackgroundColor = new List<string> { backgroundColors[indexYear % backgroundColors.Length] },
+    //             // BorderWidth = (index == 0 ? 8 : 2),
+    //             Fill = false // (index == 0)  // Optional: Area fill under line
+    //         });
+    //     }
+    //     else
+    //     {
+    //         // X-axis labels: Months in fiscal order (abbreviated)
+    //         var fiscalMonthOrder = new[] { "November", "December", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October" };
+    //         var presentMonths = salesGrid.Any() ? monthColumns.Skip(1).Take(monthColumns.Count - 2).ToList() : new List<string>();  // e.g., ["Nov", "Dec", ...]
+    //         ds.Labels = presentMonths;
 
-            // Colors for datasets (one per year)
+    //         // Colors for datasets (one per year)
 
 
-            // Datasets: One per financial year, data aligned to months
-            int index = 0;
-            foreach (var row in salesGrid.OrderByDescending(r => r["Financial Year"]))  // Ascending years for logical order
-            {
-                if (index < showYears)
-                {
-                    var year = row["Financial Year"].ToString();
-                    // var data = { row.TryGetValue("NOV"), row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"] }; //presentMonths.Select(m => row.TryGetValue(m, out var val) ? (object)val : 0m).ToList();
+    //         // Datasets: One per financial year, data aligned to months
+    //         int index = 0;
+    //         foreach (var row in salesGrid.OrderByDescending(r => r["Financial Year"]))  // Ascending years for logical order
+    //         {
+    //             if (index < showYears)
+    //             {
+    //                 var year = row["Financial Year"].ToString();
+    //                 // var data = { row.TryGetValue("NOV"), row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"], row["DEC"] }; //presentMonths.Select(m => row.TryGetValue(m, out var val) ? (object)val : 0m).ToList();
 
-                    var data = presentMonths.Select(m =>
-                    {
-                        if (row.TryGetValue(m, out var val))
-                        {
-                            if (val is string s)
-                            {
-                                // Parse formatted string, removing commas
-                                if (decimal.TryParse(s.Replace(",", ""), out var parsed))
-                                    return (object)parsed;
-                            }
-                            else if (val is decimal d)
-                            {
-                                return (object)d;
-                            }
-                        }
+    //                 var data = presentMonths.Select(m =>
+    //                 {
+    //                     if (row.TryGetValue(m, out var val))
+    //                     {
+    //                         if (val is string s)
+    //                         {
+    //                             // Parse formatted string, removing commas
+    //                             if (decimal.TryParse(s.Replace(",", ""), out var parsed))
+    //                                 return (object)parsed;
+    //                         }
+    //                         else if (val is decimal d)
+    //                         {
+    //                             return (object)d;
+    //                         }
+    //                     }
 
-                        return (object)0m;
-                    }).ToList();
+    //                     return (object)0m;
+    //                 }).ToList();
 
-                    ds.Data.Add(new ChartDataset
-                        {
-                            Label = $"FY {year}",
-                            Data = data,
-                            BorderColor = new List<string> { borderColors[index % borderColors.Length] },
-                            BackgroundColor = new List<string> { backgroundColors[index % backgroundColors.Length] },
-                            BorderWidth = (index == 0 ? 8 : 2),
-                            Fill = false // (index == 0)  // Optional: Area fill under line
-                        });
-                }
-                index++;
-            }
-        }
-        return await Task.FromResult(ds);
-    }
+    //                 ds.Data.Add(new ChartDataset
+    //                     {
+    //                         Label = $"FY {year}",
+    //                         Data = data,
+    //                         BorderColor = new List<string> { borderColors[index % borderColors.Length] },
+    //                         BackgroundColor = new List<string> { backgroundColors[index % backgroundColors.Length] },
+    //                         BorderWidth = (index == 0 ? 8 : 2),
+    //                         Fill = false // (index == 0)  // Optional: Area fill under line
+    //                     });
+    //             }
+    //             index++;
+    //         }
+    //     }
+    //     return await Task.FromResult(ds);
+    // }
 
-    private async Task RefreshData()
-    {
-        if (chart != null)
-        {
-            // Refetch data, rebuild grid, then update chart
-            await OnInitAsync();  // Re-run data load and grid build
-            // await chart.Update();
-            StateHasChanged();
-        }
-    }
+    // private async Task RefreshData()
+    // {
+    //     if (chart != null)
+    //     {
+    //         // Refetch data, rebuild grid, then update chart
+    //         await OnInitAsync();  // Re-run data load and grid build
+    //         // await chart.Update();
+    //         StateHasChanged();
+    //     }
+    // }
     private async Task<string> GetDataColour(int indexData)
     {
         var colors = new[] { "#4e79a7", "#f28e2c", "#e15759", "#76b7b2", "#59a14f", "#edc949", "#af7aa1", "#ff9da7", "#9c755f", "#bab0ab", "#d37295", "#fabfd2" };

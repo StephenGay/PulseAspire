@@ -68,13 +68,17 @@ public class TablesAPI
 
             var chat = GetOrCreateChatSession(response.SessionId, response.ModelUsed);
             string currentPrompt = request.UserRequest;
+            string errMsg = string.Empty;
 
             if (request.UserId == "Flapper")
             {
-                await SendProgressAsync(response.SessionId, "FlapperStart", $"I have asked Tables for this Information:\n{currentPrompt}\n");
+                await SendProgressAsync(response.SessionId, "FlapperStart", $"Hey Tables, can you get this data for me?\n{currentPrompt}\n");
+                errMsg = $"<strong>Hey Flapper!</strong>\nNo problem, just warming up the brain cells...";
             }
-
-            string errMsg = $"<strong>Request Received:</strong>\nI have your request right here, just warming up the brain cells...";
+            else
+            {
+                errMsg = $"<strong>Request Received:</strong>\nI have your request right here, just warming up the brain cells...";
+            }
 
             await SendProgressAsync(response.SessionId, "Received", errMsg);
             if (chat.Messages.Count == 0)
@@ -101,26 +105,26 @@ public class TablesAPI
                 var tMsg = string.Empty;
                 if(attemptsUsed == 1)
                 {
-                    tMsg = "<strong>Generating SQL Statement:</strong>\n";
+                    tMsg = "\n<strong>Generating SQL Statement:</strong>";
                 }
                 else
                 {
-                    tMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>\n\n<strong>Generating SQL Statement:</strong>\n";
+                    tMsg = $"<span style=\"color: rgb(255, 0, 0);\"><strong>FAILED</strong></span>\n<span style=\"font-style: italic;\">{errMsg}</span>\n\n";
                 }
 
                 switch (attemptsUsed)
                 {
                     case 1:
-                        tMsg = tMsg + "Ok, watch me work my magic and generate the perfect SQL Statement...";
+                        tMsg = "Ok, watch me work my magic and generate the perfect SQL Statement..." + tMsg;
                         break;
                     case 2:
-                        tMsg = tMsg + "Ummm, well that didn't work...Let me check why and try again...";
+                        tMsg = tMsg + "Ummm, well that didn't work...Let me check why and try again...\n<strong>Generating SQL Statement:</strong>\n";
                         break;
                     case MaxAttempts:
-                        tMsg = tMsg + "This is the last time I am permitted to try, hold thumbs...";
+                        tMsg = tMsg + "This is the last time I am permitted to try, hold thumbs...\n<strong>Generating SQL Statement:</strong>\n";
                         break;
                     default:
-                        tMsg = tMsg + $"Trying Again (Attempt {attemptsUsed}/{MaxAttempts})...";
+                        tMsg = tMsg + $"Trying Again (Attempt {attemptsUsed}/{MaxAttempts})...\n<strong>Generating SQL Statement:</strong>\n";
                         break;
                 }
 

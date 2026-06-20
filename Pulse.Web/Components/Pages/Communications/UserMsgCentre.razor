@@ -1,0 +1,601 @@
+﻿@page "/Communications/UserMsgCentre"
+
+@using Markdig
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Pulse.Web.Components.Pages.Communications
+@using System.Text.Json
+@using Pulse.Models
+@using Pulse.Models.Api
+@using Pulse.Models.Communication
+@using Pulse.Models.CustomComponents
+@using System.Security.Claims
+@using Pulse.Web.Components.Pages.EmployeeZone.Customers.Dialogs
+
+@using Pulse.Web.Services
+@attribute [Authorize]
+@inject PulseApiService pApi
+@inject IPulseToastService PulseToastService
+@inject Global_AI_Functions Global_AI
+@inject MessageHubService MsgHubService
+@inject AuthService _authService
+@inject DataTransferService dataTrf
+@inject CustomAuthenticationStateProvider AuthStateProvider
+@inject IDialogService DialogService
+
+@implements IAsyncDisposable
+
+@* <CascadingValue Value="this"> *@
+    
+    @* <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important;">
+        <FluentButton Id="btnMsgFilter" class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Style="height:40px; width:40px;margin-left:10px;margin-top:8px" Title="Filter" OnClick="() => showFilterMenu = !showFilterMenu">
+            <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size24.Filter().WithColor("var(--pulse-accent-btn-colour)"))" Width="36px" />
+        </FluentButton>
+        <FluentPopover Style="width: 250px; border: 2px solid var(--pulse-dark-colour); border-radius:10px;" VerticalThreshold="170" FixedPlacement="true" HorizontalPosition="MsFluent.HorizontalPosition.Right" VerticalPosition="MsFluent.VerticalPosition.Bottom" AutoFocus="false" AnchorId="btnMsgFilter" @bind-Open="showFilterMenu">
+            <Body>
+                <FluentStack Orientation="MsFluent.Orientation.Vertical" HorizontalAlignment="MsFluent.HorizontalAlignment.Center" VerticalGap="25">
+                    <FluentButton class=@(messageFilter == MessageFilter.Active ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => SetMessageFilter(MessageFilter.Active)"
+                                  Style="height:50px;width:80%">
+                            Active @if (messages != null) {
+                            <span style="font-size: 12px;">(@messages.Count(m => m.Delivered != true))</span>
+                        }
+                    </FluentButton>
+                    <FluentButton class=@(messageFilter == MessageFilter.Archived ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => SetMessageFilter(MessageFilter.Archived)"
+                                    Style="height:50px;width:80%">
+                            Archived @if (messages != null) {
+                            <span style="font-size: 12px;">(@messages.Count(m => m.Delivered == true))</span>
+                        }
+                    </FluentButton>
+                    <hr />
+                    <FluentButton class=@(fltrPulseAI ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrPulseAI = !fltrPulseAI; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.SmileysEmotion.Color.Default.Robot())" Width="32px" />
+                        Pulse AI
+                    </FluentButton>
+                    
+                    <FluentButton class=@(fltrUsers ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrUsers = !fltrUsers; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.PeopleBody.Color.MediumLight.PersonBlondHair())" Width="32px" />
+                        Users
+                    </FluentButton>
+                    
+                    <FluentButton class=@(fltrStreams ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrStreams = !fltrStreams; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.Symbols.Color.Default.Information())" Width="32px" />
+                        Activity Streams
+                    </FluentButton>
+                    
+                    <FluentButton class=@(fltrNotify ? "myModeBtnOn" : "myModeBtnOff")
+                                  BackgroundColor="var(--pulse-mode-btn-bg)"
+                                  Color="var(--pulse-mode-btn-item-colour)"
+                                  @onclick="() => { fltrNotify = !fltrNotify; StateHasChanged(); }"
+                                  Style="height:50px; width:80%">
+                        <FluentEmoji Value="@(new Emojis.Objects.Color.Default.Bell())" Width="32px" />
+                        Notifications
+                    </FluentButton>
+                </FluentStack>
+            </Body>
+        </FluentPopover>
+    </div> *@
+    <div style="display: flex; height: calc(100vh - 112px); background-color: var(--pulse-light-colour);">
+        
+    <!-- Sidebar - Message List -->
+        <div style="width: 350px; border-right: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);height: calc(100% -112px)">
+        <!-- Header with Tabs -->
+        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
+            <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Messages</FluentLabel>
+@*             <FluentStack Orientation="Orientation.Vertical">
+                
+        
+                <FluentStack Orientation="Orientation.Horizontal" Style="padding-left:10px;padding-right:10px;margin-top:10px">
+                    
+                </FluentStack>
+                    <FluentStack Orientation="Orientation.Horizontal" HorizontalGap="8" Style="margin-top:15px" HorizontalAlignment="Microsoft.FluentUI.AspNetCore.Components.HorizontalAlignment.Left">
+                        
+            </FluentStack>
+            </FluentStack>
+ *@        </div>
+
+        <!-- Message List -->
+        <div style="height:calc(100% - 112px);  border: 1px solid var(--pulse-dark-colour); border-radius:10px; padding: 8px;margin:10px; background-color: white">
+            @if (messages == null)
+            {
+                <div style="display:flex; flex-direction:column; justify-items:center; justify-content: center; vertical-align:middle; align-items: center;text-align:center;padding-top:40%">
+                    <FluentProgressRing />
+                </div>
+            }
+            else if (filteredMessages.Count == 0)
+            {
+                <FluentCard Style="padding: 16px; text-align: center;">
+                    <FluentLabel>No @(messageFilter == MessageFilter.Active ? "active" : "archived") messages</FluentLabel>
+                </FluentCard>
+            }
+            else
+            {
+                <div style="height: 100%;overflow-y: auto; justify-content: center;  ">
+                @foreach (var msg in filteredMessages.OrderByDescending(m => m.SentAt))
+                {
+                    var isSelected = selectedMessage?.Id == msg.Id;
+                <div style="@($"padding: 8px; margin: 4px 0; border-radius: 6px; border: 1px solid var(--pulse-dark-colour); cursor: pointer; border-bottom: {(isSelected ? "3px solid var(--pulse-dark-colour)" : "1px solid var(--pulse-dark-colour)")}; background-color: {(isSelected ? "white" : "var(--pulse-dark-t50-colour)")}; {(isSelected ? "color: var(--pulse-dark-colour)" : "color: white;")}")"
+                         @onclick="() => SelectMessage(msg)">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <FluentLabel Style="@(isSelected ? "color: var(--pulse-dark-colour); font-weight: 600;" : "font-weight: 600; color: white;")" Typo="Typography.Body">
+                                @msg.SenderUserName
+                            </FluentLabel>
+                        </div>
+                    <div style="font-size: 12px; margin-top: 4px; @(isSelected ? "color: var(--pulse-dark-colour);" : "color: white;")" title="@msg.Subject">
+                        @(msg.Subject?.Length > 50 ? msg.Subject.Substring(0, 50) + "..." : msg.Subject)
+                        </div>
+                    <div style="font-size: 11px; margin-top: 2px; @(isSelected ? "color: var(--pulse-dark-colour);" : "color: white;")" title="@msg.SentAt">
+                            @msg.SentAt.ToString()
+                        </div>
+                    </div>
+                }
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Content Area - Message Detail -->
+    <div style="flex: 1; display: flex; flex-direction: column; background-color: var(--pulse-light-colour);">
+        <!-- Header Bar -->
+        <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider); background-color: var(--pulse-light-colour);">
+            @if (selectedMessage != null)
+            {
+                
+                    <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" HorizontalGap="12">
+                        @* <div style="flex: 1;"> *@
+                            <FluentStack Orientation="MsFluent.Orientation.Vertical" VerticalGap="12">
+                            <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">From: @selectedMessage.SenderUserName</FluentLabel>
+                            <FluentLabel Typo="Typography.Body" Style="color: var(--pulse-dark-colour); font-size: 12px;">Sent: @selectedMessage.SentAt.ToString()</FluentLabel>
+                            </FluentStack>
+                        @* </div> *@
+                        
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="8">
+                                <FluentSpacer />
+                            
+                            @* <FluentButton Appearance="MsFluent.Appearance.Outline" @onclick="() => OpenNewMessageDialog()" aria-label="Compose new message">
+                                Broadcast
+                            </FluentButton> *@
+                        </FluentStack>
+                    
+                </FluentStack>
+            }
+            else
+            {
+                <FluentLabel Typo="Typography.PageTitle" Style="color: var(--neutral-foreground-hint);">Select a message to view</FluentLabel>
+            }
+        </div>
+
+        <!-- Message Content -->
+    <div style="flex: 1; padding: 24px; overflow: hidden; background-color: white;">
+            @if (composeMode != ComposeMode.None && composingMessage != null)
+            {
+                <!-- Compose Form -->
+                <FluentCard class="divShadow" Style="padding: 20px; display: flex; flex-direction: column; height: 100%;">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height: 100%; overflow: hidden;" VerticalGap="12">
+                        <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">
+                            @(composeMode == ComposeMode.Reply ? $"Reply to {composingMessage.RecipientUserName}" : "New Message")
+                        </FluentLabel>
+
+                        @if (composeMode == ComposeMode.NewMessage)
+                        {
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                                <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
+                                <FluentTextField @bind-Value="composingMessage.RecipientUserName" Placeholder="Select recipient" Style="flex: 1;" />
+                            </FluentStack>
+                        }
+                        else
+                        {
+                            <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                                <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
+                                <FluentLabel>@composingMessage.RecipientUserName</FluentLabel>
+                            </FluentStack>
+                        }
+
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                            <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
+                            <FluentTextField @bind-Value="composingMessage.Subject" Style="flex: 1;" />
+                        </FluentStack>
+
+                        <FluentLabel Style="font-weight: 600;">Message:</FluentLabel>
+                        @* <FluentTextArea @bind-Value="composingMessage.Content" Rows="8" Style="flex: 1; resize: none;width:stretch" /> *@
+                        <RadzenHtmlEditor @bind-Value=@composingMessage.Content style="flex: 1;width:stretch;" UploadUrl="upload/image">
+                            <RadzenHtmlEditorUndo />
+                            <RadzenHtmlEditorRedo />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorBold />
+                            <RadzenHtmlEditorItalic />
+                            <RadzenHtmlEditorUnderline />
+                            <RadzenHtmlEditorStrikeThrough />
+                            <RadzenHtmlEditorAlignLeft />
+                            <RadzenHtmlEditorAlignCenter />
+                            <RadzenHtmlEditorAlignRight />
+                            <RadzenHtmlEditorJustify />
+                            <RadzenHtmlEditorIndent />
+                            <RadzenHtmlEditorOutdent />
+                            <RadzenHtmlEditorUnorderedList />
+                            <RadzenHtmlEditorOrderedList />
+                            <RadzenHtmlEditorSeparator />
+                            <RadzenHtmlEditorColor />
+                            <RadzenHtmlEditorBackground />
+                            <RadzenHtmlEditorRemoveFormat />
+                            <RadzenHtmlEditorSubscript />
+                            <RadzenHtmlEditorSuperscript />
+                            <RadzenHtmlEditorFontName />
+                            <RadzenHtmlEditorFontSize />
+                            <RadzenHtmlEditorFormatBlock />
+                        </RadzenHtmlEditor>
+
+
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" HorizontalGap="8" HorizontalAlignment="MsFluent.HorizontalAlignment.Right">
+                            <FluentButton Appearance="Appearance.Outline" @onclick="CancelCompose" aria-label="Cancel compose">
+                                Cancel
+                            </FluentButton>
+                            <FluentButton Appearance="Appearance.Accent" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" Disabled="isSendingEmail || string.IsNullOrWhiteSpace(composingMessage.Content)" @onclick="SendComposedMessage" aria-label="Send message">
+                                @(isSendingEmail ? "Sending..." : "Send")
+                            </FluentButton>
+                        </FluentStack>
+                    </FluentStack>
+                </FluentCard>
+            }
+            else if (selectedMessage != null)
+            {
+                <FluentCard class="divShadow" Style="padding: 20px">
+                    <FluentStack Orientation="MsFluent.Orientation.Vertical" Style="height:100%" VerticalGap="16">
+                        <!-- To -->
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0">
+                            <FluentLabel Style="width: 100px; font-weight: 600;">To:</FluentLabel>
+                            <FluentLabel>@selectedMessage.RecipientUserName</FluentLabel>
+                            <FluentSpacer />
+                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => StartReply(selectedMessage)" aria-label="Reply to message">
+                                Reply
+                            </FluentButton>
+                            <FluentButton class="myAccentBtn" Disabled="isSendingEmail" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="() => SendToEmail(selectedMessage)" aria-label="Forward to your E-mail">
+                                @(isSendingEmail ? "Sending..." : "My E-Mail")
+                            </FluentButton>
+                            <FluentButton class="myAccentBtn" BackgroundColor="var(--pulse-accent-btn-bg)" Color="var(--pulse-accent-btn-colour)" @onclick="ArchiveMsg" Disabled=@(selectedMessage.Delivered == true || isSendingEmail ? true : false) aria-label="Archive message">
+                                Archive
+                            </FluentButton>
+                        </FluentStack>
+
+                        <FluentStack Orientation="MsFluent.Orientation.Horizontal" VerticalAlignment="MsFluent.VerticalAlignment.Center" VerticalGap="0" Style="padding-bottom: 5px; border-bottom: 1px solid var(--pulse-dark-colour)">
+                            <FluentLabel Style="width: 100px; font-weight: 600;">Subject:</FluentLabel>
+                            <FluentLabel>@selectedMessage.Subject</FluentLabel>
+                        </FluentStack>
+
+                        <!-- Message Content -->
+                        <div style="border-top: 1px solid var(--neutral-stroke-divider); padding-top: 5px;margin-bottom: 5px;padding-bottom:5px; margin-top: 5px;flex: 1;overflow: auto;">
+                            <p style="white-space: pre-wrap; word-wrap: break-word; color: var(--neutral-foreground-rest);">@((MarkupString)ParseToHtml(@selectedMessage.Content))</p>
+                        </div>
+                </FluentStack>
+                </FluentCard>
+            }
+            else
+            {
+                <FluentCard class="divShadow" Style="padding: 40px; text-align: center;">
+                    <FluentLabel Typo="Typography.Body">Select a message from the inbox to view its content</FluentLabel>
+                </FluentCard>
+            }
+                </div>
+            </div>
+
+            <!-- Right Sidebar - User Presence List -->
+<div style="width: 280px; border-left: 1px solid var(--neutral-stroke-divider); display: flex; flex-direction: column; background-color: var(--pulse-light-2-colour);">
+                <!-- Header -->
+                <div style="padding: 16px; border-bottom: 1px solid var(--neutral-stroke-divider);">
+                    <FluentLabel Typo="Typography.PageTitle" Style="color: var(--pulse-dark-colour);">Users</FluentLabel>
+                </div>
+
+                <!-- User Presence List -->
+                <div style="flex: 1; overflow-y: auto; padding: 8px; ">
+                    <UserPresenceList OnUserSelected="OnPresenceUserSelected" />
+                </div>
+                        </div>
+                    </div>
+    <div style="width:100%;height:56px;background-color:var(--pulse-dark-colour) !important;" />
+                @* </CascadingValue> *@
+@* <FluentDialogProvider /> *@
+
+@code {
+    private enum MessageFilter { Active, Archived }
+    private enum ComposeMode { None, Reply, NewMessage }
+
+    [Parameter]
+    public Action<bool>? OnCloseDrawer { get; set; }
+
+    private List<PulseMessage>? messages;
+    private PulseMessage? selectedMessage;
+    private PulseMessage? composingMessage;
+    private ComposeMode composeMode = ComposeMode.None;
+    private string currentUserId = string.Empty;
+    private bool fltrPulseAI = true;
+    private bool fltrUsers = true;
+    private bool fltrStreams = true;
+    private bool fltrNotify = true;
+    private bool showFilterMenu = false;
+    private bool isSendingEmail = false;
+    private List<UserPresenceDto> presenceList = new();
+    private MessageFilter messageFilter = MessageFilter.Active;
+
+    private List<PulseMessage> filteredMessages =>
+    messages?.Where(m =>
+        (messageFilter == MessageFilter.Active ? m.Delivered != true : m.Delivered == true) &&
+        (fltrPulseAI && m.Role.ToLower() == "pulseai" ||
+         fltrUsers && m.Role.ToLower() == "user" ||
+         fltrStreams && m.Role.ToLower() == "stream" ||
+         fltrNotify && m.Role.ToLower() == "notification")
+    ).ToList() ?? new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Ensure connection
+        await MsgHubService.EnsureConnectedAsync();
+
+        // Subscribe to events
+        MsgHubService.OnReceiveMessage += HandleReceiveMessage;
+        MsgHubService.OnPresenceListUpdated += HandlePresenceListUpdated;
+
+        // Get current user ID
+        currentUserId = _authService.aspireUserId;
+
+        // Load initial messages
+        await LoadMessagesAsync();
+    }
+
+    private async Task LoadMessagesAsync()
+    {
+        // Wait a moment for MasterLayout to load messages via SignalR and save to DataTransferService
+        await Task.Delay(1500);
+        messages = await dataTrf.GetgvUserMessages();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void SetMessageFilter(MessageFilter filter)
+    {
+        messageFilter = filter;
+        // Clear selected message when switching filters
+        selectedMessage = null;
+        StateHasChanged();
+    }
+
+    private async Task ArchiveMsg()
+    {
+        await MsgHubService.MarkMessageAsDeliveredAsync(selectedMessage.Id);
+        selectedMessage.Delivered = true;
+        SetMessageFilter(messageFilter);
+    }
+
+    private void HandleReceiveMessage(PulseMessage msg)
+    {
+        if (messages != null)
+        {
+            InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void HandlePresenceListUpdated(List<UserPresenceDto> list)
+    {
+        presenceList = list;
+        InvokeAsync(StateHasChanged);
+    }
+
+    private void SelectMessage(PulseMessage msg)
+    {
+        selectedMessage = msg;
+        composeMode = ComposeMode.None;
+        composingMessage = null;
+    }
+
+    private void StartReply(PulseMessage msgToReplyTo)
+    {
+        if (msgToReplyTo.Role.ToLower() == "pulseai")
+        {
+            var m = "I'm sorry, I can't receive replies to messages.";
+            PulseToastService.ShowToast("Information", m, true, true, msgToReplyTo.SenderUserName);
+            Global_AI.AISpeak(m, msgToReplyTo.SenderUserName);
+            return;
+        }
+
+        var sub = msgToReplyTo.Subject.StartsWith("RE: ") ? msgToReplyTo.Subject : "RE: " + msgToReplyTo.Subject;
+
+        composingMessage = new PulseMessage
+        {
+            RecipientUserId = msgToReplyTo.SenderUserId,
+            RecipientUserName = msgToReplyTo.SenderUserName,
+            SenderUserId = currentUserId,
+            Subject = sub,
+            SenderUserName = _authService.aspireFullName,
+            Content = "",
+            Role = "User"
+        };
+
+        composeMode = ComposeMode.Reply;
+    }
+
+    private void StartNewMessage()
+    {
+        composingMessage = new PulseMessage
+        {
+            RecipientUserId = "",
+            RecipientUserName = "",
+            SenderUserId = currentUserId,
+            SenderUserName = _authService.aspireFullName,
+            Subject = "",
+            Content = "",
+            Role = "User"
+        };
+
+        composeMode = ComposeMode.NewMessage;
+    }
+
+    private void CancelCompose()
+    {
+        composeMode = ComposeMode.None;
+        composingMessage = null;
+    }
+
+    private async Task SendComposedMessage()
+    {
+        if (composingMessage == null || string.IsNullOrWhiteSpace(composingMessage.Content))
+        {
+            return;
+        }
+
+        isSendingEmail = true;
+
+        try
+        {
+            if (composeMode == ComposeMode.Reply && selectedMessage != null)
+            {
+                composingMessage.Content += $"<br /><br /><p style='font-size:0.95em; font-weight:bold;'>{selectedMessage.SenderUserName} - ({selectedMessage.SentAt})</p><div style='color:#666666; font-style:italic; font-size:0.95em;'>{selectedMessage.Content}</div>";
+            }
+
+            await MsgHubService.SendPrivateMessageAsync(composingMessage);
+
+            PulseToastService.ShowToast("Success", "Message sent successfully");
+            await Global_AI.AISpeak("Your message has been sent", "PulseAI");
+
+            CancelCompose();
+        }
+        catch (Exception ex)
+        {
+            PulseToastService.ShowToast("Error", $"Failed to send message: {ex.Message}");
+            await Global_AI.AISpeak("There was an error sending your message", "PulseAI");
+        }
+        finally
+        {
+            isSendingEmail = false;
+        }
+    }
+
+    private async Task OnPresenceUserSelected(UserPresenceDto user)
+    {
+        composingMessage = new PulseMessage
+        {
+            RecipientUserId = user.UserId,
+            RecipientUserName = user.FullName,
+            Role = "User",
+            SenderUserId = currentUserId,
+            SenderUserName = _authService.aspireFullName,
+            Subject = "",
+            Content = ""
+        };
+
+        composeMode = ComposeMode.NewMessage;
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private string GenerateExportHeader(PulseMessage msgToSend)
+    {
+        var htmlHeader = "<div style=\"display:flex;width: 100% ; padding: 8px; border-bottom: 1px solid hsl(0,100%,20%); justify-content: start; \">";
+
+        switch (msgToSend.Role.ToLower())
+        {
+            case "pulseai":
+                if (msgToSend.SenderUserName.ToLower() == "ali")
+                {
+                    htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Ali.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Analysis By Ali</h3>";
+                }
+                else if (msgToSend.SenderUserName.ToLower() == "flapper")
+                {
+                    htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Flapper.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Conversations With Flapper</h3>";
+                }
+                else if (msgToSend.SenderUserName.ToLower() == "tables")
+                {
+                    htmlHeader += "<img src=\"https://hmtechnologies.org/Pulse/Aspire/Images/AI/Tables.jpg\" style=\"width:50px;height:50px;margin-right:10px\"><h3>Data Extraction By Tables</h3>";
+                }
+                break;
+            default:
+                break;
+        }
+        htmlHeader += "</div>";
+        return @htmlHeader;
+    }
+
+    private async Task SendToEmail(PulseMessage msgToSend)
+    {
+        bool isSuccess = false;
+        isSendingEmail = true;
+
+        try
+        {
+            var hdr = GenerateExportHeader(msgToSend);
+            var css = GetExportCss();
+            var htmlBodyContent = ParseToHtml(msgToSend.Content);
+            var msghtml = $"{css}{hdr}{htmlBodyContent}";
+
+            EMailMessage emsg = new EMailMessage
+            {
+                ToEMailAddress = _authService.aspireEmail,
+                ToEMailName = _authService.aspireFullName,
+                Subject = msgToSend.Subject ?? "Message From Pulse Aspire",
+                HtmlBody = msghtml
+            };
+
+            var result = await pApi.PostAsync<EMailMessage, ApiResponse>(ApiEndpoints.Utilities.SendEmail, emsg);
+            isSuccess = result?.Success == true;
+        }
+        catch (Exception ex)
+        {
+            isSuccess = false;
+        }
+        finally
+        {
+            if (isSuccess)
+            {
+                var Msg = "The message was forwarded to your email.";
+                PulseToastService.ShowToast("Success", Msg);
+                await Global_AI.AISpeak(Msg, "PulseAI");
+            }
+            else
+            {
+                var Msg = "There was an error forwarding the message.<br />Please try again.";
+                PulseToastService.ShowToast("Error", Msg);
+                await Global_AI.AISpeak(Msg, "PulseAI");
+            }
+            isSendingEmail = false;
+        }
+    }
+
+    private string GetExportCss()
+    {
+        return @"
+            <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20px; }
+                h1, h2, h3, h4, h5 { color: #660000; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+                th { background-color: #660000; color: white; padding: 8px; text-align: left; }
+                td { border: 1px solid #ddd; padding: 8px; }
+                tr:nth-child(even) { background-color: #f1f1f1; }
+                tr:hover { background-color: black; color: white; }
+            </style>";
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        MsgHubService.OnReceiveMessage -= HandleReceiveMessage;
+        MsgHubService.OnPresenceListUpdated -= HandlePresenceListUpdated;
+    }
+
+    private string ParseToHtml(string markdown)
+    {
+        var pipeline = new MarkdownPipelineBuilder().UseAdvancedExtensions().Build();
+        return Markdig.Markdown.ToHtml(markdown, pipeline);
+    }
+}

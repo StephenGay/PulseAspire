@@ -36,6 +36,14 @@ fluent-dialog {
     z-index: 10000 !important;
     pointer-events: auto !important;
 }
+
+.rz-dialog-wrapper {
+    z-index: 10000 !important;
+}
+.rz-dialog {
+    z-index: 10000 !important;
+    pointer-events: auto !important;
+}
 /* Fluent UI default overlay z-index */
 ::backdrop {
     z-index: 9998 !important;

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using Pulse.Models.AI.Flapper;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Dtos.Production;
 using Pulse.Web.Services;
 using System;
 using System.Threading;
@@ -20,6 +21,7 @@ public class MessageHubService : IAsyncDisposable
     private readonly IConfiguration _configuration;
     private readonly AuthService _authService;
     private readonly ILogger<MessageHubService> _logger;
+    private readonly AppState _appState;
     private readonly SemaphoreSlim _connectionLock = new(1, 1);
     private bool _disposed = false;
 
@@ -31,15 +33,19 @@ public class MessageHubService : IAsyncDisposable
     public event Action<List<PulseMessage>>? OnLoadHistory;
     public event Action<List<UserPresenceDto>>? OnPresenceListUpdated;
     public event Action<TablesProgressUpdate>? OnTablesProgressUpdate;
+    public event Action<ProductionStreamMessageDto>? OnProductionStreamBroadcast;
+    public event Action<string>? OnReceiveSystemStreamMessage;
 
     public MessageHubService(
         IConfiguration configuration,
         AuthService authService,
-        ILogger<MessageHubService> logger)
+        ILogger<MessageHubService> logger,
+        AppState appState)
     {
         _authService = authService;
         _configuration = configuration;
         _logger = logger;
+        _appState = appState;
     }
 
     public async Task EnsureConnectedAsync()
@@ -108,6 +114,29 @@ public class MessageHubService : IAsyncDisposable
                     }
                 });
 
+                _hubConnection.On<ProductionStreamMessageDto>("ProductionStreamBroadcast", msg =>
+                {
+                    try
+                    {
+                        OnProductionStreamBroadcast?.Invoke(msg);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger?.LogError(ex, "Error handling ProductionStreamBroadcast");
+                    }
+                });
+
+                //_hubConnection.On<RealtimePolymorphicMessage>("ReceiveMessageFromApiHub", msg =>
+                //{
+                //    try
+                //    {
+                //        OnReceiveMessage?.Invoke(msg);
+                //    }
+                //    catch (Exception ex)
+                //    {
+                //        _logger?.LogError(ex, "Error handling ReceiveMessage");
+                //    }
+                //});
                 _hubConnection.On<FlapperResponse>("FlapperChatResponse", response =>
                 {
                     try

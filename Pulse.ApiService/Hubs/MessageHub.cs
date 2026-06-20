@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using Pulse.Models.AI.Flapper;
 using Pulse.Models.Communication;
 using Pulse.Models.CustomComponents;
+using Pulse.Models.Dtos.Production;
 using Pulse.Models.PulseContext;
 using Pulse.Models.Users;
 using System;
@@ -35,6 +36,118 @@ public class MessageHub : Hub
         _dbFactory = dbFactory;
         _logger = logger;
     }
+
+#region Connection Management
+    public override async Task OnConnectedAsync()
+    {
+        try
+        {
+            var userClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)
+                 ?? Context.User?.FindFirst(JwtRegisteredClaimNames.Sub);
+
+            if (userClaim == null || string.IsNullOrEmpty(userClaim.Value))
+            {
+                // Log and abort connection if no valid user ID claim
+                // Optional: _logger.LogWarning("SignalR connection attempted without valid user ID claim");
+                //Context.Abort();
+                _logger.LogWarning("SignalR connection attempted without valid user ID claim");
+                Context.Abort();
+                return;
+            }
+
+            var userId = userClaim.Value;
+
+            var user = await _userManager.FindByIdAsync(userId);
+            var userName = user?.Email ?? user?.UserName ?? "Anonymous";
+            var userFullName = user?.FullName ?? user?.Email ?? user?.UserName ?? "Anonymous";
+            _presenceService.AddConnection(userId, Context.ConnectionId, userName);
+
+            // AUTO-SET to Available on connect (if not explicitly set by client)
+            if (user != null && user.PresenceStatus == PresenceStatus.Offline)
+            {
+                user.PresenceStatus = PresenceStatus.Available;
+                var result = await _userManager.UpdateAsync(user);
+                if (!result.Succeeded)
+                {
+                    _logger.LogWarning("Failed to auto-set presence to Available for {UserId}", userId);
+                }
+            }
+
+            // Broadcast updated presence
+            await BroadcastPresenceAsync();
+
+            // Load private history for caller
+            using var db = await _dbFactory.CreateDbContextAsync();
+            var history = await db.PulseMessages
+                .Where(m => m.RecipientUserId == userId)
+                .OrderBy(m => m.SentAt)
+                //.Take(100)
+                .ToListAsync();
+
+            await Clients.Caller.SendAsync("LoadHistory", history);
+
+            
+
+            // Add User to subscribed System Data Streams (if any)
+
+            var userSystemStreams = await db.AspNetUserStreams
+                .Where(uss => uss.ApplicationUserID == userId)
+                .ToListAsync();
+
+            foreach (var stream in userSystemStreams)
+            {
+                if(stream.StreamType == StreamType.System)
+                { 
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"0_{stream.StreamID}_{stream.StreamDivisionID}");
+                    await Clients.OthersInGroup($"0_{stream.StreamID}_{stream.StreamDivisionID}").SendAsync("ReceiveSystemStreamMessage", "System", $"{userFullName} has joined the stream.");
+                    _logger.LogDebug($"{userFullName} has joined the stream.\n0_{stream.StreamID}_{stream.StreamDivisionID}\n{stream.StreamName}");
+                }
+                else if(stream.StreamType == StreamType.ChatGroup)
+                {
+                    await Groups.AddToGroupAsync(Context.ConnectionId, $"1_{stream.StreamID}_{stream.StreamDivisionID}");
+                    await Clients.OthersInGroup($"1_{stream.StreamID}_{stream.StreamDivisionID}").SendAsync("ReceiveGroupChatMessage", "System", $"{userFullName} has joined the group.");
+                }
+            }
+            await base.OnConnectedAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during OnConnectedAsync");
+        }
+
+        await base.OnConnectedAsync();
+    }
+    
+    public override async Task OnDisconnectedAsync(Exception? exception)
+    {
+        try
+        {
+            var userId = _presenceService.GetUserIdFromConnection(Context.ConnectionId);
+            _presenceService.RemoveConnection(Context.ConnectionId);
+
+            // If user has no more connections, mark as Offline in database
+            if (userId != null && !_presenceService.IsUserOnline(userId))
+            {
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user != null)
+                {
+                    user.PresenceStatus = PresenceStatus.Offline;
+                    await _userManager.UpdateAsync(user);
+                    _logger.LogInformation("User {UserId} marked offline (no connections)", userId);
+                }
+            }
+
+            await BroadcastPresenceAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during OnDisconnectedAsync");
+        }
+
+        await base.OnDisconnectedAsync(exception);
+    }
+
+#endregion
 
     // Clients will call this to send a message
     public async Task SendMessage(PulseMessage msg)
@@ -96,6 +209,12 @@ public class MessageHub : Hub
         await Clients.Group(groupName).SendAsync("ReceiveMessage", user, message);
     }
 
+    public async Task ProductionStreamBroadcast(ProductionStreamMessageDto productionStreamMessageDto)
+    {
+        // Broadcast progress update to all clients (or you could target specific users/groups)
+        await Clients.Group(productionStreamMessageDto.ProductionGroupName).SendAsync("ProductionStreamBroadcast", productionStreamMessageDto);
+        _logger.LogDebug("Broadcasting Production stream message: {ProductionGroupName} - {Status}", productionStreamMessageDto.ProductionGroupName, productionStreamMessageDto.Status);
+    }
     public async Task TablesProgressUpdate(TablesProgressUpdate update)
     {
         // Broadcast progress update to all clients (or you could target specific users/groups)
@@ -213,118 +332,7 @@ public class MessageHub : Hub
 
         return presenceList;
     }
-    public override async Task OnConnectedAsync()
-    {
-        try
-        {
-            var userClaim = Context.User?.FindFirst(ClaimTypes.NameIdentifier)
-                 ?? Context.User?.FindFirst(JwtRegisteredClaimNames.Sub);
-
-            if (userClaim == null || string.IsNullOrEmpty(userClaim.Value))
-            {
-                // Log and abort connection if no valid user ID claim
-                // Optional: _logger.LogWarning("SignalR connection attempted without valid user ID claim");
-                //Context.Abort();
-                return;
-            }
-
-            var userId = userClaim.Value;
-
-            var user = await _userManager.FindByIdAsync(userId);
-            var userName = user?.Email ?? user?.UserName ?? "Anonymous";
-
-            _presenceService.AddConnection(userId, Context.ConnectionId, userName);
-
-            // AUTO-SET to Available on connect (if not explicitly set by client)
-            if (user != null && user.PresenceStatus == PresenceStatus.Offline)
-            {
-                user.PresenceStatus = PresenceStatus.Available;
-                var result = await _userManager.UpdateAsync(user);
-                if (!result.Succeeded)
-                {
-                    _logger.LogWarning("Failed to auto-set presence to Available for {UserId}", userId);
-                }
-            }
-
-            // Broadcast updated presence
-            await BroadcastPresenceAsync();
-
-            // Load private history for caller
-            using var db = await _dbFactory.CreateDbContextAsync();
-            var history = await db.PulseMessages
-                .Where(m => m.RecipientUserId == userId)
-                .OrderBy(m => m.SentAt)
-                //.Take(100)
-                .ToListAsync();
-
-            await Clients.Caller.SendAsync("LoadHistory", history);
-
-            await base.OnConnectedAsync();
-            //var userId = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-            ////if (!string.IsNullOrEmpty(userId))
-            ////{
-            //    var user = await _userManager.GetUserAsync(Context.User);
-            //    var userName = user?.Email ?? user?.UserName ?? "Anonymous";
-
-            //    _presenceService.AddConnection(userId, Context.ConnectionId, userName);
-
-            //    // Broadcast updated presence to ALL clients
-            //    var onlineUsers = _presenceService.GetOnlineUsers();
-            //    await Clients.All.SendAsync("PresenceUpdated", onlineUsers);
-            //    await Clients.Caller.SendAsync("Connected", $"Welcome! Your ConnectionId: {Context.ConnectionId}");
-            //    _logger.LogInformation("User {UserId} connected with ConnectionId {ConnectionId}", userId, Context.ConnectionId);
-            //}
-            //else
-            //{
-            //    // If anonymous (shouldn't happen for authorized hub), still notify caller.
-            //    await Clients.Caller.SendAsync("Connected", $"Welcome! Your ConnectionId: {Context.ConnectionId}");
-            //    _logger.LogInformation("Anonymous connection with ConnectionId {ConnectionId}", Context.ConnectionId);
-            //}
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during OnConnectedAsync");
-        }
-
-        await base.OnConnectedAsync();
-    }
-    //public async Task<string?> GetUserFullName()
-    //{
-    //    var userId = Context.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-    //    //if (!string.IsNullOrEmpty(userId))
-    //    //{
-    //    var user = await _userManager.GetUserAsync(Context.User);
-    //    var userName = user?.FullName ?? user?.UserName ?? "Unknown";
-    //    return userName;
-    //}
-    public override async Task OnDisconnectedAsync(Exception? exception)
-    {
-        try
-        {
-            var userId = _presenceService.GetUserIdFromConnection(Context.ConnectionId);
-            _presenceService.RemoveConnection(Context.ConnectionId);
-
-            // If user has no more connections, mark as Offline in database
-            if (userId != null && !_presenceService.IsUserOnline(userId))
-            {
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user != null)
-                {
-                    user.PresenceStatus = PresenceStatus.Offline;
-                    await _userManager.UpdateAsync(user);
-                    _logger.LogInformation("User {UserId} marked offline (no connections)", userId);
-                }
-            }
-
-            await BroadcastPresenceAsync();
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during OnDisconnectedAsync");
-        }
-
-        await base.OnDisconnectedAsync(exception);
-    }
+    
 
     public async Task MarkMessageAsDeliveredAsync(int messageId)
     {

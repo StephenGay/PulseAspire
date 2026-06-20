@@ -13,10 +13,11 @@
 @inject Global_AI_Functions woGlobal_AI
 @inject PulseApiService pApiClient
 @inject DataTransferService dataTrf
-@inject AppState AppState
+@inject AppState wipAppState
 @inject IDialogService DialogService
 @inject IJSRuntime JS
 @inject ContextMenuService ContextMenuService
+@* @implements IDisposable *@
 @rendermode InteractiveServer
 
 <style>
@@ -100,7 +101,7 @@
         </FluentStack>
     </div> *@
     
-    @if (wipItems is null)
+    @if (wipItems is null || isLoading)
     {
         <div class="div-center-screen">
             <FluentProgressRing />
@@ -217,6 +218,28 @@
     private string filterStage = string.Empty;
     private bool showFilter = false;
 
+    protected override void OnInitialized()
+    {
+        wipAppState.OnProductionChange += async () =>
+        {
+            isLoading = true;
+            // await InvokeAsync(StateHasChanged);
+            try
+            {
+                wipItems = await pApiClient.GetAsync<List<WorkInProgressDto>>($"/Divisions/{Division.DivisionID}/GetWIP");
+                await dataTrf.SetgvSelectedDivisionWIP(wipItems);
+            }
+            catch (Exception ex)
+            {
+                await JS.InvokeVoidAsync("alert", $"Error refreshing WIP: {ex.Message}");
+            }
+            finally
+            {
+                isLoading = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        };
+    }
     protected override async Task OnInitializedAsync()
     {
         try
@@ -226,14 +249,18 @@
             ShowAiIcon showAi = new ShowAiIcon();
             showAi.showAli = true;
             await dataTrf.SetgvShowAI(showAi);
-            await AppState.NotifyStateChanged();
+            await wipAppState.NotifyStateChanged();
+            
         }
         catch (Exception ex)
         {
             await JS.InvokeVoidAsync("alert", $"Error loading WIP: {ex.Message}");
         }
     }
-
+    // public void Dispose()
+    // {
+    //     wipAppState.OnProductionChange -= RefreshData;
+    // }
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
@@ -246,6 +273,26 @@
             isLoading = false;
             StateHasChanged();
         }
+    }
+
+    private async Task RefreshData()
+    {
+        // isLoading = true;
+        // await InvokeAsync(StateHasChanged);
+        // try
+        // {
+        //     wipItems = await pApiClient.GetAsync<List<WorkInProgressDto>>($"/Divisions/{Division.DivisionID}/GetWIP");
+        //     await dataTrf.SetgvSelectedDivisionWIP(wipItems);
+        // }
+        // catch (Exception ex)
+        // {
+        //     await JS.InvokeVoidAsync("alert", $"Error refreshing WIP: {ex.Message}");
+        // }
+        // finally
+        // {
+        //     isLoading = false;
+        //     await InvokeAsync(StateHasChanged);
+        // }
     }
 
     private async Task OnCellContextMenu(DataGridCellMouseEventArgs<WorkInProgressDto> args)
