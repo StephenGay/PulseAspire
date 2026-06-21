@@ -1,50 +1,76 @@
-﻿@using Microsoft.FluentUI.AspNetCore.Components
-@using Pulse.Models.Customers
-@using Pulse.Models.Organizational
-@using Pulse.Web.Services
-@using BootstrapBlazor
-@using BootstrapBlazor.Components
-@using static Microsoft.FluentUI.AspNetCore.Components.Icons.Filled.Size16
-@inject DataTransferService dataTrf
-@inject Pulse.Web.Services.Pulse_AI pAI
-@inherits LayoutComponentBase
-@layout MasterLayout
+﻿@inherits LayoutComponentBase
 
+@using Microsoft.AspNetCore.Components.Authorization
+@using Pulse.Models.Api
+@using Pulse.Models.Dtos.Production
+@using Pulse.Models.Organizational
+@using Pulse.Models.Production.Layout
+@using Pulse.Web.Services
+
+
+@inject DataTransferService dTrf
+@inject PulseApiService pApiClient
+@inject ProductionStateService State
+@inject MessageHubService msgHubService
+
+@layout MasterLayout
+@rendermode InteractiveServer
 
 <div class="PulseZoneParent">
-    <div class="PulseZoneMenubar">
-        <Production_Nav_Menu />
-    </div>
-    <div class="PulseZoneContent">
-        @Body
-    </div>
+    <CascadingValue Value="State">
+        <div class="PulseZoneMenubar">
+            <Production_Nav_Menu />
+        </div>
+        <div class="PulseZoneContent">
+            @Body
+        </div>
+    </CascadingValue>
 </div>
 
 @code{
-    private Customer? _customer;
-    
+    [CascadingParameter]
+    public MasterLayout masterLayout { get; set; } = default!;
+
     private bool isLoading = true;
-    private string _AnalysisResp = string.Empty;
-    private bool showAnalysis = false;
-    
-    private bool showingBody = true;
-    private bool startAni = false;
-    
+    private Division? d;
+    private List<FactoryZone> zones = new();
+    private List<ProductionPlanDto> productionPlanItems = new();
+
     protected override async Task OnInitializedAsync()
     {
-        // await GetClientInfo();
-        isLoading = false;
+        await RefreshData();
+
+         // Attach a handler that matches Action<ProductionStreamMessageDto>
+        msgHubService.OnProductionStreamBroadcast += HandleProductionStreamMessage;
     }
 
-    // private async Task GetClientInfo()
-    // {
-        
-    //     Customer check = await dataTrf.GetgvSelectedClient();
-    //     if (check.ClientSales == null)
-    //     {
-    //         check.ClientSales = await pAI.GetClientSalesAsync(check.FullClientID);
-    //         await dataTrf.SetgvSelectedClient(check);
-    //     }
-    //     _customer = check;
-    // }
+    /// <summary>
+    /// Event‑handler invoked when the message hub broadcasts a
+    /// ProductionStreamMessageDto.  The payload is ignored – we simply
+    /// reload data.
+    /// </summary>
+    private async void HandleProductionStreamMessage(ProductionStreamMessageDto _)
+    {
+        await RefreshData();
+    }
+
+    private async Task RefreshData()
+    {
+        isLoading = true;
+        d = await dTrf.GetgvSelectedDivision();
+
+        var zonesResponse =
+            await pApiClient.GetAsync<ApiResponse<List<FactoryZone>>>(
+                ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAllWithSubzones(d!.DivisionID));
+
+        State.UpdateZones(zonesResponse?.Data ?? new());
+
+        var planResponse =
+            await pApiClient.GetAsync<ApiResponse<List<ProductionPlanDto>>>(
+                ApiEndpoints.Production.WorkInProgress.ByDivision.Plan.GetTodaysItems(d.DivisionID));
+
+        State.UpdateProductionPlanItems(planResponse?.Data ?? new());
+
+        isLoading = false;
+    }
 }

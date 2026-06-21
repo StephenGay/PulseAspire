@@ -60,6 +60,7 @@ builder.Services.AddSingleton<IMouseService, MouseService>();
 builder.Services.AddScoped<PulseThemeService>();
 builder.Services.AddScoped<PulseThemeService_v2>();
 builder.Services.AddScoped<IHtmlCaptureService, HtmlCaptureService>();
+builder.Services.AddScoped<ProductionStateService>();
 #endregion
 
 #region HttpClients (Consolidated)

@@ -415,6 +415,29 @@ fluent-dialog {
         transform: translateY(0);
     }
 
+/*#region Factory Zone Formatting*/
+
+/* Pulsing red border for zones behind schedule */
+.zone-behind {
+    animation: pulse-behind 1.6s infinite ease-in-out;
+    stroke: #ef4444 !important;
+    stroke-opacity: 0.95;
+}
+
+@keyframes pulse-behind {
+    0%, 100% {
+        stroke-width: 3.5;
+        stroke-opacity: 0.95;
+    }
+
+    50% {
+        stroke-width: 6.5;
+        stroke-opacity: 0.6;
+    }
+}
+
+/*#endregion Factory Zone Formatting*/
+
 /*#region Radzen Table Formatting*/
 
 .rz-grid-table{

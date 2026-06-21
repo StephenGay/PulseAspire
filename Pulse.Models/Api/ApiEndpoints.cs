@@ -241,6 +241,7 @@ namespace Pulse.Models.Api
                         {
                             private const string ZonesSuffix = $"{FactoryLayoutSuffix}/Zones";
                             public static string GetAll(string divisionId, string parentId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/{Uri.EscapeDataString(parentId)}/GetAll";
+                            public static string GetAllWithSubzones(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/GetAllWithSubzones";
                             public static string Create(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/Create";
                             public static string Update(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/Update";
                             public static string Save(string divisionId) => $"{WithDivisionIDPrefix}/{Uri.EscapeDataString(divisionId)}{ZonesSuffix}/Save";

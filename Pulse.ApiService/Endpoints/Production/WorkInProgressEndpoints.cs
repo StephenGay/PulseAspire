@@ -138,7 +138,8 @@ internal static class WorkInProgressEndpoints
                     ClosedByUserID = wo.ClosedByUserID,
                     Status = wo.Status,
                     IsPulsePlan = wo.IsPulsePlan,
-                    WoAtStep = wo.WorksOrder != null && wo.WorksOrder.ProductionStage != null ? wo.WorksOrder.ProductionStage.StepNo : 0
+                    WoAtStep = wo.WorksOrder != null && wo.WorksOrder.ProductionStage != null ? wo.WorksOrder.ProductionStage.StepNo : 0,
+                    RequiredDate = wo.WorksOrder != null ? wo.WorksOrder.RequiredDate : null
                 });
             };
 

@@ -80,6 +80,11 @@ namespace Pulse.ApiService.Endpoints
                 .Produces<ApiResponse<List<FactoryZone>>>(StatusCodes.Status200OK)
                 .Produces(StatusCodes.Status500InternalServerError);
 
+            group.MapGet("/WithDivisionID/{divisionid}/Factory/FactoryLayout/Zones/GetAllWithSubzones", GetAllDivisionFactoryLayoutZonesWithSubzones)
+                .WithName("GetAllDivisionFactoryLayoutZonesWithSubzones")
+                .Produces<ApiResponse<List<FactoryZone>>>(StatusCodes.Status200OK)
+                .Produces(StatusCodes.Status500InternalServerError);
+
             group.MapPost("/WithDivisionID/{divisionid}/Factory/FactoryLayout/{parentId}/SaveLayout", SaveFactoryLayout)
                 .WithName("SaveFactoryLayout")
                 .Produces<ApiResponse>(StatusCodes.Status200OK)
@@ -834,6 +839,36 @@ private static async Task<IResult> SaveFactoryLayout(
             }
         }
 
+        private static async Task<IResult> GetAllDivisionFactoryLayoutZonesWithSubzones(
+            string divisionid,
+            PulseDbContext db,
+            ILoggerFactory loggerFactory)
+        {
+            var logger = loggerFactory.CreateLogger("GetAllDivisionFactoryLayoutZonesWithSubzones");
+
+            try
+            {
+                var zones = await db.FactoryZones
+                    .AsNoTracking()
+                    .Where(wc => wc.DivisionId == divisionid)
+                    .ToListAsync();
+
+                if (zones == null) { zones = new List<FactoryZone>(); }
+
+                return Results.Ok(new ApiResponse<List<FactoryZone>>
+                {
+                    Success = true,
+                    Data = zones,
+                    Message = $"Retrieved {zones.Count} factory layout zones",
+                    StatusCode = 200
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error retrieving the divisions factory layout zones");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        }
         private static async Task<IResult> UpdateDivisionWorkCentre(
             WorkCentre workCentre,
             PulseDbContext db,

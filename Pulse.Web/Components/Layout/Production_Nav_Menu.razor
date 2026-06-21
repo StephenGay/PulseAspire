@@ -1,6 +1,7 @@
 ﻿@using Microsoft.FluentUI.AspNetCore.Components
 @using Pulse.Models.Users
 @using Pulse.Web.Components.Pages.EmployeeZone.Production.Dialogs
+@using Pulse.Web.Components.Pages.EmployeeZone.Production.Planning
 @using Pulse.Web.Components.Pages.EmployeeZone.Production.Setup.Factory.FactoryLayout
 @using Pulse.Web.Services
 @inject DataTransferService dtrf
@@ -9,7 +10,7 @@
                 
     <FluentStack Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center" Style="height: 100%; width:50%;">
         <FluentAppBar Style="height: 90%;width:100%; color:white; background-color: rgba(0,0,0,0); align-items:center" Orientation="Microsoft.FluentUI.AspNetCore.Components.Orientation.Horizontal" VerticalAlignment="VerticalAlignment.Center">
-            <FluentAppBarItem Href="/EmployeeZone/Production/ProductionDashboard"
+            <FluentAppBarItem Href="/EmployeeZone/Production/Planning/PlanDashboard"
                                         Match="NavLinkMatch.All"
                                         IconRest="DashboardIcon()"
                                         IconActive="DashboardIcon(active: true)"
@@ -80,6 +81,11 @@
     <FluentStack Orientation="MsFluent.Orientation.Horizontal" Style="width:100%;height:60px;background-color:var(--pulse-dark-colour);padding:10px" HorizontalAlignment="HorizontalAlignment.Start" VerticalAlignment="VerticalAlignment.Center">
         <FluentLabel Typo="Typography.H3" Color="MsFluent.Color.Custom" CustomColor="var(--pulse-light-colour)">Production Plan For @DateTime.Today.ToString("dd-MM-yy")</FluentLabel>
         <FluentSpacer />
+        <FluentButton class=@(pView == ProductionView.Dashboard ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
+                      Color="var(--pulse-mode-btn-item-colour)" Style="height:40px;margin-right:10px"
+                      OnClick="() => ChangeView(ProductionView.Dashboard)">
+            Dashboard
+        </FluentButton>
         <FluentButton class=@(pView == ProductionView.FactoryLayout ? "myModeBtnOn" : "myModeBtnOff") BackgroundColor="var(--pulse-mode-btn-bg)"
                       Color="var(--pulse-mode-btn-item-colour)" Style="height:40px;margin-right:10px"
                       OnClick="() => ChangeView(ProductionView.FactoryLayout)">
@@ -95,27 +101,33 @@
                         IconStart="@(new Icons.Filled.Size32.DismissSquare().WithColor(Microsoft.FluentUI.AspNetCore.Components.Color.Error))" data-bs-dismiss="offcanvas">
         </FluentButton>
     </FluentStack> @* Style="height:calc(100vh - 60px);" *@
-    @if(pView == ProductionView.DataGrid)
+    @if (pView == ProductionView.DataGrid)
     {
         <Animation Effect="@(pChangeTo == ProductionView.DataGrid ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100vh - 60px);" OnAnimationEnd="@(() => EndAnimation(ProductionView.DataGrid))">
             <TodaysPlan />                    
         </Animation>
     }
 
-    else if(pView == ProductionView.FactoryLayout)
+    else if (pView == ProductionView.FactoryLayout)
     {
         <Animation Effect="@(pChangeTo == ProductionView.FactoryLayout ? Effect.BounceInUp : Effect.BounceOutDown)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100vh - 60px);" OnAnimationEnd="@(() => EndAnimation(ProductionView.FactoryLayout))">
             <FactoryLayout />
         </Animation>
     }
-    
+    else if (pView == ProductionView.Dashboard)
+    {
+        <Animation Effect="@(pChangeTo == ProductionView.Dashboard ? Effect.FadeIn : Effect.FadeOut)" Enabled="@startAni" Speed="@Speed.Slow" Style="height:calc(100vh - 60px);" OnAnimationEnd="@(() => EndAnimation(ProductionView.Dashboard))">
+            <PlanDashboard />
+        </Animation>
+    }
+
     
 </div>
 
 @code
 {
-    private ProductionView pView = ProductionView.DataGrid;
-    private ProductionView pChangeTo = ProductionView.DataGrid;
+    private ProductionView pView = ProductionView.Dashboard;
+    private ProductionView pChangeTo = ProductionView.Dashboard;
     private string mnuActive = "Dashboard";
     private bool startAni = false;
     #region AppBar Icons
@@ -173,6 +185,7 @@
     private enum ProductionView
     {
         DataGrid,
-        FactoryLayout
+        FactoryLayout,
+        Dashboard
     } 
 }

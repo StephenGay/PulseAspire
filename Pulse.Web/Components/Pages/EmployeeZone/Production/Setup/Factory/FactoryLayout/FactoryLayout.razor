@@ -12,7 +12,7 @@
 @inject GlobalFunctions gFunc
 @inject DataTransferService dTrf
 @inject IMouseService MouseService
-
+@inject ProductionStateService State
 @* @inject IDialogService DialogService *@
 @rendermode InteractiveServer
 
@@ -119,17 +119,30 @@
             preserveAspectRatio="xMidYMid meet"
             @onpointerdown="DeselectZoneOnSvgClick"
             style="background: white; display: block; user-select: none;">
-
-                @foreach (var zone in Zones)
+                @if (!IsEditMode)
                 {
-                    <DraggableZone 
-                    Zone="zone" 
-                    OnPositionChanged="UpdateZonePosition" 
-                    OnZoneSelected="SelectZone"
-                    SnapToGrid="SnapToGrid"
-                    IsEditMode="IsEditMode"
-                    IsSelected="@(selectedZone?.Id == zone.Id)"
-                    GetSvgPointFromMouse="ConvertClientToSvgCoordinates" />
+                    @foreach (var zone in Zones)
+                    {
+                        <DraggableZone Zone="zone"
+                                       IsEditMode="false"
+                                       OnZoneSelected="SelectZone"
+                                       IsSelected="@(selectedZone?.Id == zone.Id)"
+                                       SelectedZoneId="State.SelectedZoneId" />
+                    }
+                }
+                else
+                {
+                    @foreach (var zone in Zones)
+                    {
+                        <DraggableZone 
+                        Zone="zone" 
+                        OnPositionChanged="UpdateZonePosition" 
+                        OnZoneSelected="SelectZone"
+                        SnapToGrid="SnapToGrid"
+                        IsEditMode="IsEditMode"
+                        IsSelected="@(selectedZone?.Id == zone.Id)"
+                        GetSvgPointFromMouse="ConvertClientToSvgCoordinates" />
+                    }
                 }
             </svg>
         }
@@ -206,7 +219,7 @@
 @code {
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private Radzen.DialogService RadzenDialogService { get; set; } = default!;
-
+    [Parameter] public bool IsEditMode { get; set; } = false;
     private DotNetObjectReference<FactoryLayout>? dotNetRef;
     private bool isObserving;
     private ElementReference layoutContainer { get; set; }
@@ -217,7 +230,7 @@
     private double maxZoom = 5.0;
     private double panX = 0.0;   // in viewBox units
     private double panY = 0.0;
-    private bool IsEditMode { get; set; } = false;
+    // private bool IsEditMode { get; set; } = false;
     private bool isPanning;
     private bool openWC = false;
     private double startPanMouseX, startPanMouseY, startPanX, startPanY;
@@ -261,11 +274,29 @@
 
     private async Task LoadZonesForParent(string parentId)
     {
-        var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID, parentId));
-        AllZones = response?.Data ?? new();
+        if(!IsEditMode)
+        {
+            AllZones = State.Zones.Where(z => z.ParentZoneId == parentId).ToList();
+        }
+        else
+        {
+            var response = await ApiService.GetAsync<ApiResponse<List<FactoryZone>>>(ApiEndpoints.Divisions.WithDivisionID.Factory.FactoryLayout.Zones.GetAll(d.DivisionID, parentId));
+            AllZones = response?.Data ?? new();
+        }
+        
         Zones = AllZones.Where(z => z.IsPlotted).ToList();
         UnplottedZones = AllZones.Where(z => !z.IsPlotted).ToList();
         // StateHasChanged();
+    }
+
+    protected override void OnParametersSet()
+    {
+        if (IsEditMode)
+        {
+            State.ClearSelection();
+        }
+        LoadZonesForParent(layoutParentId);
+        StateHasChanged();
     }
 
     private async Task GoUpALevel()
